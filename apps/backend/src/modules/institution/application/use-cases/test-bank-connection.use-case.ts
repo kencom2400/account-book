@@ -1,0 +1,51 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { BankCredentials, BankConnectionTestResult } from '@account-book/types';
+import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
+import { BANK_API_ADAPTER } from '../../domain/adapters/bank-api.adapter.interface';
+
+export interface TestBankConnectionDto {
+  bankCode: string;
+  branchCode: string;
+  accountNumber: string;
+  apiKey?: string;
+  apiSecret?: string;
+}
+
+/**
+ * 銀行接続テストユースケース
+ */
+@Injectable()
+export class TestBankConnectionUseCase {
+  constructor(
+    @Inject(BANK_API_ADAPTER)
+    private readonly bankApiAdapter: IBankApiAdapter,
+  ) {}
+
+  async execute(
+    dto: TestBankConnectionDto,
+  ): Promise<BankConnectionTestResult> {
+    try {
+      // DTOをBankCredentialsに変換
+      const credentials: BankCredentials = {
+        bankCode: dto.bankCode,
+        branchCode: dto.branchCode,
+        accountNumber: dto.accountNumber,
+        apiKey: dto.apiKey,
+        apiSecret: dto.apiSecret,
+      };
+
+      // 銀行APIアダプターを使って接続テスト
+      const result = await this.bankApiAdapter.testConnection(credentials);
+
+      return result;
+    } catch (error) {
+      // エラーハンドリング
+      return {
+        success: false,
+        message: `接続テストに失敗しました: ${error.message}`,
+        errorCode: 'BE002',
+      };
+    }
+  }
+}
+
