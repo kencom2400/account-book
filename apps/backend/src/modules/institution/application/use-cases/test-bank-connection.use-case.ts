@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BankCredentials, BankConnectionTestResult } from '@account-book/types';
 import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { BANK_API_ADAPTER } from '../../domain/adapters/bank-api.adapter.interface';
+import { BankConnectionError } from '../../domain/errors/bank-connection.error';
 
 export interface TestBankConnectionDto {
   bankCode: string;
@@ -39,7 +40,16 @@ export class TestBankConnectionUseCase {
 
       return result;
     } catch (error) {
-      // エラーハンドリング
+      // BankConnectionErrorの場合はそのまま返す
+      if (error instanceof BankConnectionError) {
+        return {
+          success: false,
+          message: error.message,
+          errorCode: error.code,
+        };
+      }
+
+      // その他のエラーの場合は汎用エラー
       return {
         success: false,
         message: `接続テストに失敗しました: ${error.message}`,
