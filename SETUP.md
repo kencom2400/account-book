@@ -29,10 +29,10 @@ cp .env.example .env
 ```env
 NODE_ENV=development
 PORT=3001
-CRYPTO_KEY=your-secret-key-here-32-characters-long
+ENCRYPTION_KEY=your-secure-encryption-key-here-change-this-in-production
 ```
 
-**注意**: `CRYPTO_KEY`は32文字以上のランダムな文字列を設定してください。
+**注意**: `ENCRYPTION_KEY`は十分に長いランダムな文字列を設定してください。この鍵は金融機関の認証情報を暗号化するために使用されます。
 
 #### フロントエンド
 

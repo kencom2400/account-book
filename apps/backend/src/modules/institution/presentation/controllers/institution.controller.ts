@@ -15,13 +15,7 @@ import { InstitutionType } from '@account-book/types';
 class CreateInstitutionRequestDto {
   name: string;
   type: InstitutionType;
-  credentials: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-    algorithm?: string;
-    version?: string;
-  };
+  credentials: Record<string, any>; // 平文の認証情報（JSON形式）
 }
 
 class GetInstitutionsQueryDto {
