@@ -36,4 +36,3 @@ export enum TransactionStatus {
   FAILED = 'failed',
   CANCELLED = 'cancelled',
 }
-

@@ -18,5 +18,12 @@ export class DateUtils {
       month: date.getMonth() + 1,
     };
   }
-}
 
+  static getPreviousMonth(year: number, month: number): { year: number; month: number } {
+    const date = addMonths(new Date(year, month - 1), -1);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+    };
+  }
+}

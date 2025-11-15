@@ -6,9 +6,10 @@ export interface User {
   updatedAt: Date;
 }
 
-export interface UserPreferences {
+export interface UserSettings {
+  userId: string;
   currency: string;
   locale: string;
   timezone: string;
+  theme: 'light' | 'dark' | 'system';
 }
-

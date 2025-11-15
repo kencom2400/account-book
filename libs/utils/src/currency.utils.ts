@@ -9,5 +9,11 @@ export class CurrencyUtils {
   static parseAmount(value: string): number {
     return parseFloat(value.replace(/[^0-9.-]/g, ''));
   }
-}
 
+  static formatAmount(amount: number, decimals = 0): string {
+    return new Intl.NumberFormat('ja-JP', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(amount);
+  }
+}

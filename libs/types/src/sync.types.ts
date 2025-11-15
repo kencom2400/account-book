@@ -2,7 +2,7 @@ export interface SyncStatus {
   institutionId: string;
   status: 'idle' | 'syncing' | 'success' | 'error';
   lastSyncedAt?: Date;
-  errorMessage?: string;
+  error?: string;
 }
 
 export interface SyncResult {
@@ -11,5 +11,11 @@ export interface SyncResult {
   transactionsAdded: number;
   transactionsUpdated: number;
   error?: string;
+  syncedAt: Date;
 }
 
+export interface SyncConfig {
+  autoSync: boolean;
+  syncInterval: number; // minutes
+  syncTime?: string; // HH:mm format
+}

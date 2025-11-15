@@ -33,5 +33,9 @@ export class ValidationUtils {
 
     return sum % 10 === 0;
   }
-}
 
+  static isEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+}

@@ -27,4 +27,3 @@ export interface Pagination {
   hasNext: boolean;
   hasPrev: boolean;
 }
-

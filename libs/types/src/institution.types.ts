@@ -32,4 +32,3 @@ export interface EncryptedCredentials {
   algorithm: string;
   version: string;
 }
-
