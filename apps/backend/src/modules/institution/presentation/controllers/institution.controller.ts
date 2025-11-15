@@ -11,6 +11,24 @@ import { CreateInstitutionUseCase } from '../../application/use-cases/create-ins
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
 import { InstitutionType } from '@account-book/types';
 
+// DTOs
+class CreateInstitutionRequestDto {
+  name: string;
+  type: InstitutionType;
+  credentials: {
+    encrypted: string;
+    iv: string;
+    authTag: string;
+    algorithm?: string;
+    version?: string;
+  };
+}
+
+class GetInstitutionsQueryDto {
+  type?: InstitutionType;
+  isConnected?: string;
+}
+
 /**
  * 金融機関コントローラー
  */
@@ -57,23 +75,5 @@ export class InstitutionController {
       count: institutions.length,
     };
   }
-}
-
-// DTOs
-class CreateInstitutionRequestDto {
-  name: string;
-  type: InstitutionType;
-  credentials: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-    algorithm?: string;
-    version?: string;
-  };
-}
-
-class GetInstitutionsQueryDto {
-  type?: InstitutionType;
-  isConnected?: string;
 }
 

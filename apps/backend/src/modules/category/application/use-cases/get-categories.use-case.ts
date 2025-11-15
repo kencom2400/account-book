@@ -1,9 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CategoryEntity } from '../../domain/entities/category.entity';
-import {
-  ICategoryRepository,
-  CATEGORY_REPOSITORY,
-} from '../../domain/repositories/category.repository.interface';
+import type { ICategoryRepository } from '../../domain/repositories/category.repository.interface';
+import { CATEGORY_REPOSITORY } from '../../domain/repositories/category.repository.interface';
 import {
   CategoryDomainService,
   CategoryNode,

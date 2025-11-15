@@ -10,6 +10,14 @@ import { InitializeCategoriesUseCase } from '../../application/use-cases/initial
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
 import { CategoryType } from '@account-book/types';
 
+// DTOs
+class GetCategoriesQueryDto {
+  type?: CategoryType;
+  parentId?: string;
+  isTopLevel?: string;
+  asTree?: string;
+}
+
 /**
  * カテゴリコントローラー
  */
@@ -66,13 +74,5 @@ export class CategoryController {
       count: categories.length,
     };
   }
-}
-
-// DTOs
-class GetCategoriesQueryDto {
-  type?: CategoryType;
-  parentId?: string;
-  isTopLevel?: string;
-  asTree?: string;
 }
 

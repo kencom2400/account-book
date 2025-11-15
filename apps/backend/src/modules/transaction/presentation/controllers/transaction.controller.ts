@@ -15,6 +15,39 @@ import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/up
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 
+// DTOs
+class CreateTransactionRequestDto {
+  date: string;
+  amount: number;
+  category: {
+    id: string;
+    name: string;
+    type: CategoryType;
+  };
+  description: string;
+  institutionId: string;
+  accountId: string;
+  status?: TransactionStatus;
+  relatedTransactionId?: string;
+}
+
+class GetTransactionsQueryDto {
+  institutionId?: string;
+  accountId?: string;
+  year?: string;
+  month?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+class UpdateCategoryRequestDto {
+  category: {
+    id: string;
+    name: string;
+    type: CategoryType;
+  };
+}
+
 /**
  * 取引コントローラー
  */
@@ -112,38 +145,5 @@ export class TransactionController {
       data: transaction.toJSON(),
     };
   }
-}
-
-// DTOs
-class CreateTransactionRequestDto {
-  date: string;
-  amount: number;
-  category: {
-    id: string;
-    name: string;
-    type: CategoryType;
-  };
-  description: string;
-  institutionId: string;
-  accountId: string;
-  status?: TransactionStatus;
-  relatedTransactionId?: string;
-}
-
-class GetTransactionsQueryDto {
-  institutionId?: string;
-  accountId?: string;
-  year?: string;
-  month?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-class UpdateCategoryRequestDto {
-  category: {
-    id: string;
-    name: string;
-    type: CategoryType;
-  };
 }
 

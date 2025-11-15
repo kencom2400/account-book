@@ -1,9 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
-import {
-  IInstitutionRepository,
-  INSTITUTION_REPOSITORY,
-} from '../../domain/repositories/institution.repository.interface';
+import type { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
+import { INSTITUTION_REPOSITORY } from '../../domain/repositories/institution.repository.interface';
 import { InstitutionType } from '@account-book/types';
 
 export interface GetInstitutionsQuery {

@@ -1,8 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  ITransactionRepository,
-  TRANSACTION_REPOSITORY,
-} from '../../domain/repositories/transaction.repository.interface';
+import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
+import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import { TransactionDomainService } from '../../domain/services/transaction-domain.service';
 import { CategoryType } from '@account-book/types';
 

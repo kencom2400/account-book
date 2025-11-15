@@ -2,10 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
-import {
-  IInstitutionRepository,
-  INSTITUTION_REPOSITORY,
-} from '../../domain/repositories/institution.repository.interface';
+import type { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
+import { INSTITUTION_REPOSITORY } from '../../domain/repositories/institution.repository.interface';
 import { InstitutionType } from '@account-book/types';
 
 export interface CreateInstitutionDto {

@@ -1,9 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
-import {
-  ITransactionRepository,
-  TRANSACTION_REPOSITORY,
-} from '../../domain/repositories/transaction.repository.interface';
+import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
+import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import { CategoryType } from '@account-book/types';
 
 export interface UpdateTransactionCategoryDto {
