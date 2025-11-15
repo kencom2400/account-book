@@ -1,4 +1,10 @@
-import { Institution, InstitutionType } from '@account-book/types';
+import {
+  Institution,
+  InstitutionType,
+  Bank,
+  BankCategory,
+  BankConnectionTestResult,
+} from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -8,18 +14,25 @@ import { apiClient } from './client';
 export interface CreateInstitutionRequest {
   name: string;
   type: InstitutionType;
-  credentials: {
-    encrypted: string;
-    iv: string;
-    authTag: string;
-    algorithm?: string;
-    version?: string;
-  };
+  credentials: Record<string, any>;
 }
 
 export interface GetInstitutionsParams {
   type?: InstitutionType;
   isConnected?: boolean;
+}
+
+export interface GetSupportedBanksParams {
+  category?: BankCategory;
+  searchTerm?: string;
+}
+
+export interface TestBankConnectionRequest {
+  bankCode: string;
+  branchCode: string;
+  accountNumber: string;
+  apiKey?: string;
+  apiSecret?: string;
 }
 
 /**
@@ -38,7 +51,7 @@ export async function getInstitutions(
   params?: GetInstitutionsParams,
 ): Promise<Institution[]> {
   const searchParams = new URLSearchParams();
-  
+
   if (params) {
     if (params.type) searchParams.append('type', params.type);
     if (params.isConnected !== undefined) {
@@ -48,5 +61,34 @@ export async function getInstitutions(
 
   const endpoint = `/institutions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   return await apiClient.get<Institution[]>(endpoint);
+}
+
+/**
+ * 対応銀行一覧を取得
+ */
+export async function getSupportedBanks(
+  params?: GetSupportedBanksParams,
+): Promise<Bank[]> {
+  const searchParams = new URLSearchParams();
+
+  if (params) {
+    if (params.category) searchParams.append('category', params.category);
+    if (params.searchTerm) searchParams.append('searchTerm', params.searchTerm);
+  }
+
+  const endpoint = `/institutions/banks/supported${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  return await apiClient.get<Bank[]>(endpoint);
+}
+
+/**
+ * 銀行接続テスト
+ */
+export async function testBankConnection(
+  data: TestBankConnectionRequest,
+): Promise<BankConnectionTestResult> {
+  return await apiClient.post<BankConnectionTestResult>(
+    '/institutions/banks/test-connection',
+    data,
+  );
 }
 
