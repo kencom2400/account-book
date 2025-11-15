@@ -12,14 +12,14 @@ build/
 .env.local
 .env.*.local
 
-# Data files
-data/
+# Data files (keep directory structure, ignore contents)
+data/*/*
+!data/*/.gitkeep
 
 # Node environment
 .nodeenv/
 
 # IDE
-.vscode/
 .idea/
 
 # Logs
