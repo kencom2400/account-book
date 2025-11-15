@@ -9,6 +9,8 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { IsString, IsNumber, IsObject, IsOptional, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
@@ -17,30 +19,65 @@ import { CategoryType, TransactionStatus } from '@account-book/types';
 
 // DTOs
 class CreateTransactionRequestDto {
+  @IsString()
   date: string;
+
+  @IsNumber()
   amount: number;
+
+  @IsObject()
   category: {
     id: string;
     name: string;
     type: CategoryType;
   };
+
+  @IsString()
   description: string;
+
+  @IsString()
   institutionId: string;
+
+  @IsString()
   accountId: string;
+
+  @IsOptional()
+  @IsEnum(TransactionStatus)
   status?: TransactionStatus;
+
+  @IsOptional()
+  @IsString()
   relatedTransactionId?: string;
 }
 
 class GetTransactionsQueryDto {
+  @IsOptional()
+  @IsString()
   institutionId?: string;
+
+  @IsOptional()
+  @IsString()
   accountId?: string;
+
+  @IsOptional()
+  @IsString()
   year?: string;
+
+  @IsOptional()
+  @IsString()
   month?: string;
+
+  @IsOptional()
+  @IsString()
   startDate?: string;
+
+  @IsOptional()
+  @IsString()
   endDate?: string;
 }
 
 class UpdateCategoryRequestDto {
+  @IsObject()
   category: {
     id: string;
     name: string;
