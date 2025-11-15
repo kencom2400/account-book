@@ -1,36 +1,38 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnp.*
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Build outputs
+dist/
+.next/
+build/
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
+# Environment variables
 .env
+.env.local
+.env.*.local
 
-# vercel
-.vercel
+# Data files (keep directory structure, ignore contents)
+data/*/*
+!data/*/.gitkeep
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Node environment
+.nodeenv/
+
+# IDE
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+.DS_Store
+
+# Turbo
+.turbo/
