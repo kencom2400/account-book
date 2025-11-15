@@ -39,9 +39,10 @@ describe('BankCredentialsForm', () => {
   it('should pre-fill bank code', () => {
     render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} />);
 
-    const bankCodeInput = screen.getByPlaceholderText('例: 001') as HTMLInputElement;
-    // 銀行コードは自動入力されているため、別の方法でチェック
-    expect(screen.getByText('0000')).toBeInTheDocument();
+    // 銀行コードは入力フィールドの値として自動入力されている
+    const bankCodeInput = screen.getByDisplayValue('0000') as HTMLInputElement;
+    expect(bankCodeInput).toBeInTheDocument();
+    expect(bankCodeInput.value).toBe('0000');
   });
 
   it('should validate branch code format', async () => {
@@ -55,9 +56,7 @@ describe('BankCredentialsForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('支店コードは3桁の数字で入力してください'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('支店コードは3桁の数字で入力してください')).toBeInTheDocument();
     });
 
     expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -75,9 +74,7 @@ describe('BankCredentialsForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('口座番号は7桁の数字で入力してください'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('口座番号は7桁の数字で入力してください')).toBeInTheDocument();
     });
 
     expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -137,7 +134,7 @@ describe('BankCredentialsForm', () => {
     render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} />);
 
     const apiSecretInput = screen.getByPlaceholderText(
-      '銀行から発行されたAPIシークレットを入力',
+      '銀行から発行されたAPIシークレットを入力'
     ) as HTMLInputElement;
     const toggleButton = screen.getByText('表示');
 
@@ -160,18 +157,14 @@ describe('BankCredentialsForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('支店コードは3桁の数字で入力してください'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('支店コードは3桁の数字で入力してください')).toBeInTheDocument();
     });
 
     // 正しい値を入力
     fireEvent.change(branchCodeInput, { target: { value: '001' } });
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('支店コードは3桁の数字で入力してください'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('支店コードは3桁の数字で入力してください')).not.toBeInTheDocument();
     });
   });
 
@@ -186,15 +179,10 @@ describe('BankCredentialsForm', () => {
   });
 
   it('should show loading state when loading prop is true', () => {
-    render(
-      <BankCredentialsForm
-        bank={mockBank}
-        onSubmit={mockOnSubmit}
-        loading={true}
-      />,
-    );
+    render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} loading={true} />);
 
-    const submitButton = screen.getByText('接続テスト中...');
+    // ボタンのテキストを部分一致で検索（spanの中に含まれているため）
+    const submitButton = screen.getByRole('button', { name: /接続テスト中/ });
     expect(submitButton).toBeDisabled();
   });
 
@@ -203,7 +191,7 @@ describe('BankCredentialsForm', () => {
 
     expect(screen.getByText('セキュリティに関する注意')).toBeInTheDocument();
     expect(
-      screen.getByText(/入力された認証情報は暗号化されて安全に保存されます/),
+      screen.getByText(/入力された認証情報は暗号化されて安全に保存されます/)
     ).toBeInTheDocument();
   });
 
@@ -222,15 +210,10 @@ describe('BankCredentialsForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('支店コードは3桁の数字で入力してください'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText('口座番号は7桁の数字で入力してください'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('支店コードは3桁の数字で入力してください')).toBeInTheDocument();
+      expect(screen.getByText('口座番号は7桁の数字で入力してください')).toBeInTheDocument();
     });
 
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 });
-

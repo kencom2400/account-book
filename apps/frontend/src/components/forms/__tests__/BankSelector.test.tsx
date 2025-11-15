@@ -45,17 +45,20 @@ describe('BankSelector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (institutionsApi.getSupportedBanks as jest.Mock).mockResolvedValue(
-      mockBanks,
-    );
+    (institutionsApi.getSupportedBanks as jest.Mock).mockResolvedValue(mockBanks);
   });
 
-  it('should render loading state initially', () => {
+  it('should render loading state initially', async () => {
     render(<BankSelector onSelectBank={mockOnSelectBank} />);
 
     // ローディング要素を探す（より緩やかな条件で）
     const loadingElement = document.querySelector('.animate-spin');
     expect(loadingElement).toBeInTheDocument();
+
+    // テスト終了前に非同期処理の完了を待つ（act警告を防ぐため）
+    await waitFor(() => {
+      expect(screen.queryByText('三菱UFJ銀行')).toBeInTheDocument();
+    });
   });
 
   it('should display banks after loading', async () => {
@@ -73,9 +76,7 @@ describe('BankSelector', () => {
     render(<BankSelector onSelectBank={mockOnSelectBank} />);
 
     await waitFor(() => {
-      const searchBox = screen.getByPlaceholderText(
-        '銀行名または銀行コードで検索',
-      );
+      const searchBox = screen.getByPlaceholderText('銀行名または銀行コードで検索');
       expect(searchBox).toBeInTheDocument();
     });
   });
@@ -116,9 +117,7 @@ describe('BankSelector', () => {
       expect(screen.getByText('三菱UFJ銀行')).toBeInTheDocument();
     });
 
-    const searchBox = screen.getByPlaceholderText(
-      '銀行名または銀行コードで検索',
-    );
+    const searchBox = screen.getByPlaceholderText('銀行名または銀行コードで検索');
     fireEvent.change(searchBox, { target: { value: '三菱' } });
 
     await waitFor(() => {
@@ -135,9 +134,7 @@ describe('BankSelector', () => {
       expect(screen.getByText('三菱UFJ銀行')).toBeInTheDocument();
     });
 
-    const searchBox = screen.getByPlaceholderText(
-      '銀行名または銀行コードで検索',
-    );
+    const searchBox = screen.getByPlaceholderText('銀行名または銀行コードで検索');
     fireEvent.change(searchBox, { target: { value: '0005' } });
 
     await waitFor(() => {
@@ -159,12 +156,7 @@ describe('BankSelector', () => {
   });
 
   it('should highlight selected bank', async () => {
-    render(
-      <BankSelector
-        onSelectBank={mockOnSelectBank}
-        selectedBank={mockBanks[0]}
-      />,
-    );
+    render(<BankSelector onSelectBank={mockOnSelectBank} selectedBank={mockBanks[0]} />);
 
     await waitFor(() => {
       const bankButton = screen.getByText('三菱UFJ銀行').closest('button');
@@ -179,29 +171,21 @@ describe('BankSelector', () => {
       expect(screen.getByText('三菱UFJ銀行')).toBeInTheDocument();
     });
 
-    const searchBox = screen.getByPlaceholderText(
-      '銀行名または銀行コードで検索',
-    );
+    const searchBox = screen.getByPlaceholderText('銀行名または銀行コードで検索');
     fireEvent.change(searchBox, { target: { value: 'nonexistent' } });
 
     await waitFor(() => {
-      expect(
-        screen.getByText('該当する銀行が見つかりませんでした'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('該当する銀行が見つかりませんでした')).toBeInTheDocument();
     });
   });
 
   it('should display error message when API fails', async () => {
-    (institutionsApi.getSupportedBanks as jest.Mock).mockRejectedValue(
-      new Error('API Error'),
-    );
+    (institutionsApi.getSupportedBanks as jest.Mock).mockRejectedValue(new Error('API Error'));
 
     render(<BankSelector onSelectBank={mockOnSelectBank} />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('銀行一覧の取得に失敗しました'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('銀行一覧の取得に失敗しました')).toBeInTheDocument();
     });
   });
 
@@ -225,4 +209,3 @@ describe('BankSelector', () => {
     });
   });
 });
-
