@@ -8,6 +8,7 @@ import cryptoConfig from './config/crypto.config';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { InstitutionModule } from './modules/institution/institution.module';
 import { CategoryModule } from './modules/category/category.module';
+import { CreditCardModule } from './modules/credit-card/credit-card.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CategoryModule } from './modules/category/category.module';
     TransactionModule,
     InstitutionModule,
     CategoryModule,
+    CreditCardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
