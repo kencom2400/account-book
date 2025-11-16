@@ -68,10 +68,7 @@ export class FetchPaymentInfoUseCase {
 
     // 5. 支払い情報がない場合は計算して作成
     if (!payment) {
-      payment = await this.calculatePaymentInfo(
-        input.creditCardId,
-        billingMonth,
-      );
+      payment = await this.calculatePaymentInfo(creditCard, billingMonth);
       await this.paymentRepository.save(input.creditCardId, payment);
     }
 
@@ -110,13 +107,13 @@ export class FetchPaymentInfoUseCase {
   }
 
   private async calculatePaymentInfo(
-    creditCardId: string,
+    creditCard: CreditCardEntity,
     billingMonth: string,
   ): Promise<PaymentVO> {
     // 請求月の取引を取得
     const [year, month] = billingMonth.split('-').map(Number);
     const transactions = await this.transactionRepository.findByMonth(
-      creditCardId,
+      creditCard.id,
       year,
       month,
     );
@@ -132,7 +129,6 @@ export class FetchPaymentInfoUseCase {
     const remainingAmount = totalAmount - paidAmount;
 
     // 締め日と支払期限を計算
-    const creditCard = await this.creditCardRepository.findById(creditCardId);
     const closingDate = new Date(year, month - 1, creditCard.closingDay);
     const paymentDueDate = new Date(year, month, creditCard.paymentDay);
 
