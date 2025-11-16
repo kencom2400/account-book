@@ -242,7 +242,7 @@ function calculateNetPayment(
    - 銀行取引の摘要にカード会社名が含まれる
    - 例: "カ－ド", "三井住友カ－ド", "クレジット"
 
-##### マッチングアルゴリム
+##### マッチングアルゴリズム
 ```typescript
 interface ReconciliationResult {
   isMatched: boolean;

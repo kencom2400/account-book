@@ -227,7 +227,7 @@
   - 各項目の詳細説明
 
 #### セキュリティ要件
-- PCIーDSS準拠
+- PCI-DSS準拠
 - カード番号は最後4桁のみ保持
 - 完全なカード情報は保存しない
 - トークン方式での認証
@@ -718,7 +718,7 @@ data/
       "institutionId": "inst_001",
       "accountId": "acc_001",
       "balance": 150000,
-      "status": "confirmed",
+      "status": "completed",
       "isReconciled": false,
       "createdAt": "2025-11-15T10:35:00Z",
       "updatedAt": "2025-11-15T10:35:00Z"
