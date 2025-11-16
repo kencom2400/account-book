@@ -83,7 +83,18 @@ export class CreditCardTransactionEntity {
   }
 
   /**
-   * 分割払いの月額を計算
+   * 分割払いの月額を計算（概算値）
+   *
+   * @returns 月額の目安（端数は四捨五入）
+   *
+   * @remarks
+   * このメソッドは表示用の概算値を返します。
+   * 実際の分割払い計算では、端数処理による累積誤差を避けるため、
+   * 最後の支払い額で調整するなどの対応が必要です。
+   *
+   * 例: 10,000円を3回払い
+   * - この計算: 3,333円 × 3回 = 9,999円（1円の誤差）
+   * - 正確な計算: 3,333円 + 3,333円 + 3,334円 = 10,000円
    */
   getMonthlyInstallmentAmount(): number {
     if (!this.isInstallment || !this.installmentCount) {
@@ -91,6 +102,38 @@ export class CreditCardTransactionEntity {
     }
 
     return Math.round(this.amount / this.installmentCount);
+  }
+
+  /**
+   * 分割払いの各回の支払額を正確に計算
+   *
+   * @returns 各回の支払額の配列（端数は最後の回で調整）
+   *
+   * @remarks
+   * 累積誤差を避けるため、最後の支払い額で端数を調整します。
+   *
+   * 例: 10,000円を3回払い
+   * - 結果: [3,333, 3,333, 3,334] = 10,000円（誤差なし）
+   */
+  getAccurateInstallmentAmounts(): number[] {
+    if (!this.isInstallment || !this.installmentCount) {
+      return [this.amount];
+    }
+
+    const baseAmount = Math.floor(this.amount / this.installmentCount);
+    const remainder = this.amount - baseAmount * this.installmentCount;
+
+    const amounts: number[] = [];
+    for (let i = 0; i < this.installmentCount; i++) {
+      // 最後の回に端数を加算
+      if (i === this.installmentCount - 1) {
+        amounts.push(baseAmount + remainder);
+      } else {
+        amounts.push(baseAmount);
+      }
+    }
+
+    return amounts;
   }
 
   /**

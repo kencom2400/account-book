@@ -176,6 +176,74 @@ describe('CreditCardTransactionEntity', () => {
 
       expect(transaction.getMonthlyInstallmentAmount()).toBe(5000);
     });
+
+    it('should round monthly installment amount', () => {
+      const transaction = createTestCreditCardTransaction({
+        amount: 10000,
+        isInstallment: true,
+        installmentCount: 3,
+        installmentNumber: 1,
+      });
+
+      // 10000 / 3 = 3333.33... → 3333（四捨五入）
+      expect(transaction.getMonthlyInstallmentAmount()).toBe(3333);
+    });
+  });
+
+  describe('getAccurateInstallmentAmounts', () => {
+    it('should return full amount array for one-time payment', () => {
+      const transaction = createTestCreditCardTransaction({
+        amount: 60000,
+        isInstallment: false,
+      });
+
+      expect(transaction.getAccurateInstallmentAmounts()).toEqual([60000]);
+    });
+
+    it('should calculate accurate installment amounts without rounding error', () => {
+      const transaction = createTestCreditCardTransaction({
+        amount: 60000,
+        isInstallment: true,
+        installmentCount: 12,
+        installmentNumber: 1,
+      });
+
+      const amounts = transaction.getAccurateInstallmentAmounts();
+      expect(amounts).toHaveLength(12);
+      expect(amounts.reduce((sum, amount) => sum + amount, 0)).toBe(60000);
+      expect(amounts).toEqual([
+        5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000,
+      ]);
+    });
+
+    it('should adjust remainder in the last installment', () => {
+      const transaction = createTestCreditCardTransaction({
+        amount: 10000,
+        isInstallment: true,
+        installmentCount: 3,
+        installmentNumber: 1,
+      });
+
+      const amounts = transaction.getAccurateInstallmentAmounts();
+      expect(amounts).toHaveLength(3);
+      expect(amounts).toEqual([3333, 3333, 3334]); // 最後に端数を加算
+      expect(amounts.reduce((sum, amount) => sum + amount, 0)).toBe(10000); // 誤差なし
+    });
+
+    it('should handle complex rounding cases', () => {
+      const transaction = createTestCreditCardTransaction({
+        amount: 100001,
+        isInstallment: true,
+        installmentCount: 7,
+        installmentNumber: 1,
+      });
+
+      const amounts = transaction.getAccurateInstallmentAmounts();
+      expect(amounts).toHaveLength(7);
+      expect(amounts[0]).toBe(14285); // 基本額
+      expect(amounts[6]).toBe(14291); // 最後の回に端数6を加算
+      expect(amounts.reduce((sum, amount) => sum + amount, 0)).toBe(100001); // 誤差なし
+    });
   });
 
   describe('isScheduledForPayment', () => {
