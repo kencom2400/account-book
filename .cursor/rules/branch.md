@@ -3,6 +3,7 @@
 ## 基本原則
 
 - **Issue開始前に必ず適切なブランチを切ること**
+- **ブランチ作成後、すぐにIssueステータスを"In Progress"に変更すること**
 - ブランチ名は機能や修正内容を明確に表現する
 - mainブランチへの直接コミットは禁止
 
@@ -51,7 +52,14 @@ git pull origin main
 
 # 新しいブランチを作成
 git checkout -b feature/issue-<番号>-<説明>
+
+# GitHubでIssueのステータスを"In Progress"に変更
+gh issue edit <番号> --add-label "status: in progress"
+# または GitHub Projects を使用している場合
+gh project item-edit <プロジェクト番号> --field-name "Status" --field-value "In Progress" <Issue番号>
 ```
+
+**重要**: ブランチを切った直後、作業開始前に必ずIssueのステータスを"In Progress"に更新すること
 
 ### 2. 作業中
 
