@@ -35,9 +35,7 @@ export class FetchPaymentInfoUseCase {
     );
 
     if (!creditCard) {
-      throw new Error(
-        `Credit card not found with ID: ${input.creditCardId}`,
-      );
+      throw new Error(`Credit card not found with ID: ${input.creditCardId}`);
     }
 
     // 2. 請求月の設定（デフォルトは当月）
@@ -83,7 +81,15 @@ export class FetchPaymentInfoUseCase {
     const decryptedData = await this.cryptoService.decrypt(
       creditCard.credentials,
     );
-    const credentials = JSON.parse(decryptedData);
+
+    let credentials;
+    try {
+      credentials = JSON.parse(decryptedData);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
 
     // APIから支払い情報を取得
     const apiPaymentInfo =
@@ -111,10 +117,7 @@ export class FetchPaymentInfoUseCase {
     );
 
     // 合計金額を計算
-    const totalAmount = transactions.reduce(
-      (sum, tx) => sum + tx.amount,
-      0,
-    );
+    const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
 
     // 支払済み金額を計算
     const paidAmount = transactions
@@ -124,9 +127,7 @@ export class FetchPaymentInfoUseCase {
     const remainingAmount = totalAmount - paidAmount;
 
     // 締め日と支払期限を計算
-    const creditCard = await this.creditCardRepository.findById(
-      creditCardId,
-    );
+    const creditCard = await this.creditCardRepository.findById(creditCardId);
     const closingDate = new Date(year, month - 1, creditCard.closingDay);
     const paymentDueDate = new Date(year, month, creditCard.paymentDay);
 
@@ -137,9 +138,7 @@ export class FetchPaymentInfoUseCase {
       totalAmount,
       paidAmount,
       remainingAmount,
-      remainingAmount === 0
-        ? PaymentStatus.PAID
-        : PaymentStatus.UNPAID,
+      remainingAmount === 0 ? PaymentStatus.PAID : PaymentStatus.UNPAID,
     );
   }
 
@@ -153,4 +152,3 @@ export class FetchPaymentInfoUseCase {
 
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { PaymentStatus } from '../../domain/value-objects/payment.vo';
-

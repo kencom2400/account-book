@@ -37,25 +37,18 @@ export class FetchCreditCardTransactionsUseCase {
     );
 
     if (!creditCard) {
-      throw new Error(
-        `Credit card not found with ID: ${input.creditCardId}`,
-      );
+      throw new Error(`Credit card not found with ID: ${input.creditCardId}`);
     }
 
     // 2. 日付範囲の設定（デフォルトは当月）
     const endDate = input.endDate || new Date();
     const startDate =
-      input.startDate ||
-      new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+      input.startDate || new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
     // 3. 強制リフレッシュまたは接続済みの場合はAPIから取得
     if (input.forceRefresh || creditCard.isConnected) {
       try {
-        await this.refreshTransactionsFromAPI(
-          creditCard,
-          startDate,
-          endDate,
-        );
+        await this.refreshTransactionsFromAPI(creditCard, startDate, endDate);
 
         // 最終同期日時を更新
         const updatedCard = creditCard.updateLastSyncedAt(new Date());
@@ -86,7 +79,15 @@ export class FetchCreditCardTransactionsUseCase {
     const decryptedData = await this.cryptoService.decrypt(
       creditCard.credentials,
     );
-    const credentials = JSON.parse(decryptedData);
+
+    let credentials;
+    try {
+      credentials = JSON.parse(decryptedData);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
 
     // APIから取引を取得
     const apiTransactions = await this.creditCardAPIClient.getTransactions(
@@ -105,4 +106,3 @@ export class FetchCreditCardTransactionsUseCase {
     }
   }
 }
-
