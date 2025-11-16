@@ -176,7 +176,7 @@ describe('PaymentVO', () => {
   });
 
   describe('markAsPaid', () => {
-    it('should mark payment as paid', () => {
+    it('should mark payment as paid with paid date', () => {
       const payment = createTestPayment({
         totalAmount: 100000,
         paidAmount: 0,
@@ -188,10 +188,12 @@ describe('PaymentVO', () => {
       const updated = payment.markAsPaid(paidDate);
 
       expect(payment.isPaid()).toBe(false);
+      expect(payment.paidDate).toBeNull();
       expect(updated.isPaid()).toBe(true);
       expect(updated.paidAmount).toBe(100000);
       expect(updated.remainingAmount).toBe(0);
       expect(updated.paymentDueDate).toEqual(payment.paymentDueDate);
+      expect(updated.paidDate).toEqual(paidDate);
     });
   });
 

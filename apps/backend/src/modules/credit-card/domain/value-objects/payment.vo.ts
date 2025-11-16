@@ -11,6 +11,7 @@ export class PaymentVO {
     public readonly paidAmount: number, // 支払済み額
     public readonly remainingAmount: number, // 未払い額
     public readonly status: PaymentStatus,
+    public readonly paidDate: Date | null = null, // 支払完了日
   ) {
     this.validate();
   }
@@ -82,10 +83,9 @@ export class PaymentVO {
 
   /**
    * 支払いを完了する
-   * @param _paidDate 実際に支払った日付（将来の拡張用に予約、現在は未使用）
+   * @param paidDate 実際に支払った日付
    */
-  markAsPaid(_paidDate: Date): PaymentVO {
-    // eslint-disable-line @typescript-eslint/no-unused-vars
+  markAsPaid(paidDate: Date): PaymentVO {
     return new PaymentVO(
       this.billingMonth,
       this.closingDate,
@@ -94,6 +94,7 @@ export class PaymentVO {
       this.totalAmount,
       0,
       PaymentStatus.PAID,
+      paidDate, // 支払完了日を記録
     );
   }
 
@@ -122,6 +123,7 @@ export class PaymentVO {
       newPaidAmount,
       newRemainingAmount,
       newStatus,
+      this.paidDate, // 既存のpaidDateを維持（完全に支払い済みの場合のみ更新される）
     );
   }
 
@@ -137,6 +139,7 @@ export class PaymentVO {
       paidAmount: this.paidAmount,
       remainingAmount: this.remainingAmount,
       status: this.status,
+      paidDate: this.paidDate,
       isPaid: this.isPaid(),
       isOverdue: this.isOverdue(),
       isPartiallyPaid: this.isPartiallyPaid(),
@@ -155,7 +158,8 @@ export class PaymentVO {
       this.totalAmount === other.totalAmount &&
       this.paidAmount === other.paidAmount &&
       this.remainingAmount === other.remainingAmount &&
-      this.status === other.status
+      this.status === other.status &&
+      (this.paidDate?.getTime() ?? null) === (other.paidDate?.getTime() ?? null)
     );
   }
 }

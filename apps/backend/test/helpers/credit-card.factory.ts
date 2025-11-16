@@ -114,6 +114,7 @@ export function createTestPayment(
     paidAmount: number;
     remainingAmount: number;
     status: PaymentStatus;
+    paidDate: Date | null;
   }>,
 ): PaymentVO {
   const totalAmount = overrides?.totalAmount || 125000;
@@ -129,5 +130,6 @@ export function createTestPayment(
     paidAmount,
     remainingAmount,
     overrides?.status || PaymentStatus.UNPAID,
+    overrides?.paidDate !== undefined ? overrides.paidDate : null,
   );
 }
