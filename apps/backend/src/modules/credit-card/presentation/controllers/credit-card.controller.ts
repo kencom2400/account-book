@@ -139,7 +139,7 @@ export class CreditCardController {
   }
 
   /**
-   * PUT /api/credit-cards/:id/refresh
+   * POST /api/credit-cards/:id/refresh
    * クレジットカード情報を再同期
    */
   @Post(':id/refresh')
