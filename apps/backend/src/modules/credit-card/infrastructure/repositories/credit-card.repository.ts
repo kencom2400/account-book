@@ -191,13 +191,11 @@ export class FileSystemCreditCardTransactionRepository
     const creditCardId = transactions[0].creditCardId;
     const existingTransactions = await this.loadData(creditCardId);
 
-    // 既存のIDセット
-    const existingIds = new Set(existingTransactions.map((t) => t.id));
+    // 既存の取引をMapに変換し、新しい取引で更新または追加
+    const transactionsMap = new Map(existingTransactions.map((t) => [t.id, t]));
+    transactions.forEach((t) => transactionsMap.set(t.id, t));
 
-    // 新規取引のみ追加
-    const newTransactions = transactions.filter((t) => !existingIds.has(t.id));
-
-    const allTransactions = [...existingTransactions, ...newTransactions];
+    const allTransactions = Array.from(transactionsMap.values());
     await this.saveData(creditCardId, allTransactions);
 
     return transactions;
@@ -486,4 +484,3 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
     );
   }
 }
-
