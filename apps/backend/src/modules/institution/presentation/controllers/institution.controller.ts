@@ -88,9 +88,11 @@ export class InstitutionController {
   async testBankConnection(@Body() dto: TestBankConnectionDto) {
     const result = await this.testBankConnectionUseCase.execute(dto);
 
+    // レスポンスの冗長性を解消: successはトップレベルのみ
+    const { success, ...data } = result;
     return {
-      success: result.success,
-      data: result,
+      success,
+      data,
     };
   }
 }
