@@ -241,4 +241,252 @@ describe('ConnectCreditCardUseCase', () => {
       expect(mockCreditCardRepository.save).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('fetchInitialTransactions - 月末日の限界値テスト', () => {
+    const setupMocks = () => {
+      const encryptedCredentials = createTestEncryptedCredentials();
+      const cardInfo = {
+        cardNumber: '1234',
+        creditLimit: 500000,
+        currentBalance: 125000,
+        availableCredit: 375000,
+      };
+
+      mockCryptoService.encrypt.mockResolvedValue(encryptedCredentials);
+      mockAPIClient.testConnection.mockResolvedValue({ success: true });
+      mockAPIClient.getCardInfo.mockResolvedValue(cardInfo);
+      mockAPIClient.getTransactions.mockResolvedValue([]);
+      mockCreditCardRepository.save.mockImplementation((card) =>
+        Promise.resolve(card),
+      );
+    };
+
+    const createInput = () => ({
+      cardName: 'テストカード',
+      cardNumber: '1234',
+      cardHolderName: '山田太郎',
+      expiryDate: new Date('2030-12-31'),
+      username: 'test_user',
+      password: 'test_password',
+      issuer: 'テスト銀行',
+      paymentDay: 27,
+      closingDay: 15,
+    });
+
+    it('should correctly calculate 6 months ago from January 31st', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-01-31T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2025-01-31の6ヶ月前は2024-07-31
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(6); // July (0-indexed)
+      expect(startDate.getDate()).toBe(31);
+      expect(endDate.getFullYear()).toBe(2025);
+      expect(endDate.getMonth()).toBe(0); // January (0-indexed)
+      expect(endDate.getDate()).toBe(31);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from March 31st', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-03-31T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2025-03-31の6ヶ月前は2024-09-30 (Septemberは30日まで)
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(8); // September (0-indexed)
+      expect(startDate.getDate()).toBe(30);
+      expect(endDate.getFullYear()).toBe(2025);
+      expect(endDate.getMonth()).toBe(2); // March (0-indexed)
+      expect(endDate.getDate()).toBe(31);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from October 31st', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-10-31T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2024-10-31の6ヶ月前は2024-04-30 (Aprilは30日まで)
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(3); // April (0-indexed)
+      expect(startDate.getDate()).toBe(30);
+      expect(endDate.getFullYear()).toBe(2024);
+      expect(endDate.getMonth()).toBe(9); // October (0-indexed)
+      expect(endDate.getDate()).toBe(31);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from August 31st', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-08-31T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2024-08-31の6ヶ月前は2024-02-29 (2024年は閏年)
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(1); // February (0-indexed)
+      expect(startDate.getDate()).toBe(29);
+      expect(endDate.getFullYear()).toBe(2024);
+      expect(endDate.getMonth()).toBe(7); // August (0-indexed)
+      expect(endDate.getDate()).toBe(31);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from August 31st in non-leap year', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-08-31T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2025-08-31の6ヶ月前は2025-02-28 (2025年は平年)
+      expect(startDate.getFullYear()).toBe(2025);
+      expect(startDate.getMonth()).toBe(1); // February (0-indexed)
+      expect(startDate.getDate()).toBe(28);
+      expect(endDate.getFullYear()).toBe(2025);
+      expect(endDate.getMonth()).toBe(7); // August (0-indexed)
+      expect(endDate.getDate()).toBe(31);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from September 30th', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-09-30T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2024-09-30の6ヶ月前は2024-03-30
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(2); // March (0-indexed)
+      expect(startDate.getDate()).toBe(30);
+      expect(endDate.getFullYear()).toBe(2024);
+      expect(endDate.getMonth()).toBe(8); // September (0-indexed)
+      expect(endDate.getDate()).toBe(30);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from February 28th in non-leap year', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-02-28T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2025-02-28の6ヶ月前は2024-08-28
+      expect(startDate.getFullYear()).toBe(2024);
+      expect(startDate.getMonth()).toBe(7); // August (0-indexed)
+      expect(startDate.getDate()).toBe(28);
+      expect(endDate.getFullYear()).toBe(2025);
+      expect(endDate.getMonth()).toBe(1); // February (0-indexed)
+      expect(endDate.getDate()).toBe(28);
+
+      jest.useRealTimers();
+    });
+
+    it('should correctly calculate 6 months ago from February 29th in leap year', async () => {
+      // Arrange
+      setupMocks();
+      const input = createInput();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-02-29T12:00:00Z'));
+
+      // Act
+      await useCase.execute(input);
+
+      // Assert
+      expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
+      const callArgs = mockAPIClient.getTransactions.mock.calls[0];
+      const startDate = callArgs[1] as Date;
+      const endDate = callArgs[2] as Date;
+
+      // 2024-02-29の6ヶ月前は2023-08-29
+      expect(startDate.getFullYear()).toBe(2023);
+      expect(startDate.getMonth()).toBe(7); // August (0-indexed)
+      expect(startDate.getDate()).toBe(29);
+      expect(endDate.getFullYear()).toBe(2024);
+      expect(endDate.getMonth()).toBe(1); // February (0-indexed)
+      expect(endDate.getDate()).toBe(29);
+
+      jest.useRealTimers();
+    });
+  });
 });
