@@ -163,6 +163,42 @@ data/
 
 ## トラブルシューティング
 
+### pnpmコマンドが見つからない場合（Git pre-commitフック）
+
+Huskyのpre-commitフック実行時に`pnpm: command not found`エラーが発生する場合、以下を確認してください：
+
+1. pnpmが正しくインストールされているか確認
+
+```bash
+pnpm --version
+```
+
+2. pnpmのインストール場所を確認
+
+```bash
+which pnpm
+```
+
+3. シェル設定ファイル（`~/.zshrc`や`~/.bashrc`）でpnpmのPATHが設定されているか確認
+
+pnpmの一般的なインストールパス：
+
+- Homebrew (macOS): `/opt/homebrew/bin/pnpm`
+- 公式インストーラー: `~/.local/share/pnpm/pnpm`
+- npm経由: `~/.npm-global/bin/pnpm`
+
+プロジェクトの`.husky/pre-commit`ファイルには、これらの一般的なパスが自動的に設定されています。それでも問題が発生する場合は、`--no-verify`フラグを使用してフックをスキップできます：
+
+```bash
+git commit -m "your message" --no-verify
+```
+
+ただし、本番環境へのコミット時にはlint-stagedを手動で実行することを推奨します：
+
+```bash
+pnpm lint-staged
+```
+
 ### ポートが使用中の場合
 
 バックエンドのポートを変更する場合は、`.env`ファイルの`PORT`を変更し、フロントエンドの`.env.local`の`NEXT_PUBLIC_API_URL`も合わせて変更してください。
