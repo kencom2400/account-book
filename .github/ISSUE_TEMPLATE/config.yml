@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 ディスカッション
+    url: https://github.com/kencom/account-book/discussions
+    about: 機能についての議論や質問はこちら
+  - name: 📚 ドキュメント
+    url: https://github.com/kencom/account-book/tree/main/docs
+    about: プロジェクトのドキュメントを確認
+  - name: 🔧 開発者向けガイド
+    url: https://github.com/kencom/account-book/blob/main/docs/development-setup-tasks.md
+    about: 開発環境のセットアップ方法
+
