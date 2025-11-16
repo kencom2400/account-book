@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { subMonths } from 'date-fns';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import {
   ICreditCardRepository,
@@ -103,8 +104,7 @@ export class ConnectCreditCardUseCase {
     credentials: { username: string; password: string; cardNumber: string },
   ): Promise<void> {
     const endDate = new Date();
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 6); // 過去6ヶ月
+    const startDate = subMonths(endDate, 6); // 過去6ヶ月
 
     try {
       const transactions = await this.creditCardAPIClient.getTransactions(
