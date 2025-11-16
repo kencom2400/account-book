@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import {
   ICreditCardRepository,
@@ -57,9 +58,7 @@ export class ConnectCreditCardUseCase {
     }
 
     // 3. カード情報を取得
-    const cardInfo = await this.creditCardAPIClient.getCardInfo(
-      apiCredentials,
-    );
+    const cardInfo = await this.creditCardAPIClient.getCardInfo(apiCredentials);
 
     // 4. CreditCardエンティティを作成
     const creditCard = new CreditCardEntity(
@@ -112,9 +111,8 @@ export class ConnectCreditCardUseCase {
         endDate,
       );
 
-      const transactionEntities = transactions.map(
-        (tx) =>
-          this.creditCardAPIClient.mapToTransactionEntity(creditCardId, tx),
+      const transactionEntities = transactions.map((tx) =>
+        this.creditCardAPIClient.mapToTransactionEntity(creditCardId, tx),
       );
 
       if (transactionEntities.length > 0) {
@@ -127,7 +125,6 @@ export class ConnectCreditCardUseCase {
   }
 
   private generateId(): string {
-    return `cc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    return `cc_${randomUUID()}`;
   }
 }
-
