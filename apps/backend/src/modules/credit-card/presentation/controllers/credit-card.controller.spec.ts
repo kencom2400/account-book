@@ -3,6 +3,7 @@ import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-cr
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
+import { NotFoundException } from '@nestjs/common';
 import {
   createTestCreditCard,
   createTestCreditCardTransaction,
@@ -114,13 +115,15 @@ describe('CreditCardController', () => {
       expect(mockRepository.findById).toHaveBeenCalledWith('cc_test_123');
     });
 
-    it('should return error when credit card not found', async () => {
+    it('should throw NotFoundException when credit card not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      const result = await controller.findOne('nonexistent');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Credit card not found');
+      await expect(controller.findOne('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(controller.findOne('nonexistent')).rejects.toThrow(
+        'Credit card not found',
+      );
     });
   });
 

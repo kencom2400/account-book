@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
@@ -74,10 +75,7 @@ export class CreditCardController {
     const creditCard = await this.creditCardRepository.findById(id);
 
     if (!creditCard) {
-      return {
-        success: false,
-        error: 'Credit card not found',
-      };
+      throw new NotFoundException('Credit card not found');
     }
 
     return {
@@ -170,4 +168,3 @@ export class CreditCardController {
     };
   }
 }
-
