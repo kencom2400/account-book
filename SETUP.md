@@ -30,9 +30,24 @@ cp .env.example .env
 NODE_ENV=development
 PORT=3001
 ENCRYPTION_KEY=your-secure-encryption-key-here-change-this-in-production
+CRYPTO_SALT=your-unique-salt-here-change-this-in-production
 ```
 
-**注意**: `ENCRYPTION_KEY`は十分に長いランダムな文字列を設定してください。この鍵は金融機関の認証情報を暗号化するために使用されます。
+**注意**:
+
+- `ENCRYPTION_KEY`は十分に長いランダムな文字列を設定してください。この鍵は金融機関の認証情報を暗号化するために使用されます。
+- `CRYPTO_SALT`もユニークでランダムな値を設定してください。ソルトはキー導出に使用され、セキュリティの重要な要素です。
+- これらの値は本番環境では必ず異なる、より強力な値に変更してください。
+
+**推奨される値の生成方法**:
+
+```bash
+# ENCRYPTION_KEYの生成（64文字のランダムな16進数文字列）
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# CRYPTO_SALTの生成（32文字のランダムな16進数文字列）
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+```
 
 #### フロントエンド
 
@@ -194,4 +209,3 @@ cd ../utils && pnpm build
 - [ ] 予算管理
 
 詳細は[開発タスク一覧](./docs/development-setup-tasks.md)を参照してください。
-

@@ -16,13 +16,18 @@ export class CryptoService implements ICryptoService {
 
   constructor(private configService: ConfigService) {
     const key = this.configService.get<string>('crypto.encryptionKey');
-    
+    const salt = this.configService.get<string>('crypto.salt');
+
     if (!key) {
       throw new Error('ENCRYPTION_KEY is not configured');
     }
 
+    if (!salt) {
+      throw new Error('CRYPTO_SALT is not configured');
+    }
+
     // 32バイト（256ビット）のキーを生成
-    this.encryptionKey = crypto.scryptSync(key, 'salt', 32);
+    this.encryptionKey = crypto.scryptSync(key, salt, 32);
   }
 
   /**
@@ -34,7 +39,11 @@ export class CryptoService implements ICryptoService {
       const iv = crypto.randomBytes(16);
 
       // 暗号化器を作成
-      const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv);
+      const cipher = crypto.createCipheriv(
+        this.algorithm,
+        this.encryptionKey,
+        iv,
+      );
 
       // データを暗号化
       let encrypted = cipher.update(plainText, 'utf8', 'hex');
@@ -65,7 +74,11 @@ export class CryptoService implements ICryptoService {
       const authTag = Buffer.from(credentials.authTag, 'hex');
 
       // 復号化器を作成
-      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv);
+      const decipher = crypto.createDecipheriv(
+        this.algorithm,
+        this.encryptionKey,
+        iv,
+      );
       decipher.setAuthTag(authTag);
 
       // データを復号化
@@ -78,4 +91,3 @@ export class CryptoService implements ICryptoService {
     }
   }
 }
-

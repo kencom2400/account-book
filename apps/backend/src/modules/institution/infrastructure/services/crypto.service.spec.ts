@@ -5,7 +5,6 @@ import { EncryptedCredentials } from '../../domain/value-objects/encrypted-crede
 
 describe('CryptoService', () => {
   let service: CryptoService;
-  let configService: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,6 +17,9 @@ describe('CryptoService', () => {
               if (key === 'crypto.encryptionKey') {
                 return 'test-encryption-key-for-testing';
               }
+              if (key === 'crypto.salt') {
+                return 'test-salt-for-testing';
+              }
               return null;
             }),
           },
@@ -26,7 +28,6 @@ describe('CryptoService', () => {
     }).compile();
 
     service = module.get<CryptoService>(CryptoService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -194,6 +195,30 @@ describe('CryptoService', () => {
         moduleWithoutKey.get<CryptoService>(CryptoService);
       }).rejects.toThrow('ENCRYPTION_KEY is not configured');
     });
+
+    it('should throw error when salt is not configured', async () => {
+      await expect(async () => {
+        const moduleWithoutSalt: TestingModule = await Test.createTestingModule(
+          {
+            providers: [
+              CryptoService,
+              {
+                provide: ConfigService,
+                useValue: {
+                  get: jest.fn((key: string) => {
+                    if (key === 'crypto.encryptionKey') {
+                      return 'test-encryption-key-for-testing';
+                    }
+                    return null;
+                  }),
+                },
+              },
+            ],
+          },
+        ).compile();
+
+        moduleWithoutSalt.get<CryptoService>(CryptoService);
+      }).rejects.toThrow('CRYPTO_SALT is not configured');
+    });
   });
 });
-
