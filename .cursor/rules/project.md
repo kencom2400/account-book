@@ -163,6 +163,7 @@ apps/backend/src/
 - **Issue作成時は必ずGitHub Projectsに追加する**
   - プロジェクト名: `Account Book Development`
   - コマンド例: `gh project item-add 1 --owner kencom2400 --url <issue_url>`
+- **追加時のステータスは必ず「📋 Backlog」にする**
 - 適切なラベルを付与する（bug、feature、enhancement等）
 - テンプレートに従って詳細を記載する
 - 関連するissueやPRがあれば明記する
