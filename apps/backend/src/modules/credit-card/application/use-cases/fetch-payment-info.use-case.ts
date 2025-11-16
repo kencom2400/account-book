@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PaymentVO } from '../../domain/value-objects/payment.vo';
+import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
+import {
+  PaymentVO,
+  PaymentStatus,
+} from '../../domain/value-objects/payment.vo';
 import {
   ICreditCardRepository,
   IPaymentRepository,
@@ -150,6 +154,3 @@ export class FetchPaymentInfoUseCase {
     return `${year}-${month}`;
   }
 }
-
-import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
-import { PaymentStatus } from '../../domain/value-objects/payment.vo';
