@@ -314,11 +314,6 @@
   }
   ```
 
-- [ ] **3.1.4** TypeScriptインストール
-  ```bash
-  pnpm add -D typescript
-  ```
-
 - [ ] **3.1.5** 型定義ファイルの作成
   - [ ] `src/transaction.types.ts`
     ```typescript
@@ -531,7 +526,7 @@
       static isCardNumber(number: string): boolean {
         // Luhnアルゴリズムチェック
         const digits = number.replace(/\D/g, '');
-        if (digits.length !== 16) return false;
+        if (digits.length < 13 || digits.length > 19) return false;
         
         let sum = 0;
         let isEven = false;
@@ -565,8 +560,9 @@
 
 - [ ] **4.1.1** NestJS CLIのインストール
   ```bash
-  pnpm add -g @nestjs/cli
+  pnpm add -D @nestjs/cli -w
   ```
+  ※ローカルインストール推奨。実行時は `pnpm exec nest` またはnpmスクリプト経由で使用
 
 - [ ] **4.1.2** プロジェクト作成
   ```bash

@@ -19,15 +19,11 @@
 ### Onion Architecture（オニオンアーキテクチャ）
 レイヤを明確に分離し、依存関係を内側に向けることで拡張性と保守性を確保する。
 
-```
-Domain Layer（最内層）
-  ↑
-Application Layer
-  ↑
-Infrastructure Layer
-  ↑
-Presentation Layer（最外層）
-```
+**依存関係は常に内側に向かいます：**
+- **Presentation Layer** は Application Layer に依存
+- **Infrastructure Layer** は Application Layer に依存
+- **Application Layer** は Domain Layer に依存
+- **Domain Layer** は外部に依存しない（最内層）
 
 #### レイヤ構成
 1. **Domain Layer**: エンティティ、ドメインロジック、ドメインサービス
@@ -123,14 +119,7 @@ apps/backend/src/
 - テストカバレッジ: 80%以上を目標
 
 ## コミットメッセージ
-```
-feat: 新機能追加
-fix: バグ修正
-refactor: リファクタリング
-docs: ドキュメント更新
-test: テスト追加・修正
-chore: ビルド・ツール設定
-```
+コミットメッセージの規約については、[Commit Rules](./commit.md) を参照してください。
 
 ## 注意事項
 - 金融データの取り扱いには細心の注意を払う
