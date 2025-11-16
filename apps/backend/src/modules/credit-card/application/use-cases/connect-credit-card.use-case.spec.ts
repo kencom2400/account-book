@@ -1,3 +1,4 @@
+import { BadGatewayException } from '@nestjs/common';
 import { ConnectCreditCardUseCase } from './connect-credit-card.use-case';
 import {
   ICreditCardRepository,
@@ -132,9 +133,7 @@ describe('ConnectCreditCardUseCase', () => {
       });
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(
-        'Failed to connect to credit card API',
-      );
+      await expect(useCase.execute(input)).rejects.toThrow(BadGatewayException);
 
       expect(mockCryptoService.encrypt).toHaveBeenCalledTimes(1);
       expect(mockAPIClient.testConnection).toHaveBeenCalledTimes(1);

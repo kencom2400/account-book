@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadGatewayException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { subMonths } from 'date-fns';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
@@ -55,7 +55,7 @@ export class ConnectCreditCardUseCase {
       await this.creditCardAPIClient.testConnection(apiCredentials);
 
     if (!connectionResult.success) {
-      throw new Error(
+      throw new BadGatewayException(
         `Failed to connect to credit card API: ${connectionResult.error}`,
       );
     }

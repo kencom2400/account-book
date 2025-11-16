@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import {
@@ -39,7 +44,9 @@ export class FetchCreditCardTransactionsUseCase {
     );
 
     if (!creditCard) {
-      throw new Error(`Credit card not found with ID: ${input.creditCardId}`);
+      throw new NotFoundException(
+        `Credit card not found with ID: ${input.creditCardId}`,
+      );
     }
 
     // 2. 日付範囲の設定（デフォルトは当月）
@@ -89,7 +96,7 @@ export class FetchCreditCardTransactionsUseCase {
     try {
       credentials = JSON.parse(decryptedData);
     } catch (error) {
-      throw new Error(
+      throw new InternalServerErrorException(
         `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
