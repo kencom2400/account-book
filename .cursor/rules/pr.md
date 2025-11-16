@@ -299,11 +299,11 @@ PR作成後、以下の手順を自動的に実行する：
 #### 5-1. Gemini Code Assistのレビューを確認
 
 ```bash
-# コメントを取得
-gh pr view <PR番号> --comments
+# Geminiのコメントを取得（--jsonフラグで構造化データとして取得）
+gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login == "gemini-code-assist") | .body'
 
-# インラインコメントを取得
-gh api repos/<owner>/<repo>/pulls/<PR番号>/comments
+# インラインコメントを取得（--jqでフィルタリング）
+gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login == "gemini-code-assist") | {path: .path, line: .line, body: .body}'
 ```
 
 #### 5-2. 提案への対応
@@ -317,9 +317,12 @@ gh api repos/<owner>/<repo>/pulls/<PR番号>/comments
 #### 5-3. 対応完了の報告
 
 - 修正が完了したら、該当のコメントに返信する
+- ヒアドキュメントを使用して複数行のコメントを投稿
 
 ```bash
-gh pr comment <PR番号> --body "## Geminiの提案に対応しました ✅
+# ヒアドキュメントを使用してコメントを投稿
+gh pr comment <PR番号> --body "$(cat <<'EOF'
+## Geminiの提案に対応しました ✅
 
 ご提案いただいた改善点を実施しました：
 
@@ -328,7 +331,9 @@ gh pr comment <PR番号> --body "## Geminiの提案に対応しました ✅
 
 提案いただいた改善により、[改善された点]になりました。ありがとうございました！
 
-コミット: [commit hash]"
+コミット: [commit hash]
+EOF
+)"
 ```
 
 ### PR作成コマンド例
