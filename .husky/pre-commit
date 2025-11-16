@@ -16,10 +16,9 @@ find_pnpm() {
     "/opt/homebrew/bin/pnpm" \
     "$HOME/.local/share/pnpm/pnpm" \
     "$HOME/.npm-global/bin/pnpm" \
-    "$(command -v pnpm 2>/dev/null)" \
-    "pnpm"
+    "$(command -v pnpm 2>/dev/null)"
   do
-    if [ -n "$path" ] && [ -x "$path" ] 2>/dev/null; then
+    if [ -n "$path" ] && [ -f "$path" ] && [ -x "$path" ]; then
       echo "$path"
       return 0
     fi
