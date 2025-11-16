@@ -166,10 +166,13 @@ export class PaymentVO {
 
 /**
  * 支払いステータス
+ *
+ * @remarks
+ * 期限切れの判定は isOverdue() メソッドで動的に行われます。
+ * ステータスとしてOVERDUEを保持する必要が生じた場合は、
+ * バッチ処理等で明示的に更新するロジックと共に追加してください。
  */
 export enum PaymentStatus {
   UNPAID = 'unpaid', // 未払い
   PAID = 'paid', // 支払済み
-  OVERDUE = 'overdue', // 期限切れ
-  PENDING = 'pending', // 処理中
 }

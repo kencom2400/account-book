@@ -163,8 +163,6 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
     const statusMap: { [key: string]: PaymentStatus } = {
       paid: PaymentStatus.PAID,
       unpaid: PaymentStatus.UNPAID,
-      overdue: PaymentStatus.OVERDUE,
-      pending: PaymentStatus.PENDING,
     };
 
     return statusMap[status] || PaymentStatus.UNPAID;
