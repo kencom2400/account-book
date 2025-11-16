@@ -125,7 +125,7 @@ describe('MockBankApiAdapter', () => {
       };
 
       await expect(adapter.getAccountInfo(credentials)).rejects.toThrow(
-        'Invalid credentials',
+        '認証情報が不正です',
       );
     });
   });
@@ -201,7 +201,7 @@ describe('MockBankApiAdapter', () => {
 
       await expect(
         adapter.getTransactions(credentials, '2025-11-01', '2025-11-30'),
-      ).rejects.toThrow('Invalid credentials');
+      ).rejects.toThrow('認証情報が不正です');
     });
 
     it('should return transactions sorted by date', async () => {

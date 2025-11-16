@@ -8,6 +8,7 @@ import {
   BankTransactionType,
 } from '@account-book/types';
 import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
+import { BankConnectionError } from '../../domain/errors/bank-connection.error';
 
 /**
  * モック銀行APIアダプター
@@ -63,7 +64,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
    */
   async getAccountInfo(credentials: BankCredentials): Promise<BankAccountInfo> {
     if (!this.validateCredentials(credentials)) {
-      throw new Error('Invalid credentials');
+      throw BankConnectionError.invalidCredentials();
     }
 
     return {
@@ -86,7 +87,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
     toDate: string,
   ): Promise<BankTransaction[]> {
     if (!this.validateCredentials(credentials)) {
-      throw new Error('Invalid credentials');
+      throw BankConnectionError.invalidCredentials();
     }
 
     // モックデータを生成
