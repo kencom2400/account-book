@@ -13,6 +13,7 @@ import {
 import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
+import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
 import { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
 import { ConnectCreditCardDto } from '../dto/connect-credit-card.dto';
 import { GetTransactionsDto } from '../dto/get-transactions.dto';
@@ -24,6 +25,7 @@ export class CreditCardController {
     private readonly connectCreditCardUseCase: ConnectCreditCardUseCase,
     private readonly fetchTransactionsUseCase: FetchCreditCardTransactionsUseCase,
     private readonly fetchPaymentInfoUseCase: FetchPaymentInfoUseCase,
+    private readonly refreshCreditCardDataUseCase: RefreshCreditCardDataUseCase,
     private readonly creditCardRepository: ICreditCardRepository,
   ) {}
 
@@ -144,25 +146,14 @@ export class CreditCardController {
    */
   @Post(':id/refresh')
   async refresh(@Param('id') id: string) {
-    // 強制的に最新情報を取得
-    const transactions = await this.fetchTransactionsUseCase.execute({
-      creditCardId: id,
-      forceRefresh: true,
-    });
-
-    const payment = await this.fetchPaymentInfoUseCase.execute({
-      creditCardId: id,
-      forceRefresh: true,
-    });
-
-    const creditCard = await this.creditCardRepository.findById(id);
+    const result = await this.refreshCreditCardDataUseCase.execute(id);
 
     return {
       success: true,
       data: {
-        creditCard: creditCard?.toJSON(),
-        transactions: transactions.map((tx) => tx.toJSON()),
-        payment: payment.toJSON(),
+        creditCard: result.creditCard.toJSON(),
+        transactions: result.transactions.map((tx) => tx.toJSON()),
+        payment: result.payment.toJSON(),
       },
       message: 'Credit card data refreshed successfully',
     };

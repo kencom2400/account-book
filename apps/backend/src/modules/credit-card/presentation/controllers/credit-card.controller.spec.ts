@@ -2,6 +2,7 @@ import { CreditCardController } from './credit-card.controller';
 import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
+import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
 import { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
 import { NotFoundException } from '@nestjs/common';
 import {
@@ -15,6 +16,7 @@ describe('CreditCardController', () => {
   let mockConnectUseCase: jest.Mocked<ConnectCreditCardUseCase>;
   let mockFetchTransactionsUseCase: jest.Mocked<FetchCreditCardTransactionsUseCase>;
   let mockFetchPaymentInfoUseCase: jest.Mocked<FetchPaymentInfoUseCase>;
+  let mockRefreshUseCase: jest.Mocked<RefreshCreditCardDataUseCase>;
   let mockRepository: jest.Mocked<ICreditCardRepository>;
 
   beforeEach(async () => {
@@ -27,6 +29,10 @@ describe('CreditCardController', () => {
     } as any;
 
     mockFetchPaymentInfoUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    mockRefreshUseCase = {
       execute: jest.fn(),
     } as any;
 
@@ -45,6 +51,7 @@ describe('CreditCardController', () => {
       mockConnectUseCase,
       mockFetchTransactionsUseCase,
       mockFetchPaymentInfoUseCase,
+      mockRefreshUseCase,
       mockRepository,
     );
   });
@@ -211,9 +218,11 @@ describe('CreditCardController', () => {
       const mockTransactions = [createTestCreditCardTransaction()];
       const mockPayment = createTestPayment();
 
-      mockFetchTransactionsUseCase.execute.mockResolvedValue(mockTransactions);
-      mockFetchPaymentInfoUseCase.execute.mockResolvedValue(mockPayment);
-      mockRepository.findById.mockResolvedValue(mockCard);
+      mockRefreshUseCase.execute.mockResolvedValue({
+        creditCard: mockCard,
+        transactions: mockTransactions,
+        payment: mockPayment,
+      });
 
       const result = await controller.refresh('cc_test_123');
 
@@ -223,14 +232,7 @@ describe('CreditCardController', () => {
       expect(result.data.transactions).toHaveLength(1);
       expect(result.data.payment).toBeDefined();
 
-      expect(mockFetchTransactionsUseCase.execute).toHaveBeenCalledWith({
-        creditCardId: 'cc_test_123',
-        forceRefresh: true,
-      });
-      expect(mockFetchPaymentInfoUseCase.execute).toHaveBeenCalledWith({
-        creditCardId: 'cc_test_123',
-        forceRefresh: true,
-      });
+      expect(mockRefreshUseCase.execute).toHaveBeenCalledWith('cc_test_123');
     });
   });
 });

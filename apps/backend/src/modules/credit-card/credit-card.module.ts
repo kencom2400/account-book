@@ -8,6 +8,7 @@ import { CreditCardController } from './presentation/controllers/credit-card.con
 import { ConnectCreditCardUseCase } from './application/use-cases/connect-credit-card.use-case';
 import { FetchCreditCardTransactionsUseCase } from './application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from './application/use-cases/fetch-payment-info.use-case';
+import { RefreshCreditCardDataUseCase } from './application/use-cases/refresh-credit-card-data.use-case';
 
 // Repositories
 import {
@@ -37,6 +38,7 @@ import { ICryptoService } from '../institution/domain/services/crypto.service.in
     ConnectCreditCardUseCase,
     FetchCreditCardTransactionsUseCase,
     FetchPaymentInfoUseCase,
+    RefreshCreditCardDataUseCase,
 
     // Repositories
     {
