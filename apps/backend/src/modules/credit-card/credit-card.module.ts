@@ -40,24 +40,12 @@ import { ICryptoService } from '../institution/domain/services/crypto.service.in
 
     // Repositories
     {
-      provide: 'ICreditCardRepository',
-      useClass: FileSystemCreditCardRepository,
-    },
-    {
       provide: ICreditCardRepository,
       useClass: FileSystemCreditCardRepository,
     },
     {
-      provide: 'ICreditCardTransactionRepository',
-      useClass: FileSystemCreditCardTransactionRepository,
-    },
-    {
       provide: ICreditCardTransactionRepository,
       useClass: FileSystemCreditCardTransactionRepository,
-    },
-    {
-      provide: 'IPaymentRepository',
-      useClass: FileSystemPaymentRepository,
     },
     {
       provide: IPaymentRepository,
@@ -66,19 +54,11 @@ import { ICryptoService } from '../institution/domain/services/crypto.service.in
 
     // Adapters
     {
-      provide: 'ICreditCardAPIClient',
-      useClass: MockCreditCardAPIAdapter,
-    },
-    {
       provide: ICreditCardAPIClient,
       useClass: MockCreditCardAPIAdapter,
     },
 
     // Shared Services
-    {
-      provide: 'ICryptoService',
-      useClass: CryptoService,
-    },
     {
       provide: ICryptoService,
       useClass: CryptoService,
@@ -91,4 +71,3 @@ import { ICryptoService } from '../institution/domain/services/crypto.service.in
   ],
 })
 export class CreditCardModule {}
-
