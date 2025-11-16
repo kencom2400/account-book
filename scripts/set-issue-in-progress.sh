@@ -17,8 +17,15 @@ OWNER="kencom2400"
 
 echo "🔍 Issue #${ISSUE_NUMBER} の情報を取得中..."
 
-# プロジェクトIDを取得
-PROJECT_ID=$(gh project list --owner "$OWNER" --format json | jq -r '.[0].id')
+# プロジェクトIDを取得（プロジェクト番号でフィルタリング）
+PROJECT_ID=$(gh project list --owner "$OWNER" --format json | \
+  jq -r --argjson pnum "$PROJECT_NUMBER" '.[] | select(.number == $pnum) | .id')
+
+if [ -z "$PROJECT_ID" ]; then
+  echo "❌ エラー: プロジェクト番号 ${PROJECT_NUMBER} が見つかりませんでした"
+  exit 1
+fi
+
 echo "   プロジェクトID: $PROJECT_ID"
 
 # アイテムIDとステータスを取得
