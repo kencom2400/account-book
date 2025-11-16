@@ -3,7 +3,7 @@
 ## 基本原則
 
 - **Issue開始前に必ず適切なブランチを切ること**
-- **ブランチ作成後、すぐにIssueステータスを"In Progress"に変更すること**
+- **ブランチ作成後、すぐにGitHub ProjectsのステータスをIn Progressに変更すること**
 - ブランチ名は機能や修正内容を明確に表現する
 - mainブランチへの直接コミットは禁止
 
@@ -53,13 +53,24 @@ git pull origin main
 # 新しいブランチを作成
 git checkout -b feature/issue-<番号>-<説明>
 
-# GitHubでIssueのステータスを"In Progress"に変更
-gh issue edit <番号> --add-label "status: in progress"
-# または GitHub Projects を使用している場合
-gh project item-edit <プロジェクト番号> --field-name "Status" --field-value "In Progress" <Issue番号>
+# GitHub ProjectsでステータスをIn Progressに変更
+# 方法1: GitHub Web UIで手動変更（推奨）
+#   1. GitHubのプロジェクトボードを開く
+#   2. 該当Issueを見つける
+#   3. ステータスを "📋 Backlog" から "🚧 In Progress" にドラッグ&ドロップ
+#
+# 方法2: GitHub CLI（プロジェクトのフィールドID、オプションIDが必要）
+# gh project item-edit --project-id <PROJECT_ID> --id <ITEM_ID> --field-id <FIELD_ID> --option-id <OPTION_ID>
 ```
 
-**重要**: ブランチを切った直後、作業開始前に必ずIssueのステータスを"In Progress"に更新すること
+**重要**: ブランチを切った直後、作業開始前に必ずGitHub ProjectsのステータスをIn Progressに更新すること
+
+**ステータス変更の確認方法**:
+
+```bash
+# プロジェクトのIssue一覧を確認
+gh project item-list <プロジェクト番号> --owner <オーナー名> --format json | jq '.items[] | select(.content.number==<Issue番号>)'
+```
 
 ### 2. 作業中
 
