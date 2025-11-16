@@ -14,7 +14,7 @@ import {
   FileSystemCreditCardRepository,
   FileSystemCreditCardTransactionRepository,
   FileSystemPaymentRepository,
-} from './infrastructure/repositories/credit-card.repository.ts';
+} from './infrastructure/repositories/credit-card.repository';
 import {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
