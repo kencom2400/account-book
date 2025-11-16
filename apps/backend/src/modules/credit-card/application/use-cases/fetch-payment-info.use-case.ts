@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PaymentVO } from '../../domain/value-objects/payment.vo';
 import {
   ICreditCardRepository,
@@ -20,6 +20,8 @@ export interface FetchPaymentInfoInput {
  */
 @Injectable()
 export class FetchPaymentInfoUseCase {
+  private readonly logger = new Logger(FetchPaymentInfoUseCase.name);
+
   constructor(
     private readonly creditCardRepository: ICreditCardRepository,
     private readonly paymentRepository: IPaymentRepository,
@@ -50,7 +52,10 @@ export class FetchPaymentInfoUseCase {
         const updatedCard = creditCard.updateLastSyncedAt(new Date());
         await this.creditCardRepository.save(updatedCard);
       } catch (error) {
-        console.error('Failed to refresh payment info from API:', error);
+        this.logger.error(
+          `Failed to refresh payment info from API: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
         // API取得失敗時はローカルのデータを返す
       }
     }

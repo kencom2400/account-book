@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import {
@@ -27,6 +27,8 @@ export interface ConnectCreditCardInput {
  */
 @Injectable()
 export class ConnectCreditCardUseCase {
+  private readonly logger = new Logger(ConnectCreditCardUseCase.name);
+
   constructor(
     private readonly creditCardRepository: ICreditCardRepository,
     private readonly transactionRepository: ICreditCardTransactionRepository,
@@ -120,7 +122,10 @@ export class ConnectCreditCardUseCase {
       }
     } catch (error) {
       // 初回取得失敗はログだけ残して続行
-      console.error('Failed to fetch initial transactions:', error);
+      this.logger.error(
+        `Failed to fetch initial transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 

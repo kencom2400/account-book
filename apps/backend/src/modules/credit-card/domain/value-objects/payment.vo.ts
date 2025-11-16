@@ -82,12 +82,14 @@ export class PaymentVO {
 
   /**
    * 支払いを完了する
+   * @param _paidDate 実際に支払った日付（将来の拡張用に予約、現在は未使用）
    */
-  markAsPaid(paidDate: Date): PaymentVO {
+  markAsPaid(_paidDate: Date): PaymentVO {
+    // eslint-disable-line @typescript-eslint/no-unused-vars
     return new PaymentVO(
       this.billingMonth,
       this.closingDate,
-      paidDate,
+      this.paymentDueDate, // 支払期限日は変更しない
       this.totalAmount,
       this.totalAmount,
       0,

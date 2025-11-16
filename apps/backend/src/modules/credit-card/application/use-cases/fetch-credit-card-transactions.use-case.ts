@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import {
@@ -21,6 +21,8 @@ export interface FetchCreditCardTransactionsInput {
  */
 @Injectable()
 export class FetchCreditCardTransactionsUseCase {
+  private readonly logger = new Logger(FetchCreditCardTransactionsUseCase.name);
+
   constructor(
     private readonly creditCardRepository: ICreditCardRepository,
     private readonly transactionRepository: ICreditCardTransactionRepository,
@@ -54,7 +56,10 @@ export class FetchCreditCardTransactionsUseCase {
         const updatedCard = creditCard.updateLastSyncedAt(new Date());
         await this.creditCardRepository.save(updatedCard);
       } catch (error) {
-        console.error('Failed to refresh transactions from API:', error);
+        this.logger.error(
+          `Failed to refresh transactions from API: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof Error ? error.stack : undefined,
+        );
         // API取得失敗時はローカルのデータを返す
       }
     }

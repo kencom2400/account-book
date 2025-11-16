@@ -194,6 +194,7 @@ describe('PaymentVO', () => {
 describe('ConnectCreditCardUseCase', () => {
   let useCase: ConnectCreditCardUseCase;
   let mockRepository: jest.Mocked<ICreditCardRepository>;
+  let mockTransactionRepository: jest.Mocked<ICreditCardTransactionRepository>;
   let mockAPIClient: jest.Mocked<ICreditCardAPIClient>;
   let mockCryptoService: jest.Mocked<ICryptoService>;
 
@@ -202,6 +203,12 @@ describe('ConnectCreditCardUseCase', () => {
     mockRepository = {
       save: jest.fn(),
       findById: jest.fn(),
+      // ...
+    } as any;
+
+    mockTransactionRepository = {
+      saveMany: jest.fn(),
+      findByCreditCardIdAndDateRange: jest.fn(),
       // ...
     } as any;
 
