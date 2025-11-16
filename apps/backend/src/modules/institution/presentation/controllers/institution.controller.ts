@@ -69,8 +69,8 @@ export class InstitutionController {
    * GET /api/institutions/banks/supported
    */
   @Get('banks/supported')
-  async getSupportedBanks(@Query() query: GetSupportedBanksQueryDto) {
-    const banks = await this.getSupportedBanksUseCase.execute(query);
+  getSupportedBanks(@Query() query: GetSupportedBanksQueryDto) {
+    const banks = this.getSupportedBanksUseCase.execute(query);
 
     return {
       success: true,

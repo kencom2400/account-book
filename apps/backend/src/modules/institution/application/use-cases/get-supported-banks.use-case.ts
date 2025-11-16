@@ -12,7 +12,7 @@ export interface GetSupportedBanksQuery {
  */
 @Injectable()
 export class GetSupportedBanksUseCase {
-  async execute(query?: GetSupportedBanksQuery): Promise<Bank[]> {
+  execute(query?: GetSupportedBanksQuery): Bank[] {
     let banks = [...SUPPORTED_BANKS];
 
     // カテゴリで絞り込み
@@ -37,7 +37,7 @@ export class GetSupportedBanksUseCase {
   /**
    * 銀行コードから銀行情報を取得
    */
-  async findByCode(bankCode: string): Promise<Bank | null> {
+  findByCode(bankCode: string): Bank | null {
     const bank = SUPPORTED_BANKS.find((b) => b.code === bankCode);
     return bank && bank.isSupported ? bank : null;
   }
