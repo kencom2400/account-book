@@ -53,7 +53,7 @@ export class TestBankConnectionUseCase {
       return {
         success: false,
         message: `接続テストに失敗しました: ${error.message}`,
-        errorCode: 'BE002',
+        errorCode: 'BE999',
       };
     }
   }

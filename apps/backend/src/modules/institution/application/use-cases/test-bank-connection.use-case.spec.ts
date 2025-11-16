@@ -181,7 +181,7 @@ describe('TestBankConnectionUseCase', () => {
       const result = await useCase.execute(dto);
 
       expect(result.success).toBe(false);
-      expect(result.errorCode).toBe('BE002');
+      expect(result.errorCode).toBe('BE999');
       expect(result.message).toContain('接続テストに失敗しました');
     });
 

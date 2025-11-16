@@ -9,6 +9,7 @@ export enum BankErrorCode {
   BANK_API_ERROR = 'BE003', // 銀行API側エラー
   UNSUPPORTED_BANK = 'BE004', // 対応していない銀行
   RATE_LIMIT_EXCEEDED = 'BE005', // APIレート制限超過
+  UNKNOWN_ERROR = 'BE999', // 予期しないエラー
 }
 
 export class BankConnectionError extends Error {
@@ -61,6 +62,14 @@ export class BankConnectionError extends Error {
     return new BankConnectionError(
       BankErrorCode.RATE_LIMIT_EXCEEDED,
       'APIのレート制限を超過しました。時間を置いて再試行してください。',
+      details,
+    );
+  }
+
+  static unknownError(details?: any): BankConnectionError {
+    return new BankConnectionError(
+      BankErrorCode.UNKNOWN_ERROR,
+      '予期しないエラーが発生しました。しばらく待ってから再試行してください。',
       details,
     );
   }
