@@ -54,16 +54,19 @@ git pull origin main
 git checkout -b feature/issue-<番号>-<説明>
 
 # GitHub ProjectsでステータスをIn Progressに変更
-# 方法1: GitHub Web UIで手動変更（推奨）
-#   1. GitHubのプロジェクトボードを開く
-#   2. 該当Issueを見つける
-#   3. ステータスを "📋 Backlog" から "🚧 In Progress" にドラッグ&ドロップ
-#
-# 方法2: GitHub CLI（プロジェクトのフィールドID、オプションIDが必要）
-# gh project item-edit --project-id <PROJECT_ID> --id <ITEM_ID> --field-id <FIELD_ID> --option-id <OPTION_ID>
+./scripts/set-issue-in-progress.sh <番号>
+
+# 例: issue #24の場合
+# ./scripts/set-issue-in-progress.sh 24
 ```
 
 **重要**: ブランチを切った直後、作業開始前に必ずGitHub ProjectsのステータスをIn Progressに更新すること
+
+**手動でステータスを変更する場合**:
+
+1. GitHubのプロジェクトボードを開く
+2. 該当Issueを見つける
+3. ステータスを "📋 Backlog" から "🚧 In Progress" にドラッグ&ドロップ
 
 **ステータス変更の確認方法**:
 
