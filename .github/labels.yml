@@ -1,0 +1,235 @@
+# GitHub Labels定義
+# このファイルを使って、GitHub CLIやGitHub Actionsでラベルを一括作成できます
+# 使用方法: gh label create --file .github/labels.yml
+
+# タイプ別ラベル
+- name: "feature"
+  color: "0e8a16"
+  description: "新機能の実装"
+
+- name: "bug"
+  color: "d73a4a"
+  description: "バグ修正"
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "既存機能の改善"
+
+- name: "refactor"
+  color: "fbca04"
+  description: "リファクタリング"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "ドキュメント関連"
+
+- name: "testing"
+  color: "1d76db"
+  description: "テスト関連"
+
+- name: "infrastructure"
+  color: "5319e7"
+  description: "インフラ・環境構築"
+
+- name: "security"
+  color: "d93f0b"
+  description: "セキュリティ関連"
+
+- name: "task"
+  color: "bfdadc"
+  description: "開発タスク"
+
+# 領域別ラベル
+- name: "backend"
+  color: "1d76db"
+  description: "バックエンド（NestJS）"
+
+- name: "frontend"
+  color: "0052cc"
+  description: "フロントエンド（Next.js）"
+
+- name: "library"
+  color: "5319e7"
+  description: "共通ライブラリ"
+
+- name: "database"
+  color: "d876e3"
+  description: "データベース"
+
+- name: "api"
+  color: "1d76db"
+  description: "API関連"
+
+# 機能別ラベル
+- name: "integration"
+  color: "fbca04"
+  description: "外部連携"
+
+- name: "classification"
+  color: "c5def5"
+  description: "データ分類"
+
+- name: "aggregation"
+  color: "c2e0c6"
+  description: "集計機能"
+
+- name: "visualization"
+  color: "bfd4f2"
+  description: "可視化・グラフ"
+
+- name: "settings"
+  color: "d4c5f9"
+  description: "設定機能"
+
+- name: "sync"
+  color: "0e8a16"
+  description: "同期機能"
+
+- name: "bank"
+  color: "1d76db"
+  description: "銀行連携"
+
+- name: "credit-card"
+  color: "fbca04"
+  description: "クレジットカード"
+
+- name: "securities"
+  color: "5319e7"
+  description: "証券会社"
+
+- name: "notification"
+  color: "d93f0b"
+  description: "通知機能"
+
+- name: "category"
+  color: "c5def5"
+  description: "カテゴリ管理"
+
+- name: "event"
+  color: "bfdadc"
+  description: "イベント機能"
+
+- name: "chart"
+  color: "0075ca"
+  description: "チャート・グラフ"
+
+- name: "reconciliation"
+  color: "fbca04"
+  description: "照合機能"
+
+- name: "alert"
+  color: "d93f0b"
+  description: "アラート"
+
+- name: "trend"
+  color: "c2e0c6"
+  description: "トレンド分析"
+
+- name: "asset"
+  color: "0e8a16"
+  description: "資産管理"
+
+# 優先度ラベル
+- name: "priority: critical"
+  color: "b60205"
+  description: "最優先（即座に対応必要）"
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "優先度：高"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "優先度：中"
+
+- name: "priority: low"
+  color: "c5def5"
+  description: "優先度：低"
+
+# ステータスラベル
+- name: "status: completed"
+  color: "0e8a16"
+  description: "完了"
+
+- name: "status: in-progress"
+  color: "fbca04"
+  description: "進行中"
+
+- name: "status: blocked"
+  color: "d93f0b"
+  description: "ブロック中"
+
+- name: "status: on-hold"
+  color: "ffffff"
+  description: "保留"
+
+- name: "status: review"
+  color: "0052cc"
+  description: "レビュー中"
+
+# サイズラベル（工数見積もり）
+- name: "size: XS"
+  color: "c2e0c6"
+  description: "工数：0.5日以下"
+
+- name: "size: S"
+  color: "bfd4f2"
+  description: "工数：0.5〜1日"
+
+- name: "size: M"
+  color: "c5def5"
+  description: "工数：1〜3日"
+
+- name: "size: L"
+  color: "fbca04"
+  description: "工数：3〜5日"
+
+- name: "size: XL"
+  color: "d93f0b"
+  description: "工数：5日以上"
+
+# その他
+- name: "good first issue"
+  color: "7057ff"
+  description: "初めての貢献に適したIssue"
+
+- name: "help wanted"
+  color: "008672"
+  description: "ヘルプ募集"
+
+- name: "question"
+  color: "d876e3"
+  description: "質問"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "重複Issue"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "無効なIssue"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "修正しない"
+
+- name: "dependencies"
+  color: "0366d6"
+  description: "依存関係の更新"
+
+- name: "breaking change"
+  color: "b60205"
+  description: "Breaking Change（後方互換性なし）"
+
+- name: "needs discussion"
+  color: "d876e3"
+  description: "議論が必要"
+
+- name: "needs design"
+  color: "f9d0c4"
+  description: "デザインが必要"
+
+- name: "future"
+  color: "c5def5"
+  description: "将来的な実装（Phase 6以降）"
+

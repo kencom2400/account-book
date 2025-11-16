@@ -1,0 +1,81 @@
+name: Issue Auto Labeler
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto label by title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = issue.body ? issue.body.toLowerCase() : '';
+            const labels = [];
+
+            // タイトルから自動的にラベルを付与
+            if (title.includes('[bug]')) labels.push('bug');
+            if (title.includes('[feature]')) labels.push('feature');
+            if (title.includes('[task]')) labels.push('task');
+            
+            // 機能要件IDから自動判定
+            if (title.match(/fr-00[1-7]/i) || body.includes('銀行') || body.includes('証券') || body.includes('取得')) {
+              labels.push('integration');
+            }
+            if (title.match(/fr-00[8-9]/i) || title.match(/fr-01[0-1]/i) || body.includes('分類') || body.includes('カテゴリ')) {
+              labels.push('classification');
+              labels.push('category');
+            }
+            if (title.match(/fr-01[2-5]/i) || body.includes('クレジットカード') || body.includes('照合')) {
+              labels.push('credit-card');
+              labels.push('reconciliation');
+            }
+            if (title.match(/fr-01[6-9]/i) || title.match(/fr-02[0-2]/i) || body.includes('集計') || body.includes('分析')) {
+              labels.push('aggregation');
+            }
+            if (title.match(/fr-02[3-7]/i) || body.includes('グラフ') || body.includes('チャート') || body.includes('可視化')) {
+              labels.push('visualization');
+              labels.push('chart');
+            }
+            if (title.match(/fr-02[8-9]/i) || title.match(/fr-03[0-1]/i) || body.includes('設定')) {
+              labels.push('settings');
+            }
+
+            // Frontend/Backend判定
+            if (body.includes('frontend') || body.includes('next.js') || body.includes('react') || body.includes('ui')) {
+              labels.push('frontend');
+            }
+            if (body.includes('backend') || body.includes('nestjs') || body.includes('api')) {
+              labels.push('backend');
+            }
+
+            // 優先度の判定（タイトルや本文から）
+            if (title.includes('urgent') || title.includes('緊急') || body.includes('critical')) {
+              labels.push('priority: critical');
+            } else if (title.includes('high') || title.includes('優先')) {
+              labels.push('priority: high');
+            }
+
+            // ラベルを付与
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+              
+              console.log(`Added labels: ${labels.join(', ')}`);
+            }
+
