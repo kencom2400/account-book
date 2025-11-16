@@ -1,14 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CreditCardController } from '../credit-card.controller';
-import { ConnectCreditCardUseCase } from '../../../application/use-cases/connect-credit-card.use-case';
-import { FetchCreditCardTransactionsUseCase } from '../../../application/use-cases/fetch-credit-card-transactions.use-case';
-import { FetchPaymentInfoUseCase } from '../../../application/use-cases/fetch-payment-info.use-case';
-import { ICreditCardRepository } from '../../../domain/repositories/credit-card.repository.interface';
+import { CreditCardController } from './credit-card.controller';
+import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
+import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
+import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
+import { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
 import {
   createTestCreditCard,
   createTestCreditCardTransaction,
   createTestPayment,
-} from '../../../../../../test/helpers/credit-card.factory';
+} from '../../../../../test/helpers/credit-card.factory';
 
 describe('CreditCardController', () => {
   let controller: CreditCardController;
@@ -38,35 +37,15 @@ describe('CreditCardController', () => {
       findByIssuer: jest.fn(),
       delete: jest.fn(),
       exists: jest.fn(),
-    };
+    } as any;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [CreditCardController],
-      providers: [
-        {
-          provide: ConnectCreditCardUseCase,
-          useValue: mockConnectUseCase,
-        },
-        {
-          provide: FetchCreditCardTransactionsUseCase,
-          useValue: mockFetchTransactionsUseCase,
-        },
-        {
-          provide: FetchPaymentInfoUseCase,
-          useValue: mockFetchPaymentInfoUseCase,
-        },
-        {
-          provide: 'ICreditCardRepository',
-          useValue: mockRepository,
-        },
-        {
-          provide: ICreditCardRepository,
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    controller = module.get<CreditCardController>(CreditCardController);
+    // コントローラーを直接インスタンス化
+    controller = new CreditCardController(
+      mockConnectUseCase,
+      mockFetchTransactionsUseCase,
+      mockFetchPaymentInfoUseCase,
+      mockRepository,
+    );
   });
 
   it('should be defined', () => {
@@ -252,4 +231,3 @@ describe('CreditCardController', () => {
     });
   });
 });
-

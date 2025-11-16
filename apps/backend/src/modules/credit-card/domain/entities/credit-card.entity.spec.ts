@@ -1,5 +1,8 @@
-import { CreditCardEntity } from '../credit-card.entity';
-import { createTestCreditCard, createTestEncryptedCredentials } from '../../../../../../test/helpers/credit-card.factory';
+import { CreditCardEntity } from './credit-card.entity';
+import {
+  createTestCreditCard,
+  createTestEncryptedCredentials,
+} from '../../../../../test/helpers/credit-card.factory';
 
 describe('CreditCardEntity', () => {
   describe('constructor', () => {
@@ -210,8 +213,11 @@ describe('CreditCardEntity', () => {
   });
 
   describe('updateConnectionStatus', () => {
-    it('should update connection status', () => {
+    it('should update connection status', async () => {
       const card = createTestCreditCard({ isConnected: true });
+
+      // 少し待機してupdatedAtが確実に変わるようにする
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const updated = card.updateConnectionStatus(false);
 
@@ -292,4 +298,3 @@ describe('CreditCardEntity', () => {
     });
   });
 });
-

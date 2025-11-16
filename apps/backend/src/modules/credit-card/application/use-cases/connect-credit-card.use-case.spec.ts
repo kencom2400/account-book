@@ -1,15 +1,14 @@
-import { ConnectCreditCardUseCase } from '../connect-credit-card.use-case';
+import { ConnectCreditCardUseCase } from './connect-credit-card.use-case';
 import {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
-} from '../../../domain/repositories/credit-card.repository.interface';
-import { ICreditCardAPIClient } from '../../../infrastructure/adapters/credit-card-api.adapter.interface';
-import { ICryptoService } from '../../../../institution/domain/services/crypto.service.interface';
+} from '../../domain/repositories/credit-card.repository.interface';
+import { ICreditCardAPIClient } from '../../infrastructure/adapters/credit-card-api.adapter.interface';
+import { ICryptoService } from '../../../institution/domain/services/crypto.service.interface';
 import {
-  createTestCreditCard,
   createTestEncryptedCredentials,
   createTestCreditCardTransaction,
-} from '../../../../../../test/helpers/credit-card.factory';
+} from '../../../../../test/helpers/credit-card.factory';
 
 describe('ConnectCreditCardUseCase', () => {
   let useCase: ConnectCreditCardUseCase;
@@ -228,9 +227,7 @@ describe('ConnectCreditCardUseCase', () => {
       mockCryptoService.encrypt.mockResolvedValue(encryptedCredentials);
       mockAPIClient.testConnection.mockResolvedValue({ success: true });
       mockAPIClient.getCardInfo.mockResolvedValue(cardInfo);
-      mockAPIClient.getTransactions.mockRejectedValue(
-        new Error('API error'),
-      );
+      mockAPIClient.getTransactions.mockRejectedValue(new Error('API error'));
       mockCreditCardRepository.save.mockImplementation((card) =>
         Promise.resolve(card),
       );
@@ -245,4 +242,3 @@ describe('ConnectCreditCardUseCase', () => {
     });
   });
 });
-

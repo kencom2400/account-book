@@ -1,6 +1,6 @@
-import { CreditCardTransactionEntity } from '../credit-card-transaction.entity';
-import { createTestCreditCardTransaction } from '../../../../../../test/helpers/credit-card.factory';
-import { TransactionCategory } from '@account-book/types';
+import { CreditCardTransactionEntity } from './credit-card-transaction.entity';
+import { createTestCreditCardTransaction } from '../../../../../test/helpers/credit-card.factory';
+import { CategoryType } from '@account-book/types';
 
 describe('CreditCardTransactionEntity', () => {
   describe('constructor', () => {
@@ -26,7 +26,7 @@ describe('CreditCardTransactionEntity', () => {
           'ストア名',
           'カテゴリ',
           '説明',
-          TransactionCategory.EXPENSE,
+          CategoryType.EXPENSE,
           false,
           null,
           null,
@@ -50,7 +50,7 @@ describe('CreditCardTransactionEntity', () => {
           'ストア名',
           'カテゴリ',
           '説明',
-          TransactionCategory.EXPENSE,
+          CategoryType.EXPENSE,
           false,
           null,
           null,
@@ -74,7 +74,7 @@ describe('CreditCardTransactionEntity', () => {
           'ストア名',
           'カテゴリ',
           '説明',
-          TransactionCategory.EXPENSE,
+          CategoryType.EXPENSE,
           true, // 分割払い
           1, // 無効（2回以上必要）
           1,
@@ -98,7 +98,7 @@ describe('CreditCardTransactionEntity', () => {
           'ストア名',
           'カテゴリ',
           '説明',
-          TransactionCategory.EXPENSE,
+          CategoryType.EXPENSE,
           true,
           12,
           13, // 無効（12回払いで13回目は存在しない）
@@ -122,7 +122,7 @@ describe('CreditCardTransactionEntity', () => {
           'ストア名',
           'カテゴリ',
           '説明',
-          TransactionCategory.EXPENSE,
+          CategoryType.EXPENSE,
           false,
           null,
           null,
@@ -228,13 +228,13 @@ describe('CreditCardTransactionEntity', () => {
   describe('updateCategory', () => {
     it('should update transaction category', () => {
       const transaction = createTestCreditCardTransaction({
-        category: TransactionCategory.EXPENSE,
+        category: CategoryType.EXPENSE,
       });
 
-      const updated = transaction.updateCategory(TransactionCategory.INCOME);
+      const updated = transaction.updateCategory(CategoryType.INCOME);
 
-      expect(transaction.category).toBe(TransactionCategory.EXPENSE);
-      expect(updated.category).toBe(TransactionCategory.INCOME);
+      expect(transaction.category).toBe(CategoryType.EXPENSE);
+      expect(updated.category).toBe(CategoryType.INCOME);
     });
   });
 
@@ -256,4 +256,3 @@ describe('CreditCardTransactionEntity', () => {
     });
   });
 });
-

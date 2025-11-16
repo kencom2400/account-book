@@ -1,8 +1,11 @@
 import { CreditCardEntity } from '../../src/modules/credit-card/domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../src/modules/credit-card/domain/entities/credit-card-transaction.entity';
-import { PaymentVO, PaymentStatus } from '../../src/modules/credit-card/domain/value-objects/payment.vo';
+import {
+  PaymentVO,
+  PaymentStatus,
+} from '../../src/modules/credit-card/domain/value-objects/payment.vo';
 import { EncryptedCredentials } from '../../src/modules/institution/domain/value-objects/encrypted-credentials.vo';
-import { TransactionCategory } from '@account-book/types';
+import { CategoryType } from '@account-book/types';
 
 export function createTestEncryptedCredentials(
   overrides?: Partial<EncryptedCredentials>,
@@ -43,13 +46,11 @@ export function createTestCreditCard(
     overrides?.expiryDate || new Date('2030-12-31'),
     overrides?.credentials || createTestEncryptedCredentials(),
     overrides?.isConnected ?? true,
-    overrides?.lastSyncedAt !== undefined
-      ? overrides.lastSyncedAt
-      : new Date(),
-    overrides?.paymentDay || 27,
-    overrides?.closingDay || 15,
-    overrides?.creditLimit || 500000,
-    overrides?.currentBalance || 125000,
+    overrides?.lastSyncedAt !== undefined ? overrides.lastSyncedAt : new Date(),
+    overrides?.paymentDay ?? 27,
+    overrides?.closingDay ?? 15,
+    overrides?.creditLimit ?? 500000,
+    overrides?.currentBalance ?? 125000,
     overrides?.issuer || 'テスト銀行',
     overrides?.createdAt || new Date(),
     overrides?.updatedAt || new Date(),
@@ -66,7 +67,7 @@ export function createTestCreditCardTransaction(
     merchantName: string;
     merchantCategory: string;
     description: string;
-    category: TransactionCategory;
+    category: CategoryType;
     isInstallment: boolean;
     installmentCount: number | null;
     installmentNumber: number | null;
@@ -86,7 +87,7 @@ export function createTestCreditCardTransaction(
     overrides?.merchantName || 'テストストア',
     overrides?.merchantCategory || 'スーパー',
     overrides?.description || 'カード利用',
-    overrides?.category || TransactionCategory.EXPENSE,
+    overrides?.category || CategoryType.EXPENSE,
     overrides?.isInstallment ?? false,
     overrides?.installmentCount !== undefined
       ? overrides.installmentCount
@@ -117,7 +118,8 @@ export function createTestPayment(
 ): PaymentVO {
   const totalAmount = overrides?.totalAmount || 125000;
   const paidAmount = overrides?.paidAmount || 0;
-  const remainingAmount = overrides?.remainingAmount || totalAmount - paidAmount;
+  const remainingAmount =
+    overrides?.remainingAmount || totalAmount - paidAmount;
 
   return new PaymentVO(
     overrides?.billingMonth || '2025-01',
@@ -129,4 +131,3 @@ export function createTestPayment(
     overrides?.status || PaymentStatus.UNPAID,
   );
 }
-

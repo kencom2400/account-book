@@ -7,8 +7,11 @@ import {
   APIPaymentInfo,
 } from './credit-card-api.adapter.interface';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
-import { PaymentVO, PaymentStatus } from '../../domain/value-objects/payment.vo';
-import { TransactionCategory } from '@account-book/types';
+import {
+  PaymentVO,
+  PaymentStatus,
+} from '../../domain/value-objects/payment.vo';
+import { CategoryType } from '@account-book/types';
 
 /**
  * MockCreditCardAPIAdapter
@@ -47,7 +50,7 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
   }
 
   async getTransactions(
-    _credentials: unknown, // eslint-disable-line @typescript-eslint/no-unused-vars
+    _credentials: unknown,
     startDate: Date,
     endDate: Date,
   ): Promise<APITransaction[]> {
@@ -124,9 +127,13 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
     );
   }
 
-  mapToPaymentVO(billingMonth: string, apiPaymentInfo: APIPaymentInfo): PaymentVO {
+  mapToPaymentVO(
+    billingMonth: string,
+    apiPaymentInfo: APIPaymentInfo,
+  ): PaymentVO {
     const status = this.mapToPaymentStatus(apiPaymentInfo.status);
-    const remainingAmount = apiPaymentInfo.totalAmount - apiPaymentInfo.paidAmount;
+    const remainingAmount =
+      apiPaymentInfo.totalAmount - apiPaymentInfo.paidAmount;
 
     return new PaymentVO(
       billingMonth,
@@ -139,17 +146,17 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
     );
   }
 
-  private mapToCategory(merchantCategory: string): TransactionCategory {
+  private mapToCategory(merchantCategory: string): CategoryType {
     // 簡易的なカテゴリマッピング
-    const categoryMap: { [key: string]: TransactionCategory } = {
-      'レストラン': TransactionCategory.EXPENSE,
-      'スーパー': TransactionCategory.EXPENSE,
-      'コンビニ': TransactionCategory.EXPENSE,
-      '交通': TransactionCategory.EXPENSE,
-      'その他': TransactionCategory.EXPENSE,
+    const categoryMap: { [key: string]: CategoryType } = {
+      レストラン: CategoryType.EXPENSE,
+      スーパー: CategoryType.EXPENSE,
+      コンビニ: CategoryType.EXPENSE,
+      交通: CategoryType.EXPENSE,
+      その他: CategoryType.EXPENSE,
     };
 
-    return categoryMap[merchantCategory] || TransactionCategory.EXPENSE;
+    return categoryMap[merchantCategory] || CategoryType.EXPENSE;
   }
 
   private mapToPaymentStatus(status: string): PaymentStatus {
@@ -198,4 +205,3 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
     return new Promise((resolve) => setTimeout(resolve, delay));
   }
 }
-

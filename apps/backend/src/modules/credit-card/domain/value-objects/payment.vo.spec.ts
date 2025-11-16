@@ -1,5 +1,5 @@
-import { PaymentVO, PaymentStatus } from '../payment.vo';
-import { createTestPayment } from '../../../../../../test/helpers/credit-card.factory';
+import { PaymentVO, PaymentStatus } from './payment.vo';
+import { createTestPayment } from '../../../../../test/helpers/credit-card.factory';
 
 describe('PaymentVO', () => {
   describe('constructor', () => {
@@ -154,14 +154,14 @@ describe('PaymentVO', () => {
       expect(payment.getPaymentProgress()).toBe(25);
     });
 
-    it('should return 100 when total amount is 0', () => {
+    it('should return 0 when total amount is 0', () => {
       const payment = createTestPayment({
         totalAmount: 0,
         paidAmount: 0,
         remainingAmount: 0,
       });
 
-      expect(payment.getPaymentProgress()).toBe(100);
+      expect(payment.getPaymentProgress()).toBe(0);
     });
 
     it('should return 100 when fully paid', () => {
@@ -288,4 +288,3 @@ describe('PaymentVO', () => {
     });
   });
 });
-

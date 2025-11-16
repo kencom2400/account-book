@@ -1,4 +1,4 @@
-import { MockCreditCardAPIAdapter } from '../mock-credit-card-api.adapter';
+import { MockCreditCardAPIAdapter } from './mock-credit-card-api.adapter';
 
 describe('MockCreditCardAPIAdapter', () => {
   let adapter: MockCreditCardAPIAdapter;
@@ -172,4 +172,3 @@ describe('MockCreditCardAPIAdapter', () => {
     });
   });
 });
-

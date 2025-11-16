@@ -61,8 +61,7 @@ export class PaymentVO {
    */
   isOverdue(): boolean {
     return (
-      this.status === PaymentStatus.UNPAID &&
-      this.paymentDueDate < new Date()
+      this.status === PaymentStatus.UNPAID && this.paymentDueDate < new Date()
     );
   }
 
@@ -77,7 +76,7 @@ export class PaymentVO {
    * 支払い進捗率を計算（パーセンテージ）
    */
   getPaymentProgress(): number {
-    if (this.totalAmount === 0) return 100;
+    if (this.totalAmount === 0) return 0; // 修正: 0円の場合は0%を返す
     return (this.paidAmount / this.totalAmount) * 100;
   }
 
@@ -168,4 +167,3 @@ export enum PaymentStatus {
   OVERDUE = 'overdue', // 期限切れ
   PENDING = 'pending', // 処理中
 }
-

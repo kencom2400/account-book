@@ -1,4 +1,4 @@
-import { TransactionCategory } from '@account-book/types';
+import { CategoryType } from '@account-book/types';
 
 /**
  * CreditCardTransactionエンティティ
@@ -14,7 +14,7 @@ export class CreditCardTransactionEntity {
     public readonly merchantName: string, // 店舗名
     public readonly merchantCategory: string, // 店舗カテゴリ
     public readonly description: string,
-    public readonly category: TransactionCategory,
+    public readonly category: CategoryType,
     public readonly isInstallment: boolean, // 分割払いかどうか
     public readonly installmentCount: number | null, // 分割回数
     public readonly installmentNumber: number | null, // 現在の回数（例: 3/12）
@@ -153,7 +153,7 @@ export class CreditCardTransactionEntity {
   /**
    * カテゴリを更新
    */
-  updateCategory(category: TransactionCategory): CreditCardTransactionEntity {
+  updateCategory(category: CategoryType): CreditCardTransactionEntity {
     return new CreditCardTransactionEntity(
       this.id,
       this.creditCardId,
@@ -201,4 +201,3 @@ export class CreditCardTransactionEntity {
     };
   }
 }
-

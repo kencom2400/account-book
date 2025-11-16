@@ -3,10 +3,60 @@
 ## 基本原則
 
 - **全ての新規実装にユニットテストを作成すること**
+- **実装したテストは必ず実行し、全てのテストが成功することを確認すること**
+- **テストが失敗した場合は、必ず修正してから次の作業に進むこと**
 - **テストカバレッジは80%以上を目標とする**
 - **テストは独立して実行可能であること**
 - **テストは高速に実行できること**
 - **テストは保守しやすく、理解しやすいこと**
+
+## テスト実行義務
+
+### 新機能実装時
+
+1. テストコードを作成する
+2. **必ずテストを実行する**
+3. **全てのテストが成功するまで修正する**
+4. コミット前に再度テストを実行し、全て成功することを確認する
+
+### テスト実行コマンド
+
+```bash
+# モジュール全体のテスト
+cd apps/backend
+pnpm test <module-name>
+
+# 例: クレジットカードモジュールのテスト
+pnpm test credit-card
+
+# 特定のファイルのテスト
+pnpm test <file-path>
+
+# ウォッチモード（開発時推奨）
+pnpm test:watch
+
+# カバレッジ付き
+pnpm test:cov
+```
+
+### テスト失敗時の対応
+
+1. エラーメッセージを確認する
+2. 失敗したテストケースを特定する
+3. 以下のいずれかを実施：
+   - **実装コードの修正**: バグや仕様の誤りがある場合
+   - **テストコードの修正**: テストの期待値や前提条件が誤っている場合
+   - **テストデータの修正**: ファクトリーやモックのデータが不適切な場合
+4. 再度テストを実行し、成功することを確認する
+5. **全てのテストが成功するまで、この手順を繰り返す**
+
+### コミット前チェックリスト
+
+- [ ] 新規実装に対応するテストコードを作成した
+- [ ] テストを実行し、全て成功した
+- [ ] Linterエラーがない
+- [ ] 不要なconsole.log等のデバッグコードを削除した
+- [ ] コミットメッセージが適切である
 
 ## テストフレームワーク
 
@@ -77,6 +127,7 @@ describe('CreditCardEntity', () => {
 ### Domain層のテスト
 
 **エンティティのテスト:**
+
 - コンストラクタのバリデーション
 - ビジネスロジックメソッド
 - 状態変更メソッド
@@ -90,7 +141,7 @@ describe('CreditCardEntity', () => {
         new CreditCardEntity(
           'cc_1',
           'カード名',
-          '12345', // 5桁（無効）
+          '12345' // 5桁（無効）
           // ...
         );
       }).toThrow('Card number must be last 4 digits');
@@ -111,6 +162,7 @@ describe('CreditCardEntity', () => {
 ```
 
 **Value Objectのテスト:**
+
 - 不変性の確認
 - バリデーション
 - 等価性チェック
@@ -120,10 +172,10 @@ describe('CreditCardEntity', () => {
 describe('PaymentVO', () => {
   it('should be immutable', () => {
     const payment = new PaymentVO(/* ... */);
-    
+
     // Value Objectは不変なので、新しいインスタンスを返す
     const updated = payment.markAsPaid(new Date());
-    
+
     expect(payment.isPaid()).toBe(false);
     expect(updated.isPaid()).toBe(true);
   });
@@ -133,6 +185,7 @@ describe('PaymentVO', () => {
 ### Application層のテスト
 
 **UseCaseのテスト:**
+
 - モックを使用して依存関係を分離
 - 正常系と異常系の両方をテスト
 - ビジネスロジックの検証
@@ -167,7 +220,7 @@ describe('ConnectCreditCardUseCase', () => {
       mockRepository,
       mockTransactionRepository,
       mockAPIClient,
-      mockCryptoService,
+      mockCryptoService
     );
   });
 
@@ -205,7 +258,9 @@ describe('ConnectCreditCardUseCase', () => {
       error: 'Connection failed',
     });
 
-    const input = { /* ... */ };
+    const input = {
+      /* ... */
+    };
 
     // Act & Assert
     await expect(useCase.execute(input)).rejects.toThrow('Failed to connect');
@@ -216,6 +271,7 @@ describe('ConnectCreditCardUseCase', () => {
 ### Infrastructure層のテスト
 
 **リポジトリのテスト:**
+
 - CRUD操作
 - ファイルシステム操作（モック使用）
 - エラーハンドリング
@@ -246,6 +302,7 @@ describe('FileSystemCreditCardRepository', () => {
 ```
 
 **アダプターのテスト:**
+
 - API通信のモック
 - データ変換ロジック
 - エラーハンドリング
@@ -253,6 +310,7 @@ describe('FileSystemCreditCardRepository', () => {
 ### Presentation層のテスト
 
 **コントローラーのテスト:**
+
 - リクエスト/レスポンスの検証
 - UseCaseの呼び出し確認
 - エラーハンドリング
@@ -300,7 +358,7 @@ describe('CreditCardController', () => {
     expect(mockConnectUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         cardName: 'テストカード',
-      }),
+      })
     );
   });
 });
@@ -313,7 +371,7 @@ describe('CreditCardController', () => {
 ```typescript
 // test/helpers/credit-card.factory.ts
 export function createTestCreditCard(
-  overrides?: Partial<CreditCardConstructorParams>,
+  overrides?: Partial<CreditCardConstructorParams>
 ): CreditCardEntity {
   return new CreditCardEntity(
     overrides?.id || 'cc_test_123',
@@ -330,7 +388,7 @@ export function createTestCreditCard(
     overrides?.currentBalance || 0,
     overrides?.issuer || 'テスト銀行',
     overrides?.createdAt || new Date(),
-    overrides?.updatedAt || new Date(),
+    overrides?.updatedAt || new Date()
   );
 }
 ```
@@ -393,7 +451,7 @@ it('should update balance', () => {
 
 // モックは必要最小限
 it('should save credit card', async () => {
-  mockRepository.save.mockImplementation(card => Promise.resolve(card));
+  mockRepository.save.mockImplementation((card) => Promise.resolve(card));
   // ...
 });
 ```
@@ -402,7 +460,9 @@ it('should save credit card', async () => {
 
 ```typescript
 // 曖昧なテストケース名
-it('should work', () => { /* ... */ });
+it('should work', () => {
+  /* ... */
+});
 
 // 1つのテストで複数のことをテスト
 it('should do everything', () => {
@@ -450,4 +510,3 @@ pnpm test:e2e
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
 - [NestJS Testing](https://docs.nestjs.com/fundamentals/testing)
 - [Testing Best Practices](https://github.com/goldbergyoni/javascript-testing-best-practices)
-
