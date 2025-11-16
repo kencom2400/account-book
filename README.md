@@ -75,6 +75,22 @@ pnpm build
 - `libs/types` - 共通型定義
 - `libs/utils` - 共通ユーティリティ
 
+## トラブルシューティング
+
+### Git pre-commitフックでpnpmが見つからない場合
+
+Huskyのpre-commitフック実行時に`pnpm: command not found`エラーが発生した場合：
+
+1. pnpmが正しくインストールされているか確認：
+
+   ```bash
+   pnpm --version
+   ```
+
+2. プロジェクトの`.husky/pre-commit`ファイルには、一般的なpnpmのインストールパスが自動的に設定されています
+
+3. 詳細は[SETUP.md](./SETUP.md#pnpmコマンドが見つからない場合git-pre-commitフック)を参照してください
+
 ## 技術スタック
 
 ### フロントエンド
