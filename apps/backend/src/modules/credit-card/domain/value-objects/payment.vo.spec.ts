@@ -191,7 +191,7 @@ describe('PaymentVO', () => {
       expect(updated.isPaid()).toBe(true);
       expect(updated.paidAmount).toBe(100000);
       expect(updated.remainingAmount).toBe(0);
-      expect(updated.paymentDueDate).toEqual(paidDate);
+      expect(updated.paymentDueDate).toEqual(payment.paymentDueDate);
     });
   });
 
