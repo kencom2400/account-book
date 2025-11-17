@@ -9,6 +9,34 @@ import { IInstitutionRepository } from '../../domain/repositories/institution.re
 import { InstitutionType } from '@account-book/types';
 
 /**
+ * JSONファイルに保存する金融機関データの型定義
+ */
+interface InstitutionJSON {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  credentials: {
+    encrypted: string;
+    iv: string;
+    authTag: string;
+    algorithm: string;
+    version: string;
+  };
+  isConnected: boolean;
+  lastSyncedAt: string | null;
+  accounts: Array<{
+    id: string;
+    institutionId: string;
+    accountNumber: string;
+    accountName: string;
+    balance: number;
+    currency: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Institution Repository Implementation
  * JSONファイルでの永続化を実装
  */
@@ -19,7 +47,7 @@ export class InstitutionRepository implements IInstitutionRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'institutions');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   /**
@@ -49,8 +77,10 @@ export class InstitutionRepository implements IInstitutionRepository {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data.map((item) => this.toEntity(item)) : [];
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) => this.toEntity(item as InstitutionJSON))
+        : [];
     } catch {
       // ファイルが存在しない場合は空配列を返す
       return [];
@@ -141,7 +171,7 @@ export class InstitutionRepository implements IInstitutionRepository {
   /**
    * エンティティをJSONオブジェクトに変換
    */
-  private toJSON(entity: InstitutionEntity): any {
+  private toJSON(entity: InstitutionEntity): InstitutionJSON {
     return {
       id: entity.id,
       name: entity.name,
@@ -158,7 +188,7 @@ export class InstitutionRepository implements IInstitutionRepository {
   /**
    * JSONオブジェクトをエンティティに変換
    */
-  private toEntity(data: any): InstitutionEntity {
+  private toEntity(data: InstitutionJSON): InstitutionEntity {
     const credentials = new EncryptedCredentials(
       data.credentials.encrypted,
       data.credentials.iv,

@@ -1,6 +1,22 @@
 import { CategoryType } from '@account-book/types';
 
 /**
+ * Category JSONレスポンス型
+ */
+export interface CategoryJSONResponse {
+  id: string;
+  name: string;
+  type: CategoryType;
+  parentId: string | null;
+  icon: string | null;
+  color: string | null;
+  isSystemDefined: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
  * Categoryエンティティ
  * カテゴリ（費目）情報を表すドメインエンティティ
  */
@@ -166,7 +182,7 @@ export class CategoryEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): CategoryJSONResponse {
     return {
       id: this.id,
       name: this.name,

@@ -9,6 +9,7 @@ import {
 import { InitializeCategoriesUseCase } from '../../application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
 import { CategoryType } from '@account-book/types';
+import { CategoryEntity } from '../../domain/entities/category.entity';
 
 // DTOs
 class GetCategoriesQueryDto {
@@ -70,7 +71,7 @@ export class CategoryController {
     const categories = Array.isArray(result) ? result : [];
     return {
       success: true,
-      data: categories.map((c: any) => c.toJSON()),
+      data: categories.map((c: CategoryEntity) => c.toJSON()),
       count: categories.length,
     };
   }
