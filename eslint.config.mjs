@@ -59,10 +59,10 @@ export default [
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
+      // テストファイルでは型安全性ルールを緩和（モックやテストダブルで any が必要なため）
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-inferrable-types': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
