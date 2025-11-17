@@ -8,6 +8,7 @@ export default [
   js.configs.recommended,
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
+    ignores: ['apps/frontend/**', 'apps/backend/**'],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
