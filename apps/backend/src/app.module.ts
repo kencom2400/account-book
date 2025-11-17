@@ -9,6 +9,7 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { InstitutionModule } from './modules/institution/institution.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CreditCardModule } from './modules/credit-card/credit-card.module';
+import { SecuritiesModule } from './modules/securities/securities.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CreditCardModule } from './modules/credit-card/credit-card.module';
     InstitutionModule,
     CategoryModule,
     CreditCardModule,
+    SecuritiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
