@@ -68,6 +68,7 @@ export class CategoryController {
 
     // 配列の場合はtoJSONを適用
     const categories = Array.isArray(result) ? result : [];
+
     return {
       success: true,
       data: categories.map((c) => {
