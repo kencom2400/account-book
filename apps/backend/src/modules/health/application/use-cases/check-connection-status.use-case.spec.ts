@@ -97,8 +97,13 @@ describe('CheckConnectionStatusUseCase', () => {
       expect(results[0].status).toBe(ConnectionStatus.CONNECTED);
       expect(results[1].institutionId).toBe('inst-002');
       expect(connectionChecker.checkMultipleConnections).toHaveBeenCalledWith([
-        { id: 'inst-001', type: 'bank', apiClient: {} },
-        { id: 'inst-002', type: 'credit-card', apiClient: {} },
+        { id: 'inst-001', name: '三菱UFJ銀行', type: 'bank', apiClient: {} },
+        {
+          id: 'inst-002',
+          name: '楽天カード',
+          type: 'credit-card',
+          apiClient: {},
+        },
       ]);
       expect(historyRepository.saveMany).toHaveBeenCalledTimes(1);
     });
@@ -141,7 +146,7 @@ describe('CheckConnectionStatusUseCase', () => {
       expect(results).toHaveLength(1);
       expect(results[0].institutionId).toBe('inst-001');
       expect(connectionChecker.checkMultipleConnections).toHaveBeenCalledWith([
-        { id: 'inst-001', type: 'bank', apiClient: {} },
+        { id: 'inst-001', name: '三菱UFJ銀行', type: 'bank', apiClient: {} },
       ]);
     });
 

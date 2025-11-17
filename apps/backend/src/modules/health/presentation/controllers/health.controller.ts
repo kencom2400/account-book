@@ -8,8 +8,14 @@ import {
   HttpException,
   Inject,
 } from '@nestjs/common';
-import { CheckConnectionStatusUseCase } from '../../application/use-cases/check-connection-status.use-case';
-import { GetConnectionHistoryUseCase } from '../../application/use-cases/get-connection-history.use-case';
+import {
+  CheckConnectionStatusUseCase,
+  type ConnectionStatusResult,
+} from '../../application/use-cases/check-connection-status.use-case';
+import {
+  GetConnectionHistoryUseCase,
+  type ConnectionHistoryResult,
+} from '../../application/use-cases/get-connection-history.use-case';
 import {
   CheckConnectionRequestDto,
   CheckConnectionResponseDto,
@@ -23,8 +29,12 @@ import {
 
 // 金融機関モジュールのリポジトリインターフェース
 import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens';
+import type { IInstitutionRepository } from '../../../institution/domain/repositories/institution.repository.interface';
 import { CREDIT_CARD_REPOSITORY } from '../../../credit-card/credit-card.tokens';
+import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
 import { SECURITIES_ACCOUNT_REPOSITORY } from '../../../securities/securities.tokens';
+import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
+import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 
 /**
  * ヘルスチェックコントローラー
@@ -38,11 +48,11 @@ export class HealthController {
     private readonly checkConnectionStatusUseCase: CheckConnectionStatusUseCase,
     private readonly getConnectionHistoryUseCase: GetConnectionHistoryUseCase,
     @Inject(INSTITUTION_REPOSITORY)
-    private readonly institutionRepository: any,
+    private readonly institutionRepository: IInstitutionRepository,
     @Inject(CREDIT_CARD_REPOSITORY)
-    private readonly creditCardRepository: any,
+    private readonly creditCardRepository: ICreditCardRepository,
     @Inject(SECURITIES_ACCOUNT_REPOSITORY)
-    private readonly securitiesRepository: any,
+    private readonly securitiesRepository: ISecuritiesAccountRepository,
   ) {}
 
   /**
@@ -163,64 +173,61 @@ export class HealthController {
   /**
    * 全金融機関を取得（銀行、クレジットカード、証券）
    */
-  private async getAllInstitutions(): Promise<
-    Array<{
-      id: string;
-      name: string;
-      type: 'bank' | 'credit-card' | 'securities';
-      apiClient: any;
-    }>
-  > {
-    const institutions: Array<{
-      id: string;
-      name: string;
-      type: 'bank' | 'credit-card' | 'securities';
-      apiClient: any;
-    }> = [];
+  private async getAllInstitutions(): Promise<IInstitutionInfo[]> {
+    const institutions: IInstitutionInfo[] = [];
 
     // 銀行を取得
     try {
       const banks = await this.institutionRepository.findAll();
       institutions.push(
-        ...banks.map((bank: any) => ({
+        ...banks.map((bank) => ({
           id: bank.id,
           name: bank.name,
           type: 'bank' as const,
-          apiClient: bank, // 実際のAPIクライアントに置き換える必要があります
+          apiClient: {}, // 実際のAPIクライアントに置き換える必要があります
         })),
       );
-    } catch (error) {
-      this.logger.warn('銀行の取得に失敗しました', error);
+    } catch (error: unknown) {
+      this.logger.warn(
+        '銀行の取得に失敗しました',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
     // クレジットカードを取得
     try {
       const creditCards = await this.creditCardRepository.findAll();
       institutions.push(
-        ...creditCards.map((card: any) => ({
+        ...creditCards.map((card) => ({
           id: card.id,
           name: card.issuer,
           type: 'credit-card' as const,
-          apiClient: card,
+          apiClient: {},
         })),
       );
-    } catch (error) {
-      this.logger.warn('クレジットカードの取得に失敗しました', error);
+    } catch (error: unknown) {
+      this.logger.warn(
+        'クレジットカードの取得に失敗しました',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
     // 証券口座を取得
     try {
       const securities = await this.securitiesRepository.findAll();
       institutions.push(
-        ...securities.map((sec: any) => ({
+        ...securities.map((sec) => ({
           id: sec.id,
-          name: sec.firmName,
+          name: sec.securitiesCompanyName,
           type: 'securities' as const,
-          apiClient: sec,
+          apiClient: {},
         })),
       );
-    } catch (error) {
-      this.logger.warn('証券口座の取得に失敗しました', error);
+    } catch (error: unknown) {
+      this.logger.warn(
+        '証券口座の取得に失敗しました',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
     return institutions;
@@ -229,7 +236,9 @@ export class HealthController {
   /**
    * ConnectionStatusResultをDTOに変換
    */
-  private toConnectionStatusDto(result: any): ConnectionStatusDto {
+  private toConnectionStatusDto(
+    result: ConnectionStatusResult,
+  ): ConnectionStatusDto {
     return {
       institutionId: result.institutionId,
       institutionName: result.institutionName,
@@ -245,7 +254,9 @@ export class HealthController {
   /**
    * ConnectionHistoryResultをDTOに変換
    */
-  private toConnectionHistoryDto(history: any): ConnectionHistoryDto {
+  private toConnectionHistoryDto(
+    history: ConnectionHistoryResult,
+  ): ConnectionHistoryDto {
     return {
       id: history.id,
       institutionId: history.institutionId,

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CheckConnectionStatusUseCase } from './check-connection-status.use-case';
+import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 
 /**
  * 定期的な接続チェックのユースケース
@@ -52,14 +53,7 @@ export class ScheduledConnectionCheckUseCase {
   /**
    * 手動で定期チェックをトリガー（テスト用）
    */
-  async triggerManualCheck(
-    institutions: Array<{
-      id: string;
-      name: string;
-      type: 'bank' | 'credit-card' | 'securities';
-      apiClient: any;
-    }>,
-  ): Promise<void> {
+  async triggerManualCheck(institutions: IInstitutionInfo[]): Promise<void> {
     if (this.isRunning) {
       this.logger.warn('チェックが既に実行中です');
       return;

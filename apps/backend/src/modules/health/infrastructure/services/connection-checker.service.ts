@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConnectionStatus } from '../../domain/value-objects/connection-status.enum';
 import { ConnectionCheckResult } from '../../domain/value-objects/connection-check-result.vo';
+import type {
+  IFinancialApiClient,
+  IInstitutionInfo,
+} from '../../domain/adapters/api-client.interface';
 
 /**
  * 金融機関への接続チェックを行うサービス
@@ -21,7 +25,7 @@ export class ConnectionCheckerService {
   async checkConnection(
     institutionId: string,
     institutionType: 'bank' | 'credit-card' | 'securities',
-    apiClient: any, // 各APIアダプターの型
+    apiClient: IFinancialApiClient,
   ): Promise<ConnectionCheckResult> {
     const startTime = Date.now();
     const checkedAt = new Date();
@@ -107,11 +111,7 @@ export class ConnectionCheckerService {
    * 最大5件同時実行（要件より）
    */
   async checkMultipleConnections(
-    institutions: Array<{
-      id: string;
-      type: 'bank' | 'credit-card' | 'securities';
-      apiClient: any;
-    }>,
+    institutions: IInstitutionInfo[],
   ): Promise<ConnectionCheckResult[]> {
     const MAX_PARALLEL = 5;
     const results: ConnectionCheckResult[] = [];
@@ -135,7 +135,7 @@ export class ConnectionCheckerService {
    * 各APIアダプターのhealthCheckメソッドを呼び出す
    */
   private async performHealthCheck(
-    apiClient: any,
+    apiClient: IFinancialApiClient,
     institutionId: string,
   ): Promise<{
     success: boolean;

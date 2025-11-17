@@ -58,18 +58,4 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off', // テストファイルでは戻り値型の明示を不要とする
     },
   },
-  {
-    files: ['src/modules/health/**/*.ts'],
-    rules: {
-      // healthモジュールは他モジュールのAPIアダプターと連携するためany型を許容
-      // CI環境でwarningがエラーとして扱われるため、offに設定
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-    },
-  },
 );

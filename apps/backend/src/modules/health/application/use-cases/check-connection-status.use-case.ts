@@ -3,6 +3,7 @@ import { ConnectionCheckerService } from '../../infrastructure/services/connecti
 import type { IConnectionHistoryRepository } from '../../domain/repositories/connection-history.repository.interface';
 import { CONNECTION_HISTORY_REPOSITORY } from '../../domain/repositories/connection-history.repository.interface';
 import { ConnectionHistory } from '../../domain/entities/connection-history.entity';
+import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 
 export interface CheckConnectionStatusCommand {
   institutionId?: string; // 指定されない場合は全金融機関をチェック
@@ -38,12 +39,7 @@ export class CheckConnectionStatusUseCase {
    */
   async execute(
     command: CheckConnectionStatusCommand,
-    institutions: Array<{
-      id: string;
-      name: string;
-      type: 'bank' | 'credit-card' | 'securities';
-      apiClient: any;
-    }>,
+    institutions: IInstitutionInfo[],
   ): Promise<ConnectionStatusResult[]> {
     try {
       this.logger.log('接続状態チェック開始');
@@ -63,6 +59,7 @@ export class CheckConnectionStatusUseCase {
         await this.connectionChecker.checkMultipleConnections(
           targetInstitutions.map((inst) => ({
             id: inst.id,
+            name: inst.name,
             type: inst.type,
             apiClient: inst.apiClient,
           })),
