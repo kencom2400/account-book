@@ -329,14 +329,23 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: Geminiの指摘に対応 - <具体的な修正内容>"`
   4. `git push origin <ブランチ名>`
-  5. **CIの状況確認**（必須）
-     ```bash
-     gh pr checks <PR番号>
-     # または
-     gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | {name: .name, status: .conclusion, url: .detailsUrl}'
-     ```
-  6. CIが失敗している場合は、エラー内容を確認して修正
-  7. CIが成功することを確認してから次の指摘に進む
+  5. 次の指摘に進む（CI確認は後でまとめて実施）
+
+- **複数の指摘を対応した後、まとめてCIの状況確認**（推奨）
+  - すべての指摘に対応し終わったら、CIの状況を確認する
+  - CIの実行には時間がかかるため、1つずつ待つのは非効率
+  - 既に完了しているCIの結果を確認し、エラーがあれば対応する
+
+```bash
+# 複数の指摘対応後、まとめてCI確認
+gh pr checks <PR番号>
+# または詳細な情報を取得（完了しているもののみ）
+gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | {name: .name, status: .conclusion, url: .detailsUrl}'
+```
+
+- **CIが失敗している場合**
+  - エラー内容を確認して修正
+  - 修正後、再度commit/pushしてCIが成功することを確認
 
 **禁止事項**:
 
