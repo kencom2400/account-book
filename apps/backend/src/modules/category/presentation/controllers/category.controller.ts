@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { InitializeCategoriesUseCase } from '../../application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
+import { CategoryEntity } from '../../domain/entities/category.entity';
+import { CategoryNode } from '../../domain/services/category-domain.service';
 import { CategoryType } from '@account-book/types';
 
 // DTOs
@@ -71,8 +73,11 @@ export class CategoryController {
 
     return {
       success: true,
-      data: categories.map((c) => {
-        return 'toJSON' in c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      data: categories.map((c: CategoryEntity | CategoryNode) => {
+        if (c instanceof CategoryEntity) {
+          return c.toJSON();
+        }
+        return c;
       }),
       count: categories.length,
     };
