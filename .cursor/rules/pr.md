@@ -328,8 +328,14 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   1. 該当ファイルを修正
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: Geminiの指摘に対応 - <具体的な修正内容>"`
-  4. `git push origin <ブランチ名>`
-  5. 次の指摘に進む（CI確認は後でまとめて実施）
+  4. **commit後、必ずローカルでlintとtestを実行してエラーがないことを確認**
+     ```bash
+     ./scripts/lint.sh
+     ./scripts/test.sh
+     ```
+  5. エラーがある場合は修正してから再度commit
+  6. `git push origin <ブランチ名>`
+  7. 次の指摘に進む（CI確認は後でまとめて実施）
 
 - **複数の指摘を対応した後、まとめてCIの状況確認**（推奨）
   - すべての指摘に対応し終わったら、CIの状況を確認する
