@@ -298,21 +298,71 @@ PR作成後、以下の手順を自動的に実行する：
 
 #### 5-1. Gemini Code Assistのレビューを確認
 
-```bash
-# Geminiのコメントを取得（--jsonフラグで構造化データとして取得）
-gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login == "gemini-code-assist") | .body'
+**重要**: PR作成後、**必ず即座に**以下のコマンドを実行してGemini Code Assistのレビューコメントを確認すること。
 
-# インラインコメントを取得（--jqでフィルタリング）
-gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login == "gemini-code-assist") | {path: .path, line: .line, body: .body}'
+```bash
+# 方法1: レビューコメントを取得（推奨）
+gh pr view <PR番号> --json reviews --jq '.reviews[] | select(.author.login | contains("gemini") or contains("bot") or contains("ai")) | {author: .author.login, state: .state, body: .body}'
+
+# 方法2: インラインコメント（ファイルごとのコメント）を取得
+gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --paginate --jq '.[] | select(.user.login | contains("gemini") or contains("bot") or contains("ai")) | {path: .path, line: .line, body: .body}'
+
+# 方法3: PRコメントを取得（補完的に使用）
+gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login | contains("gemini") or contains("bot") or contains("ai")) | {author: .author.login, body: .body}'
 ```
+
+**実行タイミング**:
+
+- PR作成直後
+- PRに新しいコメントが追加された可能性がある時
+- ユーザーが「Geminiのコメントを確認して」と指示した時
+
+**必須**: レビューコメントが取得できたら、必ず内容を確認し、指摘事項があれば修正すること。
 
 #### 5-2. 提案への対応
 
+**重要**: **1つの指摘に対して、必ず1 commit / 1 pushで対応すること。** 複数の指摘をまとめて1つのcommitにすることは**絶対に禁止**。
+
 - Gemini Code Assistから提案があった場合は、その内容を確認し対応する
-- 提案が妥当な場合は、コードを修正してコミット・プッシュする
+- **1つの指摘ごとに**：
+  1. 該当ファイルを修正
+  2. `git add <修正したファイル>`
+  3. `git commit -m "fix: Geminiの指摘に対応 - <具体的な修正内容>"`
+  4. `git push origin <ブランチ名>`
+  5. 次の指摘に進む
+
+**禁止事項**:
+
+- ❌ 複数の指摘をまとめて1つのcommitにすること
+- ❌ すべての修正をまとめてからcommitすること
+- ❌ 修正途中でcommitをスキップすること
+
+**良い例**:
+
+```bash
+# 指摘1: accountIdのパスパラメータ修正
+git add apps/backend/src/modules/securities/presentation/controllers/securities.controller.ts
+git commit -m "fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正"
+git push origin feature/fr-003-securities-integration
+
+# 指摘2: DTOからaccountIdを削除
+git add apps/backend/src/modules/securities/presentation/dto/
+git commit -m "fix: Geminiの指摘に対応 - DTOからaccountIdを削除"
+git push origin feature/fr-003-securities-integration
+```
+
+**悪い例**:
+
+```bash
+# ❌ 複数の指摘をまとめて修正
+git add .
+git commit -m "fix: Geminiの指摘に対応"
+git push
+```
+
 - 提案内容をコミットメッセージに記載する
-  - 例：`refactor: Geminiの提案に従ってfind_pnpm関数を改善`
-  - 例：`fix: Geminiの指摘によりエラーハンドリングを追加`
+  - 例：`fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正`
+  - 例：`fix: Geminiの指摘に対応 - エラーハンドリングを追加`
 
 #### 5-3. 対応完了の報告
 
@@ -358,6 +408,7 @@ gh pr checks <PR番号>
 CIでエラーが発生した場合、以下を実施：
 
 **1. エラーログの取得**
+
 ```bash
 # 失敗したCIのログを確認
 gh run view <run-id> --log-failed
@@ -367,10 +418,12 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
 ```
 
 **2. 原因の特定**
+
 - 今回の修正で新しく発生したエラーか？
 - 既存のコードベースに元々存在していたエラーか？
 
 **判断基準**:
+
 - 修正したファイルに関連するエラー → 自身の修正が原因
 - 修正していないファイルのエラー → 既存のエラー
 - エラーの内容が今回の変更内容と直接関係 → 自身の修正が原因
@@ -382,13 +435,14 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
 ✅ **即座に解決する**
 
 1. ローカルで同じエラーを再現
+
    ```bash
    # lintエラーの場合
    pnpm lint
-   
+
    # testエラーの場合
    pnpm test:unit
-   
+
    # buildエラーの場合
    pnpm build
    ```
@@ -396,6 +450,7 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
 2. エラーを修正
 
 3. ローカルで確認
+
    ```bash
    pnpm lint
    pnpm test:unit
@@ -403,6 +458,7 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
    ```
 
 4. コミット & プッシュ
+
    ```bash
    git add .
    git commit -m "fix(ci): [エラー内容の簡潔な説明]"
@@ -416,6 +472,7 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
 ✅ **Bugのissueを作成する**
 
 1. issueを作成
+
    ```bash
    gh issue create \
      --title "[BUG] [CI名]で[エラー数]個のエラー/警告が発生" \
@@ -431,18 +488,20 @@ gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
    - 達成条件（「○○ CIのエラーが0件になる」）
 
 3. issueをGitHub Projectsに追加
+
    ```bash
    gh project item-add 1 --owner kencom2400 --url <issue_url>
    ```
 
 4. PRにコメントを追加して既存エラーであることを説明
+
    ```bash
    gh pr comment <PR番号> --body "## CI実行結果
-   
+
    ✅ **test**: Pass
    ✅ **build**: Pass
    ⚠️ **lint**: Fail (既存のlintエラー約XXX個、今回の修正とは無関係)
-   
+
    既存のlintエラーは Issue #XXX として別途対応します。"
    ```
 
