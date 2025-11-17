@@ -26,9 +26,22 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
+      // 型安全性を強化: any型の使用を禁止
+      '@typescript-eslint/no-explicit-any': 'error',
+      // 関数の戻り値型を明示的に指定
+      '@typescript-eslint/explicit-function-return-type': 'error',
+      // モジュール境界（exportされた関数）の型を明示
+      '@typescript-eslint/explicit-module-boundary-types': 'error',
+      // 推論可能でも明示的に型を付与（変数、引数、戻り値）
+      '@typescript-eslint/no-inferrable-types': 'off',
+      // 型安全性チェックをエラーに
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
@@ -41,6 +54,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/no-explicit-any': 'off', // テストファイルではany型の使用を許可
+      '@typescript-eslint/explicit-function-return-type': 'off', // テストファイルでは戻り値型の明示を不要とする
     },
   },
 );

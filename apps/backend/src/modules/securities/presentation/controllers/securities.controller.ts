@@ -16,6 +16,10 @@ import { CalculatePortfolioValueUseCase } from '../../application/use-cases/calc
 import { ConnectSecuritiesAccountDto } from '../dto/connect-securities-account.dto';
 import { GetHoldingsDto } from '../dto/get-holdings.dto';
 import { GetSecurityTransactionsDto } from '../dto/get-transactions.dto';
+import { SecuritiesAccountJSONResponse } from '../../domain/entities/securities-account.entity';
+import { HoldingEntity } from '../../domain/entities/holding.entity';
+import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
+import { Portfolio } from '../../domain/value-objects/portfolio.vo';
 
 /**
  * SecuritiesController
@@ -38,7 +42,11 @@ export class SecuritiesController {
    */
   @Post('connect')
   @HttpCode(HttpStatus.CREATED)
-  async connect(@Body() dto: ConnectSecuritiesAccountDto) {
+  async connect(@Body() dto: ConnectSecuritiesAccountDto): Promise<{
+    success: boolean;
+    data: SecuritiesAccountJSONResponse;
+    message: string;
+  }> {
     this.logger.log(
       `Connecting to securities account: ${dto.securitiesCompanyName}`,
     );
@@ -68,7 +76,11 @@ export class SecuritiesController {
   async getHoldings(
     @Param('accountId') accountId: string,
     @Query() dto: GetHoldingsDto,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: ReturnType<HoldingEntity['toJSON']>[];
+    count: number;
+  }> {
     this.logger.log(`Fetching holdings for account: ${accountId}`);
 
     const holdings = await this.fetchHoldingsUseCase.execute({
@@ -92,7 +104,11 @@ export class SecuritiesController {
   async getTransactions(
     @Param('accountId') accountId: string,
     @Query() dto: GetSecurityTransactionsDto,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: ReturnType<SecurityTransactionEntity['toJSON']>[];
+    count: number;
+  }> {
     this.logger.log(`Fetching transactions for account: ${accountId}`);
 
     const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
@@ -118,7 +134,10 @@ export class SecuritiesController {
    */
   @Get(':accountId/portfolio')
   @HttpCode(HttpStatus.OK)
-  async getPortfolioValue(@Param('accountId') accountId: string) {
+  async getPortfolioValue(@Param('accountId') accountId: string): Promise<{
+    success: boolean;
+    data: Portfolio;
+  }> {
     this.logger.log(`Calculating portfolio value for account: ${accountId}`);
 
     const portfolioValue = await this.calculatePortfolioValueUseCase.execute({

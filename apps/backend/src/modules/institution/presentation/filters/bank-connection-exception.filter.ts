@@ -12,7 +12,7 @@ import { BankConnectionError } from '../../domain/errors/bank-connection.error';
  */
 @Catch(BankConnectionError)
 export class BankConnectionExceptionFilter implements ExceptionFilter {
-  catch(exception: BankConnectionError, host: ArgumentsHost) {
+  catch(exception: BankConnectionError, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 

@@ -17,6 +17,7 @@ import { GetInstitutionsQueryDto } from '../dto/get-institutions.dto';
 import { TestBankConnectionDto } from '../dto/test-bank-connection.dto';
 import { GetSupportedBanksQueryDto } from '../dto/get-supported-banks.dto';
 import { BankConnectionExceptionFilter } from '../filters/bank-connection-exception.filter';
+import { InstitutionJSONResponse } from '../../domain/entities/institution.entity';
 
 /**
  * 金融機関コントローラー
@@ -37,7 +38,10 @@ export class InstitutionController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateInstitutionDto) {
+  async create(@Body() dto: CreateInstitutionDto): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse;
+  }> {
     const institution = await this.createInstitutionUseCase.execute(dto);
 
     return {
@@ -51,7 +55,11 @@ export class InstitutionController {
    * GET /api/institutions
    */
   @Get()
-  async findAll(@Query() query: GetInstitutionsQueryDto) {
+  async findAll(@Query() query: GetInstitutionsQueryDto): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse[];
+    count: number;
+  }> {
     const institutions = await this.getInstitutionsUseCase.execute({
       type: query.type,
       isConnected: query.isConnected,
@@ -69,7 +77,11 @@ export class InstitutionController {
    * GET /api/institutions/banks/supported
    */
   @Get('banks/supported')
-  getSupportedBanks(@Query() query: GetSupportedBanksQueryDto) {
+  getSupportedBanks(@Query() query: GetSupportedBanksQueryDto): {
+    success: boolean;
+    data: unknown[];
+    count: number;
+  } {
     const banks = this.getSupportedBanksUseCase.execute(query);
 
     return {
@@ -85,7 +97,10 @@ export class InstitutionController {
    */
   @Post('banks/test-connection')
   @HttpCode(HttpStatus.OK)
-  async testBankConnection(@Body() dto: TestBankConnectionDto) {
+  async testBankConnection(@Body() dto: TestBankConnectionDto): Promise<{
+    success: boolean;
+    data: Record<string, unknown>;
+  }> {
     const result = await this.testBankConnectionUseCase.execute(dto);
 
     // レスポンスの冗長性を解消: successはトップレベルのみ

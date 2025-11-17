@@ -29,7 +29,7 @@ import {
     // Adapters
     {
       provide: BANK_API_ADAPTER,
-      useFactory: () => new MockBankApiAdapter('0000'), // モック実装を使用
+      useFactory: (): MockBankApiAdapter => new MockBankApiAdapter('0000'), // モック実装を使用
     },
     // Use Cases
     CreateInstitutionUseCase,

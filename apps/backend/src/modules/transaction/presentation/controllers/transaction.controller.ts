@@ -21,6 +21,8 @@ import { GetTransactionsUseCase } from '../../application/use-cases/get-transact
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { CategoryType, TransactionStatus } from '@account-book/types';
+import { TransactionJSONResponse } from '../../domain/entities/transaction.entity';
+import type { MonthlySummary } from '../../application/use-cases/calculate-monthly-summary.use-case';
 
 // DTOs
 class CreateTransactionRequestDto {
@@ -108,7 +110,10 @@ export class TransactionController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() body: CreateTransactionRequestDto) {
+  async create(@Body() body: CreateTransactionRequestDto): Promise<{
+    success: boolean;
+    data: TransactionJSONResponse;
+  }> {
     const transaction = await this.createTransactionUseCase.execute({
       date: new Date(body.date),
       amount: body.amount,
@@ -131,7 +136,11 @@ export class TransactionController {
    * GET /transactions
    */
   @Get()
-  async findAll(@Query() query: GetTransactionsQueryDto) {
+  async findAll(@Query() query: GetTransactionsQueryDto): Promise<{
+    success: boolean;
+    data: TransactionJSONResponse[];
+    count: number;
+  }> {
     const transactions = await this.getTransactionsUseCase.execute({
       institutionId: query.institutionId,
       accountId: query.accountId,
@@ -156,7 +165,10 @@ export class TransactionController {
   async getMonthlySummary(
     @Param('year') year: string,
     @Param('month') month: string,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: MonthlySummary;
+  }> {
     const summary = await this.calculateMonthlySummaryUseCase.execute(
       parseInt(year),
       parseInt(month),
@@ -176,7 +188,10 @@ export class TransactionController {
   async updateCategory(
     @Param('id') id: string,
     @Body() body: UpdateCategoryRequestDto,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: TransactionJSONResponse;
+  }> {
     const transaction = await this.updateTransactionCategoryUseCase.execute({
       transactionId: id,
       category: body.category,

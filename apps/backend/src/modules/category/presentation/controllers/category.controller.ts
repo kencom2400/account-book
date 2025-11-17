@@ -36,7 +36,12 @@ export class CategoryController {
    */
   @Post('initialize')
   @HttpCode(HttpStatus.CREATED)
-  async initialize() {
+  async initialize(): Promise<{
+    success: boolean;
+    data: ReturnType<CategoryEntity['toJSON']>[];
+    count: number;
+    message: string;
+  }> {
     const categories = await this.initializeCategoriesUseCase.execute();
 
     return {
@@ -52,7 +57,17 @@ export class CategoryController {
    * GET /categories
    */
   @Get()
-  async findAll(@Query() query: GetCategoriesQueryDto) {
+  async findAll(@Query() query: GetCategoriesQueryDto): Promise<
+    | {
+        success: boolean;
+        data: CategoryNode[];
+      }
+    | {
+        success: boolean;
+        data: (ReturnType<CategoryEntity['toJSON']> | CategoryNode)[];
+        count: number;
+      }
+  > {
     const result = await this.getCategoriesUseCase.execute({
       type: query.type,
       parentId: query.parentId,

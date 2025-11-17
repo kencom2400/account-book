@@ -12,7 +12,7 @@ import {
 export interface CreateInstitutionDto {
   name: string;
   type: InstitutionType;
-  credentials: Record<string, any>; // 平文の認証情報（JSON形式）
+  credentials: Record<string, unknown>; // 平文の認証情報（JSON形式）
 }
 
 /**
