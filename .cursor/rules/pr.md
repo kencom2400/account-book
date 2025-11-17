@@ -352,18 +352,20 @@ git add apps/backend/src/modules/securities/presentation/controllers/securities.
 git commit -m "fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正"
 git push origin feature/fr-003-securities-integration
 
-# CIの状況確認（必須）
-gh pr checks 153
-# CIが成功することを確認
-
 # 指摘2: DTOからaccountIdを削除
 git add apps/backend/src/modules/securities/presentation/dto/
 git commit -m "fix: Geminiの指摘に対応 - DTOからaccountIdを削除"
 git push origin feature/fr-003-securities-integration
 
-# CIの状況確認（必須）
+# 指摘3: totalProfitLossの計算修正
+git add apps/backend/src/modules/securities/domain/entities/securities-account.entity.ts
+git commit -m "fix: Geminiの指摘に対応 - totalProfitLossの計算を修正"
+git push origin feature/fr-003-securities-integration
+
+# すべての指摘対応後、まとめてCIの状況確認
 gh pr checks 153
-# CIが成功することを確認
+# 既に完了しているCIの結果を確認
+# エラーがあれば対応、成功していれば完了
 ```
 
 **悪い例**:
@@ -381,27 +383,34 @@ git push
 
 #### 5-3. 対応完了の報告
 
-- 修正が完了したら、**必ずCIの状況を確認する**
+- すべての指摘に対応し終わったら、**CIの状況を確認する**
+- 既に完了しているCIの結果を確認し、エラーがあれば対応する
 - CIが成功していることを確認してから、該当のコメントに返信する
 - ヒアドキュメントを使用して複数行のコメントを投稿
 
 ```bash
-# 1. CIの状況確認（必須）
+# 1. CIの状況確認（既存の結果を確認）
 gh pr checks <PR番号>
-# CIが成功していることを確認
+# または詳細な情報を取得
+gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | {name: .name, status: .conclusion, url: .detailsUrl}'
 
-# 2. コメントを投稿
+# 2. CIが失敗している場合
+# エラー内容を確認して修正し、再度commit/push
+
+# 3. CIが成功している場合、コメントを投稿
 gh pr comment <PR番号> --body "$(cat <<'EOF'
 ## Geminiの提案に対応しました ✅
 
 ご提案いただいた改善点を実施しました：
 
 ### 修正内容
-1. [具体的な修正内容]
+1. [具体的な修正内容1]
+2. [具体的な修正内容2]
+3. [具体的な修正内容3]
 
 提案いただいた改善により、[改善された点]になりました。ありがとうございました！
 
-コミット: [commit hash]
+コミット: [commit hash1], [commit hash2], [commit hash3]
 CI: ✅ 成功
 EOF
 )"
