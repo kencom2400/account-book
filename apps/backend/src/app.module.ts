@@ -10,6 +10,7 @@ import { InstitutionModule } from './modules/institution/institution.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CreditCardModule } from './modules/credit-card/credit-card.module';
 import { SecuritiesModule } from './modules/securities/securities.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SecuritiesModule } from './modules/securities/securities.module';
     CategoryModule,
     CreditCardModule,
     SecuritiesModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
