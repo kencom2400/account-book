@@ -173,7 +173,17 @@ chore(setup): プロジェクト初期設定
 - `apps/**/*.{ts,tsx,js,jsx}` - アプリケーションコード
 - `libs/**/*.{ts,tsx,js,jsx}` - ライブラリコード
 - `*.{ts,tsx,js,jsx}` - ルートのコードファイル
-- `package.json`, `tsconfig.json`, `eslint.config.*` など - ビルド/設定ファイル
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` - 依存関係とパッケージ管理設定
+- `tsconfig.json`, `tsconfig.*.json` - TypeScript設定ファイル
+- `eslint.config.*`, `.eslintrc.*` - ESLint設定ファイル
+- `turbo.json` - Turbo（モノレポ）設定ファイル
+- `.github/workflows/**` - GitHub Actionsワークフローファイル
+- `jest.config.*`, `jest.setup.*` - Jest設定ファイル
+- `next.config.*`, `nest-cli.json` - フレームワーク設定ファイル
+- `.prettierrc*`, `.prettierignore` - Prettier設定ファイル
+- `.gitignore` - Git設定ファイル
+- `scripts/**/*.sh` - ビルド/テスト/デプロイスクリプト
+- その他のビルド/設定ファイル（`.nvmrc`, `.node-version`, `postcss.config.*`, `tailwind.config.*` など）
 
 **CIが実行されないファイルの例：**
 
@@ -200,6 +210,7 @@ chore(setup): プロジェクト初期設定
    - すべてのテストが成功することを確認
 
 3. **Lintエラーがないか確認（必須）**
+
    ```bash
    ./scripts/lint.sh
    ```
