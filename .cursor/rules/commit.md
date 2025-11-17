@@ -408,3 +408,177 @@ git commit -m "<type>(<scope>): <subject>"
 - 上記テンプレートに従って作成
 - 日本語で簡潔に記述
 - Issueがある場合は`Closes #XX`を追記
+
+## コミットパフォーマンス監視
+
+### 基本ルール
+
+**コミット実行時間が30秒を超える場合は、必ず原因調査を実施する**
+
+### 監視手順
+
+1. **タイムアウト付きでコミット実行**
+
+   ```bash
+   timeout 30 git commit -m "commit message"
+   ```
+
+2. **30秒でタイムアウトした場合**
+   - コミットを一旦中断
+   - 以下の調査を実施
+
+### 調査項目
+
+#### 1. pre-commitフックの確認
+
+```bash
+# フック実行内容を確認
+cat .husky/pre-commit
+
+# lint-staged設定を確認
+cat package.json | grep -A 20 "lint-staged"
+```
+
+**よくある原因：**
+
+- lint-stagedで大量のファイルをlint処理
+- bash -c によるシェル起動オーバーヘッド
+- 不適切なESLint設定ファイルの参照
+- typeチェック付きルールでparserOptions不足
+
+#### 2. ステージングファイル数の確認
+
+```bash
+# ステージング済みファイルを確認
+git diff --cached --stat
+
+# ファイル数が多すぎる場合は分割を検討
+```
+
+**目安：**
+
+- 20ファイル未満: 通常は問題なし
+- 20-50ファイル: 注意が必要
+- 50ファイル以上: コミット分割を推奨
+
+#### 3. lint-staged実行の最適化
+
+**問題のある設定例：**
+
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "bash -c 'cd apps/backend && eslint --fix'", // ❌ 遅い
+      "prettier --write"
+    ]
+  }
+}
+```
+
+**最適化された設定例：**
+
+```json
+{
+  "lint-staged": {
+    "apps/backend/**/*.{ts,tsx}": [
+      "eslint --config apps/backend/eslint.config.mjs --fix", // ✅ 速い
+      "prettier --write"
+    ],
+    "apps/frontend/**/*.{ts,tsx,js,jsx}": [
+      "eslint --config apps/frontend/eslint.config.js --fix",
+      "prettier --write"
+    ]
+  }
+}
+```
+
+**最適化のポイント：**
+
+- `bash -c`を使わない（シェル起動のオーバーヘッド削減）
+- `--config`で明示的に設定ファイルを指定
+- ディレクトリごとにパターンを分割
+- 各ディレクトリの適切な設定ファイルを使用
+
+#### 4. ESLint設定の確認
+
+**typeチェックルールを使う場合の必須設定：**
+
+```javascript
+{
+  languageOptions: {
+    parserOptions: {
+      projectService: true,  // これがないとtypeチェックルールでエラー
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+}
+```
+
+**テストファイルの設定：**
+
+```javascript
+{
+  files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-unsafe-assignment': 'off',
+    // テストではany型を許可してパフォーマンス向上
+  },
+}
+```
+
+### 対処手順
+
+#### ケース1: lint-stagedが原因
+
+1. lint-staged設定を最適化（上記参照）
+2. 設定変更をコミット
+3. 再度元のコミットを試行
+
+#### ケース2: 大量ファイルが原因
+
+1. コミットを論理的な単位で分割
+2. 各単位ごとに個別にコミット
+3. 必要に応じてlint-stagedを一時的に無効化
+   ```bash
+   SKIP=lint-staged git commit -m "message"
+   ```
+
+#### ケース3: ESLint設定が原因
+
+1. エラーメッセージを確認
+2. 適切なparserOptionsを追加
+3. テストファイルのルールを緩和
+4. 設定変更をコミット
+
+### 予防策
+
+1. **定期的な小さいコミット**
+   - 大量の変更を蓄積しない
+   - 機能単位で細かくコミット
+
+2. **lint-staged設定のレビュー**
+   - 新規ディレクトリ追加時に設定を確認
+   - パフォーマンステストを実施
+
+3. **pre-commitフックの軽量化**
+   - 必要最小限のチェックのみ実行
+   - 重い処理はCIに移行
+
+### 報告フォーマット
+
+コミットが遅い場合、以下の情報をユーザーに報告：
+
+```
+⚠️ コミット実行に30秒以上かかっています。調査を実施します。
+
+【調査結果】
+- ステージングファイル数: XX件
+- 検出された問題: [lint-staged設定/ESLint設定/ファイル数]
+- 推奨対策: [具体的な対策]
+
+【実施する対応】
+1. [対応内容1]
+2. [対応内容2]
+```
