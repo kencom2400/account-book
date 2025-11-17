@@ -182,6 +182,7 @@ chore(setup): プロジェクト初期設定
 - `next.config.*`, `nest-cli.json` - フレームワーク設定ファイル
 - `.prettierrc*`, `.prettierignore` - Prettier設定ファイル
 - `.gitignore` - Git設定ファイル
+- `scripts/**/*.sh` - ビルド/テスト/デプロイスクリプト
 - その他のビルド/設定ファイル（`.nvmrc`, `.node-version`, `postcss.config.*`, `tailwind.config.*` など）
 
 **CIが実行されないファイルの例：**
