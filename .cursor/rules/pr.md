@@ -329,7 +329,14 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: Geminiの指摘に対応 - <具体的な修正内容>"`
   4. `git push origin <ブランチ名>`
-  5. 次の指摘に進む
+  5. **CIの状況確認**（必須）
+     ```bash
+     gh pr checks <PR番号>
+     # または
+     gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | {name: .name, status: .conclusion, url: .detailsUrl}'
+     ```
+  6. CIが失敗している場合は、エラー内容を確認して修正
+  7. CIが成功することを確認してから次の指摘に進む
 
 **禁止事項**:
 
@@ -345,10 +352,18 @@ git add apps/backend/src/modules/securities/presentation/controllers/securities.
 git commit -m "fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正"
 git push origin feature/fr-003-securities-integration
 
+# CIの状況確認（必須）
+gh pr checks 153
+# CIが成功することを確認
+
 # 指摘2: DTOからaccountIdを削除
 git add apps/backend/src/modules/securities/presentation/dto/
 git commit -m "fix: Geminiの指摘に対応 - DTOからaccountIdを削除"
 git push origin feature/fr-003-securities-integration
+
+# CIの状況確認（必須）
+gh pr checks 153
+# CIが成功することを確認
 ```
 
 **悪い例**:
@@ -366,11 +381,16 @@ git push
 
 #### 5-3. 対応完了の報告
 
-- 修正が完了したら、該当のコメントに返信する
+- 修正が完了したら、**必ずCIの状況を確認する**
+- CIが成功していることを確認してから、該当のコメントに返信する
 - ヒアドキュメントを使用して複数行のコメントを投稿
 
 ```bash
-# ヒアドキュメントを使用してコメントを投稿
+# 1. CIの状況確認（必須）
+gh pr checks <PR番号>
+# CIが成功していることを確認
+
+# 2. コメントを投稿
 gh pr comment <PR番号> --body "$(cat <<'EOF'
 ## Geminiの提案に対応しました ✅
 
@@ -382,6 +402,7 @@ gh pr comment <PR番号> --body "$(cat <<'EOF'
 提案いただいた改善により、[改善された点]になりました。ありがとうございました！
 
 コミット: [commit hash]
+CI: ✅ 成功
 EOF
 )"
 ```
