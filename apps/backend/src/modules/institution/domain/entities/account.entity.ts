@@ -1,3 +1,12 @@
+export interface AccountJSON {
+  id: string;
+  institutionId: string;
+  accountNumber: string;
+  accountName: string;
+  balance: number;
+  currency: string;
+}
+
 /**
  * Accountエンティティ
  * 金融機関の口座情報を表すドメインエンティティ
@@ -71,7 +80,7 @@ export class AccountEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): AccountJSON {
     return {
       id: this.id,
       institutionId: this.institutionId,

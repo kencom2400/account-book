@@ -11,6 +11,70 @@ import {
   IPaymentRepository,
 } from '../../domain/repositories/credit-card.repository.interface';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
+import { PaymentStatus, CategoryType } from '@account-book/types';
+
+/**
+ * JSONファイルに保存するクレジットカードデータの型定義
+ */
+interface CreditCardJSON {
+  id: string;
+  cardName: string;
+  cardNumber: string;
+  cardHolderName: string;
+  expiryDate: string;
+  credentials: {
+    encrypted: string;
+    iv: string;
+    authTag: string;
+    algorithm: string;
+    version: string;
+  };
+  isConnected: boolean;
+  lastSyncedAt: string | null;
+  paymentDay: number;
+  closingDay: number;
+  creditLimit: number;
+  currentBalance: number;
+  issuer: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * JSONファイルに保存するクレジットカード取引データの型定義
+ */
+interface CreditCardTransactionJSON {
+  id: string;
+  creditCardId: string;
+  transactionDate: string;
+  postingDate: string;
+  amount: number;
+  merchantName: string;
+  merchantCategory: string | null;
+  description: string;
+  category: string | null;
+  isInstallment: boolean;
+  installmentCount: number | null;
+  installmentNumber: number | null;
+  isPaid: boolean;
+  paymentScheduledDate: string | null;
+  paidDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * JSONファイルに保存する支払い情報データの型定義
+ */
+interface PaymentJSON {
+  billingMonth: string;
+  closingDate: string;
+  paymentDueDate: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: PaymentStatus;
+}
 
 /**
  * CreditCard Repository Implementation
@@ -23,7 +87,7 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(creditCard: CreditCardEntity): Promise<CreditCardEntity> {
@@ -88,10 +152,17 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return data.map((item: any) => this.deserialize(item));
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) => this.deserialize(item as CreditCardJSON))
+        : [];
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ENOENT'
+      ) {
         return [];
       }
       throw error;
@@ -105,7 +176,7 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
 
-  private serialize(card: CreditCardEntity): any {
+  private serialize(card: CreditCardEntity): CreditCardJSON {
     return {
       id: card.id,
       cardName: card.cardName,
@@ -125,7 +196,7 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
     };
   }
 
-  private deserialize(data: any): CreditCardEntity {
+  private deserialize(data: CreditCardJSON): CreditCardEntity {
     return new CreditCardEntity(
       data.id,
       data.cardName,
@@ -164,7 +235,7 @@ export class FileSystemCreditCardTransactionRepository
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(
@@ -300,10 +371,19 @@ export class FileSystemCreditCardTransactionRepository
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return data.map((item: any) => this.deserializeTransaction(item));
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) =>
+            this.deserializeTransaction(item as CreditCardTransactionJSON),
+          )
+        : [];
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ENOENT'
+      ) {
         return [];
       }
       throw error;
@@ -320,7 +400,9 @@ export class FileSystemCreditCardTransactionRepository
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
 
-  private serializeTransaction(tx: CreditCardTransactionEntity): any {
+  private serializeTransaction(
+    tx: CreditCardTransactionEntity,
+  ): CreditCardTransactionJSON {
     return {
       id: tx.id,
       creditCardId: tx.creditCardId,
@@ -342,7 +424,9 @@ export class FileSystemCreditCardTransactionRepository
     };
   }
 
-  private deserializeTransaction(data: any): CreditCardTransactionEntity {
+  private deserializeTransaction(
+    data: CreditCardTransactionJSON,
+  ): CreditCardTransactionEntity {
     return new CreditCardTransactionEntity(
       data.id,
       data.creditCardId,
@@ -350,9 +434,9 @@ export class FileSystemCreditCardTransactionRepository
       new Date(data.postingDate),
       data.amount,
       data.merchantName,
-      data.merchantCategory,
+      data.merchantCategory || '',
       data.description,
-      data.category,
+      (data.category as CategoryType) || CategoryType.EXPENSE,
       data.isInstallment,
       data.installmentCount,
       data.installmentNumber,
@@ -375,7 +459,7 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(creditCardId: string, payment: PaymentVO): Promise<PaymentVO> {
@@ -440,10 +524,17 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return data.map((item: any) => this.deserializePayment(item));
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) => this.deserializePayment(item as PaymentJSON))
+        : [];
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ENOENT'
+      ) {
         return [];
       }
       throw error;
@@ -460,7 +551,7 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
 
-  private serializePayment(payment: PaymentVO): any {
+  private serializePayment(payment: PaymentVO): PaymentJSON {
     return {
       billingMonth: payment.billingMonth,
       closingDate: payment.closingDate.toISOString(),
@@ -472,7 +563,7 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
     };
   }
 
-  private deserializePayment(data: any): PaymentVO {
+  private deserializePayment(data: PaymentJSON): PaymentVO {
     return new PaymentVO(
       data.billingMonth,
       new Date(data.closingDate),

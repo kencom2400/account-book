@@ -16,7 +16,6 @@ import {
   IsOptional,
   IsEnum,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';

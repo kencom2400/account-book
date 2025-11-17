@@ -54,10 +54,7 @@ export class ConnectCreditCardUseCase {
 
   async execute(input: ConnectCreditCardInput): Promise<CreditCardEntity> {
     // 1. 認証情報を暗号化
-    const credentials = await this.encryptCredentials(
-      input.username,
-      input.password,
-    );
+    const credentials = this.encryptCredentials(input.username, input.password);
 
     // 2. カードAPI接続テスト
     const apiCredentials = {
@@ -106,12 +103,12 @@ export class ConnectCreditCardUseCase {
     return savedCard;
   }
 
-  private async encryptCredentials(
+  private encryptCredentials(
     username: string,
     password: string,
-  ): Promise<EncryptedCredentials> {
+  ): EncryptedCredentials {
     const data = JSON.stringify({ username, password });
-    return await this.cryptoService.encrypt(data);
+    return this.cryptoService.encrypt(data);
   }
 
   private async fetchInitialTransactions(

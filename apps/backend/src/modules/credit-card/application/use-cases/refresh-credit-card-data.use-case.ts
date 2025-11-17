@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { PaymentStatus } from '@account-book/types';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import { PaymentVO } from '../../domain/value-objects/payment.vo';
@@ -54,7 +55,7 @@ export class RefreshCreditCardDataUseCase {
     }
 
     // 2. 認証情報を復号化
-    const credentials = await this.decryptCredentials(creditCard);
+    const credentials = this.decryptCredentials(creditCard);
 
     // 3. 並行してAPIから取引と支払い情報を取得
     const [transactions, paymentInfo] = await Promise.all([
@@ -74,15 +75,17 @@ export class RefreshCreditCardDataUseCase {
     };
   }
 
-  private async decryptCredentials(
-    creditCard: CreditCardEntity,
-  ): Promise<{ username: string; password: string }> {
-    const decryptedData = await this.cryptoService.decrypt(
-      creditCard.credentials,
-    );
+  private decryptCredentials(creditCard: CreditCardEntity): {
+    username: string;
+    password: string;
+  } {
+    const decryptedData = this.cryptoService.decrypt(creditCard.credentials);
 
     try {
-      return JSON.parse(decryptedData);
+      return JSON.parse(decryptedData) as {
+        username: string;
+        password: string;
+      };
     } catch (error) {
       this.logger.error(
         `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -193,7 +196,7 @@ export class RefreshCreditCardDataUseCase {
       0,
       0,
       0,
-      'unpaid' as any,
+      PaymentStatus.UNPAID,
       null,
     );
   }

@@ -60,7 +60,9 @@ export class CryptoService implements ICryptoService {
         this.version,
       );
     } catch (error) {
-      throw new Error(`Encryption failed: ${error.message}`);
+      throw new Error(
+        `Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -87,7 +89,9 @@ export class CryptoService implements ICryptoService {
 
       return decrypted;
     } catch (error) {
-      throw new Error(`Decryption failed: ${error.message}`);
+      throw new Error(
+        `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }

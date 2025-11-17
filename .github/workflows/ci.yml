@@ -19,6 +19,7 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install
+      - run: pnpm build
       - run: pnpm lint
 
   test:
@@ -37,17 +38,23 @@ jobs:
       - uses: codecov/codecov-action@v4
         if: success()
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm build
+  # build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 8.15.0
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'pnpm'
+  #     - run: pnpm install
+  #     - run: pnpm build
+  #
+  # NOTE: buildジョブはlintジョブ内で実行されているため、一旦コメントアウト。
+  # 将来、以下のような場合に有効化を検討:
+  # - buildとlintを並列実行したい場合
+  # - build成果物のアップロードが必要な場合
+  # - 本番デプロイ用のビルドを独立して実行したい場合
 

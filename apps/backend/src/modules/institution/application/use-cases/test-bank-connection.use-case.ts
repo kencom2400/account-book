@@ -50,7 +50,7 @@ export class TestBankConnectionUseCase {
       // その他のエラーの場合は汎用エラー
       return {
         success: false,
-        message: `接続テストに失敗しました: ${error.message}`,
+        message: `接続テストに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
         errorCode: 'BE999',
       };
     }

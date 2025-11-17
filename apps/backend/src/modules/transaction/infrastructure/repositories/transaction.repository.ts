@@ -7,6 +7,28 @@ import { ITransactionRepository } from '../../domain/repositories/transaction.re
 import { CategoryType, TransactionStatus } from '@account-book/types';
 
 /**
+ * JSONファイルに保存する取引データの型定義
+ */
+interface TransactionJSON {
+  id: string;
+  date: string;
+  amount: number;
+  category: {
+    id: string;
+    name: string;
+    type: CategoryType;
+  };
+  description: string;
+  institutionId: string;
+  accountId: string;
+  status: TransactionStatus;
+  isReconciled: boolean;
+  relatedTransactionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Transaction Repository Implementation
  * JSONファイルでの永続化を実装
  */
@@ -16,7 +38,7 @@ export class TransactionRepository implements ITransactionRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'transactions');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   /**
@@ -51,10 +73,12 @@ export class TransactionRepository implements ITransactionRepository {
     for (const file of jsonFiles) {
       const filePath = path.join(this.dataDir, file);
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
+      const data = JSON.parse(content) as unknown;
 
       if (Array.isArray(data)) {
-        const transactions = data.map((item) => this.toEntity(item));
+        const transactions = data.map((item) =>
+          this.toEntity(item as TransactionJSON),
+        );
         allTransactions.push(...transactions);
       }
     }
@@ -102,8 +126,10 @@ export class TransactionRepository implements ITransactionRepository {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data.map((item) => this.toEntity(item)) : [];
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) => this.toEntity(item as TransactionJSON))
+        : [];
     } catch {
       // ファイルが存在しない場合は空配列を返す
       return [];
@@ -256,7 +282,7 @@ export class TransactionRepository implements ITransactionRepository {
   /**
    * エンティティをJSONオブジェクトに変換
    */
-  private toJSON(entity: TransactionEntity): any {
+  private toJSON(entity: TransactionEntity): TransactionJSON {
     return {
       id: entity.id,
       date: entity.date.toISOString(),
@@ -276,7 +302,7 @@ export class TransactionRepository implements ITransactionRepository {
   /**
    * JSONオブジェクトをエンティティに変換
    */
-  private toEntity(data: any): TransactionEntity {
+  private toEntity(data: TransactionJSON): TransactionEntity {
     return new TransactionEntity(
       data.id,
       new Date(data.date),

@@ -5,11 +5,9 @@ import {
   InternalServerErrorException,
   Inject,
 } from '@nestjs/common';
+import { PaymentStatus } from '@account-book/types';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
-import {
-  PaymentVO,
-  PaymentStatus,
-} from '../../domain/value-objects/payment.vo';
+import { PaymentVO } from '../../domain/value-objects/payment.vo';
 import type {
   ICreditCardRepository,
   IPaymentRepository,
@@ -104,13 +102,19 @@ export class FetchPaymentInfoUseCase {
     billingMonth: string,
   ): Promise<void> {
     // 認証情報を復号化
-    const decryptedData = await this.cryptoService.decrypt(
-      creditCard.credentials,
-    );
+    const decryptedData = this.cryptoService.decrypt(creditCard.credentials);
 
-    let credentials;
+    let credentials: {
+      username: string;
+      password: string;
+      cardNumber?: string;
+    };
     try {
-      credentials = JSON.parse(decryptedData);
+      credentials = JSON.parse(decryptedData) as {
+        username: string;
+        password: string;
+        cardNumber?: string;
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,

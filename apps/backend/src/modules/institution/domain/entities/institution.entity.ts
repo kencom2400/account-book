@@ -2,6 +2,18 @@ import { InstitutionType } from '@account-book/types';
 import { AccountEntity } from './account.entity';
 import { EncryptedCredentials } from '../value-objects/encrypted-credentials.vo';
 
+export interface InstitutionJSONResponse {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  credentials: ReturnType<EncryptedCredentials['toJSON']>;
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  accounts: ReturnType<AccountEntity['toJSON']>[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * Institutionエンティティ
  * 金融機関情報を表すドメインエンティティ
@@ -175,7 +187,7 @@ export class InstitutionEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): InstitutionJSONResponse {
     return {
       id: this.id,
       name: this.name,

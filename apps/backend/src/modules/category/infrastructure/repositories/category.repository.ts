@@ -7,6 +7,22 @@ import { ICategoryRepository } from '../../domain/repositories/category.reposito
 import { CategoryType } from '@account-book/types';
 
 /**
+ * JSONファイルに保存するカテゴリデータの型定義
+ */
+interface CategoryJSON {
+  id: string;
+  name: string;
+  type: CategoryType;
+  parentId: string | null;
+  icon: string | null;
+  color: string | null;
+  isSystemDefined: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Category Repository Implementation
  * JSONファイルでの永続化を実装
  */
@@ -17,7 +33,7 @@ export class CategoryRepository implements ICategoryRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'categories');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   /**
@@ -47,8 +63,10 @@ export class CategoryRepository implements ICategoryRepository {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data.map((item) => this.toEntity(item)) : [];
+      const data = JSON.parse(content) as unknown;
+      return Array.isArray(data)
+        ? data.map((item) => this.toEntity(item as CategoryJSON))
+        : [];
     } catch {
       // ファイルが存在しない場合は空配列を返す
       return [];
@@ -161,7 +179,7 @@ export class CategoryRepository implements ICategoryRepository {
   /**
    * エンティティをJSONオブジェクトに変換
    */
-  private toJSON(entity: CategoryEntity): any {
+  private toJSON(entity: CategoryEntity): CategoryJSON {
     return {
       id: entity.id,
       name: entity.name,
@@ -179,7 +197,7 @@ export class CategoryRepository implements ICategoryRepository {
   /**
    * JSONオブジェクトをエンティティに変換
    */
-  private toEntity(data: any): CategoryEntity {
+  private toEntity(data: CategoryJSON): CategoryEntity {
     return new CategoryEntity(
       data.id,
       data.name,

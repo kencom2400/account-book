@@ -49,7 +49,7 @@ export class CalculateMonthlySummaryUseCase {
     // カテゴリ別集計
     const categoryAggregation =
       this.transactionDomainService.aggregateByCategory(transactions);
-    const byCategory: any = {};
+    const byCategory = {} as MonthlySummary['byCategory'];
     for (const [categoryType, data] of categoryAggregation.entries()) {
       byCategory[categoryType] = {
         count: data.count,
@@ -60,7 +60,7 @@ export class CalculateMonthlySummaryUseCase {
     // 金融機関別集計
     const institutionAggregation =
       this.transactionDomainService.aggregateByInstitution(transactions);
-    const byInstitution: any = {};
+    const byInstitution = {} as MonthlySummary['byInstitution'];
     for (const [institutionId, data] of institutionAggregation.entries()) {
       byInstitution[institutionId] = {
         count: data.count,

@@ -1,6 +1,27 @@
 import { InstitutionType } from '@account-book/types';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
 
+export interface CreditCardJSONResponse {
+  id: string;
+  cardName: string;
+  cardNumber: string;
+  cardHolderName: string;
+  expiryDate: Date;
+  credentials: ReturnType<EncryptedCredentials['toJSON']>;
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  paymentDay: number;
+  closingDay: number;
+  creditLimit: number;
+  currentBalance: number;
+  availableCredit: number;
+  utilizationRate: number;
+  issuer: string;
+  isExpired: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * CreditCardエンティティ
  * クレジットカード情報を表すドメインエンティティ
@@ -208,7 +229,7 @@ export class CreditCardEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): CreditCardJSONResponse {
     return {
       id: this.id,
       cardName: this.cardName,

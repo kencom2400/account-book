@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { InstitutionType } from '@account-book/types';
 import { Transform } from 'class-transformer';
 
@@ -13,10 +13,10 @@ export class GetInstitutionsQueryDto {
   type?: InstitutionType;
 
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }): boolean | undefined => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return value as boolean | undefined;
   })
   isConnected?: boolean;
 }
