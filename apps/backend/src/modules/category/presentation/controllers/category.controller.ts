@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { InitializeCategoriesUseCase } from '../../application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
+import { CategoryEntity } from '../../domain/entities/category.entity';
+import { CategoryNode } from '../../domain/services/category-domain.service';
 import { CategoryType } from '@account-book/types';
 
 // DTOs
@@ -34,7 +36,12 @@ export class CategoryController {
    */
   @Post('initialize')
   @HttpCode(HttpStatus.CREATED)
-  async initialize() {
+  async initialize(): Promise<{
+    success: boolean;
+    data: ReturnType<CategoryEntity['toJSON']>[];
+    count: number;
+    message: string;
+  }> {
     const categories = await this.initializeCategoriesUseCase.execute();
 
     return {
@@ -50,8 +57,17 @@ export class CategoryController {
    * GET /categories
    */
   @Get()
-  async findAll(@Query() query: GetCategoriesQueryDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  async findAll(@Query() query: GetCategoriesQueryDto): Promise<
+    | {
+        success: boolean;
+        data: CategoryNode[];
+      }
+    | {
+        success: boolean;
+        data: (ReturnType<CategoryEntity['toJSON']> | CategoryNode)[];
+        count: number;
+      }
+  > {
     const result = await this.getCategoriesUseCase.execute({
       type: query.type,
       parentId: query.parentId,
@@ -63,18 +79,20 @@ export class CategoryController {
     if (query.asTree === 'true') {
       return {
         success: true,
-        data: result,
+        data: result as CategoryNode[],
       };
     }
 
     // 配列の場合はtoJSONを適用
     const categories = Array.isArray(result) ? result : [];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+
     return {
       success: true,
-      data: categories.map((c) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        return 'toJSON' in c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      data: categories.map((c: CategoryEntity | CategoryNode) => {
+        if (c instanceof CategoryEntity) {
+          return c.toJSON();
+        }
+        return c;
       }),
       count: categories.length,
     };

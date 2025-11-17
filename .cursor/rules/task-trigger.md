@@ -41,15 +41,21 @@ gh issue list --assignee @me --state open --json number,title,labels,milestone,u
 
 1. ソート後の最初のIssueを選択
 2. Issueの詳細（タイトル、URL、ラベル、マイルストーン）を表示
-3. 以下のコマンドでGitHub ProjectsのステータスをIn Progressに変更：
+3. mainブランチを最新化してから適切な名前のブランチを作成
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feature/fr-XXX-<descriptive-name>
+   ```
+4. 以下のコマンドでGitHub ProjectsのステータスをIn Progressに変更：
 
 ```bash
 ./scripts/set-issue-in-progress.sh <issue_number>
 ```
 
-4. Issueの内容に従って作業を開始
-5. 作業完了後、テストとlintを実行
-6. 問題なければ完了を報告
+5. Issueの内容に従って作業を開始
+6. 作業完了後、テストとlintを実行
+7. 問題なければ完了を報告
 
 ### 実装例
 
@@ -138,3 +144,22 @@ gh auth login
 
 - ラベル名が正確か確認（スペースや大文字小文字に注意）
 - `priority: <レベル>` の形式であることを確認
+
+#### ghコマンドの実行について
+
+**重要**: `gh` コマンド（GitHub CLI）を実行する際は、必ず `required_permissions: ["all"]` を指定してサンドボックス環境から抜けて実行すること。
+
+- サンドボックス環境では証明書検証エラーが発生する可能性があるため
+- 例: `gh issue list`, `gh project item-edit`, `gh auth status` などすべてのghコマンドが対象
+
+#### pnpm/nodeコマンドの実行について
+
+**重要**: `pnpm`、`node`、`npm`、`npx`などのコマンドを実行する際は、必ずnodeenv環境をアクティベートすること。
+
+```bash
+source scripts/activate.sh
+```
+
+- このプロジェクトは`nodeenv`を使用しており、これらのツールは`.nodeenv`ディレクトリ内にローカルインストールされている
+- `command not found: pnpm`エラーはサンドボックスの問題ではなく、PATHの問題
+- 詳細は`project.md`の「環境管理」セクションを参照

@@ -55,18 +55,20 @@ export interface ICreditCardAPIClient {
   /**
    * API接続テスト
    */
-  testConnection(credentials: any): Promise<ConnectionResult>;
+  testConnection(
+    credentials: Record<string, unknown>,
+  ): Promise<ConnectionResult>;
 
   /**
    * カード情報を取得
    */
-  getCardInfo(credentials: any): Promise<CardInfo>;
+  getCardInfo(credentials: Record<string, unknown>): Promise<CardInfo>;
 
   /**
    * 取引履歴を取得
    */
   getTransactions(
-    credentials: any,
+    credentials: Record<string, unknown>,
     startDate: Date,
     endDate: Date,
   ): Promise<APITransaction[]>;
@@ -74,7 +76,7 @@ export interface ICreditCardAPIClient {
   /**
    * 支払い情報を取得
    */
-  getPaymentInfo(credentials: any): Promise<APIPaymentInfo>;
+  getPaymentInfo(credentials: Record<string, unknown>): Promise<APIPaymentInfo>;
 
   /**
    * API取引データをエンティティにマッピング

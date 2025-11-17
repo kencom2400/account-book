@@ -16,5 +16,5 @@ export class CreateInstitutionDto {
 
   @IsObject({ message: '認証情報はオブジェクト形式で指定してください' })
   @IsNotEmpty({ message: '認証情報は必須です' })
-  credentials: Record<string, any>;
+  credentials: Record<string, unknown>;
 }

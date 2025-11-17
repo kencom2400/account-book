@@ -20,6 +20,9 @@ import { ConnectCreditCardDto } from '../dto/connect-credit-card.dto';
 import { GetTransactionsDto } from '../dto/get-transactions.dto';
 import { GetPaymentInfoDto } from '../dto/get-payment-info.dto';
 import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
+import { CreditCardJSONResponse } from '../../domain/entities/credit-card.entity';
+import { CreditCardTransactionJSONResponse } from '../../domain/entities/credit-card-transaction.entity';
+import { PaymentJSONResponse } from '../../domain/value-objects/payment.vo';
 
 @Controller('api/credit-cards')
 export class CreditCardController {
@@ -38,7 +41,10 @@ export class CreditCardController {
    */
   @Post('connect')
   @HttpCode(HttpStatus.CREATED)
-  async connect(@Body() dto: ConnectCreditCardDto) {
+  async connect(@Body() dto: ConnectCreditCardDto): Promise<{
+    success: boolean;
+    data: CreditCardJSONResponse;
+  }> {
     const creditCard = await this.connectCreditCardUseCase.execute({
       cardName: dto.cardName,
       cardNumber: dto.cardNumber,
@@ -62,7 +68,10 @@ export class CreditCardController {
    * 全てのクレジットカードを取得
    */
   @Get()
-  async findAll() {
+  async findAll(): Promise<{
+    success: boolean;
+    data: CreditCardJSONResponse[];
+  }> {
     const creditCards = await this.creditCardRepository.findAll();
 
     return {
@@ -76,7 +85,10 @@ export class CreditCardController {
    * クレジットカードを取得
    */
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: CreditCardJSONResponse;
+  }> {
     const creditCard = await this.creditCardRepository.findById(id);
 
     if (!creditCard) {
@@ -97,7 +109,11 @@ export class CreditCardController {
   async getTransactions(
     @Param('id') id: string,
     @Query() query: GetTransactionsDto,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: CreditCardTransactionJSONResponse[];
+    count: number;
+  }> {
     const transactions = await this.fetchTransactionsUseCase.execute({
       creditCardId: id,
       startDate: query.startDate ? new Date(query.startDate) : undefined,
@@ -120,7 +136,10 @@ export class CreditCardController {
   async getPaymentInfo(
     @Param('id') id: string,
     @Query() query: GetPaymentInfoDto,
-  ) {
+  ): Promise<{
+    success: boolean;
+    data: PaymentJSONResponse;
+  }> {
     const payment = await this.fetchPaymentInfoUseCase.execute({
       creditCardId: id,
       billingMonth: query.billingMonth,
@@ -139,7 +158,7 @@ export class CreditCardController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string): Promise<void> {
     await this.creditCardRepository.delete(id);
   }
 
@@ -148,7 +167,15 @@ export class CreditCardController {
    * クレジットカード情報を再同期
    */
   @Post(':id/refresh')
-  async refresh(@Param('id') id: string) {
+  async refresh(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: {
+      creditCard: CreditCardJSONResponse;
+      transactions: CreditCardTransactionJSONResponse[];
+      payment: PaymentJSONResponse;
+    };
+    message: string;
+  }> {
     const result = await this.refreshCreditCardDataUseCase.execute(id);
 
     return {

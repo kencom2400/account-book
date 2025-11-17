@@ -77,7 +77,12 @@ export class BankConnectionError extends Error {
   /**
    * JSONに変換
    */
-  toJSON() {
+  toJSON(): {
+    name: string;
+    code: string;
+    message: string;
+    details?: unknown;
+  } {
     return {
       name: this.name,
       code: this.code,

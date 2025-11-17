@@ -27,14 +27,14 @@ async function get<T>(endpoint: string): Promise<T> {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
-  const result: ApiResponse<T> = await response.json();
+  const result = (await response.json()) as ApiResponse<T>;
   return result.data;
 }
 
 /**
  * HTTP POSTリクエスト
  */
-async function post<T>(endpoint: string, body: any): Promise<T> {
+async function post<T>(endpoint: string, body: Record<string, unknown> | unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -47,14 +47,14 @@ async function post<T>(endpoint: string, body: any): Promise<T> {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
-  const result: ApiResponse<T> = await response.json();
+  const result = (await response.json()) as ApiResponse<T>;
   return result.data;
 }
 
 /**
  * HTTP PATCHリクエスト
  */
-async function patch<T>(endpoint: string, body: any): Promise<T> {
+async function patch<T>(endpoint: string, body: Record<string, unknown> | unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'PATCH',
     headers: {
@@ -67,7 +67,7 @@ async function patch<T>(endpoint: string, body: any): Promise<T> {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
-  const result: ApiResponse<T> = await response.json();
+  const result = (await response.json()) as ApiResponse<T>;
   return result.data;
 }
 
@@ -85,6 +85,7 @@ async function del(endpoint: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
+  await response.json();
 }
 
 export const apiClient = {
@@ -93,4 +94,3 @@ export const apiClient = {
   patch,
   delete: del,
 };
-

@@ -14,7 +14,7 @@ import { apiClient } from './client';
 export interface CreateInstitutionRequest {
   name: string;
   type: InstitutionType;
-  credentials: Record<string, any>;
+  credentials: Record<string, unknown>;
 }
 
 export interface GetInstitutionsParams {
@@ -38,18 +38,14 @@ export interface TestBankConnectionRequest {
 /**
  * 金融機関を登録
  */
-export async function createInstitution(
-  data: CreateInstitutionRequest,
-): Promise<Institution> {
+export async function createInstitution(data: CreateInstitutionRequest): Promise<Institution> {
   return await apiClient.post<Institution>('/institutions', data);
 }
 
 /**
  * 金融機関一覧を取得
  */
-export async function getInstitutions(
-  params?: GetInstitutionsParams,
-): Promise<Institution[]> {
+export async function getInstitutions(params?: GetInstitutionsParams): Promise<Institution[]> {
   const searchParams = new URLSearchParams();
 
   if (params) {
@@ -66,9 +62,7 @@ export async function getInstitutions(
 /**
  * 対応銀行一覧を取得
  */
-export async function getSupportedBanks(
-  params?: GetSupportedBanksParams,
-): Promise<Bank[]> {
+export async function getSupportedBanks(params?: GetSupportedBanksParams): Promise<Bank[]> {
   const searchParams = new URLSearchParams();
 
   if (params) {
@@ -84,11 +78,10 @@ export async function getSupportedBanks(
  * 銀行接続テスト
  */
 export async function testBankConnection(
-  data: TestBankConnectionRequest,
+  data: TestBankConnectionRequest
 ): Promise<BankConnectionTestResult> {
   return await apiClient.post<BankConnectionTestResult>(
     '/institutions/banks/test-connection',
-    data,
+    data
   );
 }
-

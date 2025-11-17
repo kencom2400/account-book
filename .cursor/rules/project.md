@@ -17,6 +17,80 @@
 - env環境を使用し、プロジェクト内で完結した言語環境を構築
 - パッケージマネージャー: pnpm推奨（モノレポ構成のため）
 
+#### ローカル環境でのpnpm使用方法
+
+このプロジェクトは`nodeenv`を使用しており、Node.js、pnpm、その他のツールは`.nodeenv`ディレクトリ内にローカルインストールされています。
+
+**重要**: ターミナルで直接`pnpm`や`node`コマンドを実行する前に、必ずnodeenv環境をアクティベートする必要があります。
+
+##### 環境のアクティベート
+
+```bash
+# プロジェクトルートで実行
+cd /path/to/account-book
+source scripts/activate.sh
+```
+
+アクティベート後、以下のコマンドが使用可能になります：
+
+- `node`
+- `pnpm`
+- `npm`
+- `npx`
+
+##### よく使うコマンド
+
+```bash
+# 環境をアクティベート
+source scripts/activate.sh
+
+# 依存関係のインストール
+pnpm install
+
+# 開発サーバーの起動
+pnpm dev
+
+# Lint実行
+pnpm lint
+
+# Lint自動修正
+pnpm run lint -- --fix
+
+# テスト実行
+pnpm test
+
+# ビルド
+pnpm build
+```
+
+##### トラブルシューティング
+
+**問題**: `command not found: pnpm` や `command not found: node` が表示される
+
+**原因**: nodeenv環境がアクティベートされていない
+
+**解決方法**:
+
+```bash
+source scripts/activate.sh
+```
+
+**問題**: `Error: .nodeenv directory not found`
+
+**原因**: `.nodeenv`ディレクトリが存在しない
+
+**解決方法**: セットアップスクリプトを実行
+
+```bash
+./scripts/full-setup.sh
+```
+
+##### AIアシスタント向けの注意
+
+- ターミナルコマンドを実行する際は、必ず`source scripts/activate.sh`を最初に実行すること
+- サンドボックス環境の問題ではなく、PATHの問題であることに注意
+- `required_permissions: ["all"]`を指定して実行すること
+
 ## アーキテクチャ原則
 
 ### Onion Architecture（オニオンアーキテクチャ）
@@ -86,8 +160,26 @@ apps/backend/src/
 
 - 厳格な型定義を使用（`strict: true`）
 - 共通型は`libs/types`に集約
-- any型の使用を避け、unknown型を活用
-- nullableな値は明示的に型定義
+- **型安全性の徹底** - すべての変数、引数、戻り値に対して明示的に型を付与すること：
+  - **any型の使用は完全に禁止** - 型安全を維持するため、以下を使用すること：
+    - 型が不明な場合は `unknown` 型を使用
+    - ジェネリクスを活用して型パラメータを定義
+    - 外部ライブラリの型定義が不十分な場合は独自の型定義を作成
+    - やむを得ない場合は `@ts-expect-error` でコメント付きで理由を明記
+  - **すべての変数に明示的な型注釈を付与**
+    - 型推論に頼らず、常に明示的に型を指定すること
+    - 例: `const value: string = "hello"` （`const value = "hello"` は不可）
+  - **すべての関数の引数と戻り値に明示的な型を付与**
+    - 例: `function process(data: string): number { ... }`
+  - **exportされた関数・クラス・インターフェースは必ず型を明示**
+    - モジュール境界での型安全性を確保
+  - **interface、type定義も明示的に型を付与**
+    - ジェネリクスパラメータも明示
+    - 例: `interface Repository<T extends Entity> { ... }`
+- nullableな値は明示的に型定義（例: `string | null`）
+- **実装時点でlintエラーが基本的に出ないようにする**
+  - ESLintの型安全性ルールがすべて`error`レベルで設定されている
+  - 型エラーは即座に修正すること
 
 ### ネーミング規則
 
