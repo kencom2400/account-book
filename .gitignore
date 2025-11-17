@@ -22,10 +22,6 @@ data/*/*
 # IDE
 .idea/
 
-# Cursor AI settings (keep rules, ignore temporary files if any)
-# .cursor/rules/ は共有すべきルールファイルのため、Gitで管理する
-# 将来的にCIを追加する場合は、lintやtestの対象から除外すること
-
 # Logs
 logs/
 *.log
