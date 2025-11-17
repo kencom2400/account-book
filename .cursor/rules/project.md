@@ -168,6 +168,13 @@ apps/backend/src/
 - テンプレートに従って詳細を記載する
 - 関連するissueやPRがあれば明記する
 
+### Issue取得時のルール
+
+- **GitHub Projectsから取得する際は必ず「📋 To Do」ステータスから取得する**
+  - コマンド例: `gh project item-list 1 --owner kencom2400 --format json | jq '.items[] | select(.status.name == "To Do")'`
+- 作業を開始する際は、ステータスを「🏗 In Progress」に変更する
+- 完了後は「✅ Done」に変更する
+
 ### Issue管理のベストプラクティス
 
 - 1つのissueは1つの問題または機能に集中させる
