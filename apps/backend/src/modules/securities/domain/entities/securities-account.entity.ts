@@ -181,8 +181,12 @@ export class SecuritiesAccountEntity {
 
   /**
    * プレーンオブジェクトに変換
+   * @param portfolioStats ポートフォリオ統計情報（オプショナル）
    */
-  toJSON(): SecuritiesAccountJSONResponse {
+  toJSON(portfolioStats?: {
+    totalProfitLoss: number;
+    totalProfitLossRate: number;
+  }): SecuritiesAccountJSONResponse {
     return {
       id: this.id,
       securitiesCompanyName: this.securitiesCompanyName,
@@ -193,8 +197,8 @@ export class SecuritiesAccountEntity {
       lastSyncedAt: this.lastSyncedAt,
       totalEvaluationAmount: this.totalEvaluationAmount,
       cashBalance: this.cashBalance,
-      totalProfitLoss: 0, // Holdings から計算
-      totalProfitLossRate: 0, // Holdings から計算
+      totalProfitLoss: portfolioStats?.totalProfitLoss ?? 0, // Portfolioから計算された値、または0
+      totalProfitLossRate: portfolioStats?.totalProfitLossRate ?? 0, // Portfolioから計算された値、または0
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

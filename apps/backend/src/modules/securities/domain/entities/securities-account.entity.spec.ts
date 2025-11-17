@@ -111,7 +111,7 @@ describe('SecuritiesAccountEntity', () => {
   describe('toJSON', () => {
     it('should convert to JSON correctly', () => {
       const account = new SecuritiesAccountEntity(...Object.values(validData));
-      const json = account.toJSON();
+      const json = account.toJSON(); // portfolioStatsなしで呼び出し（デフォルト値0）
 
       expect(json.id).toBe(validData.id);
       expect(json.securitiesCompanyName).toBe(validData.securitiesCompanyName);
