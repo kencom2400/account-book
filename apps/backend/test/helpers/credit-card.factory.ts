@@ -1,11 +1,8 @@
+import { CategoryType, PaymentStatus } from '@account-book/types';
 import { CreditCardEntity } from '../../src/modules/credit-card/domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../src/modules/credit-card/domain/entities/credit-card-transaction.entity';
-import {
-  PaymentVO,
-  PaymentStatus,
-} from '../../src/modules/credit-card/domain/value-objects/payment.vo';
+import { PaymentVO } from '../../src/modules/credit-card/domain/value-objects/payment.vo';
 import { EncryptedCredentials } from '../../src/modules/institution/domain/value-objects/encrypted-credentials.vo';
-import { CategoryType } from '@account-book/types';
 
 export function createTestEncryptedCredentials(
   overrides?: Partial<EncryptedCredentials>,

@@ -1,4 +1,5 @@
-import { PaymentVO, PaymentStatus } from './payment.vo';
+import { PaymentStatus } from '@account-book/types';
+import { PaymentVO } from './payment.vo';
 import { createTestPayment } from '../../../../../test/helpers/credit-card.factory';
 
 describe('PaymentVO', () => {
