@@ -52,7 +52,7 @@ export class TransactionRepository implements ITransactionRepository {
       const filePath = path.join(this.dataDir, file);
       const content = await fs.readFile(filePath, 'utf-8');
       const data = JSON.parse(content);
-      
+
       if (Array.isArray(data)) {
         const transactions = data.map((item) => this.toEntity(item));
         allTransactions.push(...transactions);
@@ -65,7 +65,9 @@ export class TransactionRepository implements ITransactionRepository {
   /**
    * 金融機関IDで取引を取得
    */
-  async findByInstitutionId(institutionId: string): Promise<TransactionEntity[]> {
+  async findByInstitutionId(
+    institutionId: string,
+  ): Promise<TransactionEntity[]> {
     const allTransactions = await this.findAll();
     return allTransactions.filter((t) => t.institutionId === institutionId);
   }
@@ -128,8 +130,7 @@ export class TransactionRepository implements ITransactionRepository {
   async findUnreconciledTransfers(): Promise<TransactionEntity[]> {
     const allTransactions = await this.findAll();
     return allTransactions.filter(
-      (t) =>
-        t.category.type === CategoryType.TRANSFER && !t.isReconciled,
+      (t) => t.category.type === CategoryType.TRANSFER && !t.isReconciled,
     );
   }
 
@@ -139,7 +140,7 @@ export class TransactionRepository implements ITransactionRepository {
   async save(transaction: TransactionEntity): Promise<TransactionEntity> {
     const year = transaction.date.getFullYear();
     const month = transaction.date.getMonth() + 1;
-    
+
     const existingTransactions = await this.findByMonth(year, month);
     existingTransactions.push(transaction);
 
@@ -150,7 +151,9 @@ export class TransactionRepository implements ITransactionRepository {
   /**
    * 複数の取引を一括保存
    */
-  async saveMany(transactions: TransactionEntity[]): Promise<TransactionEntity[]> {
+  async saveMany(
+    transactions: TransactionEntity[],
+  ): Promise<TransactionEntity[]> {
     // 月ごとにグループ化
     const groupedByMonth = new Map<string, TransactionEntity[]>();
 
@@ -182,7 +185,7 @@ export class TransactionRepository implements ITransactionRepository {
   async update(transaction: TransactionEntity): Promise<TransactionEntity> {
     const year = transaction.date.getFullYear();
     const month = transaction.date.getMonth() + 1;
-    
+
     const existingTransactions = await this.findByMonth(year, month);
     const updatedTransactions = existingTransactions.map((t) =>
       t.id === transaction.id ? transaction : t,
@@ -203,9 +206,11 @@ export class TransactionRepository implements ITransactionRepository {
 
     const year = transaction.date.getFullYear();
     const month = transaction.date.getMonth() + 1;
-    
+
     const existingTransactions = await this.findByMonth(year, month);
-    const filteredTransactions = existingTransactions.filter((t) => t.id !== id);
+    const filteredTransactions = existingTransactions.filter(
+      (t) => t.id !== id,
+    );
 
     await this.saveMonthData(year, month, filteredTransactions);
   }
@@ -216,7 +221,7 @@ export class TransactionRepository implements ITransactionRepository {
   async deleteAll(): Promise<void> {
     await this.ensureDataDirectory();
     const files = await fs.readdir(this.dataDir);
-    
+
     for (const file of files) {
       if (file.endsWith('.json')) {
         await fs.unlink(path.join(this.dataDir, file));
@@ -235,7 +240,7 @@ export class TransactionRepository implements ITransactionRepository {
     await this.ensureDataDirectory();
     const fileName = this.getMonthFileName(year, month);
     const filePath = path.join(this.dataDir, fileName);
-    
+
     const data = transactions.map((t) => this.toJSON(t));
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
@@ -288,4 +293,3 @@ export class TransactionRepository implements ITransactionRepository {
     );
   }
 }
-

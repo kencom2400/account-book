@@ -1,5 +1,9 @@
 import { MockBankApiAdapter } from './mock-bank-api.adapter';
-import { BankCredentials, BankAccountType, BankTransactionType } from '@account-book/types';
+import {
+  BankCredentials,
+  BankAccountType,
+  BankTransactionType,
+} from '@account-book/types';
 
 describe('MockBankApiAdapter', () => {
   let adapter: MockBankApiAdapter;
@@ -220,7 +224,9 @@ describe('MockBankApiAdapter', () => {
       for (let i = 0; i < transactions.length - 1; i++) {
         const currentDate = new Date(transactions[i].date);
         const nextDate = new Date(transactions[i + 1].date);
-        expect(currentDate.getTime()).toBeGreaterThanOrEqual(nextDate.getTime());
+        expect(currentDate.getTime()).toBeGreaterThanOrEqual(
+          nextDate.getTime(),
+        );
       }
     });
   });
@@ -302,4 +308,3 @@ describe('MockBankApiAdapter', () => {
     });
   });
 });
-

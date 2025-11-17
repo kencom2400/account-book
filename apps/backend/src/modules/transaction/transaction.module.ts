@@ -27,4 +27,3 @@ import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.reposi
   exports: [TRANSACTION_REPOSITORY, TransactionDomainService],
 })
 export class TransactionModule {}
-

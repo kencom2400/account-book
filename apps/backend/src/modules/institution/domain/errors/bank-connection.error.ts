@@ -86,4 +86,3 @@ export class BankConnectionError extends Error {
     };
   }
 }
-

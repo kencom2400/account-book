@@ -15,4 +15,3 @@ export class GetSupportedBanksQueryDto {
   @IsString({ message: '検索キーワードは文字列で指定してください' })
   searchTerm?: string;
 }
-

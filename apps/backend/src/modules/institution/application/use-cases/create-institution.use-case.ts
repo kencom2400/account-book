@@ -2,10 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import type { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
-import { INSTITUTION_REPOSITORY } from '../../domain/repositories/institution.repository.interface';
 import type { ICryptoService } from '../../domain/services/crypto.service.interface';
-import { CRYPTO_SERVICE } from '../../domain/services/crypto.service.interface';
 import { InstitutionType } from '@account-book/types';
+import {
+  INSTITUTION_REPOSITORY,
+  CRYPTO_SERVICE,
+} from '../../institution.tokens';
 
 export interface CreateInstitutionDto {
   name: string;
@@ -47,4 +49,3 @@ export class CreateInstitutionUseCase {
     return await this.institutionRepository.save(institution);
   }
 }
-

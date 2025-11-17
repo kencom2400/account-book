@@ -7,9 +7,11 @@ import { CreateInstitutionUseCase } from './application/use-cases/create-institu
 import { GetInstitutionsUseCase } from './application/use-cases/get-institutions.use-case';
 import { TestBankConnectionUseCase } from './application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from './application/use-cases/get-supported-banks.use-case';
-import { INSTITUTION_REPOSITORY } from './domain/repositories/institution.repository.interface';
-import { CRYPTO_SERVICE } from './domain/services/crypto.service.interface';
-import { BANK_API_ADAPTER } from './domain/adapters/bank-api.adapter.interface';
+import {
+  INSTITUTION_REPOSITORY,
+  CRYPTO_SERVICE,
+  BANK_API_ADAPTER,
+} from './institution.tokens';
 
 @Module({
   controllers: [InstitutionController],
@@ -38,4 +40,3 @@ import { BANK_API_ADAPTER } from './domain/adapters/bank-api.adapter.interface';
   exports: [INSTITUTION_REPOSITORY, CRYPTO_SERVICE, BANK_API_ADAPTER],
 })
 export class InstitutionModule {}
-

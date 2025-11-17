@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-  IsObject,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsObject } from 'class-validator';
 import { InstitutionType } from '@account-book/types';
 
 /**
@@ -23,4 +18,3 @@ export class CreateInstitutionDto {
   @IsNotEmpty({ message: '認証情報は必須です' })
   credentials: Record<string, any>;
 }
-

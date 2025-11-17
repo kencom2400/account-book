@@ -93,7 +93,9 @@ export class InstitutionRepository implements IInstitutionRepository {
   /**
    * 接続状態で金融機関を取得
    */
-  async findByConnectionStatus(isConnected: boolean): Promise<InstitutionEntity[]> {
+  async findByConnectionStatus(
+    isConnected: boolean,
+  ): Promise<InstitutionEntity[]> {
     const institutions = await this.loadData();
     return institutions.filter((i) => i.isConnected === isConnected);
   }
@@ -190,4 +192,3 @@ export class InstitutionRepository implements IInstitutionRepository {
     );
   }
 }
-

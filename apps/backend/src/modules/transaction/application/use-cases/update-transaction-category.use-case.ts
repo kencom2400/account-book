@@ -38,4 +38,3 @@ export class UpdateTransactionCategoryUseCase {
     return await this.transactionRepository.update(updatedTransaction);
   }
 }
-

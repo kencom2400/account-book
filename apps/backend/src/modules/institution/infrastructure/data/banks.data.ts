@@ -90,4 +90,3 @@ export const SUPPORTED_BANKS: Bank[] = [
     isSupported: true,
   },
 ];
-

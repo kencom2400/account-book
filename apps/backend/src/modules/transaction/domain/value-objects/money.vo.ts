@@ -68,9 +68,7 @@ export class Money {
    * 等価性の判定
    */
   equals(other: Money): boolean {
-    return (
-      this.amount === other.amount && this.currency === other.currency
-    );
+    return this.amount === other.amount && this.currency === other.currency;
   }
 
   /**
@@ -91,4 +89,3 @@ export class Money {
     return `${this.currency} ${this.amount.toLocaleString()}`;
   }
 }
-

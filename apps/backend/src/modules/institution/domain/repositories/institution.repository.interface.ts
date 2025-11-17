@@ -46,6 +46,3 @@ export interface IInstitutionRepository {
    */
   deleteAll(): Promise<void>;
 }
-
-export const INSTITUTION_REPOSITORY = Symbol('IInstitutionRepository');
-

@@ -3,15 +3,22 @@ import {
   Logger,
   NotFoundException,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
-import {
+import type {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
 } from '../../domain/repositories/credit-card.repository.interface';
-import { ICreditCardAPIClient } from '../../infrastructure/adapters/credit-card-api.adapter.interface';
-import { ICryptoService } from '../../../institution/domain/services/crypto.service.interface';
+import type { ICreditCardAPIClient } from '../../infrastructure/adapters/credit-card-api.adapter.interface';
+import type { ICryptoService } from '../../../institution/domain/services/crypto.service.interface';
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+  CREDIT_CARD_API_CLIENT,
+} from '../../credit-card.tokens';
+import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
 
 export interface FetchCreditCardTransactionsInput {
   creditCardId: string;
@@ -29,9 +36,13 @@ export class FetchCreditCardTransactionsUseCase {
   private readonly logger = new Logger(FetchCreditCardTransactionsUseCase.name);
 
   constructor(
+    @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: ICreditCardRepository,
+    @Inject(CREDIT_CARD_TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ICreditCardTransactionRepository,
+    @Inject(CREDIT_CARD_API_CLIENT)
     private readonly creditCardAPIClient: ICreditCardAPIClient,
+    @Inject(CRYPTO_SERVICE)
     private readonly cryptoService: ICryptoService,
   ) {}
 

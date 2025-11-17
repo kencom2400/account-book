@@ -48,8 +48,7 @@ export class TransactionDate {
    */
   isInMonth(year: number, month: number): boolean {
     return (
-      this.value.getFullYear() === year &&
-      this.value.getMonth() + 1 === month
+      this.value.getFullYear() === year && this.value.getMonth() + 1 === month
     );
   }
 
@@ -86,4 +85,3 @@ export class TransactionDate {
     return this.value.getTime() === other.value.getTime();
   }
 }
-

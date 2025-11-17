@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateInstitutionUseCase } from './create-institution.use-case';
-import {
-  IInstitutionRepository,
-  INSTITUTION_REPOSITORY,
-} from '../../domain/repositories/institution.repository.interface';
-import { ICryptoService, CRYPTO_SERVICE } from '../../domain/services/crypto.service.interface';
+import type { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
+import type { ICryptoService } from '../../domain/services/crypto.service.interface';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
 import { InstitutionType } from '@account-book/types';
+import {
+  INSTITUTION_REPOSITORY,
+  CRYPTO_SERVICE,
+} from '../../institution.tokens';
 
 describe('CreateInstitutionUseCase', () => {
   let useCase: CreateInstitutionUseCase;
@@ -372,4 +373,3 @@ describe('CreateInstitutionUseCase', () => {
     });
   });
 });
-

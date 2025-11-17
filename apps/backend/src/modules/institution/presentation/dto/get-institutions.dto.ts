@@ -20,4 +20,3 @@ export class GetInstitutionsQueryDto {
   })
   isConnected?: boolean;
 }
-

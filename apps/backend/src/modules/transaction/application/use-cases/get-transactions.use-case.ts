@@ -60,4 +60,3 @@ export class GetTransactionsUseCase {
     return await this.transactionRepository.findAll();
   }
 }
-

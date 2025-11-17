@@ -336,6 +336,137 @@ EOF
 )"
 ```
 
+### 6. CI (lint, test, build)の確認と対応（自動実行）
+
+PR作成後、以下の手順を自動的に実行する：
+
+#### 6-1. CIステータスの確認
+
+```bash
+# PRのCI実行状況を確認（30〜60秒待機してから実行）
+sleep 45
+gh pr checks <PR番号>
+
+# 実行結果の例:
+# lint   pass  37s  https://...
+# test   pass  47s  https://...
+# build  pass  1m13s https://...
+```
+
+#### 6-2. エラー発生時の原因究明
+
+CIでエラーが発生した場合、以下を実施：
+
+**1. エラーログの取得**
+```bash
+# 失敗したCIのログを確認
+gh run view <run-id> --log-failed
+
+# 特定のジョブのログを確認
+gh run view <run-id> --log-failed | grep -A 30 "lint.*Run pnpm lint"
+```
+
+**2. 原因の特定**
+- 今回の修正で新しく発生したエラーか？
+- 既存のコードベースに元々存在していたエラーか？
+
+**判断基準**:
+- 修正したファイルに関連するエラー → 自身の修正が原因
+- 修正していないファイルのエラー → 既存のエラー
+- エラーの内容が今回の変更内容と直接関係 → 自身の修正が原因
+
+#### 6-3. 対応方針
+
+**A. 自身の修正で発生したエラーの場合**
+
+✅ **即座に解決する**
+
+1. ローカルで同じエラーを再現
+   ```bash
+   # lintエラーの場合
+   pnpm lint
+   
+   # testエラーの場合
+   pnpm test:unit
+   
+   # buildエラーの場合
+   pnpm build
+   ```
+
+2. エラーを修正
+
+3. ローカルで確認
+   ```bash
+   pnpm lint
+   pnpm test:unit
+   pnpm build
+   ```
+
+4. コミット & プッシュ
+   ```bash
+   git add .
+   git commit -m "fix(ci): [エラー内容の簡潔な説明]"
+   git push
+   ```
+
+5. 再度CIを確認
+
+**B. 既存のエラーである場合**
+
+✅ **Bugのissueを作成する**
+
+1. issueを作成
+   ```bash
+   gh issue create \
+     --title "[BUG] [CI名]で[エラー数]個のエラー/警告が発生" \
+     --label "bug,infrastructure,priority: high" \
+     --body "[詳細な内容]"
+   ```
+
+2. issue内容に以下を記載：
+   - エラーの概要（件数、種類）
+   - 発生箇所（ファイル名、行数）
+   - エラーログの例
+   - 修正方針（段階的な対応計画）
+   - 達成条件（「○○ CIのエラーが0件になる」）
+
+3. issueをGitHub Projectsに追加
+   ```bash
+   gh project item-add 1 --owner kencom2400 --url <issue_url>
+   ```
+
+4. PRにコメントを追加して既存エラーであることを説明
+   ```bash
+   gh pr comment <PR番号> --body "## CI実行結果
+   
+   ✅ **test**: Pass
+   ✅ **build**: Pass
+   ⚠️ **lint**: Fail (既存のlintエラー約XXX個、今回の修正とは無関係)
+   
+   既存のlintエラーは Issue #XXX として別途対応します。"
+   ```
+
+#### 6-4. CI確認の完了報告
+
+すべてのCIが成功、または既存エラーへの対応が完了したら、ユーザーに報告する：
+
+```
+## ✅ CI実行結果
+
+すべての主要なCIが成功しました！
+
+### 結果
+✅ **test**: Pass (XX秒)
+✅ **build**: Pass (XX秒)
+✅ **lint**: Pass (XX秒)
+
+または
+
+✅ **test**: Pass (XX秒)
+✅ **build**: Pass (XX秒)
+⚠️ **lint**: Fail (既存エラーXXX個 - Issue #XXX で対応)
+```
+
 ### PR作成コマンド例
 
 ```bash

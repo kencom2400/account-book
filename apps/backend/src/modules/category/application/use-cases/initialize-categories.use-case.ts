@@ -37,4 +37,3 @@ export class InitializeCategoriesUseCase {
     return savedCategories;
   }
 }
-

@@ -17,3 +17,12 @@ export class CurrencyUtils {
     }).format(amount);
   }
 }
+
+/**
+ * Format currency with JPY format
+ * @param amount Amount to format
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number): string {
+  return CurrencyUtils.formatJPY(amount);
+}

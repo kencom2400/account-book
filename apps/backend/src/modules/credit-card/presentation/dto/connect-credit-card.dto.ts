@@ -32,4 +32,3 @@ export class ConnectCreditCardDto {
   @Max(31)
   closingDay: number;
 }
-
