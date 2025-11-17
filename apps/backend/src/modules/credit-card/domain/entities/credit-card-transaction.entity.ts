@@ -14,6 +14,9 @@ export interface CreditCardTransactionJSONResponse {
   installmentCount: number | null;
   installmentNumber: number | null;
   monthlyInstallmentAmount: number | null;
+  isPaid: boolean;
+  paymentScheduledDate: Date | null;
+  paidDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

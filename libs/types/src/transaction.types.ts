@@ -36,3 +36,10 @@ export enum TransactionStatus {
   FAILED = 'failed',
   CANCELLED = 'cancelled',
 }
+
+export enum PaymentStatus {
+  PAID = 'paid',
+  UNPAID = 'unpaid',
+  PARTIAL = 'partial',
+  OVERDUE = 'overdue',
+}

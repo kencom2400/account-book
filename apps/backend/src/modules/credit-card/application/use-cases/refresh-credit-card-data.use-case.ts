@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { PaymentStatus } from '@account-book/types';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import { PaymentVO } from '../../domain/value-objects/payment.vo';
@@ -195,7 +196,7 @@ export class RefreshCreditCardDataUseCase {
       0,
       0,
       0,
-      'unpaid',
+      PaymentStatus.UNPAID,
       null,
     );
   }

@@ -11,7 +11,7 @@ import {
   IPaymentRepository,
 } from '../../domain/repositories/credit-card.repository.interface';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
-import { PaymentStatus } from '@account-book/types';
+import { PaymentStatus, CategoryType } from '@account-book/types';
 
 /**
  * JSONファイルに保存するクレジットカードデータの型定義
@@ -67,7 +67,6 @@ interface CreditCardTransactionJSON {
  * JSONファイルに保存する支払い情報データの型定義
  */
 interface PaymentJSON {
-  creditCardId: string;
   billingMonth: string;
   closingDate: string;
   paymentDueDate: string;
@@ -75,9 +74,6 @@ interface PaymentJSON {
   paidAmount: number;
   remainingAmount: number;
   status: PaymentStatus;
-  transactionIds: string[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**
@@ -438,9 +434,9 @@ export class FileSystemCreditCardTransactionRepository
       new Date(data.postingDate),
       data.amount,
       data.merchantName,
-      data.merchantCategory,
+      data.merchantCategory || '',
       data.description,
-      data.category,
+      (data.category as CategoryType) || CategoryType.EXPENSE,
       data.isInstallment,
       data.installmentCount,
       data.installmentNumber,

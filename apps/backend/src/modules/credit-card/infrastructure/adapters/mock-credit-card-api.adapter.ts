@@ -6,12 +6,9 @@ import {
   APITransaction,
   APIPaymentInfo,
 } from './credit-card-api.adapter.interface';
+import { CategoryType, PaymentStatus } from '@account-book/types';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
-import {
-  PaymentVO,
-  PaymentStatus,
-} from '../../domain/value-objects/payment.vo';
-import { CategoryType } from '@account-book/types';
+import { PaymentVO } from '../../domain/value-objects/payment.vo';
 
 /**
  * MockCreditCardAPIAdapter

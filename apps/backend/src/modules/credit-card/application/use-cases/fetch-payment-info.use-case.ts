@@ -5,11 +5,9 @@ import {
   InternalServerErrorException,
   Inject,
 } from '@nestjs/common';
+import { PaymentStatus } from '@account-book/types';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
-import {
-  PaymentVO,
-  PaymentStatus,
-} from '../../domain/value-objects/payment.vo';
+import { PaymentVO } from '../../domain/value-objects/payment.vo';
 import type {
   ICreditCardRepository,
   IPaymentRepository,
