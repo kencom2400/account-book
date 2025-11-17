@@ -23,4 +23,3 @@ import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository.i
   exports: [CATEGORY_REPOSITORY, CategoryDomainService],
 })
 export class CategoryModule {}
-

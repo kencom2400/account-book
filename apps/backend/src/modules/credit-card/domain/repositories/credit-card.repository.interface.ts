@@ -146,4 +146,3 @@ export interface IPaymentRepository {
    */
   delete(creditCardId: string, billingMonth: string): Promise<void>;
 }
-

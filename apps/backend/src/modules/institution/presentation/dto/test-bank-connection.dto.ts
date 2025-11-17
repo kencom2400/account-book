@@ -45,4 +45,3 @@ export class TestBankConnectionDto {
   })
   apiSecret?: string;
 }
-

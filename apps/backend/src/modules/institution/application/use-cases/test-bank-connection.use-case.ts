@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BankCredentials, BankConnectionTestResult } from '@account-book/types';
-import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
-import { BANK_API_ADAPTER } from '../../domain/adapters/bank-api.adapter.interface';
+import type { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { BankConnectionError } from '../../domain/errors/bank-connection.error';
+import { BANK_API_ADAPTER } from '../../institution.tokens';
 
 export interface TestBankConnectionDto {
   bankCode: string;
@@ -22,9 +22,7 @@ export class TestBankConnectionUseCase {
     private readonly bankApiAdapter: IBankApiAdapter,
   ) {}
 
-  async execute(
-    dto: TestBankConnectionDto,
-  ): Promise<BankConnectionTestResult> {
+  async execute(dto: TestBankConnectionDto): Promise<BankConnectionTestResult> {
     try {
       // DTOをBankCredentialsに変換
       const credentials: BankCredentials = {
@@ -58,4 +56,3 @@ export class TestBankConnectionUseCase {
     }
   }
 }
-

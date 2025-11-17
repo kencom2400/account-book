@@ -132,7 +132,10 @@ export class InstitutionEntity {
   /**
    * 口座を更新する
    */
-  updateAccount(accountId: string, updatedAccount: AccountEntity): InstitutionEntity {
+  updateAccount(
+    accountId: string,
+    updatedAccount: AccountEntity,
+  ): InstitutionEntity {
     const newAccounts = this.accounts.map((account) =>
       account.id === accountId ? updatedAccount : account,
     );
@@ -186,4 +189,3 @@ export class InstitutionEntity {
     };
   }
 }
-

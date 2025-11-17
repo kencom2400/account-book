@@ -87,6 +87,8 @@ export interface ICreditCardAPIClient {
   /**
    * API支払い情報をValueObjectにマッピング
    */
-  mapToPaymentVO(billingMonth: string, apiPaymentInfo: APIPaymentInfo): PaymentVO;
+  mapToPaymentVO(
+    billingMonth: string,
+    apiPaymentInfo: APIPaymentInfo,
+  ): PaymentVO;
 }
-

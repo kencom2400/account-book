@@ -43,7 +43,8 @@ export class CalculateMonthlySummaryUseCase {
     );
 
     // 収支計算
-    const balance = this.transactionDomainService.calculateBalance(transactions);
+    const balance =
+      this.transactionDomainService.calculateBalance(transactions);
 
     // カテゴリ別集計
     const categoryAggregation =
@@ -79,4 +80,3 @@ export class CalculateMonthlySummaryUseCase {
     };
   }
 }
-

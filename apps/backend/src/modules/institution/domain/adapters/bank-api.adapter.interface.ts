@@ -44,6 +44,3 @@ export interface IBankApiAdapter {
     toDate: string,
   ): Promise<BankTransaction[]>;
 }
-
-export const BANK_API_ADAPTER = Symbol('IBankApiAdapter');
-

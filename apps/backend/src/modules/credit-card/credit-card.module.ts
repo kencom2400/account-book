@@ -16,19 +16,21 @@ import {
   FileSystemCreditCardTransactionRepository,
   FileSystemPaymentRepository,
 } from './infrastructure/repositories/credit-card.repository';
-import {
-  ICreditCardRepository,
-  ICreditCardTransactionRepository,
-  IPaymentRepository,
-} from './domain/repositories/credit-card.repository.interface';
 
 // Adapters
 import { MockCreditCardAPIAdapter } from './infrastructure/adapters/mock-credit-card-api.adapter';
-import { ICreditCardAPIClient } from './infrastructure/adapters/credit-card-api.adapter.interface';
 
 // Shared Services
 import { CryptoService } from '../institution/infrastructure/services/crypto.service';
-import { ICryptoService } from '../institution/domain/services/crypto.service.interface';
+
+// Tokens
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+  PAYMENT_REPOSITORY,
+  CREDIT_CARD_API_CLIENT,
+} from './credit-card.tokens';
+import { CRYPTO_SERVICE } from '../institution/institution.tokens';
 
 @Module({
   imports: [ConfigModule],
@@ -42,34 +44,34 @@ import { ICryptoService } from '../institution/domain/services/crypto.service.in
 
     // Repositories
     {
-      provide: ICreditCardRepository,
+      provide: CREDIT_CARD_REPOSITORY,
       useClass: FileSystemCreditCardRepository,
     },
     {
-      provide: ICreditCardTransactionRepository,
+      provide: CREDIT_CARD_TRANSACTION_REPOSITORY,
       useClass: FileSystemCreditCardTransactionRepository,
     },
     {
-      provide: IPaymentRepository,
+      provide: PAYMENT_REPOSITORY,
       useClass: FileSystemPaymentRepository,
     },
 
     // Adapters
     {
-      provide: ICreditCardAPIClient,
+      provide: CREDIT_CARD_API_CLIENT,
       useClass: MockCreditCardAPIAdapter,
     },
 
     // Shared Services
     {
-      provide: ICryptoService,
+      provide: CRYPTO_SERVICE,
       useClass: CryptoService,
     },
   ],
   exports: [
-    ICreditCardRepository,
-    ICreditCardTransactionRepository,
-    IPaymentRepository,
+    CREDIT_CARD_REPOSITORY,
+    CREDIT_CARD_TRANSACTION_REPOSITORY,
+    PAYMENT_REPOSITORY,
   ],
 })
 export class CreditCardModule {}

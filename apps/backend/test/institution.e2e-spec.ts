@@ -72,8 +72,8 @@ describe('Institution Controller (e2e)', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.data).toBeInstanceOf(Array);
           expect(res.body.data.length).toBeGreaterThan(0);
-          const hasMatchingBank = res.body.data.some(
-            (bank: any) => bank.name.includes('三菱'),
+          const hasMatchingBank = res.body.data.some((bank: any) =>
+            bank.name.includes('三菱'),
           );
           expect(hasMatchingBank).toBe(true);
         });
@@ -337,4 +337,3 @@ describe('Institution Controller (e2e)', () => {
     });
   });
 });
-

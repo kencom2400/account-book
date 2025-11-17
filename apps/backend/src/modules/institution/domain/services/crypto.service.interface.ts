@@ -19,6 +19,3 @@ export interface ICryptoService {
    */
   decrypt(credentials: EncryptedCredentials): string;
 }
-
-export const CRYPTO_SERVICE = Symbol('ICryptoService');
-

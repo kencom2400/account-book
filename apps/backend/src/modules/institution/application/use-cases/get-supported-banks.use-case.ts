@@ -42,4 +42,3 @@ export class GetSupportedBanksUseCase {
     return bank && bank.isSupported ? bank : null;
   }
 }
-

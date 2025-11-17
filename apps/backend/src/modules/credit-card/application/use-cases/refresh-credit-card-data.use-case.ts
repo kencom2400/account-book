@@ -1,14 +1,21 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import { PaymentVO } from '../../domain/value-objects/payment.vo';
-import {
+import type {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
   IPaymentRepository,
 } from '../../domain/repositories/credit-card.repository.interface';
-import { ICreditCardAPIClient } from '../../infrastructure/adapters/credit-card-api.adapter.interface';
-import { ICryptoService } from '../../../institution/domain/services/crypto.service.interface';
+import type { ICreditCardAPIClient } from '../../infrastructure/adapters/credit-card-api.adapter.interface';
+import type { ICryptoService } from '../../../institution/domain/services/crypto.service.interface';
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+  PAYMENT_REPOSITORY,
+  CREDIT_CARD_API_CLIENT,
+} from '../../credit-card.tokens';
+import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
 
 export interface RefreshCreditCardDataOutput {
   creditCard: CreditCardEntity;
@@ -25,10 +32,15 @@ export class RefreshCreditCardDataUseCase {
   private readonly logger = new Logger(RefreshCreditCardDataUseCase.name);
 
   constructor(
+    @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: ICreditCardRepository,
+    @Inject(CREDIT_CARD_TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ICreditCardTransactionRepository,
+    @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
+    @Inject(CREDIT_CARD_API_CLIENT)
     private readonly creditCardAPIClient: ICreditCardAPIClient,
+    @Inject(CRYPTO_SERVICE)
     private readonly cryptoService: ICryptoService,
   ) {}
 

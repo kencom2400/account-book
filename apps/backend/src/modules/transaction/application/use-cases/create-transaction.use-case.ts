@@ -51,4 +51,3 @@ export class CreateTransactionUseCase {
     return await this.transactionRepository.save(transaction);
   }
 }
-

@@ -28,10 +28,7 @@ export interface ITransactionRepository {
   /**
    * 期間で取引を取得
    */
-  findByDateRange(
-    startDate: Date,
-    endDate: Date,
-  ): Promise<TransactionEntity[]>;
+  findByDateRange(startDate: Date, endDate: Date): Promise<TransactionEntity[]>;
 
   /**
    * 月で取引を取得
@@ -75,4 +72,3 @@ export interface ITransactionRepository {
 }
 
 export const TRANSACTION_REPOSITORY = Symbol('ITransactionRepository');
-

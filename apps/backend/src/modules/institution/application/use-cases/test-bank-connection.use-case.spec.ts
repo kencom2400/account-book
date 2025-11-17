@@ -1,8 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestBankConnectionUseCase } from './test-bank-connection.use-case';
-import { IBankApiAdapter, BANK_API_ADAPTER } from '../../domain/adapters/bank-api.adapter.interface';
+import type { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { BankConnectionTestResult, BankAccountType } from '@account-book/types';
-import { BankConnectionError, BankErrorCode } from '../../domain/errors/bank-connection.error';
+import {
+  BankConnectionError,
+  BankErrorCode,
+} from '../../domain/errors/bank-connection.error';
+import { BANK_API_ADAPTER } from '../../institution.tokens';
 
 describe('TestBankConnectionUseCase', () => {
   let useCase: TestBankConnectionUseCase;
@@ -218,4 +222,3 @@ describe('TestBankConnectionUseCase', () => {
     });
   });
 });
-

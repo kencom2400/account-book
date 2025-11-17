@@ -18,8 +18,7 @@ export class TransformInterceptor implements NestInterceptor {
           timestamp: new Date().toISOString(),
           version: '1.0',
         },
-      }))
+      })),
     );
   }
 }
-

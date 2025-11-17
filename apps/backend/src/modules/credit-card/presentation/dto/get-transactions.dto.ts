@@ -13,4 +13,3 @@ export class GetTransactionsDto {
   @IsString()
   forceRefresh?: string; // 'true' or 'false'
 }
-

@@ -145,4 +145,3 @@ export class MockBankApiAdapter implements IBankApiAdapter {
     return true;
   }
 }
-

@@ -9,4 +9,3 @@ export class GetPaymentInfoDto {
   @IsString()
   forceRefresh?: string; // 'true' or 'false'
 }
-

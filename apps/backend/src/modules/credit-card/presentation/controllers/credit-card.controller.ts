@@ -9,15 +9,17 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
-import { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
+import type { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
 import { ConnectCreditCardDto } from '../dto/connect-credit-card.dto';
 import { GetTransactionsDto } from '../dto/get-transactions.dto';
 import { GetPaymentInfoDto } from '../dto/get-payment-info.dto';
+import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
 
 @Controller('api/credit-cards')
 export class CreditCardController {
@@ -26,6 +28,7 @@ export class CreditCardController {
     private readonly fetchTransactionsUseCase: FetchCreditCardTransactionsUseCase,
     private readonly fetchPaymentInfoUseCase: FetchPaymentInfoUseCase,
     private readonly refreshCreditCardDataUseCase: RefreshCreditCardDataUseCase,
+    @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: ICreditCardRepository,
   ) {}
 

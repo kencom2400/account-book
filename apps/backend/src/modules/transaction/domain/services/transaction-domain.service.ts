@@ -189,4 +189,3 @@ export class TransactionDomainService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 }
-

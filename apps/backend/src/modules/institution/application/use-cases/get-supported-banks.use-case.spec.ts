@@ -45,9 +45,9 @@ describe('GetSupportedBanksUseCase', () => {
       });
 
       expect(banks.length).toBeGreaterThan(0);
-      expect(banks.every((bank) => bank.category === BankCategory.MEGA_BANK)).toBe(
-        true,
-      );
+      expect(
+        banks.every((bank) => bank.category === BankCategory.MEGA_BANK),
+      ).toBe(true);
     });
 
     it('should filter banks by category (ONLINE_BANK)', () => {
@@ -108,9 +108,9 @@ describe('GetSupportedBanksUseCase', () => {
         searchTerm: '三菱',
       });
 
-      expect(banks.every((bank) => bank.category === BankCategory.MEGA_BANK)).toBe(
-        true,
-      );
+      expect(
+        banks.every((bank) => bank.category === BankCategory.MEGA_BANK),
+      ).toBe(true);
       expect(banks.some((bank) => bank.name.includes('三菱'))).toBe(true);
     });
 
@@ -193,4 +193,3 @@ describe('GetSupportedBanksUseCase', () => {
     });
   });
 });
-

@@ -285,8 +285,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2025-01-31の6ヶ月前は2024-07-31
       expect(startDate.getFullYear()).toBe(2024);
@@ -312,8 +312,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2025-03-31の6ヶ月前は2024-09-30 (Septemberは30日まで)
       expect(startDate.getFullYear()).toBe(2024);
@@ -339,8 +339,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2024-10-31の6ヶ月前は2024-04-30 (Aprilは30日まで)
       expect(startDate.getFullYear()).toBe(2024);
@@ -366,8 +366,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2024-08-31の6ヶ月前は2024-02-29 (2024年は閏年)
       expect(startDate.getFullYear()).toBe(2024);
@@ -393,8 +393,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2025-08-31の6ヶ月前は2025-02-28 (2025年は平年)
       expect(startDate.getFullYear()).toBe(2025);
@@ -420,8 +420,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2024-09-30の6ヶ月前は2024-03-30
       expect(startDate.getFullYear()).toBe(2024);
@@ -447,8 +447,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2025-02-28の6ヶ月前は2024-08-28
       expect(startDate.getFullYear()).toBe(2024);
@@ -474,8 +474,8 @@ describe('ConnectCreditCardUseCase', () => {
       // Assert
       expect(mockAPIClient.getTransactions).toHaveBeenCalledTimes(1);
       const callArgs = mockAPIClient.getTransactions.mock.calls[0];
-      const startDate = callArgs[1] as Date;
-      const endDate = callArgs[2] as Date;
+      const startDate = callArgs[1];
+      const endDate = callArgs[2];
 
       // 2024-02-29の6ヶ月前は2023-08-29
       expect(startDate.getFullYear()).toBe(2023);

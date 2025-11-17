@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import type { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
-import { INSTITUTION_REPOSITORY } from '../../domain/repositories/institution.repository.interface';
 import { InstitutionType } from '@account-book/types';
+import { INSTITUTION_REPOSITORY } from '../../institution.tokens';
 
 export interface GetInstitutionsQuery {
   type?: InstitutionType;
@@ -36,4 +36,3 @@ export class GetInstitutionsUseCase {
     return await this.institutionRepository.findAll();
   }
 }
-
