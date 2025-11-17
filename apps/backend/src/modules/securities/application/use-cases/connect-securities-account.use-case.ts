@@ -99,13 +99,13 @@ export class ConnectSecuritiesAccountUseCase {
       new Date(),
     );
 
-    // 5. リポジトリに保存
-    await this.accountRepository.create(account);
-
-    // 6. 初回の保有銘柄を取得して保存
+    // 5. 初回の保有銘柄を取得して保存（必須）
     await this.fetchInitialHoldings(account.id, apiCredentials);
 
-    // 7. 初回の取引履歴を取得して保存（過去3ヶ月）
+    // 6. リポジトリに保存（保有銘柄取得成功後）
+    await this.accountRepository.create(account);
+
+    // 7. 初回の取引履歴を取得して保存（過去3ヶ月、失敗しても続行）
     await this.fetchInitialTransactions(account.id, apiCredentials);
 
     return account;
@@ -133,25 +133,17 @@ export class ConnectSecuritiesAccountUseCase {
       accountNumber: string;
     },
   ): Promise<void> {
-    try {
-      const holdings = await this.securitiesAPIClient.getHoldings(credentials);
+    const holdings = await this.securitiesAPIClient.getHoldings(credentials);
 
-      const holdingEntities = holdings.map((holding) =>
-        this.securitiesAPIClient.mapToHoldingEntity(accountId, holding),
-      );
+    const holdingEntities = holdings.map((holding) =>
+      this.securitiesAPIClient.mapToHoldingEntity(accountId, holding),
+    );
 
-      for (const holding of holdingEntities) {
-        await this.holdingRepository.create(holding);
-      }
-
-      this.logger.log(`Fetched ${holdingEntities.length} initial holdings`);
-    } catch (error) {
-      // 初回取得失敗はログだけ残して続行
-      this.logger.error(
-        `Failed to fetch initial holdings: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        error instanceof Error ? error.stack : undefined,
-      );
+    for (const holding of holdingEntities) {
+      await this.holdingRepository.create(holding);
     }
+
+    this.logger.log(`Fetched ${holdingEntities.length} initial holdings`);
   }
 
   private async fetchInitialTransactions(
