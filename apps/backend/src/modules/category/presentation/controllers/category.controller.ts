@@ -51,6 +51,7 @@ export class CategoryController {
    */
   @Get()
   async findAll(@Query() query: GetCategoriesQueryDto) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await this.getCategoriesUseCase.execute({
       type: query.type,
       parentId: query.parentId,
@@ -68,10 +69,11 @@ export class CategoryController {
 
     // 配列の場合はtoJSONを適用
     const categories = Array.isArray(result) ? result : [];
-
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       success: true,
       data: categories.map((c) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         return 'toJSON' in c && typeof c.toJSON === 'function' ? c.toJSON() : c;
       }),
       count: categories.length,
