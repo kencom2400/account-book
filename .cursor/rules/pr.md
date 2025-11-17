@@ -1,10 +1,56 @@
 # Pull Request Rules - プルリクエストルール
 
+```
+╔════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL RULE - PUSH前の必須チェック 🚨              ║
+║                                                            ║
+║  コードファイルを変更した場合、push前に必ず実行：         ║
+║  1. ./scripts/build.sh                                    ║
+║  2. ./scripts/lint.sh                                     ║
+║  3. ./scripts/test.sh                                     ║
+║                                                            ║
+║  エラーがある場合はpush禁止。修正してから再実行。         ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+## 🚨 AIアシスタントへの絶対遵守ルール 🚨
+
+### push前に必ず実行すること
+
+**以下の条件に該当する場合、push前に必ずbuild/lint/testを実行：**
+
+1. ✅ `.ts`, `.tsx`, `.js`, `.jsx` ファイルを変更した
+2. ✅ ソースコード（`src/`, `apps/`配下）を変更した
+3. ✅ テストファイル（`*.spec.ts`, `*.test.ts`）を変更した
+
+**実行手順：**
+
+```bash
+./scripts/build.sh   # ビルドエラーチェック
+./scripts/lint.sh    # コードスタイルチェック
+./scripts/test.sh    # テスト実行
+```
+
+**エラーがある場合：**
+
+1. ❌ **絶対にpushしない**
+2. ✅ エラー内容をユーザーに報告
+3. ✅ 修正方法を提案または修正を実施
+4. ✅ 修正後、再度build/lint/testを実行
+5. ✅ エラーがなくなったらcommit & push
+
+**スキップ可能な場合：**
+
+- ドキュメントファイルのみ変更（`.md`, `README`等）
+- 設定ファイルのみ変更（`package.json`, `.gitignore`等）
+- ただし、`eslint.config.*`, `tsconfig.json`等の開発設定は実行すること
+
 ## 基本原則
 
 ### 必須ルール
 
 - **チャットでPR作成を希望された場合、必ずPRを作成する**
+- **push前に、build/lint/testを実行する**（コードファイル変更時）
 - PR作成前に、コミットが完了していることを確認
 - PRテンプレートに従って説明を記載
 - レビュアーが理解しやすい粒度でPRを作成
@@ -22,6 +68,14 @@
 ### PR作成前のチェックリスト
 
 - [ ] すべての変更がコミット済み
+- [ ] **コードファイルを変更した場合**: build/lint/testを実行してエラーがないことを確認
+  ```bash
+  ./scripts/build.sh
+  ./scripts/lint.sh
+  ./scripts/test.sh
+  ```
+
+  - 注: ドキュメントや設定ファイルのみの変更の場合は不要
 - [ ] テストが通ることを確認
 - [ ] Lintエラーがないことを確認
 - [ ] コンフリクトが発生していないことを確認
@@ -115,10 +169,25 @@ git add .
 git commit -m "feat(transaction): 取引履歴取得機能を実装"
 ```
 
-### 3. プッシュ
+### 3. push前の確認
+
+**重要**: push前に必ず以下を確認する
+
+#### コードファイルを変更した場合の必須チェック
 
 ```bash
-# リモートにプッシュ
+# build/lint/testを実行してエラーがないことを確認
+./scripts/build.sh
+./scripts/lint.sh
+./scripts/test.sh
+```
+
+**注**: ドキュメントや設定ファイルのみの変更の場合は不要
+
+#### プッシュ
+
+```bash
+# エラーがないことを確認したら、リモートにプッシュ
 git push origin feature/1-transaction-api
 ```
 
@@ -327,8 +396,9 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
 - **1つの指摘ごとに**：
   1. 該当ファイルを修正
   2. `git add <修正したファイル>`
-  3. `git commit -m "fix: Geminiの指摘に対応 - <具体的な修正内容>"`
-  4. **commit後、コードファイルを変更した場合は、必ずローカルでbuild、lint、testを実行してエラーがないことを確認**
+  3. `git commit -m "fix: レビュー指摘に対応 - <具体的な修正内容>"`
+  4. エラーがある場合は修正してから再度commit
+  5. **push前に必ず実行**: コードファイルを変更した場合は、build/lint/testを実行してエラーがないことを確認
      ```bash
      ./scripts/build.sh
      ./scripts/lint.sh
@@ -336,17 +406,8 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
      ```
 
      - 注: ドキュメントや設定ファイルのみの変更の場合は不要
-  5. エラーがある場合は修正してから再度commit
-  6. **push前、コードファイルを変更した場合は、必ずbuild、lint、testを実行してエラーがないことを確認**
-     ```bash
-     ./scripts/build.sh
-     ./scripts/lint.sh
-     ./scripts/test.sh
-     ```
-
-     - 注: ドキュメントや設定ファイルのみの変更の場合は不要
-  7. `git push origin <ブランチ名>`
-  8. 次の指摘に進む（CI確認は後でまとめて実施）
+  6. `git push origin <ブランチ名>`
+  7. 次の指摘に進む（CI確認は後でまとめて実施）
 
 - **複数の指摘を対応した後、まとめてCIの状況確認**（推奨）
   - すべての指摘に対応し終わったら、CIの状況を確認する
