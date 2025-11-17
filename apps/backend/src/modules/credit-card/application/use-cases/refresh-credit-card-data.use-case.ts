@@ -74,15 +74,17 @@ export class RefreshCreditCardDataUseCase {
     };
   }
 
-  private async decryptCredentials(
-    creditCard: CreditCardEntity,
-  ): Promise<{ username: string; password: string }> {
-    const decryptedData = await this.cryptoService.decrypt(
-      creditCard.credentials,
-    );
+  private decryptCredentials(creditCard: CreditCardEntity): {
+    username: string;
+    password: string;
+  } {
+    const decryptedData = this.cryptoService.decrypt(creditCard.credentials);
 
     try {
-      return JSON.parse(decryptedData);
+      return JSON.parse(decryptedData) as {
+        username: string;
+        password: string;
+      };
     } catch (error) {
       this.logger.error(
         `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,

@@ -106,12 +106,12 @@ export class ConnectCreditCardUseCase {
     return savedCard;
   }
 
-  private async encryptCredentials(
+  private encryptCredentials(
     username: string,
     password: string,
-  ): Promise<EncryptedCredentials> {
+  ): EncryptedCredentials {
     const data = JSON.stringify({ username, password });
-    return await this.cryptoService.encrypt(data);
+    return this.cryptoService.encrypt(data);
   }
 
   private async fetchInitialTransactions(

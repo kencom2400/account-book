@@ -90,7 +90,7 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(creditCard: CreditCardEntity): Promise<CreditCardEntity> {
@@ -238,7 +238,7 @@ export class FileSystemCreditCardTransactionRepository
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(
@@ -462,7 +462,7 @@ export class FileSystemPaymentRepository implements IPaymentRepository {
 
   constructor(private configService: ConfigService) {
     this.dataDir = path.join(process.cwd(), 'data', 'credit-cards');
-    this.ensureDataDirectory();
+    void this.ensureDataDirectory();
   }
 
   async save(creditCardId: string, payment: PaymentVO): Promise<PaymentVO> {

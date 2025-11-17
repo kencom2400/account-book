@@ -34,11 +34,11 @@ export class MockBankApiAdapter implements IBankApiAdapter {
   ): Promise<BankConnectionTestResult> {
     // バリデーション
     if (!this.validateCredentials(credentials)) {
-      return {
+      return Promise.resolve({
         success: false,
         message: '認証情報が不正です',
         errorCode: 'BE001',
-      };
+      });
     }
 
     // テスト用の成功レスポンス
@@ -52,11 +52,11 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       availableBalance: 1000000,
     };
 
-    return {
+    return Promise.resolve({
       success: true,
       message: '接続に成功しました',
       accountInfo,
-    };
+    });
   }
 
   /**
@@ -67,7 +67,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       throw BankConnectionError.invalidCredentials();
     }
 
-    return {
+    return Promise.resolve({
       bankName: 'テスト銀行',
       branchName: 'テスト支店',
       accountNumber: credentials.accountNumber,
@@ -75,7 +75,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       accountType: BankAccountType.ORDINARY,
       balance: 1000000,
       availableBalance: 1000000,
-    };
+    });
   }
 
   /**
@@ -83,8 +83,6 @@ export class MockBankApiAdapter implements IBankApiAdapter {
    */
   async getTransactions(
     credentials: BankCredentials,
-    fromDate: string,
-    toDate: string,
   ): Promise<BankTransaction[]> {
     if (!this.validateCredentials(credentials)) {
       throw BankConnectionError.invalidCredentials();
@@ -120,7 +118,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       },
     ];
 
-    return transactions;
+    return Promise.resolve(transactions);
   }
 
   /**

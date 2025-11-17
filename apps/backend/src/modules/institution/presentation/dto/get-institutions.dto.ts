@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { InstitutionType } from '@account-book/types';
 import { Transform } from 'class-transformer';
 

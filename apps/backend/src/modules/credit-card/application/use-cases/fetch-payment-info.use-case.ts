@@ -104,9 +104,7 @@ export class FetchPaymentInfoUseCase {
     billingMonth: string,
   ): Promise<void> {
     // 認証情報を復号化
-    const decryptedData = await this.cryptoService.decrypt(
-      creditCard.credentials,
-    );
+    const decryptedData = this.cryptoService.decrypt(creditCard.credentials);
 
     let credentials;
     try {
