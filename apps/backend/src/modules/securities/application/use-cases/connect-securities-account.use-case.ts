@@ -177,9 +177,10 @@ export class ConnectSecuritiesAccountUseCase {
         `Fetched ${transactionEntities.length} initial transactions`,
       );
     } catch (error) {
-      // 初回取得失敗はログだけ残して続行
-      this.logger.error(
-        `Failed to fetch initial transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      // 初回取得失敗はログに記録して続行
+      // 注意: アカウントは接続済みとして作成されるが、取引履歴は不完全な状態になる
+      this.logger.warn(
+        `Failed to fetch initial transactions for account ${accountId}: ${error instanceof Error ? error.message : 'Unknown error'}. Account will be created but transaction history may be incomplete.`,
         error instanceof Error ? error.stack : undefined,
       );
     }
