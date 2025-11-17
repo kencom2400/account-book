@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Query,
+  Param,
   HttpCode,
   HttpStatus,
   Logger,
@@ -15,7 +16,6 @@ import { CalculatePortfolioValueUseCase } from '../../application/use-cases/calc
 import { ConnectSecuritiesAccountDto } from '../dto/connect-securities-account.dto';
 import { GetHoldingsDto } from '../dto/get-holdings.dto';
 import { GetSecurityTransactionsDto } from '../dto/get-transactions.dto';
-import { GetPortfolioValueDto } from '../dto/get-portfolio-value.dto';
 
 /**
  * SecuritiesController
@@ -65,11 +65,14 @@ export class SecuritiesController {
    */
   @Get(':accountId/holdings')
   @HttpCode(HttpStatus.OK)
-  async getHoldings(@Query() dto: GetHoldingsDto) {
-    this.logger.log(`Fetching holdings for account: ${dto.accountId}`);
+  async getHoldings(
+    @Param('accountId') accountId: string,
+    @Query() dto: GetHoldingsDto,
+  ) {
+    this.logger.log(`Fetching holdings for account: ${accountId}`);
 
     const holdings = await this.fetchHoldingsUseCase.execute({
-      accountId: dto.accountId,
+      accountId,
       forceRefresh: dto.forceRefresh || false,
     });
 
@@ -86,14 +89,17 @@ export class SecuritiesController {
    */
   @Get(':accountId/transactions')
   @HttpCode(HttpStatus.OK)
-  async getTransactions(@Query() dto: GetSecurityTransactionsDto) {
-    this.logger.log(`Fetching transactions for account: ${dto.accountId}`);
+  async getTransactions(
+    @Param('accountId') accountId: string,
+    @Query() dto: GetSecurityTransactionsDto,
+  ) {
+    this.logger.log(`Fetching transactions for account: ${accountId}`);
 
     const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
     const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
 
     const transactions = await this.fetchSecurityTransactionsUseCase.execute({
-      accountId: dto.accountId,
+      accountId,
       startDate,
       endDate,
       forceRefresh: dto.forceRefresh || false,
@@ -112,13 +118,11 @@ export class SecuritiesController {
    */
   @Get(':accountId/portfolio')
   @HttpCode(HttpStatus.OK)
-  async getPortfolioValue(@Query() dto: GetPortfolioValueDto) {
-    this.logger.log(
-      `Calculating portfolio value for account: ${dto.accountId}`,
-    );
+  async getPortfolioValue(@Param('accountId') accountId: string) {
+    this.logger.log(`Calculating portfolio value for account: ${accountId}`);
 
     const portfolioValue = await this.calculatePortfolioValueUseCase.execute({
-      accountId: dto.accountId,
+      accountId,
     });
 
     return {

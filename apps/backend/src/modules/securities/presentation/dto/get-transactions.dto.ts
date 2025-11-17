@@ -1,16 +1,6 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsDateString,
-  IsBoolean,
-  IsOptional,
-} from 'class-validator';
+import { IsDateString, IsBoolean, IsOptional } from 'class-validator';
 
 export class GetSecurityTransactionsDto {
-  @IsString()
-  @IsNotEmpty()
-  accountId!: string;
-
   @IsDateString()
   @IsOptional()
   startDate?: string;
