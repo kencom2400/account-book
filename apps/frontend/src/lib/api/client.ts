@@ -34,7 +34,7 @@ async function get<T>(endpoint: string): Promise<T> {
 /**
  * HTTP POSTリクエスト
  */
-async function post<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+async function post<T>(endpoint: string, body: Record<string, unknown> | unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -54,7 +54,7 @@ async function post<T>(endpoint: string, body: Record<string, unknown>): Promise
 /**
  * HTTP PATCHリクエスト
  */
-async function patch<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+async function patch<T>(endpoint: string, body: Record<string, unknown> | unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'PATCH',
     headers: {

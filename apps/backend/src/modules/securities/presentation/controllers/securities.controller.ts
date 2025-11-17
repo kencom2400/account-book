@@ -19,7 +19,7 @@ import { GetSecurityTransactionsDto } from '../dto/get-transactions.dto';
 import { SecuritiesAccountJSONResponse } from '../../domain/entities/securities-account.entity';
 import { HoldingEntity } from '../../domain/entities/holding.entity';
 import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
-import { Portfolio } from '../../domain/value-objects/portfolio.vo';
+import type { PortfolioValue } from '../../application/use-cases/calculate-portfolio-value.use-case';
 
 /**
  * SecuritiesController
@@ -136,7 +136,7 @@ export class SecuritiesController {
   @HttpCode(HttpStatus.OK)
   async getPortfolioValue(@Param('accountId') accountId: string): Promise<{
     success: boolean;
-    data: Portfolio;
+    data: PortfolioValue;
   }> {
     this.logger.log(`Calculating portfolio value for account: ${accountId}`);
 

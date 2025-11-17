@@ -79,7 +79,7 @@ export class CategoryController {
     if (query.asTree === 'true') {
       return {
         success: true,
-        data: result,
+        data: result as CategoryNode[],
       };
     }
 
