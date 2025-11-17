@@ -1,3 +1,11 @@
+export interface EncryptedCredentialsJSON {
+  encrypted: string;
+  iv: string;
+  authTag: string;
+  algorithm: string;
+  version: string;
+}
+
 /**
  * EncryptedCredentials Value Object
  * 暗号化された認証情報を表す値オブジェクト
@@ -51,7 +59,7 @@ export class EncryptedCredentials {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): EncryptedCredentialsJSON {
     return {
       encrypted: this.encrypted,
       iv: this.iv,

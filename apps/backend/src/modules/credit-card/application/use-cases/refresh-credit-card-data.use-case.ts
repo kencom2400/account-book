@@ -195,7 +195,7 @@ export class RefreshCreditCardDataUseCase {
       0,
       0,
       0,
-      'unpaid' as any,
+      'unpaid',
       null,
     );
   }

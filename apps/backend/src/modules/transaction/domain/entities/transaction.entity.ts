@@ -1,5 +1,24 @@
 import { CategoryType, TransactionStatus } from '@account-book/types';
 
+export interface TransactionJSONResponse {
+  id: string;
+  date: Date;
+  amount: number;
+  category: {
+    id: string;
+    name: string;
+    type: CategoryType;
+  };
+  description: string;
+  institutionId: string;
+  accountId: string;
+  status: TransactionStatus;
+  isReconciled: boolean;
+  relatedTransactionId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * Transactionエンティティ
  * 取引情報を表すドメインエンティティ
@@ -154,7 +173,7 @@ export class TransactionEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): TransactionJSONResponse {
     return {
       id: this.id,
       date: this.date,

@@ -16,7 +16,7 @@ export class BankConnectionError extends Error {
   constructor(
     public readonly code: BankErrorCode,
     message: string,
-    public readonly details?: any,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'BankConnectionError';
@@ -26,7 +26,7 @@ export class BankConnectionError extends Error {
   /**
    * エラーコードに基づいてエラーを生成
    */
-  static invalidCredentials(details?: any): BankConnectionError {
+  static invalidCredentials(details?: unknown): BankConnectionError {
     return new BankConnectionError(
       BankErrorCode.INVALID_CREDENTIALS,
       '認証情報が不正です。入力内容を確認して再入力してください。',
@@ -34,7 +34,7 @@ export class BankConnectionError extends Error {
     );
   }
 
-  static connectionTimeout(details?: any): BankConnectionError {
+  static connectionTimeout(details?: unknown): BankConnectionError {
     return new BankConnectionError(
       BankErrorCode.CONNECTION_TIMEOUT,
       '接続がタイムアウトしました。しばらく待ってから再試行してください。',
@@ -42,7 +42,7 @@ export class BankConnectionError extends Error {
     );
   }
 
-  static bankApiError(details?: any): BankConnectionError {
+  static bankApiError(details?: unknown): BankConnectionError {
     return new BankConnectionError(
       BankErrorCode.BANK_API_ERROR,
       '銀行のシステムエラーが発生しました。銀行のメンテナンス情報を確認してください。',
@@ -58,7 +58,7 @@ export class BankConnectionError extends Error {
     );
   }
 
-  static rateLimitExceeded(details?: any): BankConnectionError {
+  static rateLimitExceeded(details?: unknown): BankConnectionError {
     return new BankConnectionError(
       BankErrorCode.RATE_LIMIT_EXCEEDED,
       'APIのレート制限を超過しました。時間を置いて再試行してください。',
@@ -66,7 +66,7 @@ export class BankConnectionError extends Error {
     );
   }
 
-  static unknownError(details?: any): BankConnectionError {
+  static unknownError(details?: unknown): BankConnectionError {
     return new BankConnectionError(
       BankErrorCode.UNKNOWN_ERROR,
       '予期しないエラーが発生しました。しばらく待ってから再試行してください。',

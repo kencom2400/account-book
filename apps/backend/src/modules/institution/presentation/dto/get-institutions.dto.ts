@@ -13,10 +13,10 @@ export class GetInstitutionsQueryDto {
   type?: InstitutionType;
 
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }): boolean | undefined => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return value as boolean | undefined;
   })
   isConnected?: boolean;
 }

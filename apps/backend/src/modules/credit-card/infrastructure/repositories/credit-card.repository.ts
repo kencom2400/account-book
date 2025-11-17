@@ -73,6 +73,7 @@ interface PaymentJSON {
   paymentDueDate: string;
   totalAmount: number;
   paidAmount: number;
+  remainingAmount: number;
   status: PaymentStatus;
   transactionIds: string[];
   createdAt: string;

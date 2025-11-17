@@ -11,7 +11,7 @@ import { InstitutionType } from '@account-book/types';
 /**
  * JSONファイルに保存する金融機関データの型定義
  */
-interface InstitutionJSON {
+export interface InstitutionJSON {
   id: string;
   name: string;
   type: InstitutionType;
