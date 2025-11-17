@@ -48,7 +48,6 @@ export class MockSecuritiesAPIAdapter implements ISecuritiesAPIClient {
   }
 
   async getHoldings(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _credentials: SecuritiesAPICredentials,
   ): Promise<SecuritiesHoldingData[]> {
     await this.simulateNetworkDelay();
@@ -95,11 +94,8 @@ export class MockSecuritiesAPIAdapter implements ISecuritiesAPIClient {
   }
 
   async getTransactions(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _credentials: SecuritiesAPICredentials,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _startDate: Date,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _endDate: Date,
   ): Promise<SecuritiesTransactionData[]> {
     await this.simulateNetworkDelay();

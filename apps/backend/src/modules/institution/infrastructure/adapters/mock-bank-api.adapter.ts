@@ -83,9 +83,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
    */
   async getTransactions(
     credentials: BankCredentials,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _fromDate: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _toDate: string,
   ): Promise<BankTransaction[]> {
     if (!this.validateCredentials(credentials)) {
