@@ -198,7 +198,7 @@ export class InstitutionRepository implements IInstitutionRepository {
     );
 
     const accounts = (data.accounts || []).map(
-      (a: any) =>
+      (a) =>
         new AccountEntity(
           a.id,
           a.institutionId,

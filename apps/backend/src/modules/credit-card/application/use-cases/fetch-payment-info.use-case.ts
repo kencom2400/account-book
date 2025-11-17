@@ -106,9 +106,17 @@ export class FetchPaymentInfoUseCase {
     // 認証情報を復号化
     const decryptedData = this.cryptoService.decrypt(creditCard.credentials);
 
-    let credentials;
+    let credentials: {
+      username: string;
+      password: string;
+      cardNumber?: string;
+    };
     try {
-      credentials = JSON.parse(decryptedData);
+      credentials = JSON.parse(decryptedData) as {
+        username: string;
+        password: string;
+        cardNumber?: string;
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to parse credentials for card ${creditCard.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,

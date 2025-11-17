@@ -1,3 +1,17 @@
+export interface PaymentJSONResponse {
+  billingMonth: string;
+  closingDate: Date;
+  paymentDueDate: Date;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: PaymentStatus;
+  paidDate: Date | null;
+  paymentProgress: number;
+  isPaid: boolean;
+  isPartiallyPaid: boolean;
+}
+
 /**
  * Payment Value Object
  * クレジットカードの支払い情報を表すValue Object
@@ -130,7 +144,7 @@ export class PaymentVO {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): PaymentJSONResponse {
     return {
       billingMonth: this.billingMonth,
       closingDate: this.closingDate,

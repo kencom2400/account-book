@@ -1,5 +1,23 @@
 import { CategoryType } from '@account-book/types';
 
+export interface CreditCardTransactionJSONResponse {
+  id: string;
+  creditCardId: string;
+  transactionDate: Date;
+  postingDate: Date;
+  amount: number;
+  merchantName: string;
+  merchantCategory: string;
+  description: string;
+  category: CategoryType;
+  isInstallment: boolean;
+  installmentCount: number | null;
+  installmentNumber: number | null;
+  monthlyInstallmentAmount: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /**
  * CreditCardTransactionエンティティ
  * クレジットカードの利用明細を表すドメインエンティティ
@@ -221,7 +239,7 @@ export class CreditCardTransactionEntity {
   /**
    * プレーンオブジェクトに変換
    */
-  toJSON(): any {
+  toJSON(): CreditCardTransactionJSONResponse {
     return {
       id: this.id,
       creditCardId: this.creditCardId,

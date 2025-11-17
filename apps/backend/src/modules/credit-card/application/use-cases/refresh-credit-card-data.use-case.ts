@@ -54,7 +54,7 @@ export class RefreshCreditCardDataUseCase {
     }
 
     // 2. 認証情報を復号化
-    const credentials = await this.decryptCredentials(creditCard);
+    const credentials = this.decryptCredentials(creditCard);
 
     // 3. 並行してAPIから取引と支払い情報を取得
     const [transactions, paymentInfo] = await Promise.all([
