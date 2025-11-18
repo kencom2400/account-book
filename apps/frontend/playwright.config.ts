@@ -43,11 +43,27 @@ export default defineConfig({
         // Firefox、WebKit、モバイルブラウザは未インストールの可能性があるためスキップ
         // 必要に応じて `pnpm exec playwright install firefox webkit` を実行
       ],
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    // バックエンドサーバー
+    {
+      command: 'cd ../backend && pnpm dev',
+      url: 'http://localhost:3001',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      env: {
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
+        CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        PORT: '3001',
+      },
+    },
+    // フロントエンドサーバー
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 });
 

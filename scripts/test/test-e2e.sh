@@ -31,23 +31,11 @@ case $TARGET in
     ;;
   frontend)
     echo "🧪 フロントエンドのE2Eテスト実行中..."
-
-    # バックエンドを起動
-    echo "📦 バックエンドを起動中..."
-    cd apps/backend
-    pnpm dev > /dev/null 2>&1 &
-    BACKEND_PID=$!
-
-    # バックエンドの起動を待機
-    echo "⏳ バックエンドの起動を待機中..."
-    sleep 5
-
-    # フロントエンドE2Eテスト実行
-    cd ../frontend
+    echo "ℹ️  PlaywrightのwebServer設定により、バックエンドは自動的に起動されます"
+    
+    # フロントエンドE2Eテスト実行（Playwrightがバックエンドを自動起動）
+    cd apps/frontend
     pnpm test:e2e
-
-    # バックエンドを停止
-    kill $BACKEND_PID 2>/dev/null || true
     ;;
   all)
     echo "🧪 すべてのE2Eテスト実行中..."
@@ -58,21 +46,12 @@ case $TARGET in
     cd apps/backend
     pnpm test:e2e
 
-    # バックエンドを起動
-    echo ""
-    echo "📦 バックエンドを起動中..."
-    pnpm dev > /dev/null 2>&1 &
-    BACKEND_PID=$!
-    sleep 5
-
     # フロントエンドE2E
     echo ""
     echo "--- Frontend E2E ---"
+    echo "ℹ️  PlaywrightのwebServer設定により、バックエンドは自動的に起動されます"
     cd ../frontend
     pnpm test:e2e
-
-    # バックエンドを停止
-    kill $BACKEND_PID 2>/dev/null || true
     ;;
   *)
     echo "使用方法: ./scripts/test/test-e2e.sh [backend|frontend|all]"
