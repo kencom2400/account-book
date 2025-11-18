@@ -9,6 +9,9 @@
 - [ビルドとテスト](#ビルドとテスト)
 - [メンテナンス](#メンテナンス)
 - [GitHub管理](#github管理)
+  - [Issue管理](#issue管理)
+  - [Projects管理](#projects管理)
+  - [PR/Issue連携](#prissue連携)
 - [スクリプト詳細](#スクリプト詳細)
 - [トラブルシューティング](#トラブルシューティング)
 
@@ -25,6 +28,7 @@
 ```
 
 このスクリプトは以下を自動実行します：
+
 1. Node.js環境のセットアップ
 2. 依存パッケージのインストール
 3. 共通ライブラリのビルド
@@ -54,16 +58,19 @@
 #### オプション1: 個別に起動（推奨）
 
 **ターミナル1 - バックエンド:**
+
 ```bash
 ./scripts/dev.sh backend
 ```
 
 **ターミナル2 - フロントエンド:**
+
 ```bash
 ./scripts/dev.sh frontend
 ```
 
 **ターミナル3 - カテゴリ初期化（初回のみ）:**
+
 ```bash
 # バックエンドが起動した後に実行
 ./scripts/init-categories.sh
@@ -78,6 +85,7 @@
 ```
 
 停止する場合：
+
 ```bash
 ./scripts/stop-dev.sh
 ```
@@ -91,11 +99,13 @@
 ### ビルド
 
 #### 全体ビルド
+
 ```bash
 ./scripts/build.sh
 ```
 
 #### 共通ライブラリのみビルド
+
 ```bash
 ./scripts/build-libs.sh
 ```
@@ -103,11 +113,13 @@
 ### リントチェック
 
 #### すべてチェック
+
 ```bash
 ./scripts/lint.sh
 ```
 
 #### 個別チェック
+
 ```bash
 ./scripts/lint.sh backend   # バックエンドのみ
 ./scripts/lint.sh frontend  # フロントエンドのみ
@@ -116,11 +128,13 @@
 ### テスト実行
 
 #### すべてテスト
+
 ```bash
 ./scripts/test.sh
 ```
 
 #### 個別テスト
+
 ```bash
 ./scripts/test.sh backend   # バックエンドのみ
 ./scripts/test.sh frontend  # フロントエンドのみ
@@ -139,6 +153,7 @@
 ```
 
 削除されるもの：
+
 - `apps/backend/dist/`
 - `apps/frontend/.next/`
 - `libs/types/dist/`
@@ -158,6 +173,107 @@
 ---
 
 ## 🏷️ GitHub管理
+
+### Issue管理
+
+#### Issue完了状況の確認
+
+CloseされたIssueが本当に完了しているか確認：
+
+```bash
+# 基本チェック
+./scripts/check-closed-issues.sh
+
+# 詳細チェック
+./scripts/check-closed-issues-detailed.sh
+
+# クローズ検証
+./scripts/verify-closed-issues.sh
+```
+
+#### Issueの再オープン
+
+未完了のIssueを検索・再オープン：
+
+```bash
+# Reopen候補を検索
+./scripts/find-reopen-issues.sh
+
+# 未完了Issueを再オープン
+./scripts/reopen-incomplete-issues.sh
+```
+
+#### Issueの更新
+
+完了したIssueを一括更新：
+
+```bash
+# 完了Issue一括更新
+./scripts/update-all-done-issues.sh
+
+# チェックボックス更新
+./scripts/update-done-issues-checkboxes.sh
+```
+
+#### 新規Issue作成
+
+特定目的のIssueを作成：
+
+```bash
+# Geminiコードレビュー用Issue作成
+./scripts/create-gemini-review-issue.sh
+
+# 型安全性改善用Issue作成
+./scripts/create-type-safety-issue.sh
+```
+
+### Projects管理
+
+#### IssueをBacklogに移動
+
+未実装のIssueをプロジェクトボードのBacklogステータスに移動：
+
+```bash
+# 基本版
+./scripts/move-issues-to-backlog.sh
+
+# GraphQL版（推奨）
+./scripts/move-issues-to-backlog-graphql.sh
+
+# シンプル版
+./scripts/move-issues-to-backlog-graphql-simple.sh
+```
+
+#### Issueステータスの変更
+
+特定のIssueをIn Progressに設定：
+
+```bash
+./scripts/set-issue-in-progress.sh <Issue番号>
+
+# 例
+./scripts/set-issue-in-progress.sh 24
+```
+
+### PR/Issue連携
+
+#### PRとIssueの自動紐づけ
+
+PRとプロジェクト内のIssueを自動で紐づけ：
+
+```bash
+# すべてのPRとIssueを自動紐づけ（推奨）
+./scripts/link-issues-to-all-prs.sh
+
+# ToDo状態のIssueとPRを紐づけ
+./scripts/link-pr-to-issues.sh
+```
+
+**機能:**
+
+- ブランチ名、PRのタイトル、本文から関連Issueを自動検出
+- PR本文に「Related to #XXX」の形式で自動追記
+- プロジェクト内の全Issueを対象に処理
 
 ### 📦 アーカイブスクリプト
 
@@ -180,6 +296,7 @@ GitHub初期セットアップとIssue作成に使用したスクリプトは **
 ```
 
 **実行内容:**
+
 - サンプル取引データの作成
 - テスト用金融機関データの作成
 - サンプルカテゴリデータの作成
@@ -189,21 +306,27 @@ GitHub初期セットアップとIssue作成に使用したスクリプトは **
 ## 📝 スクリプト詳細
 
 ### `full-setup.sh`
+
 プロジェクトのフルセットアップを実行します。初回起動時や環境をリセットしたい場合に使用します。
 
 ### `setup.sh`
+
 Node.js環境（nodeenv）をセットアップします。
 
 ### `install.sh`
+
 pnpmで依存パッケージをインストールします。
 
 ### `build-libs.sh`
+
 共通ライブラリ（types, utils）をビルドします。
 
 ### `build.sh`
+
 プロジェクト全体（共通ライブラリ、バックエンド、フロントエンド）をビルドします。
 
 ### `dev.sh`
+
 開発サーバーを起動します。引数で対象を指定できます。
 
 ```bash
@@ -211,12 +334,15 @@ pnpmで依存パッケージをインストールします。
 ```
 
 ### `dev-parallel.sh`
+
 バックエンドとフロントエンドを同時にバックグラウンドで起動します。
 
 ### `stop-dev.sh`
+
 `dev-parallel.sh` で起動したサーバーを停止します。
 
 ### `lint.sh`
+
 ESLintでコードをチェックします。
 
 ```bash
@@ -224,6 +350,7 @@ ESLintでコードをチェックします。
 ```
 
 ### `test.sh`
+
 Jestでテストを実行します。
 
 ```bash
@@ -231,20 +358,176 @@ Jestでテストを実行します。
 ```
 
 ### `init-categories.sh`
+
 バックエンドAPIを呼び出して、デフォルトカテゴリを初期化します。
 
 ### `clean.sh`
+
 ビルド成果物やログファイルを削除します。
 
 ### `activate.sh`
+
 Node.js環境をアクティベートします（他のスクリプト内で自動実行されます）。
 
 ### `seed-test-data.sh`
+
 開発・テスト用のサンプルデータを生成します。
 
 **使い方:**
+
 ```bash
 ./scripts/seed-test-data.sh
+```
+
+---
+
+## 🔗 GitHub管理スクリプト詳細
+
+### Issue管理スクリプト
+
+#### `check-closed-issues.sh`
+
+CloseされたIssueの完了状況を基本的な項目でチェックします。
+
+- 設定ファイルの存在確認
+- ビルド成果物の確認
+- 必要なディレクトリ構造の確認
+
+#### `check-closed-issues-detailed.sh`
+
+CloseされたIssueの完了状況を詳細にチェックします。
+
+- コード内容の確認
+- テストカバレッジの確認
+- ドキュメントの整合性確認
+
+#### `verify-closed-issues.sh`
+
+Issueのクローズ検証を行い、本当に完了しているか確認します。
+
+#### `find-reopen-issues.sh`
+
+完了条件を満たしていないIssueを検索し、Reopen候補をリストアップします。
+
+#### `reopen-incomplete-issues.sh`
+
+未完了のIssueを自動的に再オープンします。
+
+- 完了条件をチェック
+- 条件を満たしていないIssueをReopen
+- Reopenコメントを追加
+
+#### `update-all-done-issues.sh`
+
+完了したIssueの情報を一括更新します。
+
+- ステータスの更新
+- ラベルの追加
+- 完了コメントの追加
+
+#### `update-done-issues-checkboxes.sh`
+
+完了したIssueのチェックボックスを一括更新します。
+
+#### `create-gemini-review-issue.sh`
+
+Geminiコードレビューの指摘事項をIssue化します。
+
+**使い方:**
+
+```bash
+./scripts/create-gemini-review-issue.sh
+```
+
+#### `create-type-safety-issue.sh`
+
+型安全性の改善が必要な箇所をIssue化します。
+
+**使い方:**
+
+```bash
+./scripts/create-type-safety-issue.sh
+```
+
+### Projects管理スクリプト
+
+#### `move-issues-to-backlog.sh`
+
+指定したIssueをGitHub ProjectsのBacklogステータスに移動します（REST API版）。
+
+#### `move-issues-to-backlog-graphql.sh`
+
+指定したIssueをGitHub ProjectsのBacklogステータスに移動します（GraphQL版、推奨）。
+
+**機能:**
+
+- 複数のIssueを一括処理
+- プロジェクトへの自動追加
+- ステータスフィールドの更新
+- エラーハンドリング
+
+**使い方:**
+
+```bash
+./scripts/move-issues-to-backlog-graphql.sh
+```
+
+#### `move-issues-to-backlog-graphql-simple.sh`
+
+IssueをBacklogに移動するシンプル版（GraphQL）。
+
+#### `set-issue-in-progress.sh`
+
+特定のIssueのステータスを"In Progress"に変更します。
+
+**使い方:**
+
+```bash
+./scripts/set-issue-in-progress.sh <Issue番号>
+
+# 例
+./scripts/set-issue-in-progress.sh 24
+```
+
+### PR/Issue連携スクリプト
+
+#### `link-issues-to-all-prs.sh`
+
+すべてのPRとプロジェクト内のIssueを自動で紐づけます。
+
+**機能:**
+
+- ブランチ名から関連Issueを検出（例: `feature/issue-24-xxx`）
+- PRのタイトルから関連Issueを検出（例: `feat: xxx #24`）
+- PRの本文から関連Issueを検出
+- プロジェクト内の全Issueを対象に処理
+- PR本文に「Related to #XXX」を自動追記
+
+**使い方:**
+
+```bash
+./scripts/link-issues-to-all-prs.sh
+```
+
+**実行例:**
+
+```
+対象PR数: 20個
+プロジェクトIssue数: 140個
+
+✅ PRに追記: 7個
+✓ 既に適切に参照済み: 8個
+ℹ️  マッチなし: 5個
+```
+
+#### `link-pr-to-issues.sh`
+
+ToDo状態のIssueに対して関連するPRを探して紐づけます。
+
+**使い方:**
+
+```bash
+./scripts/link-pr-to-issues.sh
 ```
 
 ---
@@ -285,6 +568,7 @@ lsof -i :3000
 2. バックエンドのURLを確認（デフォルト: http://localhost:3001）
 
 カスタムURLを使用する場合：
+
 ```bash
 BACKEND_URL=http://localhost:3001 ./scripts/init-categories.sh
 ```
@@ -299,5 +583,4 @@ BACKEND_URL=http://localhost:3001 ./scripts/init-categories.sh
 
 ---
 
-**最終更新日**: 2025-11-16
-
+**最終更新日**: 2025-11-18
