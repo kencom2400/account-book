@@ -239,8 +239,8 @@ cat > /tmp/update-issue-9.txt << 'EOF'
 ## 📁 関連ファイル
 - `scripts/dev/dev.sh` - 開発サーバー起動
 - `scripts/build/build.sh` - ビルド
-- `scripts/build/test.sh` - テスト実行
-- `scripts/build/lint.sh` - Lint実行
+- `scripts/test/test.sh` - テスト実行
+- `scripts/test/lint.sh` - Lint実行
 - `scripts/setup/install.sh` - パッケージインストール
 - `scripts/README.md` - スクリプトドキュメント
 

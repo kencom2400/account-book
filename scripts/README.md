@@ -6,7 +6,8 @@
 
 - [初回セットアップ](#初回セットアップ)
 - [日常的な開発作業](#日常的な開発作業)
-- [ビルドとテスト](#ビルドとテスト)
+- [ビルド](#ビルド)
+- [テスト](#テスト)
 - [メンテナンス](#メンテナンス)
 - [GitHub管理](#github管理)
   - [Issue管理](#issue管理)
@@ -94,35 +95,37 @@
 
 ---
 
-## 🔧 ビルドとテスト
+## 🔧 ビルド
 
-### ビルド
-
-#### 全体ビルド
+### 全体ビルド
 
 ```bash
 ./scripts/build/build.sh
 ```
 
-#### 共通ライブラリのみビルド
+### 共通ライブラリのみビルド
 
 ```bash
 ./scripts/build/build-libs.sh
 ```
+
+---
+
+## 🧪 テスト
 
 ### リントチェック
 
 #### すべてチェック
 
 ```bash
-./scripts/build/lint.sh
+./scripts/test/lint.sh
 ```
 
 #### 個別チェック
 
 ```bash
-./scripts/build/lint.sh backend   # バックエンドのみ
-./scripts/build/lint.sh frontend  # フロントエンドのみ
+./scripts/test/lint.sh backend   # バックエンドのみ
+./scripts/test/lint.sh frontend  # フロントエンドのみ
 ```
 
 ### テスト実行
@@ -130,14 +133,14 @@
 #### すべてテスト
 
 ```bash
-./scripts/build/test.sh
+./scripts/test/test.sh
 ```
 
 #### 個別テスト
 
 ```bash
-./scripts/build/test.sh backend   # バックエンドのみ
-./scripts/build/test.sh frontend  # フロントエンドのみ
+./scripts/test/test.sh backend   # バックエンドのみ
+./scripts/test/test.sh frontend  # フロントエンドのみ
 ```
 
 ---
@@ -346,7 +349,7 @@ pnpmで依存パッケージをインストールします。
 ESLintでコードをチェックします。
 
 ```bash
-./scripts/build/lint.sh [backend|frontend|all]
+./scripts/test/lint.sh [backend|frontend|all]
 ```
 
 ### `test.sh`
@@ -354,7 +357,7 @@ ESLintでコードをチェックします。
 Jestでテストを実行します。
 
 ```bash
-./scripts/build/test.sh [backend|frontend|all]
+./scripts/test/test.sh [backend|frontend|all]
 ```
 
 ### `init-categories.sh`
