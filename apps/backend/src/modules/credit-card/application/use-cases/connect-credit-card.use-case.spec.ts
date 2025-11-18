@@ -223,6 +223,11 @@ describe('ConnectCreditCardUseCase', () => {
         availableCredit: 375000,
       };
 
+      // 意図的なエラーテストのため、ログ出力を抑制
+      const warnSpy = jest
+        .spyOn(useCase['logger'], 'warn')
+        .mockImplementation();
+
       mockCryptoService.encrypt.mockResolvedValue(encryptedCredentials);
       mockAPIClient.testConnection.mockResolvedValue({ success: true });
       mockAPIClient.getCardInfo.mockResolvedValue(cardInfo);
@@ -238,6 +243,13 @@ describe('ConnectCreditCardUseCase', () => {
       expect(result).toBeDefined();
       expect(result.cardName).toBe('テストカード');
       expect(mockCreditCardRepository.save).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to fetch initial transactions'),
+        expect.anything(),
+      );
+
+      warnSpy.mockRestore();
     });
   });
 
