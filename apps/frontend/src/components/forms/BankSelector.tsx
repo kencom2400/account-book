@@ -35,7 +35,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
         setBanks(data);
         setFilteredBanks(data);
         setError(null);
-      } catch (err) {
+      } catch (_err) {
         setError('銀行一覧の取得に失敗しました');
       } finally {
         setLoading(false);

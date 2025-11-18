@@ -44,7 +44,7 @@ export default function AddBankPage() {
 
       setTestResult(result);
       setCurrentStep('result');
-    } catch (error) {
+    } catch (_error) {
       setTestResult({
         success: false,
         message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
@@ -77,7 +77,7 @@ export default function AddBankPage() {
 
       // 成功したらダッシュボードに遷移
       router.push('/dashboard');
-    } catch (error) {
+    } catch (_error) {
       setSaveError('銀行の登録に失敗しました。もう一度お試しください。');
     } finally {
       setLoading(false);

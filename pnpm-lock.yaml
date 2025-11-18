@@ -205,6 +205,12 @@ importers:
         specifier: ^19.0.0
         version: 19.2.0(react@19.2.0)
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.39.1
+        version: 9.39.1
+      '@next/eslint-plugin-next':
+        specifier: ^16.0.3
+        version: 16.0.3
       '@testing-library/jest-dom':
         specifier: ^6.1.5
         version: 6.9.1
@@ -241,6 +247,9 @@ importers:
       eslint-config-next:
         specifier: ^15.1.6
         version: 15.5.6(eslint@9.39.1)(typescript@5.9.3)
+      globals:
+        specifier: ^16.0.0
+        version: 16.5.0
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.19.1)
@@ -259,6 +268,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.20.0
+        version: 8.46.4(eslint@9.39.1)(typescript@5.9.3)
 
   libs/types:
     devDependencies:
@@ -2362,6 +2374,12 @@ packages:
 
   /@next/eslint-plugin-next@15.5.6:
     resolution: {integrity: sha512-YxDvsT2fwy1j5gMqk3ppXlsgDopHnkM4BoxSVASbvvgh5zgsK8lvWerDzPip8k3WVzsTZ1O7A7si1KNfN4OZfQ==}
+    dependencies:
+      fast-glob: 3.3.1
+    dev: true
+
+  /@next/eslint-plugin-next@16.0.3:
+    resolution: {integrity: sha512-6sPWmZetzFWMsz7Dhuxsdmbu3fK+/AxKRtj7OB0/3OZAI2MHB/v2FeYh271LZ9abvnM1WIwWc/5umYjx0jo5sQ==}
     dependencies:
       fast-glob: 3.3.1
     dev: true
