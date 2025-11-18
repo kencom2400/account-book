@@ -9,7 +9,7 @@ echo "リントチェック開始"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then
@@ -43,7 +43,7 @@ case $TARGET in
     pnpm lint
     ;;
   *)
-    echo "使用方法: ./scripts/lint.sh [backend|frontend|all]"
+    echo "使用方法: ./scripts/build/lint.sh [backend|frontend|all]"
     exit 1
     ;;
 esac

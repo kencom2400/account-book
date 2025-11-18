@@ -23,6 +23,7 @@
 ### 1.1 リポジトリとパッケージ管理
 
 - [ ] **1.1.1** ルートディレクトリの初期化
+
   ```bash
   cd /Users/kencom/github/account-book
   pnpm init
@@ -38,6 +39,7 @@
   - キャッシュ設定
 
 - [ ] **1.1.4** ルートpackage.jsonのスクリプト設定
+
   ```json
   {
     "scripts": {
@@ -63,36 +65,37 @@
 ### 1.2 Git設定
 
 - [ ] **1.2.1** `.gitignore`の作成
+
   ```gitignore
   # Dependencies
   node_modules/
   .pnp.*
-  
+
   # Build outputs
   dist/
   .next/
   build/
-  
+
   # Environment variables
   .env
   .env.local
   .env.*.local
-  
+
   # Data files
   data/
-  
+
   # IDE
   .vscode/
   .idea/
-  
+
   # Logs
   logs/
   *.log
-  
+
   # Test coverage
   coverage/
   .nyc_output/
-  
+
   # Temporary files
   *.tmp
   .DS_Store
@@ -107,6 +110,7 @@
 ### 1.3 エディタ設定
 
 - [ ] **1.3.1** `.vscode/settings.json`の作成
+
   ```json
   {
     "editor.formatOnSave": true,
@@ -120,6 +124,7 @@
   ```
 
 - [ ] **1.3.2** `.vscode/extensions.json`の作成
+
   ```json
   {
     "recommendations": [
@@ -133,9 +138,10 @@
   ```
 
 - [ ] **1.3.3** `.editorconfig`の作成
+
   ```ini
   root = true
-  
+
   [*]
   charset = utf-8
   end_of_line = lf
@@ -152,6 +158,7 @@
 ### 2.1 TypeScript設定
 
 - [ ] **2.1.1** ルート`tsconfig.json`の作成
+
   ```json
   {
     "compilerOptions": {
@@ -181,28 +188,26 @@
 ### 2.2 Linter/Formatter設定
 
 - [ ] **2.2.1** ESLint設定ファイル作成（`.eslintrc.js`）
+
   ```javascript
   module.exports = {
     root: true,
     parser: '@typescript-eslint/parser',
     plugins: ['@typescript-eslint'],
-    extends: [
-      'eslint:recommended',
-      'plugin:@typescript-eslint/recommended',
-      'prettier'
-    ],
+    extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
     env: {
       node: true,
-      es2022: true
+      es2022: true,
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'off'
-    }
+      '@typescript-eslint/explicit-function-return-type': 'off',
+    },
   };
   ```
 
 - [ ] **2.2.2** Prettier設定ファイル作成（`.prettierrc`）
+
   ```json
   {
     "semi": true,
@@ -215,6 +220,7 @@
   ```
 
 - [ ] **2.2.3** `.prettierignore`の作成
+
   ```
   node_modules
   dist
@@ -232,12 +238,14 @@
 ### 2.3 Git Hooks設定
 
 - [ ] **2.3.1** Huskyのインストールと初期化
+
   ```bash
   pnpm add -D husky lint-staged -w
   pnpm exec husky install
   ```
 
 - [ ] **2.3.2** pre-commitフックの作成
+
   ```bash
   pnpm exec husky add .husky/pre-commit "pnpm lint-staged"
   ```
@@ -246,13 +254,8 @@
   ```json
   {
     "lint-staged": {
-      "*.{ts,tsx,js,jsx}": [
-        "eslint --fix",
-        "prettier --write"
-      ],
-      "*.{json,md}": [
-        "prettier --write"
-      ]
+      "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+      "*.{json,md}": ["prettier --write"]
     }
   }
   ```
@@ -260,14 +263,15 @@
 ### 2.4 環境変数設定
 
 - [ ] **2.4.1** `.env.example`の作成（ルート）
+
   ```env
   # Backend
   NODE_ENV=development
   PORT=3001
-  
+
   # Encryption
   ENCRYPTION_KEY=your-encryption-key-here
-  
+
   # External APIs
   BANK_API_KEY=your-bank-api-key
   CARD_API_KEY=your-card-api-key
@@ -282,12 +286,14 @@
 ### 3.1 共通型定義ライブラリ（libs/types）
 
 - [ ] **3.1.1** `libs/types`ディレクトリ初期化
+
   ```bash
   cd libs/types
   pnpm init
   ```
 
 - [ ] **3.1.2** `package.json`の設定
+
   ```json
   {
     "name": "@account-book/types",
@@ -302,6 +308,7 @@
   ```
 
 - [ ] **3.1.3** `tsconfig.json`の作成
+
   ```json
   {
     "extends": "../../tsconfig.json",
@@ -316,6 +323,7 @@
 
 - [ ] **3.1.5** 型定義ファイルの作成
   - [ ] `src/transaction.types.ts`
+
     ```typescript
     export enum CategoryType {
       INCOME = 'income',
@@ -358,6 +366,7 @@
     ```
 
   - [ ] `src/institution.types.ts`
+
     ```typescript
     export enum InstitutionType {
       BANK = 'bank',
@@ -396,6 +405,7 @@
     ```
 
   - [ ] `src/api.types.ts`
+
     ```typescript
     export interface ApiResponse<T> {
       success: boolean;
@@ -433,6 +443,7 @@
   - [ ] `src/sync.types.ts`
 
 - [ ] **3.1.6** `src/index.ts`でエクスポート
+
   ```typescript
   export * from './transaction.types';
   export * from './institution.types';
@@ -451,6 +462,7 @@
 ### 3.2 共通ユーティリティライブラリ（libs/utils）
 
 - [ ] **3.2.1** `libs/utils`ディレクトリ初期化
+
   ```bash
   cd libs/utils
   pnpm init
@@ -461,6 +473,7 @@
 - [ ] **3.2.3** `tsconfig.json`の作成
 
 - [ ] **3.2.4** 依存関係のインストール
+
   ```bash
   pnpm add date-fns
   pnpm add -D typescript @types/node
@@ -468,6 +481,7 @@
 
 - [ ] **3.2.5** ユーティリティ関数の作成
   - [ ] `src/date.utils.ts`
+
     ```typescript
     import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
     import { ja } from 'date-fns/locale';
@@ -493,6 +507,7 @@
     ```
 
   - [ ] `src/currency.utils.ts`
+
     ```typescript
     export class CurrencyUtils {
       static formatJPY(amount: number): string {
@@ -509,6 +524,7 @@
     ```
 
   - [ ] `src/validation.utils.ts`
+
     ```typescript
     export class ValidationUtils {
       static isBankCode(code: string): boolean {
@@ -527,22 +543,22 @@
         // Luhnアルゴリズムチェック
         const digits = number.replace(/\D/g, '');
         if (digits.length < 13 || digits.length > 19) return false;
-        
+
         let sum = 0;
         let isEven = false;
-        
+
         for (let i = digits.length - 1; i >= 0; i--) {
           let digit = parseInt(digits[i]);
-          
+
           if (isEven) {
             digit *= 2;
             if (digit > 9) digit -= 9;
           }
-          
+
           sum += digit;
           isEven = !isEven;
         }
-        
+
         return sum % 10 === 0;
       }
     }
@@ -559,12 +575,15 @@
 ### 4.1 NestJSプロジェクト初期化
 
 - [ ] **4.1.1** NestJS CLIのインストール
+
   ```bash
   pnpm add -D @nestjs/cli -w
   ```
+
   ※ローカルインストール推奨。実行時は `pnpm exec nest` またはnpmスクリプト経由で使用
 
 - [ ] **4.1.2** プロジェクト作成
+
   ```bash
   cd apps
   nest new backend
@@ -580,6 +599,7 @@
 ### 4.2 基本設定
 
 - [ ] **4.2.1** `package.json`の修正
+
   ```json
   {
     "name": "@account-book/backend",
@@ -596,34 +616,35 @@
   ```
 
 - [ ] **4.2.2** 必要な依存関係のインストール
+
   ```bash
   # Core dependencies
   pnpm add @nestjs/common @nestjs/core @nestjs/platform-express
   pnpm add reflect-metadata rxjs
-  
+
   # Configuration
   pnpm add @nestjs/config
-  
+
   # Validation
   pnpm add class-validator class-transformer
-  
+
   # Scheduling
   pnpm add @nestjs/schedule
-  
+
   # HTTP Client
   pnpm add @nestjs/axios axios
-  
+
   # Logging
   pnpm add winston nest-winston
-  
+
   # File System
   pnpm add fs-extra
   pnpm add -D @types/fs-extra
-  
+
   # Crypto
   pnpm add bcrypt
   pnpm add -D @types/bcrypt
-  
+
   # Dev dependencies
   pnpm add -D @nestjs/cli @nestjs/schematics
   pnpm add -D @nestjs/testing
@@ -639,6 +660,7 @@
 ### 4.3 ディレクトリ構造構築
 
 - [ ] **4.3.1** モジュールディレクトリの作成
+
   ```bash
   mkdir -p src/modules/{transaction,institution,category,credit-card,sync,report}
   mkdir -p src/common/{decorators,filters,guards,interceptors,pipes,utils}
@@ -656,6 +678,7 @@
 ### 4.4 基本設定ファイル
 
 - [ ] **4.4.1** `src/config/app.config.ts`の作成
+
   ```typescript
   import { registerAs } from '@nestjs/config';
 
@@ -666,6 +689,7 @@
   ```
 
 - [ ] **4.4.2** `src/config/crypto.config.ts`の作成
+
   ```typescript
   import { registerAs } from '@nestjs/config';
 
@@ -676,6 +700,7 @@
   ```
 
 - [ ] **4.4.3** `src/main.ts`の設定
+
   ```typescript
   import { NestFactory } from '@nestjs/core';
   import { ValidationPipe } from '@nestjs/common';
@@ -683,7 +708,7 @@
 
   async function bootstrap() {
     const app = await NestFactory.create(AppModule);
-    
+
     // Global pipes
     app.useGlobalPipes(
       new ValidationPipe({
@@ -692,22 +717,23 @@
         transform: true,
       })
     );
-    
+
     // CORS
     app.enableCors();
-    
+
     // API prefix
     app.setGlobalPrefix('api');
-    
+
     const port = process.env.PORT || 3001;
     await app.listen(port);
-    
+
     console.log(`Application is running on: http://localhost:${port}`);
   }
   bootstrap();
   ```
 
 - [ ] **4.4.4** `src/app.module.ts`の設定
+
   ```typescript
   import { Module } from '@nestjs/common';
   import { ConfigModule } from '@nestjs/config';
@@ -731,6 +757,7 @@
 ### 4.5 共通機能の実装
 
 - [ ] **4.5.1** グローバル例外フィルター
+
   ```typescript
   // src/common/filters/http-exception.filter.ts
   import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
@@ -758,6 +785,7 @@
   ```
 
 - [ ] **4.5.2** レスポンス変換インターセプター
+
   ```typescript
   // src/common/interceptors/transform.interceptor.ts
   import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
@@ -768,7 +796,7 @@
   export class TransformInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
       return next.handle().pipe(
-        map(data => ({
+        map((data) => ({
           success: true,
           data,
           metadata: {
@@ -782,6 +810,7 @@
   ```
 
 - [ ] **4.5.3** ロギング設定
+
   ```typescript
   // src/common/logger/logger.config.ts
   import * as winston from 'winston';
@@ -805,20 +834,21 @@
 ### 4.6 環境変数設定
 
 - [ ] **4.6.1** `apps/backend/.env.example`の作成
+
   ```env
   # Server
   NODE_ENV=development
   PORT=3001
-  
+
   # Encryption
   ENCRYPTION_KEY=base64_encoded_32_byte_key_here
-  
+
   # External APIs
   BANK_API_URL=https://api.bank.example.com
   BANK_API_KEY=your_bank_api_key
   CARD_API_URL=https://api.card.example.com
   CARD_API_KEY=your_card_api_key
-  
+
   # Data Storage
   DATA_PATH=../../data
   ```
@@ -850,6 +880,7 @@
 ### 5.2 基本設定
 
 - [ ] **5.2.1** `package.json`の修正
+
   ```json
   {
     "name": "@account-book/frontend",
@@ -865,28 +896,29 @@
   ```
 
 - [ ] **5.2.2** 必要な依存関係のインストール
+
   ```bash
   # UI Library
   pnpm add @chakra-ui/react @emotion/react @emotion/styled framer-motion
-  
+
   # State Management
   pnpm add zustand
-  
+
   # Form Management
   pnpm add react-hook-form zod @hookform/resolvers
-  
+
   # Charts
   pnpm add recharts
-  
+
   # Date handling
   pnpm add date-fns
-  
+
   # HTTP Client
   pnpm add axios swr
-  
+
   # Icons
   pnpm add react-icons
-  
+
   # Dev dependencies
   pnpm add -D @testing-library/react @testing-library/jest-dom
   ```
@@ -899,6 +931,7 @@
 ### 5.3 ディレクトリ構造構築
 
 - [ ] **5.3.1** 基本ディレクトリの作成
+
   ```bash
   cd src
   mkdir -p components/{ui,layout,charts,forms}
@@ -922,6 +955,7 @@
 ### 5.4 基本設定ファイル
 
 - [ ] **5.4.1** `next.config.js`の設定
+
   ```javascript
   /** @type {import('next').NextConfig} */
   const nextConfig = {
@@ -936,6 +970,7 @@
   ```
 
 - [ ] **5.4.2** `tailwind.config.ts`の設定
+
   ```typescript
   import type { Config } from 'tailwindcss';
 
@@ -960,6 +995,7 @@
   ```
 
 - [ ] **5.4.3** Chakra UIのプロバイダー設定
+
   ```typescript
   // src/app/providers.tsx
   'use client';
@@ -972,6 +1008,7 @@
   ```
 
 - [ ] **5.4.4** ルートレイアウトの更新
+
   ```typescript
   // src/app/layout.tsx
   import { Providers } from './providers';
@@ -995,6 +1032,7 @@
 ### 5.5 APIクライアントの実装
 
 - [ ] **5.5.1** APIクライアントの基本実装
+
   ```typescript
   // src/lib/api/client.ts
   import axios from 'axios';
@@ -1019,6 +1057,7 @@
   ```
 
 - [ ] **5.5.2** APIエンドポイントの定義
+
   ```typescript
   // src/lib/api/transactions.ts
   import { apiClient } from './client';
@@ -1028,8 +1067,7 @@
     getAll: (params: { page: number; limit: number }) =>
       apiClient.get<ApiResponse<PaginatedResponse<Transaction>>>('/api/transactions', { params }),
 
-    getById: (id: string) =>
-      apiClient.get<ApiResponse<Transaction>>(`/api/transactions/${id}`),
+    getById: (id: string) => apiClient.get<ApiResponse<Transaction>>(`/api/transactions/${id}`),
 
     create: (data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) =>
       apiClient.post<ApiResponse<Transaction>>('/api/transactions', data),
@@ -1037,14 +1075,14 @@
     update: (id: string, data: Partial<Transaction>) =>
       apiClient.put<ApiResponse<Transaction>>(`/api/transactions/${id}`, data),
 
-    delete: (id: string) =>
-      apiClient.delete<ApiResponse<void>>(`/api/transactions/${id}`),
+    delete: (id: string) => apiClient.delete<ApiResponse<void>>(`/api/transactions/${id}`),
   };
   ```
 
 ### 5.6 状態管理の実装
 
 - [ ] **5.6.1** Zustandストアの作成
+
   ```typescript
   // src/stores/transactionStore.ts
   import { create } from 'zustand';
@@ -1071,9 +1109,7 @@
       set((state) => ({ transactions: [...state.transactions, transaction] })),
     updateTransaction: (id, data) =>
       set((state) => ({
-        transactions: state.transactions.map((t) =>
-          t.id === id ? { ...t, ...data } : t
-        ),
+        transactions: state.transactions.map((t) => (t.id === id ? { ...t, ...data } : t)),
       })),
     deleteTransaction: (id) =>
       set((state) => ({
@@ -1087,6 +1123,7 @@
 ### 5.7 環境変数設定
 
 - [ ] **5.7.1** `.env.local.example`の作成
+
   ```env
   # API
   NEXT_PUBLIC_API_URL=http://localhost:3001
@@ -1104,6 +1141,7 @@
 ### 6.1 バックエンドテスト環境
 
 - [ ] **6.1.1** Jest設定ファイル作成
+
   ```javascript
   // apps/backend/jest.config.js
   module.exports = {
@@ -1113,11 +1151,7 @@
     transform: {
       '^.+\\.(t|j)s$': 'ts-jest',
     },
-    collectCoverageFrom: [
-      '**/*.(t|j)s',
-      '!**/*.spec.ts',
-      '!**/main.ts',
-    ],
+    collectCoverageFrom: ['**/*.(t|j)s', '!**/*.spec.ts', '!**/main.ts'],
     coverageDirectory: '../coverage',
     testEnvironment: 'node',
     moduleNameMapper: {
@@ -1127,11 +1161,13 @@
   ```
 
 - [ ] **6.1.2** テストユーティリティの作成
+
   ```bash
   mkdir -p test/{factories,fixtures,utils}
   ```
 
 - [ ] **6.1.3** テストファクトリーの実装
+
   ```typescript
   // test/factories/transaction.factory.ts
   import type { Transaction } from '@account-book/types';
@@ -1152,6 +1188,7 @@
 ### 6.2 フロントエンドテスト環境
 
 - [ ] **6.2.1** Jest設定ファイル作成
+
   ```javascript
   // apps/frontend/jest.config.js
   const nextJest = require('next/jest');
@@ -1180,6 +1217,7 @@
 ### 6.3 E2Eテスト環境
 
 - [ ] **6.3.1** Playwrightのインストール
+
   ```bash
   cd apps/frontend
   pnpm add -D @playwright/test
@@ -1187,6 +1225,7 @@
   ```
 
 - [ ] **6.3.2** Playwright設定ファイル作成
+
   ```typescript
   // apps/frontend/playwright.config.ts
   import { defineConfig, devices } from '@playwright/test';
@@ -1200,9 +1239,7 @@
       baseURL: 'http://localhost:3000',
       trace: 'on-first-retry',
     },
-    projects: [
-      { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    ],
+    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
     webServer: {
       command: 'pnpm dev',
       url: 'http://localhost:3000',
@@ -1223,6 +1260,7 @@
 ### 7.1 GitHub Actions設定
 
 - [ ] **7.1.1** `.github/workflows/ci.yml`の作成
+
   ```yaml
   name: CI
 
@@ -1278,6 +1316,7 @@
   ```
 
 - [ ] **7.1.2** `.github/workflows/e2e.yml`の作成
+
   ```yaml
   name: E2E Tests
 
@@ -1329,43 +1368,46 @@
 ### 8.1 開発スクリプト
 
 - [ ] **8.1.1** セットアップスクリプト作成
+
   ```bash
   # scripts/setup.sh
   #!/bin/bash
-  
+
   echo "Setting up development environment..."
-  
+
   # Install dependencies
   pnpm install
-  
+
   # Build shared libraries
   pnpm --filter @account-book/types build
   pnpm --filter @account-book/utils build
-  
+
   # Create data directories
   mkdir -p data/{transactions,institutions,categories,settings}
-  
+
   # Copy environment files
   cp apps/backend/.env.example apps/backend/.env
   cp apps/frontend/.env.local.example apps/frontend/.env.local
-  
+
   echo "Setup complete!"
   ```
 
 - [ ] **8.1.2** 開発サーバー起動スクリプト
+
   ```bash
   # scripts/dev.sh
   #!/bin/bash
-  
+
   echo "Starting development servers..."
   pnpm dev
   ```
 
 - [ ] **8.1.3** ビルドスクリプト
+
   ```bash
   # scripts/build.sh
   #!/bin/bash
-  
+
   echo "Building all packages..."
   pnpm build
   ```
@@ -1378,6 +1420,7 @@
 ### 8.2 データシーディング
 
 - [ ] **8.2.1** シードデータの作成
+
   ```typescript
   // scripts/seed-data.ts
   import * as fs from 'fs-extra';
@@ -1420,6 +1463,7 @@
 ### 8.3 READMEの更新
 
 - [ ] **8.3.1** ルートREADME.mdの更新
+
   ```markdown
   # Account Book
 
@@ -1428,20 +1472,26 @@
   ## セットアップ
 
   ### 前提条件
+
   - Node.js 20.x
   - pnpm 8.x
 
   ### インストール
+
   \`\`\`bash
+
   # 依存関係のインストールと初期セットアップ
-  ./scripts/setup.sh
-  
+
+  ./scripts/setup/setup.sh
+
   # または手動で
+
   pnpm install
   pnpm build
   \`\`\`
 
   ### 開発サーバーの起動
+
   \`\`\`bash
   pnpm dev
   \`\`\`
@@ -1450,23 +1500,30 @@
   - バックエンド: http://localhost:3001
 
   ## テスト実行
+
   \`\`\`bash
+
   # 全てのテスト
+
   pnpm test
 
   # ユニットテスト
+
   pnpm test:unit
 
   # E2Eテスト
+
   pnpm test:e2e
   \`\`\`
 
   ## ビルド
+
   \`\`\`bash
   pnpm build
   \`\`\`
 
   ## プロジェクト構成
+
   - `apps/frontend` - Next.js フロントエンド
   - `apps/backend` - NestJS バックエンド
   - `libs/types` - 共通型定義
@@ -1480,21 +1537,25 @@
 ### チェックリストサマリー
 
 #### Phase 1: プロジェクト基盤構築 (0/15)
+
 - [ ] 1.1 リポジトリとパッケージ管理 (0/5)
 - [ ] 1.2 Git設定 (0/2)
 - [ ] 1.3 エディタ設定 (0/3)
 
 #### Phase 2: 開発環境セットアップ (0/12)
+
 - [ ] 2.1 TypeScript設定 (0/2)
 - [ ] 2.2 Linter/Formatter設定 (0/4)
 - [ ] 2.3 Git Hooks設定 (0/3)
 - [ ] 2.4 環境変数設定 (0/2)
 
 #### Phase 3: 共通ライブラリ構築 (0/13)
+
 - [ ] 3.1 共通型定義ライブラリ (0/7)
 - [ ] 3.2 共通ユーティリティライブラリ (0/7)
 
 #### Phase 4: バックエンド基盤構築 (0/21)
+
 - [ ] 4.1 NestJSプロジェクト初期化 (0/3)
 - [ ] 4.2 基本設定 (0/3)
 - [ ] 4.3 ディレクトリ構造構築 (0/2)
@@ -1503,6 +1564,7 @@
 - [ ] 4.6 環境変数設定 (0/2)
 
 #### Phase 5: フロントエンド基盤構築 (0/17)
+
 - [ ] 5.1 Next.jsプロジェクト初期化 (0/1)
 - [ ] 5.2 基本設定 (0/3)
 - [ ] 5.3 ディレクトリ構造構築 (0/2)
@@ -1512,20 +1574,24 @@
 - [ ] 5.7 環境変数設定 (0/2)
 
 #### Phase 6: テスト環境構築 (0/9)
+
 - [ ] 6.1 バックエンドテスト環境 (0/3)
 - [ ] 6.2 フロントエンドテスト環境 (0/2)
 - [ ] 6.3 E2Eテスト環境 (0/3)
 
 #### Phase 7: CI/CD環境構築 (0/3)
+
 - [ ] 7.1 GitHub Actions設定 (0/2)
 - [ ] 7.2 コードカバレッジ設定 (0/1)
 
 #### Phase 8: 開発ツール・ユーティリティ (0/7)
+
 - [ ] 8.1 開発スクリプト (0/4)
 - [ ] 8.2 データシーディング (0/2)
 - [ ] 8.3 READMEの更新 (0/1)
 
 ### 全体進捗
+
 **総タスク数**: 97  
 **完了タスク数**: 0  
 **進捗率**: 0%
@@ -1549,6 +1615,7 @@
 ## 次のステップ
 
 環境構築完了後：
+
 1. ドメインモデルの実装
 2. ユースケースの実装
 3. APIエンドポイントの実装
@@ -1560,4 +1627,3 @@
 **文書バージョン**: 1.0  
 **作成日**: 2025-11-15  
 **最終更新日**: 2025-11-15
-

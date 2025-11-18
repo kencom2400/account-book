@@ -9,7 +9,7 @@ echo "カテゴリ初期化"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then

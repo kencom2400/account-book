@@ -10,13 +10,13 @@ echo "フルセットアップ開始"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 1. 環境セットアップ
 if [ ! -d ".nodeenv" ]; then
   echo ""
   echo "📦 Node.js環境をセットアップ中..."
-  ./scripts/setup.sh
+  ./scripts/setup/setup.sh
 else
   echo "✓ Node.js環境は既にセットアップ済み"
 fi
@@ -24,12 +24,12 @@ fi
 # 2. 依存パッケージのインストール
 echo ""
 echo "📦 依存パッケージをインストール中..."
-./scripts/install.sh
+./scripts/setup/install.sh
 
 # 3. 共通ライブラリのビルド
 echo ""
 echo "📦 共通ライブラリをビルド中..."
-./scripts/build-libs.sh
+./scripts/build/build-libs.sh
 
 # 4. 環境変数ファイルの作成
 echo ""
@@ -74,15 +74,15 @@ echo "================================"
 echo ""
 echo "次のステップ:"
 echo "  1. バックエンドを起動:"
-echo "     ./scripts/dev.sh backend"
+echo "     ./scripts/dev/dev.sh backend"
 echo ""
 echo "  2. カテゴリを初期化（別のターミナルで）:"
-echo "     ./scripts/init-categories.sh"
+echo "     ./scripts/data/init-categories.sh"
 echo ""
 echo "  3. フロントエンドを起動（別のターミナルで）:"
-echo "     ./scripts/dev.sh frontend"
+echo "     ./scripts/dev/dev.sh frontend"
 echo ""
 echo "  または、並列起動:"
-echo "     ./scripts/dev-parallel.sh"
+echo "     ./scripts/dev/dev-parallel.sh"
 echo ""
 

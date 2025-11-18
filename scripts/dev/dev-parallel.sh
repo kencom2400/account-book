@@ -9,7 +9,7 @@ echo "開発サーバーを並列起動"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then
@@ -46,7 +46,7 @@ echo "ログファイル:"
 echo "  - logs/backend.log"
 echo "  - logs/frontend.log"
 echo ""
-echo "停止するには: ./scripts/stop-dev.sh"
+echo "停止するには: ./scripts/dev/stop-dev.sh"
 echo ""
 
 # PIDを保存

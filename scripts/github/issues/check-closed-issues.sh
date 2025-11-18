@@ -98,7 +98,7 @@ echo "  - スクリプトの存在"
 echo "  - scripts/README.mdの存在"
 echo ""
 
-if [ -f "scripts/dev.sh" ] && [ -f "scripts/build.sh" ] && [ -f "scripts/test.sh" ] && [ -f "scripts/README.md" ]; then
+if [ -f "scripts/dev/dev.sh" ] && [ -f "scripts/build/build.sh" ] && [ -f "scripts/build/test.sh" ] && [ -f "scripts/README.md" ]; then
     echo "  ✅ 開発用スクリプトが整備済み"
     echo "  📋 判定: 完了"
 else

@@ -9,7 +9,7 @@ echo "テストデータ投入開始"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # バックエンドのURLを設定
 BACKEND_URL=${BACKEND_URL:-http://localhost:3001/api}

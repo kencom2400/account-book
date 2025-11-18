@@ -24,7 +24,7 @@
 プロジェクトをゼロからセットアップする場合：
 
 ```bash
-./scripts/full-setup.sh
+./scripts/setup/full-setup.sh
 ```
 
 このスクリプトは以下を自動実行します：
@@ -40,13 +40,13 @@
 
 ```bash
 # 1. Node.js環境のセットアップ
-./scripts/setup.sh
+./scripts/setup/setup.sh
 
 # 2. 依存パッケージのインストール
-./scripts/install.sh
+./scripts/setup/install.sh
 
 # 3. 共通ライブラリのビルド
-./scripts/build-libs.sh
+./scripts/build/build-libs.sh
 ```
 
 ---
@@ -60,20 +60,20 @@
 **ターミナル1 - バックエンド:**
 
 ```bash
-./scripts/dev.sh backend
+./scripts/dev/dev.sh backend
 ```
 
 **ターミナル2 - フロントエンド:**
 
 ```bash
-./scripts/dev.sh frontend
+./scripts/dev/dev.sh frontend
 ```
 
 **ターミナル3 - カテゴリ初期化（初回のみ）:**
 
 ```bash
 # バックエンドが起動した後に実行
-./scripts/init-categories.sh
+./scripts/data/init-categories.sh
 ```
 
 #### オプション2: 並列起動
@@ -81,13 +81,13 @@
 バックエンドとフロントエンドを同時にバックグラウンド起動：
 
 ```bash
-./scripts/dev-parallel.sh
+./scripts/dev/dev-parallel.sh
 ```
 
 停止する場合：
 
 ```bash
-./scripts/stop-dev.sh
+./scripts/dev/stop-dev.sh
 ```
 
 **注意:** ログは `logs/` ディレクトリに保存されます。
@@ -101,13 +101,13 @@
 #### 全体ビルド
 
 ```bash
-./scripts/build.sh
+./scripts/build/build.sh
 ```
 
 #### 共通ライブラリのみビルド
 
 ```bash
-./scripts/build-libs.sh
+./scripts/build/build-libs.sh
 ```
 
 ### リントチェック
@@ -115,14 +115,14 @@
 #### すべてチェック
 
 ```bash
-./scripts/lint.sh
+./scripts/build/lint.sh
 ```
 
 #### 個別チェック
 
 ```bash
-./scripts/lint.sh backend   # バックエンドのみ
-./scripts/lint.sh frontend  # フロントエンドのみ
+./scripts/build/lint.sh backend   # バックエンドのみ
+./scripts/build/lint.sh frontend  # フロントエンドのみ
 ```
 
 ### テスト実行
@@ -130,14 +130,14 @@
 #### すべてテスト
 
 ```bash
-./scripts/test.sh
+./scripts/build/test.sh
 ```
 
 #### 個別テスト
 
 ```bash
-./scripts/test.sh backend   # バックエンドのみ
-./scripts/test.sh frontend  # フロントエンドのみ
+./scripts/build/test.sh backend   # バックエンドのみ
+./scripts/build/test.sh frontend  # フロントエンドのみ
 ```
 
 ---
@@ -149,7 +149,7 @@
 ビルド成果物とログファイルを削除：
 
 ```bash
-./scripts/clean.sh
+./scripts/build/clean.sh
 ```
 
 削除されるもの：
@@ -165,7 +165,7 @@
 デフォルトカテゴリをデータベースに作成：
 
 ```bash
-./scripts/init-categories.sh
+./scripts/data/init-categories.sh
 ```
 
 **注意:** バックエンドが起動している必要があります。
@@ -182,13 +182,13 @@ CloseされたIssueが本当に完了しているか確認：
 
 ```bash
 # 基本チェック
-./scripts/check-closed-issues.sh
+./scripts/github/issues/check-closed-issues.sh
 
 # 詳細チェック
-./scripts/check-closed-issues-detailed.sh
+./scripts/github/issues/check-closed-issues-detailed.sh
 
 # クローズ検証
-./scripts/verify-closed-issues.sh
+./scripts/github/issues/verify-closed-issues.sh
 ```
 
 #### Issueの再オープン
@@ -197,10 +197,10 @@ CloseされたIssueが本当に完了しているか確認：
 
 ```bash
 # Reopen候補を検索
-./scripts/find-reopen-issues.sh
+./scripts/github/issues/find-reopen-issues.sh
 
 # 未完了Issueを再オープン
-./scripts/reopen-incomplete-issues.sh
+./scripts/github/issues/reopen-incomplete-issues.sh
 ```
 
 #### Issueの更新
@@ -209,10 +209,10 @@ CloseされたIssueが本当に完了しているか確認：
 
 ```bash
 # 完了Issue一括更新
-./scripts/update-all-done-issues.sh
+./scripts/github/issues/update-all-done-issues.sh
 
 # チェックボックス更新
-./scripts/update-done-issues-checkboxes.sh
+./scripts/github/issues/update-done-issues-checkboxes.sh
 ```
 
 #### 新規Issue作成
@@ -221,10 +221,10 @@ CloseされたIssueが本当に完了しているか確認：
 
 ```bash
 # Geminiコードレビュー用Issue作成
-./scripts/create-gemini-review-issue.sh
+./scripts/github/issues/create-gemini-review-issue.sh
 
 # 型安全性改善用Issue作成
-./scripts/create-type-safety-issue.sh
+./scripts/github/issues/create-type-safety-issue.sh
 ```
 
 ### Projects管理
@@ -235,13 +235,13 @@ CloseされたIssueが本当に完了しているか確認：
 
 ```bash
 # 基本版
-./scripts/move-issues-to-backlog.sh
+./scripts/github/projects/move-issues-to-backlog.sh
 
 # GraphQL版（推奨）
-./scripts/move-issues-to-backlog-graphql.sh
+./scripts/github/projects/move-issues-to-backlog-graphql.sh
 
 # シンプル版
-./scripts/move-issues-to-backlog-graphql-simple.sh
+./scripts/github/projects/move-issues-to-backlog-graphql-simple.sh
 ```
 
 #### Issueステータスの変更
@@ -249,10 +249,10 @@ CloseされたIssueが本当に完了しているか確認：
 特定のIssueをIn Progressに設定：
 
 ```bash
-./scripts/set-issue-in-progress.sh <Issue番号>
+./scripts/github/projects/set-issue-in-progress.sh <Issue番号>
 
 # 例
-./scripts/set-issue-in-progress.sh 24
+./scripts/github/projects/set-issue-in-progress.sh 24
 ```
 
 ### PR/Issue連携
@@ -263,10 +263,10 @@ PRとプロジェクト内のIssueを自動で紐づけ：
 
 ```bash
 # すべてのPRとIssueを自動紐づけ（推奨）
-./scripts/link-issues-to-all-prs.sh
+./scripts/github/pr-linking/link-issues-to-all-prs.sh
 
 # ToDo状態のIssueとPRを紐づけ
-./scripts/link-pr-to-issues.sh
+./scripts/github/pr-linking/link-pr-to-issues.sh
 ```
 
 **機能:**
@@ -292,7 +292,7 @@ GitHub初期セットアップとIssue作成に使用したスクリプトは **
 開発・テスト用のデータを生成：
 
 ```bash
-./scripts/seed-test-data.sh
+./scripts/data/seed-test-data.sh
 ```
 
 **実行内容:**
@@ -330,7 +330,7 @@ pnpmで依存パッケージをインストールします。
 開発サーバーを起動します。引数で対象を指定できます。
 
 ```bash
-./scripts/dev.sh [backend|frontend|all]
+./scripts/dev/dev.sh [backend|frontend|all]
 ```
 
 ### `dev-parallel.sh`
@@ -346,7 +346,7 @@ pnpmで依存パッケージをインストールします。
 ESLintでコードをチェックします。
 
 ```bash
-./scripts/lint.sh [backend|frontend|all]
+./scripts/build/lint.sh [backend|frontend|all]
 ```
 
 ### `test.sh`
@@ -354,7 +354,7 @@ ESLintでコードをチェックします。
 Jestでテストを実行します。
 
 ```bash
-./scripts/test.sh [backend|frontend|all]
+./scripts/build/test.sh [backend|frontend|all]
 ```
 
 ### `init-categories.sh`
@@ -376,7 +376,7 @@ Node.js環境をアクティベートします（他のスクリプト内で自�
 **使い方:**
 
 ```bash
-./scripts/seed-test-data.sh
+./scripts/data/seed-test-data.sh
 ```
 
 ---
@@ -436,7 +436,7 @@ Geminiコードレビューの指摘事項をIssue化します。
 **使い方:**
 
 ```bash
-./scripts/create-gemini-review-issue.sh
+./scripts/github/issues/create-gemini-review-issue.sh
 ```
 
 #### `create-type-safety-issue.sh`
@@ -446,7 +446,7 @@ Geminiコードレビューの指摘事項をIssue化します。
 **使い方:**
 
 ```bash
-./scripts/create-type-safety-issue.sh
+./scripts/github/issues/create-type-safety-issue.sh
 ```
 
 ### Projects管理スクリプト
@@ -469,7 +469,7 @@ Geminiコードレビューの指摘事項をIssue化します。
 **使い方:**
 
 ```bash
-./scripts/move-issues-to-backlog-graphql.sh
+./scripts/github/projects/move-issues-to-backlog-graphql.sh
 ```
 
 #### `move-issues-to-backlog-graphql-simple.sh`
@@ -483,10 +483,10 @@ IssueをBacklogに移動するシンプル版（GraphQL）。
 **使い方:**
 
 ```bash
-./scripts/set-issue-in-progress.sh <Issue番号>
+./scripts/github/projects/set-issue-in-progress.sh <Issue番号>
 
 # 例
-./scripts/set-issue-in-progress.sh 24
+./scripts/github/projects/set-issue-in-progress.sh 24
 ```
 
 ### PR/Issue連携スクリプト
@@ -506,7 +506,7 @@ IssueをBacklogに移動するシンプル版（GraphQL）。
 **使い方:**
 
 ```bash
-./scripts/link-issues-to-all-prs.sh
+./scripts/github/pr-linking/link-issues-to-all-prs.sh
 ```
 
 **実行例:**
@@ -527,7 +527,7 @@ ToDo状態のIssueに対して関連するPRを探して紐づけます。
 **使い方:**
 
 ```bash
-./scripts/link-pr-to-issues.sh
+./scripts/github/pr-linking/link-pr-to-issues.sh
 ```
 
 ---
@@ -537,16 +537,16 @@ ToDo状態のIssueに対して関連するPRを探して紐づけます。
 ### pnpmが見つからない
 
 ```bash
-./scripts/setup.sh
+./scripts/setup/setup.sh
 source .nodeenv/bin/activate
 ```
 
 ### ビルドエラー
 
 ```bash
-./scripts/clean.sh
-./scripts/install.sh
-./scripts/build-libs.sh
+./scripts/build/clean.sh
+./scripts/setup/install.sh
+./scripts/build/build-libs.sh
 ```
 
 ### ポートが使用中
@@ -559,7 +559,7 @@ lsof -i :3001
 lsof -i :3000
 
 # プロセスを停止
-./scripts/stop-dev.sh
+./scripts/dev/stop-dev.sh
 ```
 
 ### カテゴリ初期化に失敗
@@ -570,7 +570,7 @@ lsof -i :3000
 カスタムURLを使用する場合：
 
 ```bash
-BACKEND_URL=http://localhost:3001 ./scripts/init-categories.sh
+BACKEND_URL=http://localhost:3001 ./scripts/data/init-categories.sh
 ```
 
 ---

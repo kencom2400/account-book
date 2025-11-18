@@ -9,7 +9,7 @@ echo "プロジェクトビルド開始"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then
@@ -22,7 +22,7 @@ fi
 # 共通ライブラリをビルド
 echo ""
 echo "📦 共通ライブラリをビルド中..."
-./scripts/build-libs.sh
+./scripts/build/build-libs.sh
 
 # バックエンドをビルド
 echo ""
