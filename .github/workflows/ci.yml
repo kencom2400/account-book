@@ -98,23 +98,16 @@ jobs:
           cd apps/frontend
           pnpm exec playwright install --with-deps chromium
 
-      - name: Start Backend server
-        run: |
-          cd apps/backend
-          pnpm start &
-          sleep 5
-        env:
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
-          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
-          NODE_ENV: test
-          PORT: 3001
-
       - name: Run Frontend E2E tests
         run: |
           cd apps/frontend
           pnpm test:e2e
         env:
           BASE_URL: http://localhost:3000
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
+          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
+          NODE_ENV: test
+          PORT: 3001
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

@@ -52,6 +52,7 @@ export default defineConfig({
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
+      cwd: process.cwd(),
       env: {
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
@@ -67,6 +68,7 @@ export default defineConfig({
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
+      cwd: process.cwd(),
     },
   ],
 });
