@@ -24,6 +24,11 @@ interface ConnectionHistoryFile {
 
 /**
  * 接続履歴リポジトリのファイルシステム実装
+ *
+ * ⚠️ 競合状態対策について:
+ * - メモリ内セマフォで単一プロセス内の同時書き込みを防止
+ * - 複数プロセス/サーバー間の競合には対応不可
+ * - 本番環境では必ずデータベース（SQLite/PostgreSQL等）に移行すること
  */
 @Injectable()
 export class FileSystemConnectionHistoryRepository
@@ -34,13 +39,32 @@ export class FileSystemConnectionHistoryRepository
   );
   private readonly dataDir: string;
   private readonly fileName = 'connection-history.json';
+  private writeLock: Promise<void> = Promise.resolve();
 
   constructor() {
     // プロジェクトルートからの相対パス
     this.dataDir = join(process.cwd(), 'data', 'health');
   }
 
+  /**
+   * 書き込みロックを取得（単一プロセス内の排他制御）
+   */
+  private async acquireWriteLock(): Promise<() => void> {
+    // 現在のロックが解放されるまで待機
+    await this.writeLock;
+
+    // 新しいロックを作成
+    let resolver: () => void;
+    this.writeLock = new Promise<void>((resolve) => {
+      resolver = resolve;
+    });
+
+    // ロック解放関数を返す
+    return () => resolver();
+  }
+
   async save(history: ConnectionHistory): Promise<void> {
+    const release = await this.acquireWriteLock();
     try {
       await this.ensureDataDirectory();
 
@@ -57,10 +81,13 @@ export class FileSystemConnectionHistoryRepository
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
+    } finally {
+      release();
     }
   }
 
   async saveMany(histories: ConnectionHistory[]): Promise<void> {
+    const release = await this.acquireWriteLock();
     try {
       await this.ensureDataDirectory();
 
@@ -78,6 +105,8 @@ export class FileSystemConnectionHistoryRepository
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
+    } finally {
+      release();
     }
   }
 
@@ -193,6 +222,7 @@ export class FileSystemConnectionHistoryRepository
   }
 
   async deleteOlderThan(date: Date): Promise<number> {
+    const release = await this.acquireWriteLock();
     try {
       const data = await this.loadData();
       const originalCount = data.histories.length;
@@ -216,6 +246,8 @@ export class FileSystemConnectionHistoryRepository
         error instanceof Error ? error.stack : String(error),
       );
       return 0;
+    } finally {
+      release();
     }
   }
 

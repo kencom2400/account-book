@@ -12,6 +12,9 @@ import { ScheduledConnectionCheckUseCase } from './application/use-cases/schedul
 import { ConnectionCheckerService } from './infrastructure/services/connection-checker.service';
 import { FileSystemConnectionHistoryRepository } from './infrastructure/repositories/connection-history.repository';
 
+// Application Services
+import { InstitutionAggregationService } from './application/services/institution-aggregation.service';
+
 // Tokens
 import { CONNECTION_HISTORY_REPOSITORY } from './domain/repositories/connection-history.repository.interface';
 
@@ -32,6 +35,7 @@ import { SecuritiesModule } from '../securities/securities.module';
 
     // Services
     ConnectionCheckerService,
+    InstitutionAggregationService,
 
     // Use Cases
     CheckConnectionStatusUseCase,

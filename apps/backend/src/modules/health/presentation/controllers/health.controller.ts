@@ -6,7 +6,6 @@ import {
   Logger,
   HttpStatus,
   HttpException,
-  Inject,
 } from '@nestjs/common';
 import {
   CheckConnectionStatusUseCase,
@@ -27,29 +26,8 @@ import {
   ConnectionHistoryDto,
 } from '../dto/get-connection-history.dto';
 
-// 金融機関モジュールのリポジトリインターフェース
-import {
-  INSTITUTION_REPOSITORY,
-  BANK_API_ADAPTER,
-} from '../../../institution/institution.tokens';
-import type { IInstitutionRepository } from '../../../institution/domain/repositories/institution.repository.interface';
-import type { IBankApiAdapter } from '../../../institution/domain/adapters/bank-api.adapter.interface';
-import {
-  CREDIT_CARD_REPOSITORY,
-  CREDIT_CARD_API_CLIENT,
-} from '../../../credit-card/credit-card.tokens';
-import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
-import type { ICreditCardAPIClient } from '../../../credit-card/infrastructure/adapters/credit-card-api.adapter.interface';
-import {
-  SECURITIES_ACCOUNT_REPOSITORY,
-  SECURITIES_API_CLIENT,
-} from '../../../securities/securities.tokens';
-import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
-import type { ISecuritiesAPIClient } from '../../../securities/infrastructure/adapters/securities-api.adapter.interface';
-import type {
-  IInstitutionInfo,
-  IFinancialApiClient,
-} from '../../domain/adapters/api-client.interface';
+// Application Services
+import { InstitutionAggregationService } from '../../application/services/institution-aggregation.service';
 
 /**
  * ヘルスチェックコントローラー
@@ -62,18 +40,7 @@ export class HealthController {
   constructor(
     private readonly checkConnectionStatusUseCase: CheckConnectionStatusUseCase,
     private readonly getConnectionHistoryUseCase: GetConnectionHistoryUseCase,
-    @Inject(INSTITUTION_REPOSITORY)
-    private readonly institutionRepository: IInstitutionRepository,
-    @Inject(CREDIT_CARD_REPOSITORY)
-    private readonly creditCardRepository: ICreditCardRepository,
-    @Inject(SECURITIES_ACCOUNT_REPOSITORY)
-    private readonly securitiesRepository: ISecuritiesAccountRepository,
-    @Inject(BANK_API_ADAPTER)
-    private readonly bankApiAdapter: IBankApiAdapter,
-    @Inject(CREDIT_CARD_API_CLIENT)
-    private readonly creditCardApiClient: ICreditCardAPIClient,
-    @Inject(SECURITIES_API_CLIENT)
-    private readonly securitiesApiClient: ISecuritiesAPIClient,
+    private readonly institutionAggregationService: InstitutionAggregationService,
   ) {}
 
   /**
@@ -87,8 +54,9 @@ export class HealthController {
     try {
       this.logger.log('接続状態チェック開始');
 
-      // 登録されている金融機関を取得
-      const institutions = await this.getAllInstitutions();
+      // 登録されている金融機関を取得（InstitutionAggregationServiceを使用）
+      const institutions =
+        await this.institutionAggregationService.getAllInstitutions();
 
       if (institutions.length === 0) {
         return {
@@ -189,81 +157,6 @@ export class HealthController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-  }
-
-  /**
-   * 全金融機関を取得（銀行、クレジットカード、証券）
-   */
-  private async getAllInstitutions(): Promise<IInstitutionInfo[]> {
-    const institutions: IInstitutionInfo[] = [];
-
-    // 銀行を取得
-    try {
-      const banks = await this.institutionRepository.findAll();
-      institutions.push(
-        ...banks.map((bank) => ({
-          id: bank.id,
-          name: bank.name,
-          type: 'bank' as const,
-          // BankApiAdapterをIFinancialApiClientとしてキャスト
-          // 注: 各APIアダプターはtestConnectionメソッドを持つが、シグネチャが異なる
-          // TODO: 各APIアダプターにhealthCheckメソッドを追加し、IFinancialApiClientを実装する
-
-          apiClient: this.bankApiAdapter as unknown as IFinancialApiClient,
-        })),
-      );
-    } catch (error: unknown) {
-      this.logger.warn(
-        '銀行の取得に失敗しました',
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-
-    // クレジットカードを取得
-    try {
-      const creditCards = await this.creditCardRepository.findAll();
-      institutions.push(
-        ...creditCards.map((card) => ({
-          id: card.id,
-          name: card.issuer,
-          type: 'credit-card' as const,
-          // CreditCardAPIClientをIFinancialApiClientとしてキャスト
-          // 注: testConnectionメソッドのシグネチャが異なる
-          // TODO: ICreditCardAPIClientにhealthCheckメソッドを追加
-
-          apiClient: this.creditCardApiClient as unknown as IFinancialApiClient,
-        })),
-      );
-    } catch (error: unknown) {
-      this.logger.warn(
-        'クレジットカードの取得に失敗しました',
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-
-    // 証券口座を取得
-    try {
-      const securities = await this.securitiesRepository.findAll();
-      institutions.push(
-        ...securities.map((sec) => ({
-          id: sec.id,
-          name: sec.securitiesCompanyName,
-          type: 'securities' as const,
-          // SecuritiesAPIClientをIFinancialApiClientとしてキャスト
-          // 注: testConnectionメソッドのシグネチャが異なる
-          // TODO: ISecuritiesAPIClientにhealthCheckメソッドを追加
-
-          apiClient: this.securitiesApiClient as unknown as IFinancialApiClient,
-        })),
-      );
-    } catch (error: unknown) {
-      this.logger.warn(
-        '証券口座の取得に失敗しました',
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-
-    return institutions;
   }
 
   /**
