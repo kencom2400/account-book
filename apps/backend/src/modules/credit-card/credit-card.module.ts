@@ -72,6 +72,7 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     CREDIT_CARD_REPOSITORY,
     CREDIT_CARD_TRANSACTION_REPOSITORY,
     PAYMENT_REPOSITORY,
+    CREDIT_CARD_API_CLIENT, // Health moduleから使用するためにexport
   ],
 })
 export class CreditCardModule {}
