@@ -438,7 +438,189 @@ const mockRepo = {
 
 ---
 
-## 10. まとめ
+## 10. ESLint設定のベストプラクティス
+
+### 基本方針
+
+**AIアシスタントがESLint設定を変更・移行する際は、以下の原則に従うこと。**
+
+#### 10-1. 型情報を活用した静的解析（Type-aware Linting）
+
+**必須**: TypeScriptプロジェクトでは、型情報を使った静的解析を有効にする。
+
+```javascript
+// ✅ 推奨: typescript-eslint の型チェック有効化
+export default tseslint.config(...tseslint.configs.recommendedTypeChecked, {
+  languageOptions: {
+    parserOptions: {
+      projectService: true, // 型情報を利用
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+});
+```
+
+**メリット**:
+
+- `@typescript-eslint/no-floating-promises`: 未処理のPromiseを検出
+- `@typescript-eslint/no-misused-promises`: Promiseの誤用を検出
+- `@typescript-eslint/no-unsafe-*`: 型安全でない操作を検出
+
+#### 10-2. 包括的なルールセットの適用
+
+**必須**: フレームワークやライブラリの公式推奨ルールを全て適用する。
+
+```javascript
+// ✅ Next.jsプロジェクトでの推奨設定
+export default tseslint.config(
+  js.configs.recommended, // JavaScript基本ルール
+  ...tseslint.configs.recommendedTypeChecked, // TypeScript型チェック
+  {
+    plugins: {
+      react, // React推奨ルール
+      'react-hooks': reactHooks, // Hooks推奨ルール
+      'jsx-a11y': jsxA11y, // アクセシビリティ
+      '@next/next': nextPlugin, // Next.js推奨ルール
+    },
+    rules: {
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.configs.recommended.rules,
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
+    },
+  }
+);
+```
+
+**理由**:
+
+- フレームワークのベストプラクティスを自動適用
+- セキュリティ問題の早期検出
+- パフォーマンス問題の防止
+
+#### 10-3. 環境別の適切な設定
+
+**必須**: ソースコード、テストコード、設定ファイルで異なる設定を適用する。
+
+```javascript
+// ✅ 推奨: 環境別設定
+export default tseslint.config(
+  // ソースコード: 厳格な設定
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+    },
+  },
+
+  // テストコード: 一部緩和
+  {
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    languageOptions: {
+      globals: { ...globals.jest },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn', // テストでは警告
+      '@typescript-eslint/explicit-function-return-type': 'off',
+    },
+  },
+
+  // 設定ファイル: 型チェック無効
+  {
+    files: ['*.config.{js,mjs,cjs}'],
+    ...tseslint.configs.disableTypeChecked,
+  }
+);
+```
+
+#### 10-4. ignoreパターンの適切な設定
+
+**必須**: Flat Config形式では `ignores` プロパティを使用する（`.eslintignore` は非推奨）。
+
+```javascript
+// ✅ 推奨: Flat Config形式
+export default tseslint.config({
+  ignores: [
+    '.next/',
+    'out/',
+    'dist/',
+    'node_modules/',
+    '.env*.local',
+    'jest.config.js', // 設定ファイルは除外
+    'jest.setup.js',
+    '*.config.{js,mjs,cjs}',
+    'next-env.d.ts', // 自動生成ファイルは除外
+  ],
+});
+```
+
+#### 10-5. 段階的改善のためのルール調整
+
+**推奨**: 既存コードベースでは、一部ルールを警告にして段階的に改善する。
+
+```javascript
+// ✅ 推奨: 段階的改善
+rules: {
+    // 新規コードで必須のルール
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': 'error',
+
+    // 既存コードで段階的に改善
+    '@typescript-eslint/no-floating-promises': 'warn',
+    '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
+    'jsx-a11y/label-has-associated-control': 'warn',
+
+    // フレームワーク特有の調整
+    '@typescript-eslint/no-misused-promises': ['error', {
+        checksVoidReturn: false,  // Next.jsイベントハンドラ対応
+    }],
+}
+```
+
+#### 10-6. 未使用変数の適切な処理
+
+**推奨**: catch句やコールバックの未使用パラメータは `_` プレフィックスで明示する。
+
+```typescript
+// ✅ 推奨: 未使用を明示
+try {
+    await someAsyncOperation();
+} catch (_error) {  // 使わないがcatch句は必要
+    showErrorMessage('処理に失敗しました');
+}
+
+// ESLint設定
+rules: {
+    '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',  // catch句の変数を無視
+    }],
+}
+```
+
+### ESLint設定変更時のチェックリスト
+
+1. **型情報の活用**: `projectService: true` で Type-aware linting を有効化したか？
+2. **包括的なルール**: フレームワークの推奨ルールを全て適用したか？
+3. **環境別設定**: ソース/テスト/設定ファイルで適切な設定をしたか？
+4. **ignoreパターン**: 自動生成ファイルや設定ファイルを除外したか？
+5. **段階的改善**: 既存コードを壊さず、警告で段階的に改善できるか？
+6. **未使用変数**: `_` プレフィックスのパターンを設定したか？
+7. **動作確認**: lint・test両方が正常に動作することを確認したか？
+
+### Geminiレビューから学んだ教訓
+
+- **単純なルール適用では不十分**: プラグインをインストールしただけでは、そのルールは自動適用されない
+- **型情報の活用が重要**: Type-aware linting により、より多くの潜在的バグを検出できる
+- **公式の推奨設定を信頼**: フレームワーク開発者が推奨する設定には理由がある
+- **環境ごとの最適化**: 全てのファイルに同じルールを適用するのは非効率
+
+---
+
+## 11. まとめ
 
 ### 最優先事項
 
