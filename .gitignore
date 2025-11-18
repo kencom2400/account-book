@@ -29,6 +29,11 @@ logs/
 # Test coverage
 coverage/
 .nyc_output/
+coverage-e2e/
+
+# Playwright
+playwright-report/
+test-results/
 
 # Temporary files
 *.tmp
