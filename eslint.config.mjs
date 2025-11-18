@@ -59,15 +59,25 @@ export default [
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
-      // テストファイルでは型安全性ルールを緩和（モックやテストダブルで any が必要なため）
+      // テストファイルでは型安全性ルールを一部緩和
+      // ただし完全にoffにせず、warnレベルで継続監視する方針
+      // （test.mdの規約: any型の安易な使用禁止、必要な場合はコメント付きで明示）
+      
+      // any型: offのまま（Jestモック作成時に必要だが、eslint-disable-next-lineで明示する）
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
+      
+      // 戻り値型: warnレベル（テストコードでも型を明示することを推奨）
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+      
+      // unsafe系: warnレベル（モック使用時は避けられないが、極力減らす）
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      
+      // Jest特有: offのまま（Jestのモック機能使用時に必要）
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/require-await': 'off',
     },
