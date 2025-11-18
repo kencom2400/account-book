@@ -36,8 +36,13 @@ test.describe('API統合', () => {
 
     await page.goto('/dashboard');
 
+    // ローディングが完了するまで待機
+    await page.waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 }).catch(() => {
+      // ローディングが表示されない場合（既に読み込み完了）は無視
+    });
+
     // エラーメッセージまたは再読み込みボタンが表示されることを確認
-    const hasError = await page.getByText(/エラー|失敗/).isVisible().catch(() => false);
+    const hasError = await page.getByText(/エラー|失敗|データの取得に失敗しました/).isVisible().catch(() => false);
     const hasReload = await page.getByRole('button', { name: /再読み込み|リロード/ }).isVisible().catch(() => false);
 
     // エラーハンドリングが機能していることを確認

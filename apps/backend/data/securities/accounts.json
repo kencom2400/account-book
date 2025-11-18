@@ -131,5 +131,62 @@
     "cashBalance": 150000,
     "createdAt": "2025-11-18T05:32:30.431Z",
     "updatedAt": "2025-11-18T05:32:31.874Z"
+  },
+  {
+    "id": "sec_4390ceec-6643-4acc-aefe-aa65bca52c4b",
+    "securitiesCompanyName": "SBI証券",
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "credentials": {
+      "encrypted": "8e3c9daa57a906db0a78e000cfa7ad99e6ec68b714fbcbfba19bc8c50d97ea3e33ce84e29c8fe7dc08d76510f7e15df373f138d50143104a7fc221a1fbe0c4b16e49546746f382c3dd",
+      "iv": "a1759fc78747f01d17c5c552c6385718",
+      "authTag": "7bad48441483f028ef1afb3ced398183",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": true,
+    "lastSyncedAt": "2025-11-18T05:33:00.673Z",
+    "totalEvaluationAmount": 1521000,
+    "cashBalance": 150000,
+    "createdAt": "2025-11-18T05:33:00.673Z",
+    "updatedAt": "2025-11-18T05:33:02.097Z"
+  },
+  {
+    "id": "sec_62c79d82-f215-4177-8a9e-7a32f299f957",
+    "securitiesCompanyName": "SBI証券",
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "credentials": {
+      "encrypted": "ccb2c7db6e9137e56eac15a6b8e10a97a464ab2737945e831a63de9edb8369995d1271bad09d286f24534586652ff55c2ef7967d9b914639859877f2ce89bb527d5580f4c166468b11",
+      "iv": "d9657907352916f044e42aec6b6943c3",
+      "authTag": "094811883559a54d22167fc1edfc1d19",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": true,
+    "lastSyncedAt": "2025-11-18T05:37:28.219Z",
+    "totalEvaluationAmount": 1521000,
+    "cashBalance": 150000,
+    "createdAt": "2025-11-18T05:37:28.219Z",
+    "updatedAt": "2025-11-18T05:37:29.470Z"
+  },
+  {
+    "id": "sec_46ec5890-ceb2-4632-8b38-30d6075cfec8",
+    "securitiesCompanyName": "SBI証券",
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "credentials": {
+      "encrypted": "54354d9d0fe6c34a9c5a4b31b8151d089dfc8f2711281acf845ab8bc9096f41c2796a7b47a4fa95781bceb7ebb6718b3b9a1730f84fabceb09e54b2924289fb31a733145c63038ad30",
+      "iv": "881dc3887c107dae02b4666ff9cb0c8a",
+      "authTag": "9913abd902c2ba05a72c8a1d6d2dfd31",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": true,
+    "lastSyncedAt": "2025-11-18T05:43:37.253Z",
+    "totalEvaluationAmount": 1521000,
+    "cashBalance": 150000,
+    "createdAt": "2025-11-18T05:43:37.253Z",
+    "updatedAt": "2025-11-18T05:43:38.285Z"
   }
 ]
