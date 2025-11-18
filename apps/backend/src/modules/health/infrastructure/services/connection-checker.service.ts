@@ -144,34 +144,21 @@ export class ConnectionCheckerService {
     errorCode?: string;
   }> {
     try {
-      // APIアダプターにhealthCheckメソッドがあるか確認
-      if (typeof apiClient.healthCheck === 'function') {
-        return await apiClient.healthCheck(institutionId);
-      }
-
-      // healthCheckメソッドがない場合は、接続テストとして扱う
-      // 既存のAPIクライアントメソッドを使用
-      if (typeof apiClient.testConnection === 'function') {
-        const testResult = await apiClient.testConnection(institutionId);
-        return {
-          success: testResult.success || false,
-          needsReauth: testResult.needsReauth || false,
-          errorMessage: testResult.errorMessage,
-          errorCode: testResult.errorCode,
-        };
-      }
-
-      // どちらのメソッドもない場合はエラー
+      // IFinancialApiClientインターフェースのhealthCheckメソッドを呼び出す
+      // 各APIアダプターはIFinancialApiClientを継承しているため、このメソッドは必ず実装されている
+      return await apiClient.healthCheck(institutionId);
+    } catch (error: unknown) {
+      this.logger.error(
+        `APIクライアントのヘルスチェック中にエラー: ${institutionId} - ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return {
         success: false,
-        errorMessage: 'APIクライアントにヘルスチェックメソッドがありません',
-        errorCode: 'NO_HEALTH_CHECK_METHOD',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        errorMessage: error instanceof Error ? error.message : '不明なエラー',
-        errorCode: 'HEALTH_CHECK_ERROR',
+        errorMessage:
+          error instanceof Error ? error.message : '不明なAPIエラー',
+        errorCode: 'API_CLIENT_ERROR',
       };
     }
   }

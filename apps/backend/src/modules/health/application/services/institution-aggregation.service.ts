@@ -1,8 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type {
-  IInstitutionInfo,
-  IFinancialApiClient,
-} from '../../domain/adapters/api-client.interface';
+import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 
 // 金融機関モジュールのリポジトリとAPIクライアント
 import {
@@ -67,10 +64,8 @@ export class InstitutionAggregationService {
           id: bank.id,
           name: bank.name,
           type: 'bank' as const,
-          // TODO: 各APIアダプターにhealthCheckメソッドを追加し、IFinancialApiClientを実装する
-          // 現時点では型キャストで対応（testConnectionメソッドは存在）
-
-          apiClient: this.bankApiAdapter as unknown as IFinancialApiClient,
+          // IBankApiAdapterはIFinancialApiClientを継承しているため、型安全
+          apiClient: this.bankApiAdapter,
         })),
       );
       this.logger.debug(`${banks.length}件の銀行を取得しました`);
@@ -89,9 +84,8 @@ export class InstitutionAggregationService {
           id: card.id,
           name: card.issuer,
           type: 'credit-card' as const,
-          // TODO: ICreditCardAPIClientにhealthCheckメソッドを追加
-
-          apiClient: this.creditCardApiClient as unknown as IFinancialApiClient,
+          // ICreditCardAPIClientはIFinancialApiClientを継承しているため、型安全
+          apiClient: this.creditCardApiClient,
         })),
       );
       this.logger.debug(
@@ -112,9 +106,8 @@ export class InstitutionAggregationService {
           id: sec.id,
           name: sec.securitiesCompanyName,
           type: 'securities' as const,
-          // TODO: ISecuritiesAPIClientにhealthCheckメソッドを追加
-
-          apiClient: this.securitiesApiClient as unknown as IFinancialApiClient,
+          // ISecuritiesAPIClientはIFinancialApiClientを継承しているため、型安全
+          apiClient: this.securitiesApiClient,
         })),
       );
       this.logger.debug(`${securities.length}件の証券口座を取得しました`);

@@ -27,6 +27,24 @@ export class MockBankApiAdapter implements IBankApiAdapter {
   }
 
   /**
+   * ヘルスチェック（IFinancialApiClient実装）
+   * FR-004: バックグラウンド接続確認で使用
+   * @param _institutionId 金融機関ID
+   */
+  healthCheck(_institutionId: string): Promise<{
+    success: boolean;
+    needsReauth?: boolean;
+    errorMessage?: string;
+    errorCode?: string;
+  }> {
+    // モック実装: 常に成功を返す
+    // 実際の実装では、institutionIdから認証情報を取得してtestConnectionを呼び出す
+    return Promise.resolve({
+      success: true,
+    });
+  }
+
+  /**
    * 接続テストを実行（モック）
    */
   async testConnection(

@@ -1,5 +1,6 @@
 import { CreditCardTransactionEntity } from '../../domain/entities/credit-card-transaction.entity';
 import { PaymentVO } from '../../domain/value-objects/payment.vo';
+import type { IFinancialApiClient } from '../../../health/domain/adapters/api-client.interface';
 
 /**
  * クレジットカードAPI接続結果
@@ -51,7 +52,7 @@ export interface APIPaymentInfo {
  * CreditCardAPIClient Interface
  * クレジットカードAPIとの通信を抽象化
  */
-export interface ICreditCardAPIClient {
+export interface ICreditCardAPIClient extends IFinancialApiClient {
   /**
    * API接続テスト
    */

@@ -1,5 +1,6 @@
 import { HoldingEntity } from '../../domain/entities/holding.entity';
 import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
+import type { IFinancialApiClient } from '../../../health/domain/adapters/api-client.interface';
 
 /**
  * APIレスポンス: 接続テスト
@@ -66,7 +67,7 @@ export interface SecuritiesAPICredentials {
 /**
  * 証券会社APIクライアントインターフェース
  */
-export interface ISecuritiesAPIClient {
+export interface ISecuritiesAPIClient extends IFinancialApiClient {
   /**
    * 接続テスト
    */
