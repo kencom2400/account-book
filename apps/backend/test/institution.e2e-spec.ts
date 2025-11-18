@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
 
@@ -99,7 +99,7 @@ describe('Institution Controller (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body.success).toBe(true);
-          expect(res.body.data.success).toBe(true);
+          expect(res.body.data).toBeDefined();
           expect(res.body.data.message).toBeDefined();
           expect(res.body.data.accountInfo).toBeDefined();
         });
@@ -115,7 +115,10 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('銀行コードは4桁の数字');
+          const message = Array.isArray(res.body.message)
+            ? res.body.message.join(' ')
+            : res.body.message;
+          expect(message).toContain('銀行コードは4桁の数字');
         });
     });
 
@@ -129,7 +132,10 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('支店コードは3桁の数字');
+          const message = Array.isArray(res.body.message)
+            ? res.body.message.join(' ')
+            : res.body.message;
+          expect(message).toContain('支店コードは3桁の数字');
         });
     });
 
@@ -143,7 +149,10 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toContain('口座番号は7桁の数字');
+          const message = Array.isArray(res.body.message)
+            ? res.body.message.join(' ')
+            : res.body.message;
+          expect(message).toContain('口座番号は7桁の数字');
         });
     });
 

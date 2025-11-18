@@ -8,6 +8,7 @@
 ║  1. ./scripts/build.sh                                    ║
 ║  2. ./scripts/lint.sh                                     ║
 ║  3. ./scripts/test.sh                                     ║
+║  4. ./scripts/test/test-e2e.sh                            ║
 ║                                                            ║
 ║  エラーがある場合はpush禁止。修正してから再実行。         ║
 ╚════════════════════════════════════════════════════════════╝
@@ -26,9 +27,10 @@
 **実行手順：**
 
 ```bash
-./scripts/build.sh   # ビルドエラーチェック
-./scripts/lint.sh    # コードスタイルチェック
-./scripts/test.sh    # テスト実行
+./scripts/build.sh              # ビルドエラーチェック
+./scripts/lint.sh               # コードスタイルチェック
+./scripts/test.sh               # ユニットテスト実行
+./scripts/test/test-e2e.sh      # E2Eテスト実行
 ```
 
 **エラーがある場合：**
@@ -197,7 +199,7 @@ gh pr edit $PR_NUMBER --body "<最終的な説明>"
 
    ```bash
    # チェック実行
-   ./scripts/build/build.sh && ./scripts/test/lint.sh && ./scripts/test/test.sh
+   ./scripts/build/build.sh && ./scripts/test/lint.sh && ./scripts/test/test.sh && ./scripts/test/test-e2e.sh
 
    # ドラフト解除
    gh pr ready $PR_NUMBER
@@ -264,12 +266,13 @@ gh pr edit $PR_NUMBER --body "<最終的な説明>"
 ### PR作成前のチェックリスト
 
 - [ ] すべての変更がコミット済み
-- [ ] **コードファイルを変更した場合**: build/lint/testを実行してエラーがないことを確認
+- [ ] **コードファイルを変更した場合**: build/lint/test/test-e2eを実行してエラーがないことを確認
 
   ```bash
   ./scripts/build.sh
   ./scripts/lint.sh
   ./scripts/test.sh
+  ./scripts/test/test-e2e.sh
   ```
 
   - 注: ドキュメントや設定ファイルのみの変更の場合は不要
@@ -374,10 +377,11 @@ git commit -m "feat(transaction): 取引履歴取得機能を実装"
 #### コードファイルを変更した場合の必須チェック
 
 ```bash
-# build/lint/testを実行してエラーがないことを確認
+# build/lint/test/test-e2eを実行してエラーがないことを確認
 ./scripts/build.sh
 ./scripts/lint.sh
 ./scripts/test.sh
+./scripts/test/test-e2e.sh
 ```
 
 **注**: ドキュメントや設定ファイルのみの変更の場合は不要
@@ -596,12 +600,13 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: レビュー指摘に対応 - <具体的な修正内容>"`
   4. エラーがある場合は修正してから再度commit
-  5. **push前に必ず実行**: コードファイルを変更した場合は、build/lint/testを実行してエラーがないことを確認
+  5. **push前に必ず実行**: コードファイルを変更した場合は、build/lint/test/test-e2eを実行してエラーがないことを確認
 
      ```bash
      ./scripts/build.sh
      ./scripts/lint.sh
      ./scripts/test.sh
+     ./scripts/test/test-e2e.sh
      ```
 
      - 注: ドキュメントや設定ファイルのみの変更の場合は不要

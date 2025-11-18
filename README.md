@@ -52,7 +52,7 @@ pnpm --filter @account-book/frontend dev
 ## テスト実行
 
 ```bash
-# 全てのテスト
+# 全てのテスト（ユニットテスト）
 pnpm test
 
 # ユニットテスト
@@ -60,7 +60,13 @@ pnpm test:unit
 
 # E2Eテスト
 pnpm test:e2e
+
+# スクリプト経由で実行
+./scripts/test/test.sh [backend|frontend|all] [unit|e2e|all]
+./scripts/test/test-e2e.sh [backend|frontend|all]
 ```
+
+詳細は[テスト実行ガイド](./docs/testing-guide.md)を参照してください。
 
 ## ビルド
 

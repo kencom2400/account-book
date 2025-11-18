@@ -42,9 +42,91 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install
+      - run: pnpm build
       - run: pnpm test:unit
-      - uses: codecov/codecov-action@v4
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
         if: success()
+        with:
+          files: ./apps/backend/coverage/lcov.info
+          flags: unit
+
+  test-e2e-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - name: Run Backend E2E tests
+        run: |
+          cd apps/backend
+          pnpm test:e2e
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
+          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
+          NODE_ENV: test
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: success()
+        with:
+          files: ./apps/backend/coverage-e2e/lcov.info
+          flags: e2e-backend
+
+  test-e2e-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+
+      - name: Install Playwright browsers
+        run: |
+          cd apps/frontend
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Run Frontend E2E tests
+        run: |
+          cd apps/frontend
+          pnpm test:e2e
+        env:
+          BASE_URL: http://localhost:3000
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
+          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
+          NODE_ENV: test
+          # バックエンド用のPORT（PlaywrightのwebServer設定で使用）
+          BACKEND_PORT: 3001
+          # フロントエンド用のPORT（PlaywrightのwebServer設定で使用）
+          FRONTEND_PORT: 3000
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results
+          path: apps/frontend/test-results/
+          retention-days: 30
 
   # build:
   #   runs-on: ubuntu-latest

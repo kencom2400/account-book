@@ -61,6 +61,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off', // テストファイルでは型安全性チェックを緩和
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-explicit-any': 'off', // テストファイルではany型の使用を許可
       '@typescript-eslint/explicit-function-return-type': 'off', // テストファイルでは戻り値型の明示を不要とする
