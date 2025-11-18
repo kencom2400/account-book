@@ -1,0 +1,257 @@
+{
+  "histories": [
+    {
+      "id": "582cf485-0d42-4b5a-86ce-29922f3bee19",
+      "institutionId": "0363bf2c-34c8-4705-aa92-84a6e2ee8711",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "7aa3f206-bd2a-42c1-960f-f355dc1cd793",
+      "institutionId": "36fa1096-9c9d-4d23-b457-16e502dd1886",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "8a5f9ffe-31de-4146-aa45-fe59fff08676",
+      "institutionId": "36e8f87f-d9da-4d4c-b411-760898712eeb",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "4350d666-7610-4421-9b9b-71cad9e0b8a6",
+      "institutionId": "49b4d0b2-9d13-47aa-aa65-7278d503efe2",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "e22df0a2-3a58-48ac-be14-c3f0720eccef",
+      "institutionId": "fb6380b1-ffc6-4fc6-bdda-159027e3f88f",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "72182e05-5ac1-47f8-95e2-cc458f94f9c6",
+      "institutionId": "fb71af00-241c-467a-bd76-d0de5604d467",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "49a52a5f-d763-4b10-96bc-2ce7bfda0cef",
+      "institutionId": "ee150129-bf9a-49f8-9420-d72b254c02ee",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "6f6be2d0-247d-4042-9911-e42c4305a76e",
+      "institutionId": "d5001d1f-edc6-4129-b2f9-fd87d934f420",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "17e099e5-eeaf-465a-a1ba-1b878adb59fa",
+      "institutionId": "d2c8d68c-fc45-416b-a355-0aad04da1d20",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "0f522419-f72d-4e11-b959-2a63cd0c7300",
+      "institutionId": "67ea29cf-3e68-4500-8622-afe875f7df67",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "842d0fdd-6f24-4b3c-8f5b-ff49cadf92ee",
+      "institutionId": "a9e74348-fab9-4c95-aa81-f4fbc7f87b8f",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "4dea1587-c5af-4d49-921b-7053ea5ba251",
+      "institutionId": "9b2b89df-c932-497f-a9aa-5d3bda578fda",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "94796edf-bd2c-45b3-a0b5-0e7171368e67",
+      "institutionId": "6f98081f-a342-460f-bfd2-438938ca0a08",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "9c4b8e54-639c-43be-970d-c5a91fa154c3",
+      "institutionId": "3c1d7aa6-d434-489f-925e-ebb62986b0e1",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "8a387bf6-492c-4450-ab09-38ff52110584",
+      "institutionId": "2ed06e6b-137f-436b-8f52-5fc7502dfa9a",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "83543999-2398-4bf6-ab3f-aae5841e8cd4",
+      "institutionId": "e6850d4c-0173-4d6a-a277-3e7891327e6b",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "d9ed9162-5252-4511-85cf-7b3a13c8d0fc",
+      "institutionId": "6b294ec7-ffa3-4670-a4a1-8a852874b906",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "566a8afb-fce7-4107-82ce-0a10347f28f3",
+      "institutionId": "ce8d3b45-ac93-4442-85d0-36bd832cbbde",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "d5f4da03-444b-47c9-98f7-3fa165713331",
+      "institutionId": "daddcaab-1aa0-4ba0-9089-e1ba69d70b2e",
+      "institutionName": "テスト銀行",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "dc340cdc-fa64-43fe-a390-ef9c866512a0",
+      "institutionId": "a12e1b10-c749-4333-921d-4f0d24db9048",
+      "institutionName": "テストカード",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "046bd7c6-1bf0-4bec-a5db-486b91aefcc7",
+      "institutionId": "cf4b5681-5e2c-488a-bbe4-54a2fc030aca",
+      "institutionName": "テスト証券",
+      "institutionType": "bank",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 0
+    },
+    {
+      "id": "bba66575-4b10-4e99-aecd-cfa2e0bf68ae",
+      "institutionId": "sec_4529a9bf-474b-4004-8e0d-c5cdd103150e",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 544
+    },
+    {
+      "id": "8fe4fb9b-b775-4183-909a-0ea8961eaefa",
+      "institutionId": "sec_e3958141-83b3-4809-80ab-c88e5d54e1d3",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 351
+    },
+    {
+      "id": "a16db68e-08d6-4da9-ad85-e5322409b8a1",
+      "institutionId": "sec_c3112948-d894-4514-8e0a-5e205a902084",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 787
+    },
+    {
+      "id": "8f28ae9d-28b7-4f9d-80b9-68c71a1eff6e",
+      "institutionId": "sec_98fdf660-dafd-4ecd-b785-965c916c1f12",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:32.230Z",
+      "responseTime": 771
+    },
+    {
+      "id": "3aac999b-3479-4967-ad0e-533b5734a3f6",
+      "institutionId": "sec_a8f4efc7-2fe7-4656-bd67-d96e7c438651",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:33.017Z",
+      "responseTime": 655
+    },
+    {
+      "id": "9fdc152d-f5f6-4285-91c4-25ec96ed01f8",
+      "institutionId": "sec_c16eeb90-33d2-4458-81d7-11d07b7553c8",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:33.017Z",
+      "responseTime": 573
+    },
+    {
+      "id": "e7fdd820-21d3-47f3-a161-3ca6c16fae04",
+      "institutionId": "sec_d2293c58-9539-4e6e-9a37-71472523b484",
+      "institutionName": "SBI証券",
+      "institutionType": "securities",
+      "status": "CONNECTED",
+      "checkedAt": "2025-11-18T05:32:33.018Z",
+      "responseTime": 423
+    }
+  ],
+  "lastUpdated": "2025-11-18T05:32:33.674Z"
+}

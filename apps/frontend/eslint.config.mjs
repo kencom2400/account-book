@@ -91,7 +91,7 @@ export default tseslint.config(
     
     // テストファイル用の設定
     {
-        files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+        files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '**/e2e/**/*.ts'],
         languageOptions: {
             globals: {
                 ...globals.jest,
@@ -102,6 +102,11 @@ export default tseslint.config(
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/explicit-function-return-type': 'off',
             '@typescript-eslint/explicit-module-boundary-types': 'off',
+            '@typescript-eslint/no-unsafe-assignment': 'off', // E2Eテストでは型安全性チェックを緩和
+            '@typescript-eslint/no-unsafe-member-access': 'off',
+            '@typescript-eslint/no-unsafe-call': 'off',
+            '@typescript-eslint/no-unsafe-return': 'off',
+            '@typescript-eslint/no-unsafe-argument': 'off',
         },
     },
     

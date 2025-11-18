@@ -1,0 +1,31 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+
+ignore:
+  - "**/test/**"
+  - "**/dist/**"
+  - "**/*.spec.ts"
+  - "**/*.e2e-spec.ts"
+  - "**/node_modules/**"
+  - "**/coverage/**"
+  - "**/playwright-report/**"
+  - "**/test-results/**"
+
+flags:
+  unit:
+    paths:
+      - apps/backend/src
+      - apps/frontend/src
+    carryforward: true
+  e2e-backend:
+    paths:
+      - apps/backend/src
+    carryforward: true
+

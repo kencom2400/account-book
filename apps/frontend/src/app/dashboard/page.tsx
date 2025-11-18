@@ -18,9 +18,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   // 現在の年月を取得
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
+  const now: Date = new Date();
+  const currentYear: number = now.getFullYear();
+  const currentMonth: number = now.getMonth() + 1;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [currentYear, currentMonth]);
 
   if (loading) {

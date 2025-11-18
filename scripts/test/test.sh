@@ -21,29 +21,57 @@ fi
 
 # 引数でテスト対象を指定
 TARGET=${1:-all}
+TEST_TYPE=${2:-unit}  # unit, e2e, all
 
 case $TARGET in
   backend)
     echo "🧪 バックエンドのテスト実行中..."
     cd apps/backend
-    pnpm test
+    if [ "$TEST_TYPE" = "e2e" ]; then
+      pnpm test:e2e
+    elif [ "$TEST_TYPE" = "all" ]; then
+      pnpm test
+      pnpm test:e2e
+    else
+      pnpm test
+    fi
     ;;
   frontend)
     echo "🧪 フロントエンドのテスト実行中..."
     cd apps/frontend
-    pnpm test
+    if [ "$TEST_TYPE" = "e2e" ]; then
+      pnpm test:e2e
+    elif [ "$TEST_TYPE" = "all" ]; then
+      pnpm test
+      pnpm test:e2e
+    else
+      pnpm test
+    fi
     ;;
   all)
-    echo "🧪 バックエンドのテスト実行中..."
-    cd apps/backend
-    pnpm test
-    echo ""
-    echo "🧪 フロントエンドのテスト実行中..."
-    cd ../frontend
-    pnpm test
+    echo "🧪 すべてのテスト実行中..."
+    if [ "$TEST_TYPE" = "e2e" ]; then
+      ./scripts/test/test-e2e.sh all
+    elif [ "$TEST_TYPE" = "all" ]; then
+      # ユニットテスト
+      echo "--- ユニットテスト ---"
+      cd apps/backend
+      pnpm test
+      cd ../frontend
+      pnpm test
+      # E2Eテスト
+      ./scripts/test/test-e2e.sh all
+    else
+      # ユニットテストのみ
+      cd apps/backend
+      pnpm test
+      echo ""
+      cd ../frontend
+      pnpm test
+    fi
     ;;
   *)
-    echo "使用方法: ./scripts/test/test.sh [backend|frontend|all]"
+    echo "使用方法: ./scripts/test/test.sh [backend|frontend|all] [unit|e2e|all]"
     exit 1
     ;;
 esac
