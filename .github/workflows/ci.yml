@@ -79,6 +79,21 @@ jobs:
           files: ./apps/backend/coverage-e2e/lcov.info
           flags: e2e-backend
 
+  # Docker環境でのテスト（オプション）
+  # 将来的にDocker環境でのテスト実行を検討する場合に有効化
+  # test-docker:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Build Docker images
+  #       run: docker-compose build
+  #     - name: Run tests in Docker
+  #       run: |
+  #         docker-compose run --rm backend pnpm test
+  #         docker-compose run --rm frontend pnpm test
+  #     - name: Cleanup
+  #       run: docker-compose down
+
   test-e2e-frontend:
     runs-on: ubuntu-latest
     steps:

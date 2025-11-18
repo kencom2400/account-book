@@ -1,0 +1,31 @@
+# apps/backend/Dockerfile.dev
+FROM node:20-alpine
+
+# pnpmのインストール
+RUN npm install -g pnpm@8.15.0
+
+# 作業ディレクトリ
+WORKDIR /app
+
+# 依存関係のコピーとインストール
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/backend/package.json ./apps/backend/
+COPY libs/types/package.json ./libs/types/
+COPY libs/utils/package.json ./libs/utils/
+
+RUN pnpm install --frozen-lockfile
+
+# ソースコードのコピー
+COPY . .
+
+# libs のビルド
+RUN pnpm run build --filter=@account-book/types
+RUN pnpm run build --filter=@account-book/utils
+
+# ポート公開
+EXPOSE 3001
+
+# 開発サーバー起動
+WORKDIR /app/apps/backend
+CMD ["pnpm", "dev"]
+
