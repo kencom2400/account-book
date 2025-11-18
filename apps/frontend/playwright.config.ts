@@ -46,10 +46,12 @@ export default defineConfig({
   webServer: [
     // バックエンドサーバー
     {
-      command: 'cd ../backend && pnpm dev',
-      url: 'http://localhost:3001',
+      command: 'pnpm --filter @account-book/backend dev',
+      url: 'http://localhost:3001/api/health/institutions',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
       env: {
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
@@ -63,6 +65,8 @@ export default defineConfig({
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
   ],
 });
