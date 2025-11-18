@@ -16,6 +16,10 @@ build/
 data/*/*
 !data/*/.gitkeep
 
+# Backend data files (runtime generated)
+apps/backend/data/**/*
+!apps/backend/data/**/.gitkeep
+
 # Node environment
 .nodeenv/
 
