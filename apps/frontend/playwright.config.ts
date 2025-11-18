@@ -57,7 +57,7 @@ export default defineConfig({
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
         NODE_ENV: process.env.NODE_ENV || 'development',
-        PORT: '3001',
+        PORT: process.env.BACKEND_PORT || '3001',
       },
     },
     // フロントエンドサーバー
@@ -69,6 +69,10 @@ export default defineConfig({
       stdout: 'pipe',
       stderr: 'pipe',
       cwd: process.cwd(),
+      env: {
+        // フロントエンドはポート3000を使用（環境変数PORTを上書き）
+        PORT: process.env.FRONTEND_PORT || '3000',
+      },
     },
   ],
 });

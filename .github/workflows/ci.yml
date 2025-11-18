@@ -107,7 +107,10 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
           CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
           NODE_ENV: test
-          PORT: 3001
+          # バックエンド用のPORT（PlaywrightのwebServer設定で使用）
+          BACKEND_PORT: 3001
+          # フロントエンド用のPORT（PlaywrightのwebServer設定で使用）
+          FRONTEND_PORT: 3000
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
