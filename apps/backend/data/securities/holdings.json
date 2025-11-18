@@ -478,5 +478,101 @@
     "securityType": "etf",
     "market": "東証",
     "updatedAt": "2025-11-18T05:43:37.777Z"
+  },
+  {
+    "id": "hold_3768f066-79c8-4790-bfd9-bad6f257a20a",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "quantity": 100,
+    "averageAcquisitionPrice": 2500,
+    "currentPrice": 2800,
+    "securityType": "stock",
+    "market": "東証プライム",
+    "updatedAt": "2025-11-18T05:47:40.966Z"
+  },
+  {
+    "id": "hold_cf8e262a-d50a-4744-bbee-1e28af5a90b6",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "6758",
+    "securityName": "ソニーグループ",
+    "quantity": 50,
+    "averageAcquisitionPrice": 15000,
+    "currentPrice": 16000,
+    "securityType": "stock",
+    "market": "東証プライム",
+    "updatedAt": "2025-11-18T05:47:40.966Z"
+  },
+  {
+    "id": "hold_94ff2c22-ac87-45f8-88fd-a6a810d58b67",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "1321",
+    "securityName": "日経225連動型上場投資信託",
+    "quantity": 10,
+    "averageAcquisitionPrice": 38000,
+    "currentPrice": 39500,
+    "securityType": "etf",
+    "market": "東証",
+    "updatedAt": "2025-11-18T05:47:40.966Z"
+  },
+  {
+    "id": "hold_343f392a-900c-4a12-a349-63ff55dd1965",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "1306",
+    "securityName": "TOPIX連動型上場投資信託",
+    "quantity": 20,
+    "averageAcquisitionPrice": 2200,
+    "currentPrice": 2300,
+    "securityType": "etf",
+    "market": "東証",
+    "updatedAt": "2025-11-18T05:47:40.966Z"
+  },
+  {
+    "id": "hold_b033428f-091c-4ecb-9e23-27a51dbaf8a2",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "quantity": 100,
+    "averageAcquisitionPrice": 2500,
+    "currentPrice": 2800,
+    "securityType": "stock",
+    "market": "東証プライム",
+    "updatedAt": "2025-11-18T05:51:48.415Z"
+  },
+  {
+    "id": "hold_d883242b-9c89-45e4-8d11-641737a2c790",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "6758",
+    "securityName": "ソニーグループ",
+    "quantity": 50,
+    "averageAcquisitionPrice": 15000,
+    "currentPrice": 16000,
+    "securityType": "stock",
+    "market": "東証プライム",
+    "updatedAt": "2025-11-18T05:51:48.415Z"
+  },
+  {
+    "id": "hold_3fb36993-689d-4f9a-9e72-69b970ba7c19",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "1321",
+    "securityName": "日経225連動型上場投資信託",
+    "quantity": 10,
+    "averageAcquisitionPrice": 38000,
+    "currentPrice": 39500,
+    "securityType": "etf",
+    "market": "東証",
+    "updatedAt": "2025-11-18T05:51:48.415Z"
+  },
+  {
+    "id": "hold_984271a5-9b48-48a9-b587-ca15a471cc40",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "1306",
+    "securityName": "TOPIX連動型上場投資信託",
+    "quantity": 20,
+    "averageAcquisitionPrice": 2200,
+    "currentPrice": 2300,
+    "securityType": "etf",
+    "market": "東証",
+    "updatedAt": "2025-11-18T05:51:48.415Z"
   }
 ]

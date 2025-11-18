@@ -388,5 +388,83 @@
     "fee": 0,
     "status": "completed",
     "createdAt": "2025-11-18T05:43:38.261Z"
+  },
+  {
+    "id": "tx_6ae64686-eb6a-4037-8e69-22613fc9d917",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "transactionDate": "2025-10-14T15:00:00.000Z",
+    "transactionType": "buy",
+    "quantity": 100,
+    "price": 2500,
+    "fee": 500,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:47:41.738Z"
+  },
+  {
+    "id": "tx_024927d0-9021-4db3-85b6-f183333bef9b",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "6758",
+    "securityName": "ソニーグループ",
+    "transactionDate": "2025-09-09T15:00:00.000Z",
+    "transactionType": "buy",
+    "quantity": 50,
+    "price": 15000,
+    "fee": 750,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:47:41.738Z"
+  },
+  {
+    "id": "tx_b95426c6-96e8-41f5-96a0-ccb7033add5b",
+    "securitiesAccountId": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "transactionDate": "2025-10-31T15:00:00.000Z",
+    "transactionType": "dividend",
+    "quantity": 100,
+    "price": 25,
+    "fee": 0,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:47:41.738Z"
+  },
+  {
+    "id": "tx_dabc35d3-8f1e-479d-9395-32df309b39cd",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "transactionDate": "2025-10-14T15:00:00.000Z",
+    "transactionType": "buy",
+    "quantity": 100,
+    "price": 2500,
+    "fee": 500,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:51:49.216Z"
+  },
+  {
+    "id": "tx_de845865-43b4-4bce-aa7b-a6964bd22444",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "6758",
+    "securityName": "ソニーグループ",
+    "transactionDate": "2025-09-09T15:00:00.000Z",
+    "transactionType": "buy",
+    "quantity": 50,
+    "price": 15000,
+    "fee": 750,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:51:49.216Z"
+  },
+  {
+    "id": "tx_eb809a9b-0d0b-402b-a805-8b7a09d34e9d",
+    "securitiesAccountId": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securityCode": "7203",
+    "securityName": "トヨタ自動車",
+    "transactionDate": "2025-10-31T15:00:00.000Z",
+    "transactionType": "dividend",
+    "quantity": 100,
+    "price": 25,
+    "fee": 0,
+    "status": "completed",
+    "createdAt": "2025-11-18T05:51:49.216Z"
   }
 ]

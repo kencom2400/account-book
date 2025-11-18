@@ -188,5 +188,43 @@
     "cashBalance": 150000,
     "createdAt": "2025-11-18T05:43:37.253Z",
     "updatedAt": "2025-11-18T05:43:38.285Z"
+  },
+  {
+    "id": "sec_6894c356-b7ad-44e4-81e1-2396df2efc61",
+    "securitiesCompanyName": "SBI証券",
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "credentials": {
+      "encrypted": "b151e0b72d5600fd774e49855ab235b490831c6a49a9dae62a5a4cea801d166501139c0aa560bdb61f4762b64d07f09379e9e5b210c8a914a27728b8a29e8d148c7e0e6bf69f69e098",
+      "iv": "958ae325f4c2abf2efbc3b6b0889aa5c",
+      "authTag": "e181240384f6c1e58ad7489a31e23c10",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": true,
+    "lastSyncedAt": "2025-11-18T05:47:40.313Z",
+    "totalEvaluationAmount": 1521000,
+    "cashBalance": 150000,
+    "createdAt": "2025-11-18T05:47:40.313Z",
+    "updatedAt": "2025-11-18T05:47:41.773Z"
+  },
+  {
+    "id": "sec_08fd0b42-426b-4374-a2d7-69ec7c6bbd22",
+    "securitiesCompanyName": "SBI証券",
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "credentials": {
+      "encrypted": "e0c226bd041660202ec3f589259c7aff51837d28a429e468c0a74887a92a345ec35410c3e6c64d9c97863497d5615e7d81b23cb86675135143692ac32f92c50273a2a13db3a94844e7",
+      "iv": "b88467f1c744ba3ab05580e439a62931",
+      "authTag": "d885c8a7737473d8eecd3ff81cef109c",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": true,
+    "lastSyncedAt": "2025-11-18T05:51:47.840Z",
+    "totalEvaluationAmount": 1521000,
+    "cashBalance": 150000,
+    "createdAt": "2025-11-18T05:51:47.840Z",
+    "updatedAt": "2025-11-18T05:51:49.259Z"
   }
 ]

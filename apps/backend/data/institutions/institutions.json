@@ -508,5 +508,107 @@
     "accounts": [],
     "createdAt": "2025-11-18T05:43:36.285Z",
     "updatedAt": "2025-11-18T05:43:36.285Z"
+  },
+  {
+    "id": "ca550ac4-33ae-4c54-be2a-13308348ba5b",
+    "name": "テスト銀行",
+    "type": "bank",
+    "credentials": {
+      "encrypted": "e060b354effffca8c88f4e4bf1f6156adb2ccdb8d3827f9676662211db95bc36c03fc6f383e42388ecc2fe2b1d4d486a95cc21031ef8bb2f9ae49470911d0891",
+      "iv": "9625e739ce53f48550a9fc3ed7cc8af1",
+      "authTag": "2846f011af89cac02e1c07d33201b2ca",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:47:39.314Z",
+    "updatedAt": "2025-11-18T05:47:39.314Z"
+  },
+  {
+    "id": "03511778-1234-40e3-9805-5ae85595e88c",
+    "name": "テストカード",
+    "type": "credit_card",
+    "credentials": {
+      "encrypted": "b1250a4571646aafeb8c738f1ffd30d06366c7134a4db54b03a151ec05e30b4e10eba046d20db3e3df07124e99ce3327bf056dcc5f",
+      "iv": "a41216ec8d2092ba8fd1b9198cc7e84b",
+      "authTag": "6843555b4c49325a25635d7bb7d4d835",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:47:39.320Z",
+    "updatedAt": "2025-11-18T05:47:39.320Z"
+  },
+  {
+    "id": "f5ebe519-1e04-4eac-b7bb-b8672cd260d7",
+    "name": "テスト証券",
+    "type": "securities",
+    "credentials": {
+      "encrypted": "42999bc40ca10dc0fe725db8ef594689e18e77016a18c82ef417b57a2b9a120931e98bbc9f0ff98e9154a0aefe28f6c2",
+      "iv": "dfccb4c57d4ed9b92c9ff92898d6b49d",
+      "authTag": "4477fbe23c67b0b9c075182e3646c1ac",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:47:39.321Z",
+    "updatedAt": "2025-11-18T05:47:39.321Z"
+  },
+  {
+    "id": "0665057a-5229-421a-a25c-36ff2fb80b9c",
+    "name": "テスト銀行",
+    "type": "bank",
+    "credentials": {
+      "encrypted": "cf630321aa45e4b7cfa9de660b05d8edb32dc2aa80dd13a3618206f5499132a91a31c8e3012326b7cd996c6435ef3c5ca4b2ebfa437f507d287d41fc5e2375d9",
+      "iv": "ad1c71455abaf71c11bc5fb18e729a08",
+      "authTag": "ca148f83a2f043b076ee9c5a31f441bf",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:51:46.495Z",
+    "updatedAt": "2025-11-18T05:51:46.495Z"
+  },
+  {
+    "id": "24e5a4c8-d92f-48d5-9d80-f1e0ac0aba91",
+    "name": "テストカード",
+    "type": "credit_card",
+    "credentials": {
+      "encrypted": "a758569c641adf9e87cd4a0e01e0dc2f15b62304629ea8de8217cdf801590a835b955e72b82fdb797ae0fce3d2b00e2cf13091d546",
+      "iv": "ac6df3fcdd1b1d6c484fdb6e9a7567da",
+      "authTag": "920abb3f0d485e5648bb7c49c9e2eeed",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:51:46.501Z",
+    "updatedAt": "2025-11-18T05:51:46.501Z"
+  },
+  {
+    "id": "d6523320-874a-42e8-919d-f70d90a24b9b",
+    "name": "テスト証券",
+    "type": "securities",
+    "credentials": {
+      "encrypted": "2e4feeb0025e476548219d901347aef455fe3c4b5d9b15feefd95f8033ca310445b4e6639fb7a436b8e4d8809fcff72e",
+      "iv": "bab4a18273d1b3a645af6c940e55f9ee",
+      "authTag": "532f0723a0640fcc717a3f8a3f00064c",
+      "algorithm": "aes-256-gcm",
+      "version": "1.0"
+    },
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
+    "createdAt": "2025-11-18T05:51:46.503Z",
+    "updatedAt": "2025-11-18T05:51:46.503Z"
   }
 ]

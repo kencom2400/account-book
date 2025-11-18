@@ -26,10 +26,10 @@ test.describe('ホームページ', () => {
   test('機能説明セクションが表示される', async ({ page }) => {
     await page.goto('/');
 
-    // 機能説明のカードが表示されることを確認（テキストが部分的に含まれていればOK）
-    await expect(page.getByText(/収支の可視化|月次・年次での収支バランス/)).toBeVisible();
-    await expect(page.getByText(/一元管理|複数の金融機関の資産を一箇所で管理/)).toBeVisible();
-    await expect(page.getByText(/自動分類|取引を自動的にカテゴリ分類/)).toBeVisible();
+    // 機能説明のカードが表示されることを確認（first()を使って最初の要素を取得）
+    await expect(page.getByText(/収支の可視化|月次・年次での収支バランス/).first()).toBeVisible();
+    await expect(page.getByText(/一元管理|複数の金融機関の資産を一箇所で管理/).first()).toBeVisible();
+    await expect(page.getByText(/自動分類|取引を自動的にカテゴリ分類/).first()).toBeVisible();
   });
 });
 
