@@ -1,8 +1,9 @@
-# ユニットテスト実装ガイドライン
+# テスト実装ガイドライン（ユニットテスト + E2Eテスト）
 
 ## 基本原則
 
 - **全ての新規実装にユニットテストを作成すること**
+- **APIエンドポイントやUI機能を実装した場合は、E2Eテストも作成すること**
 - **実装したテストは必ず実行し、全てのテストが成功することを確認すること**
 - **テストが失敗した場合は、必ず修正してから次の作業に進むこと**
 - **テストカバレッジは80%以上を目標とする**
@@ -106,12 +107,21 @@ expect(result.amount).toBe(1000);
 
 ### 新機能実装時
 
-1. テストコードを作成する
-2. **必ずテストを実行する**
-3. **全てのテストが成功するまで修正する**
-4. コミット前に再度テストを実行し、全て成功することを確認する
+1. **ユニットテストコードを作成する**
+   - ドメインロジック、UseCase、コントローラーなど、各レイヤーのユニットテストを作成
+2. **E2Eテストコードを作成する（該当する場合）**
+   - 新規APIエンドポイントを実装した場合: Backend E2Eテストを作成
+   - 新規UI機能を実装した場合: Frontend E2Eテストを作成
+   - 既存のE2Eテストが失敗する場合は、実装状況に応じて修正またはスキップ
+3. **必ずテストを実行する**
+   - ユニットテスト: `./scripts/test.sh`
+   - E2Eテスト: `./scripts/test/test-e2e.sh`
+4. **全てのテストが成功するまで修正する**
+5. コミット前に再度テストを実行し、全て成功することを確認する
 
 ### テスト実行コマンド
+
+#### ユニットテスト
 
 ```bash
 # モジュール全体のテスト
@@ -131,6 +141,27 @@ pnpm test:watch
 pnpm test:cov
 ```
 
+#### E2Eテスト
+
+```bash
+# Backend E2Eテスト
+cd apps/backend
+pnpm test:e2e
+
+# Frontend E2Eテスト
+cd apps/frontend
+pnpm test:e2e
+
+# すべてのE2Eテスト（スクリプト経由）
+./scripts/test/test-e2e.sh all
+
+# Backendのみ
+./scripts/test/test-e2e.sh backend
+
+# Frontendのみ
+./scripts/test/test-e2e.sh frontend
+```
+
 ### テスト失敗時の対応
 
 1. エラーメッセージを確認する
@@ -144,16 +175,25 @@ pnpm test:cov
 
 ### コミット前チェックリスト
 
-- [ ] 新規実装に対応するテストコードを作成した
-- [ ] テストを実行し、全て成功した
+- [ ] 新規実装に対応するユニットテストコードを作成した
+- [ ] APIエンドポイントやUI機能を実装した場合、E2Eテストコードを作成した
+- [ ] ユニットテストを実行し、全て成功した（`./scripts/test.sh`）
+- [ ] E2Eテストを実行し、全て成功した（`./scripts/test/test-e2e.sh`）
 - [ ] Linterエラーがない
 - [ ] 不要なconsole.log等のデバッグコードを削除した
 - [ ] コミットメッセージが適切である
 
 ## テストフレームワーク
 
+### ユニットテスト
+
 - **Jest**: TypeScript/JavaScript用テストフレームワーク
 - **@nestjs/testing**: NestJS固有の機能テスト用
+
+### E2Eテスト
+
+- **Jest + Supertest**: Backend APIのE2Eテスト用
+- **Playwright**: Frontend UIのE2Eテスト用
 
 ## ディレクトリ構造
 
@@ -593,11 +633,113 @@ pnpm test:cov
 
 # E2Eテスト
 pnpm test:e2e
+
+# Backend E2Eテスト
+cd apps/backend && pnpm test:e2e
+
+# Frontend E2Eテスト
+cd apps/frontend && pnpm test:e2e
+
+# すべてのE2Eテスト（スクリプト経由）
+./scripts/test/test-e2e.sh all
 ```
+
+## E2Eテスト実装ガイドライン
+
+### Backend E2Eテスト
+
+**作成が必要な場合:**
+
+- 新規APIエンドポイントを実装した場合
+- APIの統合動作を確認したい場合
+
+**テストファイルの場所:**
+
+- `apps/backend/test/*.e2e-spec.ts`
+
+**例:**
+
+```typescript
+describe('Securities API (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [SecuritiesModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('should connect to securities account successfully', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/securities/connect')
+      .send({
+        securitiesCompanyName: 'SBI証券',
+        accountNumber: '12345678',
+        accountType: 'specific',
+        loginId: 'test_user',
+        password: 'test_password',
+      })
+      .expect(201);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('id');
+  });
+});
+```
+
+### Frontend E2Eテスト
+
+**作成が必要な場合:**
+
+- 新規ページやUI機能を実装した場合
+- ユーザーフローを確認したい場合
+
+**テストファイルの場所:**
+
+- `apps/frontend/e2e/*.spec.ts`
+
+**例:**
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('ダッシュボード', () => {
+  test('ダッシュボードページが表示される', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    // ローディングが完了するまで待機
+    await page
+      .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
+      .catch(() => {});
+
+    // タイトルが表示されることを確認
+    const hasHeading = await page
+      .getByRole('heading', { level: 1 })
+      .isVisible()
+      .catch(() => false);
+    expect(hasHeading).toBe(true);
+  });
+});
+```
+
+### E2Eテストの注意事項
+
+- **実装していない機能のテストはスキップする**: `it.skip()`を使用
+- **ローディング状態を考慮する**: 非同期処理の完了を待つ
+- **エラー状態もテストする**: 正常系だけでなく異常系も確認
+- **テストデータの管理**: テスト実行前後のデータクリーンアップを考慮
 
 ## まとめ
 
 - **テストファースト**: 実装前にテストを書く（TDD推奨）
+- **ユニットテスト + E2Eテスト**: 両方を作成して品質を担保
 - **独立性**: テストは他のテストに依存しない
 - **明確性**: テストケース名で何をテストしているか明確に
 - **保守性**: テストコードも本番コードと同じ品質で
