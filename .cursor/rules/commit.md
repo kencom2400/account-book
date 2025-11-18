@@ -201,7 +201,7 @@ chore(setup): プロジェクト初期設定
 - [ ] 変更内容が一貫性を持っているか確認
 - [ ] コミットメッセージが適切か確認
 
-**重要**: commitしたら、**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/lint.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してから再度commitすること。
+**重要**: commitしたら、**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/lint.sh`、`./scripts/test/test-e2e.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してから再度commitすること。
 
 ### push前のチェックリスト
 
@@ -240,15 +240,23 @@ chore(setup): プロジェクト初期設定
 
    - フロントエンドとバックエンドの両方が正常にビルドできることを確認
 
-2. **テストがすべてパスするか確認（必須）**
+2. **ユニットテストがすべてパスするか確認（必須）**
 
    ```bash
    ./scripts/test.sh
    ```
 
-   - すべてのテストが成功することを確認
+   - すべてのユニットテストが成功することを確認
 
-3. **Lintエラーがないか確認（必須）**
+3. **E2Eテストがすべてパスするか確認（必須）**
+
+   ```bash
+   ./scripts/test/test-e2e.sh
+   ```
+
+   - すべてのE2Eテストが成功することを確認
+
+4. **Lintエラーがないか確認（必須）**
 
    ```bash
    ./scripts/lint.sh
@@ -256,7 +264,7 @@ chore(setup): プロジェクト初期設定
 
    - フロントエンドとバックエンドの両方でlintエラーがないことを確認
 
-**重要**: コードファイルを変更した場合、pushする前に**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/lint.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してからpushすること。
+**重要**: コードファイルを変更した場合、pushする前に**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/test/test-e2e.sh`、`./scripts/lint.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してからpushすること。
 
 ## Gitコマンド例
 
