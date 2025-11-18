@@ -4,12 +4,13 @@ import {
   BankTransaction,
   BankConnectionTestResult,
 } from '@account-book/types';
+import type { IFinancialApiClient } from '../../../health/domain/adapters/api-client.interface';
 
 /**
  * 銀行APIアダプターのインターフェース
  * 各銀行ごとの具体的な実装を抽象化する
  */
-export interface IBankApiAdapter {
+export interface IBankApiAdapter extends IFinancialApiClient {
   /**
    * 銀行コードを取得
    */

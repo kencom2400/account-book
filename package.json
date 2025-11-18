@@ -22,7 +22,15 @@
   "author": "",
   "license": "ISC",
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
+    "apps/backend/**/*.{ts,tsx}": [
+      "eslint --config apps/backend/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "libs/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],

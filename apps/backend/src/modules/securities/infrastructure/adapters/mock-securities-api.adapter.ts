@@ -17,6 +17,25 @@ import { SecurityTransactionEntity } from '../../domain/entities/security-transa
  */
 @Injectable()
 export class MockSecuritiesAPIAdapter implements ISecuritiesAPIClient {
+  /**
+   * ヘルスチェック（IFinancialApiClient実装）
+   * FR-004: バックグラウンド接続確認で使用
+   * @param _institutionId 金融機関ID（証券口座ID）
+   */
+  async healthCheck(_institutionId: string): Promise<{
+    success: boolean;
+    needsReauth?: boolean;
+    errorMessage?: string;
+    errorCode?: string;
+  }> {
+    // モック実装: 常に成功を返す
+    // 実際の実装では、institutionIdから認証情報を取得してtestConnectionを呼び出す
+    await this.simulateNetworkDelay();
+    return {
+      success: true,
+    };
+  }
+
   async testConnection(
     _credentials: SecuritiesAPICredentials,
   ): Promise<SecuritiesConnectionResult> {
@@ -48,7 +67,6 @@ export class MockSecuritiesAPIAdapter implements ISecuritiesAPIClient {
   }
 
   async getHoldings(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _credentials: SecuritiesAPICredentials,
   ): Promise<SecuritiesHoldingData[]> {
     await this.simulateNetworkDelay();
@@ -95,11 +113,8 @@ export class MockSecuritiesAPIAdapter implements ISecuritiesAPIClient {
   }
 
   async getTransactions(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _credentials: SecuritiesAPICredentials,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _startDate: Date,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _endDate: Date,
   ): Promise<SecuritiesTransactionData[]> {
     await this.simulateNetworkDelay();

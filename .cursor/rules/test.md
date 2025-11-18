@@ -10,6 +10,98 @@
 - **テストは高速に実行できること**
 - **テストは保守しやすく、理解しやすいこと**
 
+## 🚫 テストでの絶対禁止事項
+
+### 1. any型の安易な使用禁止
+
+**❌ 悪い例:**
+
+```typescript
+// テストだからといってany型を乱用しない
+const mockData: any = { id: 1 }; // ❌
+const result: any = await service.execute(); // ❌
+```
+
+**✅ 良い例:**
+
+```typescript
+// テストでも適切な型定義を使用
+const mockData: CreditCardEntity = {
+  id: '1',
+  issuer: 'Test Card',
+  // ... 必要なプロパティを全て定義
+};
+
+// モックオブジェクトでのみany型を許容（理由コメント必須）
+const mockRepository = {
+  findById: jest.fn(),
+  save: jest.fn(),
+} as any; // Jest型定義の制約によりany使用
+```
+
+**許容されるany型使用（理由コメント必須）:**
+
+- Jestモックオブジェクトの型キャスト
+- 外部ライブラリのモック作成時
+- 上記の場合も必ずコメントで理由を明記
+
+### 2. テストエラー・警告の握りつぶし禁止
+
+**❌ 絶対に禁止:**
+
+```typescript
+// テストが失敗しているのにスキップする
+it.skip('should process payment', () => {
+  // ❌ 理由なしのskipは禁止
+  // ...
+});
+
+// エラーを握りつぶす
+try {
+  await service.execute();
+} catch (error) {
+  // 何もしない  // ❌ エラーを無視するのは禁止
+}
+
+// 期待値を緩くして通す
+expect(result).toBeTruthy(); // ❌ 具体的な値を検証すべき
+```
+
+**✅ 正しい対応:**
+
+```typescript
+// 一時的にスキップする場合は理由とTODOを明記
+// TODO: #456 - APIモックの修正後にこのテストを有効化
+it.skip('should process payment', () => {
+  // ...
+});
+
+// エラーは適切にテスト
+it('should throw error when invalid data', async () => {
+  await expect(service.execute(invalidData)).rejects.toThrow('Invalid data');
+});
+
+// 具体的な値を検証
+expect(result.status).toBe('COMPLETED');
+expect(result.amount).toBe(1000);
+```
+
+### 3. テスト実行の省略禁止
+
+**❌ 絶対に禁止:**
+
+- テストコードを書いたが実行しない
+- テストが失敗したまま放置
+- 「後でテスト書く」と先延ばし
+
+**✅ 必須の手順:**
+
+1. テストコード作成
+2. **即座にテスト実行**（`pnpm test`）
+3. 全テスト成功を確認
+4. 失敗があれば即座に修正
+5. コミット前に再度確認
+
 ## テスト実行義務
 
 ### 新機能実装時

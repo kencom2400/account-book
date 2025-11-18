@@ -16,6 +16,25 @@ import { PaymentVO } from '../../domain/value-objects/payment.vo';
  */
 @Injectable()
 export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
+  /**
+   * ヘルスチェック（IFinancialApiClient実装）
+   * FR-004: バックグラウンド接続確認で使用
+   * @param _institutionId 金融機関ID（クレジットカードID）
+   */
+  async healthCheck(_institutionId: string): Promise<{
+    success: boolean;
+    needsReauth?: boolean;
+    errorMessage?: string;
+    errorCode?: string;
+  }> {
+    // モック実装: 常に成功を返す
+    // 実際の実装では、institutionIdから認証情報を取得してtestConnectionを呼び出す
+    await this.simulateNetworkDelay();
+    return {
+      success: true,
+    };
+  }
+
   async testConnection(_credentials: {
     username: string;
     password: string;

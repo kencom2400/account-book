@@ -37,7 +37,6 @@ export default function DashboardPage() {
         setTransactions(transactionsData);
         setSummary(summaryData);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('Failed to fetch data:', err);
         setError('データの取得に失敗しました');
       } finally {
@@ -84,9 +83,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            ダッシュボード
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">ダッシュボード</h1>
           <p className="text-gray-600">
             {currentYear}年{currentMonth}月の収支状況
           </p>
@@ -122,4 +119,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

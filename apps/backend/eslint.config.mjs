@@ -34,6 +34,14 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       // 推論可能でも明示的に型を付与（変数、引数、戻り値）
       '@typescript-eslint/no-inferrable-types': 'off',
+      // 未使用変数のチェック（_プレフィックスは許可）
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       // 型安全性チェックをエラーに
       '@typescript-eslint/no-unsafe-assignment': 'error',
       '@typescript-eslint/no-unsafe-member-access': 'error',
