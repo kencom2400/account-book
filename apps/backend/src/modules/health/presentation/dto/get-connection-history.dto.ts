@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsDateString, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -21,6 +27,11 @@ export class GetConnectionHistoryQueryDto {
   @IsNumber()
   @Type(() => Number)
   limit?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  latestOnly?: boolean;
 }
 
 /**
