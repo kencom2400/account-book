@@ -237,11 +237,11 @@ cat > /tmp/update-issue-9.txt << 'EOF'
 - [ ] 関連Issueとの整合性が確認されている
 
 ## 📁 関連ファイル
-- `scripts/dev.sh` - 開発サーバー起動
-- `scripts/build.sh` - ビルド
-- `scripts/test.sh` - テスト実行
-- `scripts/lint.sh` - Lint実行
-- `scripts/install.sh` - パッケージインストール
+- `scripts/dev/dev.sh` - 開発サーバー起動
+- `scripts/build/build.sh` - ビルド
+- `scripts/test/test.sh` - テスト実行
+- `scripts/test/lint.sh` - Lint実行
+- `scripts/setup/install.sh` - パッケージインストール
 - `scripts/README.md` - スクリプトドキュメント
 
 ## 📚 参考資料

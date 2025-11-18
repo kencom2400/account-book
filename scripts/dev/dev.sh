@@ -5,7 +5,7 @@
 set -e
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then
@@ -33,14 +33,14 @@ case $TARGET in
     echo "🚀 バックエンドとフロントエンドの開発サーバーを起動..."
     echo ""
     echo "注意: 別々のターミナルで起動してください"
-    echo "  ターミナル1: ./scripts/dev.sh backend"
-    echo "  ターミナル2: ./scripts/dev.sh frontend"
+    echo "  ターミナル1: ./scripts/dev/dev.sh backend"
+    echo "  ターミナル2: ./scripts/dev/dev.sh frontend"
     echo ""
     echo "または、以下のコマンドでバックグラウンド起動:"
-    echo "  ./scripts/dev-parallel.sh"
+    echo "  ./scripts/dev/dev-parallel.sh"
     ;;
   *)
-    echo "使用方法: ./scripts/dev.sh [backend|frontend|all]"
+    echo "使用方法: ./scripts/dev/dev.sh [backend|frontend|all]"
     exit 1
     ;;
 esac

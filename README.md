@@ -23,7 +23,7 @@ corepack enable
 corepack prepare pnpm@8.15.0 --activate
 
 # 依存関係のインストールと初期セットアップ
-./scripts/setup.sh
+./scripts/setup/setup.sh
 ```
 
 ### 開発サーバーの起動
