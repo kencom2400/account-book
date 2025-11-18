@@ -36,3 +36,11 @@ coverage/
 
 # Turbo
 .turbo/
+
+# Issue作成用のドラフトデータ
+scripts/github/issues/issue-data/drafts/*
+!scripts/github/issues/issue-data/drafts/.gitkeep
+scripts/github/issues/issue-data/*-draft.*
+scripts/github/issues/issue-data/*-wip.*
+scripts/github/issues/issue-data/*-temp.*
+scripts/github/issues/issue-data/*-tmp.*

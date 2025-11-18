@@ -1,0 +1,30 @@
+# Issue作成用データファイルの除外設定
+
+# draftsディレクトリ全体を除外（.gitkeepは含める）
+drafts/*
+!drafts/.gitkeep
+
+# ドラフトファイルパターン
+*-draft.yml
+*-draft.yaml
+*-draft.json
+
+# 作業中ファイルパターン
+*-wip.yml
+*-wip.yaml
+*-wip.json
+
+# 一時ファイルパターン
+*-temp.yml
+*-temp.yaml
+*-temp.json
+*-tmp.yml
+*-tmp.yaml
+*-tmp.json
+
+# エディタの一時ファイル
+*.swp
+*.swo
+*~
+.DS_Store
+
