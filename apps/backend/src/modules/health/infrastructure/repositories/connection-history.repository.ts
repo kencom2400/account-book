@@ -110,6 +110,13 @@ export class FileSystemConnectionHistoryRepository
     }
   }
 
+  /**
+   * 指定金融機関の最新履歴を取得
+   *
+   * パフォーマンス注意: ファイル全体を読み込んでメモリ上でフィルタ/ソートを実施
+   * データ量が増加すると性能劣化の可能性あり
+   * 本番環境ではDB（SQLite/PostgreSQL等）への移行を強く推奨
+   */
   async findLatestByInstitutionId(
     institutionId: string,
   ): Promise<ConnectionHistory | null> {
@@ -138,6 +145,13 @@ export class FileSystemConnectionHistoryRepository
     }
   }
 
+  /**
+   * 全金融機関の最新履歴を取得
+   *
+   * パフォーマンス注意: ファイル全体を読み込んでメモリ上で処理
+   * データ量が増加すると性能劣化の可能性あり
+   * 本番環境ではDB（SQLite/PostgreSQL等）への移行を強く推奨
+   */
   async findAllLatest(): Promise<ConnectionHistory[]> {
     try {
       const data = await this.loadData();
@@ -168,6 +182,13 @@ export class FileSystemConnectionHistoryRepository
     }
   }
 
+  /**
+   * 指定金融機関の期間内履歴を取得
+   *
+   * パフォーマンス注意: ファイル全体を読み込んでメモリ上でフィルタ/ソート
+   * データ量が増加すると性能劣化の可能性あり
+   * 本番環境ではDB（SQLite/PostgreSQL等）への移行を強く推奨
+   */
   async findByInstitutionIdAndDateRange(
     institutionId: string,
     startDate: Date,

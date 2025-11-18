@@ -75,9 +75,15 @@ export class GetConnectionHistoryUseCase {
               query.endDate,
             );
         } else {
-          // 全金融機関の期間指定（未実装のため全履歴を取得後フィルタ）
+          // 全金融機関の期間指定（全履歴を取得後フィルタ）
+          // TODO(パフォーマンス改善): 履歴データが大量になると性能問題の可能性
+          // 将来的にDB移行時は、リポジトリ層で効率的な期間フィルタリング
+          // （例: findAllByDateRange）を実装することが重要
           this.logger.debug(
             `全金融機関の期間指定履歴取得: ${query.startDate.toISOString()} - ${query.endDate.toISOString()}`,
+          );
+          this.logger.warn(
+            '全履歴をメモリにロード後フィルタリング（データ量増加時は性能注意）',
           );
           const allHistories = await this.historyRepository.findAll();
           histories = allHistories.filter(
