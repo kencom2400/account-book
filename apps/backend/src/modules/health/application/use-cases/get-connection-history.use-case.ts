@@ -93,12 +93,16 @@ export class GetConnectionHistoryUseCase {
       }
       // institutionIdのみ指定
       else if (query.institutionId) {
-        // 特定の金融機関の最新履歴
-        this.logger.debug(`最新の接続履歴取得: ${query.institutionId}`);
-        const latest = await this.historyRepository.findLatestByInstitutionId(
-          query.institutionId,
+        // 特定の金融機関の全履歴を取得
+        this.logger.debug(`接続履歴取得: ${query.institutionId}`);
+        const allHistories = await this.historyRepository.findAll();
+        histories = allHistories.filter(
+          (h) => h.institutionId === query.institutionId,
         );
-        histories = latest ? [latest] : [];
+        // limitを適用
+        if (query.limit && query.limit > 0) {
+          histories = histories.slice(0, query.limit);
+        }
       }
       // 条件なし（全履歴）
       else {
