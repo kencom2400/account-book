@@ -43,7 +43,7 @@ case $TARGET in
     pnpm test
     ;;
   *)
-    echo "使用方法: ./scripts/build/test.sh [backend|frontend|all]"
+    echo "使用方法: ./scripts/test/test.sh [backend|frontend|all]"
     exit 1
     ;;
 esac

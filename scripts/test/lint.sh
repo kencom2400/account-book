@@ -43,7 +43,7 @@ case $TARGET in
     pnpm lint
     ;;
   *)
-    echo "使用方法: ./scripts/build/lint.sh [backend|frontend|all]"
+    echo "使用方法: ./scripts/test/lint.sh [backend|frontend|all]"
     exit 1
     ;;
 esac
