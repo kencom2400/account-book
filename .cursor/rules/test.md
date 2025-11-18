@@ -736,6 +736,80 @@ test.describe('ダッシュボード', () => {
 - **エラー状態もテストする**: 正常系だけでなく異常系も確認
 - **テストデータの管理**: テスト実行前後のデータクリーンアップを考慮
 
+### E2Eテストコードのメンテナンス性
+
+**重複コードの削減:**
+
+- 同じ処理が複数のテストケースで繰り返される場合は、ヘルパー関数を抽出する
+- ローディング待機、ページ状態確認などの共通処理は関数化する
+
+**✅ 良い例:**
+
+```typescript
+// ヘルパー関数を抽出
+async function waitForLoadingComplete(page: Page): Promise<void> {
+  await page
+    .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
+    .catch(() => {});
+}
+
+async function getPageState(page: Page) {
+  return {
+    hasHeading: await page
+      .getByRole('heading', { level: 1 })
+      .isVisible()
+      .catch(() => false),
+    hasError: await page
+      .getByText('データの取得に失敗しました')
+      .isVisible()
+      .catch(() => false),
+    // ...
+  };
+}
+
+test('ダッシュボードページが表示される', async ({ page }) => {
+  await waitForLoadingComplete(page);
+  const state = await getPageState(page);
+  expect(state.hasHeading || state.hasError).toBe(true);
+});
+```
+
+**❌ 悪い例:**
+
+```typescript
+// 同じ処理が各テストケースで重複
+test('test1', async ({ page }) => {
+  await page.waitForSelector('text=読み込み中...', { state: 'hidden' }).catch(() => {});
+  const hasHeading = await page
+    .getByRole('heading', { level: 1 })
+    .isVisible()
+    .catch(() => false);
+  // ...
+});
+
+test('test2', async ({ page }) => {
+  await page.waitForSelector('text=読み込み中...', { state: 'hidden' }).catch(() => {});
+  const hasHeading = await page
+    .getByRole('heading', { level: 1 })
+    .isVisible()
+    .catch(() => false);
+  // ...
+});
+```
+
+**型安全性の向上:**
+
+- Playwrightの`Page`型を明示的にインポートして使用する
+- ヘルパー関数の引数と戻り値に適切な型を指定する
+
+```typescript
+import { test, expect, type Page } from '@playwright/test';
+
+async function waitForLoadingComplete(page: Page): Promise<void> {
+  // ...
+}
+```
+
 ## まとめ
 
 - **テストファースト**: 実装前にテストを書く（TDD推奨）
