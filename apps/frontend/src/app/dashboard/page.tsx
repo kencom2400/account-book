@@ -37,7 +37,6 @@ export default function DashboardPage() {
         setTransactions(transactionsData);
         setSummary(summaryData);
       } catch (err) {
-        console.error('Failed to fetch data:', err);
         setError('データの取得に失敗しました');
       } finally {
         setLoading(false);

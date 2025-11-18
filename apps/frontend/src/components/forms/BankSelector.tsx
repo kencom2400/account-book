@@ -37,7 +37,6 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
         setError(null);
       } catch (err) {
         setError('銀行一覧の取得に失敗しました');
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -59,9 +58,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(
-        (bank) =>
-          bank.name.toLowerCase().includes(term) ||
-          bank.code.includes(term)
+        (bank) => bank.name.toLowerCase().includes(term) || bank.code.includes(term)
       );
     }
 
@@ -78,9 +75,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-        {error}
-      </div>
+      <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">{error}</div>
     );
   }
 
@@ -142,12 +137,8 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
               }`}
             >
               <div className="font-medium text-gray-900">{bank.name}</div>
-              <div className="text-sm text-gray-500">
-                銀行コード: {bank.code}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                {CATEGORY_LABELS[bank.category]}
-              </div>
+              <div className="text-sm text-gray-500">銀行コード: {bank.code}</div>
+              <div className="text-xs text-gray-400 mt-1">{CATEGORY_LABELS[bank.category]}</div>
             </button>
           ))
         )}
@@ -155,4 +146,3 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
     </div>
   );
 }
-

@@ -134,7 +134,7 @@ export class ConnectCreditCardUseCase {
       }
     } catch (error) {
       // 初回取得失敗はログだけ残して続行
-      this.logger.error(
+      this.logger.warn(
         `Failed to fetch initial transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error instanceof Error ? error.stack : undefined,
       );
