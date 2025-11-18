@@ -36,7 +36,7 @@ export default function DashboardPage() {
 
         setTransactions(transactionsData);
         setSummary(summaryData);
-      } catch (err) {
+      } catch (_err) {
         setError('データの取得に失敗しました');
       } finally {
         setLoading(false);
