@@ -265,14 +265,23 @@ cat .github/labels.yml
 
 ### プロジェクトボードに追加できない
 
-`create-issue.sh` 内のプロジェクト番号とオーナー名を確認してください。
+プロジェクト番号やオーナー名が異なる場合は、環境変数で設定できます：
 
 ```bash
-# 現在の設定（create-issue.sh内）
-gh project item-add 1 --owner kencom2400 --url "..."
+# 環境変数で設定
+export GH_PROJECT_OWNER=your-username
+export GH_PROJECT_NUMBER=2
+
+# Issue作成
+./create-issue.sh issue-data/drafts/my-feature-draft.yml
 ```
 
-プロジェクト番号やオーナー名が異なる場合は、スクリプトを修正してください。
+デフォルト値：
+
+- `GH_PROJECT_OWNER`: `kencom2400`
+- `GH_PROJECT_NUMBER`: `1`
+
+環境変数が設定されていない場合は、デフォルト値が使用されます。
 
 ### データファイルがGitに追跡されてしまう
 

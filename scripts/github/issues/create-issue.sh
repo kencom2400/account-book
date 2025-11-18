@@ -5,6 +5,10 @@
 
 set -e
 
+# プロジェクト設定（環境変数で上書き可能）
+PROJECT_OWNER=${GH_PROJECT_OWNER:-kencom2400}
+PROJECT_NUMBER=${GH_PROJECT_NUMBER:-1}
+
 # 使用方法を表示
 show_usage() {
     echo "使用方法: $0 <data-file>"
@@ -103,32 +107,31 @@ echo "   タイトル: $TITLE"
 echo "   ラベル: $LABELS"
 echo ""
 
+# 引数を配列で組み立て
+CREATE_ARGS=("--title" "$TITLE" "--body" "$BODY")
 if [ -n "$LABELS" ] && [ "$LABELS" != "null" ]; then
-    gh issue create \
-      --title "$TITLE" \
-      --label "$LABELS" \
-      --body "$BODY"
-else
-    gh issue create \
-      --title "$TITLE" \
-      --body "$BODY"
+    CREATE_ARGS+=("--label" "$LABELS")
 fi
 
-if [ $? -eq 0 ]; then
-    ISSUE_NUM=$(gh issue list --limit 1 --json number --jq '.[0].number')
+# Issue作成とURLのキャプチャ
+ISSUE_URL=$(gh issue create "${CREATE_ARGS[@]}")
+
+if [ $? -eq 0 ] && [ -n "$ISSUE_URL" ]; then
+    # URLからIssue番号を安全に取得
+    ISSUE_NUM=$(basename "$ISSUE_URL")
     echo ""
     echo "✅ Issue #${ISSUE_NUM} 作成成功"
     echo ""
     
     # Projectに追加
-    echo "📊 プロジェクトボードに追加中..."
-    gh project item-add 1 --owner kencom2400 --url "https://github.com/kencom2400/account-book/issues/${ISSUE_NUM}" 2>&1
+    echo "📊 プロジェクトボード (Owner: $PROJECT_OWNER, Number: $PROJECT_NUMBER) に追加中..."
+    gh project item-add "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --url "$ISSUE_URL" 2>&1
     
     if [ $? -eq 0 ]; then
         echo "✅ プロジェクトボードに追加完了"
     else
         echo "⚠️  プロジェクトボードへの追加に失敗しました"
-        echo "   手動で追加してください: https://github.com/kencom2400/account-book/issues/${ISSUE_NUM}"
+        echo "   手動で追加してください: $ISSUE_URL"
     fi
     
     echo ""
@@ -136,7 +139,7 @@ if [ $? -eq 0 ]; then
     echo "   ✅ 完了"
     echo "════════════════════════════════════════════════════════════════"
     echo ""
-    echo "Issue URL: https://github.com/kencom2400/account-book/issues/${ISSUE_NUM}"
+    echo "Issue URL: $ISSUE_URL"
 else
     echo ""
     echo "❌ Issue作成に失敗しました"
