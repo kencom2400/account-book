@@ -65,20 +65,34 @@ export class CheckConnectionStatusUseCase {
           })),
         );
 
+      // 金融機関情報をMapに変換（IDで高速検索）
+      const institutionMap = new Map(
+        targetInstitutions.map((inst) => [inst.id, inst]),
+      );
+
       // 履歴エンティティに変換
-      const histories = checkResults.map((result, index) => {
-        const institution = targetInstitutions[index];
-        return ConnectionHistory.create(
-          result.institutionId,
-          institution.name,
-          institution.type,
-          result.status,
-          result.checkedAt,
-          result.responseTime,
-          result.errorMessage,
-          result.errorCode,
-        );
-      });
+      // 配列順序に依存せず、institutionIdで検索
+      const histories = checkResults
+        .map((result) => {
+          const institution = institutionMap.get(result.institutionId);
+          if (!institution) {
+            this.logger.warn(
+              `チェック結果に対応する金融機関が見つかりませんでした: ${result.institutionId}`,
+            );
+            return null;
+          }
+          return ConnectionHistory.create(
+            result.institutionId,
+            institution.name,
+            institution.type,
+            result.status,
+            result.checkedAt,
+            result.responseTime,
+            result.errorMessage,
+            result.errorCode,
+          );
+        })
+        .filter((history): history is ConnectionHistory => history !== null);
 
       // 履歴を保存
       await this.historyRepository.saveMany(histories);
