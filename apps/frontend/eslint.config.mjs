@@ -106,13 +106,13 @@ export default tseslint.config(
         },
     },
     
-    // 設定ファイルとJest関連ファイルは型チェックから除外
+    // 設定ファイルとJest関連ファイルは型チェックから除外（ステップ1: 型チェック無効化）
     {
         files: ['**/*.config.{js,mjs,cjs}', '**/*.setup.{js,mjs,cjs}', '**/jest.config.js', '**/jest.setup.js', 'eslint.config.mjs'],
         ...tseslint.configs.disableTypeChecked,
     },
     
-    // 設定ファイルとJest関連ファイルの追加設定
+    // 設定ファイルとJest関連ファイルの追加設定（ステップ2: グローバル変数とルール設定）
     {
         files: ['**/*.config.{js,mjs,cjs}', '**/*.setup.{js,mjs,cjs}', '**/jest.config.js', '**/jest.setup.js', 'eslint.config.mjs'],
         languageOptions: {
