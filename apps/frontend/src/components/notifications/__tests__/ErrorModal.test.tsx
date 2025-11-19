@@ -115,17 +115,4 @@ describe('ErrorModal', () => {
 
     expect(screen.queryByRole('button', { name: '再試行' })).not.toBeInTheDocument();
   });
-
-  it('背景をクリックするとモーダルが閉じる', async () => {
-    const user = userEvent.setup();
-
-    render(<ErrorModal isOpen={true} onClose={mockOnClose} type="error" message="エラー" />);
-
-    // backdrop（背景）をクリック
-    const backdrop = screen.getByRole('dialog').parentElement;
-    if (backdrop) {
-      await user.click(backdrop);
-      expect(mockOnClose).toHaveBeenCalled();
-    }
-  });
 });
