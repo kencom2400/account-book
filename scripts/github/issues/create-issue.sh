@@ -9,6 +9,11 @@ set -e
 PROJECT_OWNER=${GH_PROJECT_OWNER:-kencom2400}
 PROJECT_NUMBER=${GH_PROJECT_NUMBER:-1}
 
+# プロジェクトボード設定（GitHub Projects V2）
+PROJECT_ID=${GH_PROJECT_ID:-"PVT_kwHOANWYrs4BIOm-"}
+STATUS_FIELD_ID=${GH_STATUS_FIELD_ID:-"PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"}
+BACKLOG_OPTION_ID=${GH_BACKLOG_OPTION_ID:-"f908f688"}
+
 # 使用方法を表示
 show_usage() {
     echo "使用方法: $0 <data-file>"
@@ -148,33 +153,40 @@ if [ $? -eq 0 ] && [ -n "$ISSUE_URL" ]; then
               }
             }
           }
-        }" | jq -r ".data.repository.issue.projectItems.nodes[] | select(.project.number == $PROJECT_NUMBER) | .id")
+        }" 2>&1 | jq -r ".data.repository.issue.projectItems.nodes[] | select(.project.number == $PROJECT_NUMBER) | .id")
         
-        if [ -n "$PROJECT_ITEM_ID" ]; then
+        if [ -z "$PROJECT_ITEM_ID" ]; then
+            echo "⚠️  プロジェクトアイテムIDの取得に失敗しました"
+            echo "   デバッグ情報: Issue #${ISSUE_NUM}, Project #${PROJECT_NUMBER}"
+        else
             # ステータスフィールドを更新（Backlog）
-            gh api graphql -f query="
+            STATUS_UPDATE_RESULT=$(gh api graphql -f query="
             mutation {
               updateProjectV2ItemFieldValue(input: {
-                projectId: \"PVT_kwHOANWYrs4BIOm-\"
+                projectId: \"$PROJECT_ID\"
                 itemId: \"$PROJECT_ITEM_ID\"
-                fieldId: \"PVTSSF_lAHOANWYrs4BIOm-zg4wCDo\"
+                fieldId: \"$STATUS_FIELD_ID\"
                 value: {
-                  singleSelectOptionId: \"f908f688\"
+                  singleSelectOptionId: \"$BACKLOG_OPTION_ID\"
                 }
               }) {
                 projectV2Item {
                   id
                 }
               }
-            }" > /dev/null 2>&1
+            }" 2>&1)
             
             if [ $? -eq 0 ]; then
                 echo "✅ ステータスをBacklogに設定完了"
             else
                 echo "⚠️  ステータス設定に失敗しました（手動で設定してください）"
+                echo "   デバッグ情報:"
+                echo "   - PROJECT_ID: $PROJECT_ID"
+                echo "   - ITEM_ID: $PROJECT_ITEM_ID"
+                echo "   - STATUS_FIELD_ID: $STATUS_FIELD_ID"
+                echo "   - BACKLOG_OPTION_ID: $BACKLOG_OPTION_ID"
+                echo "   エラー内容: $STATUS_UPDATE_RESULT"
             fi
-        else
-            echo "⚠️  プロジェクトアイテムIDの取得に失敗しました"
         fi
     else
         echo "⚠️  プロジェクトボードへの追加に失敗しました"
