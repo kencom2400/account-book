@@ -129,6 +129,53 @@ if [ $? -eq 0 ] && [ -n "$ISSUE_URL" ]; then
     
     if [ $? -eq 0 ]; then
         echo "✅ プロジェクトボードに追加完了"
+        
+        # ステータスをBacklogに設定
+        echo "📋 ステータスをBacklogに設定中..."
+        
+        # プロジェクトアイテムIDを取得
+        PROJECT_ITEM_ID=$(gh api graphql -f query="
+        query {
+          repository(owner: \"$PROJECT_OWNER\", name: \"account-book\") {
+            issue(number: $ISSUE_NUM) {
+              projectItems(first: 10) {
+                nodes {
+                  id
+                  project {
+                    number
+                  }
+                }
+              }
+            }
+          }
+        }" | jq -r ".data.repository.issue.projectItems.nodes[] | select(.project.number == $PROJECT_NUMBER) | .id")
+        
+        if [ -n "$PROJECT_ITEM_ID" ]; then
+            # ステータスフィールドを更新（Backlog）
+            gh api graphql -f query="
+            mutation {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: \"PVT_kwHOANWYrs4BIOm-\"
+                itemId: \"$PROJECT_ITEM_ID\"
+                fieldId: \"PVTSSF_lAHOANWYrs4BIOm-zg4wCDo\"
+                value: {
+                  singleSelectOptionId: \"f908f688\"
+                }
+              }) {
+                projectV2Item {
+                  id
+                }
+              }
+            }" > /dev/null 2>&1
+            
+            if [ $? -eq 0 ]; then
+                echo "✅ ステータスをBacklogに設定完了"
+            else
+                echo "⚠️  ステータス設定に失敗しました（手動で設定してください）"
+            fi
+        else
+            echo "⚠️  プロジェクトアイテムIDの取得に失敗しました"
+        fi
     else
         echo "⚠️  プロジェクトボードへの追加に失敗しました"
         echo "   手動で追加してください: $ISSUE_URL"
