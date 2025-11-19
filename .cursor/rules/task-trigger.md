@@ -44,16 +44,29 @@
 
 #### 1. チケット取得（自動実行）
 
-**必須**: 以下のコマンドを`required_permissions: ["all"]`付きで即座に実行：
+**必須**: 以下の手順で「To Do」ステータスのIssueのみを取得：
 
 ```bash
+# Step 1: GitHub Projectsから「To Do」ステータスのアイテムを取得
+gh project item-list 1 --owner kencom2400 --format json --limit 100 | jq '.items[] | select(.status.name == "📋 To Do") | .content'
+
+# Step 2: 取得したアイテムから自分にアサインされているIssueをフィルタリング
+# ※ 実際の実装では、上記のJSONから number, title, labels, url を抽出
+```
+
+**代替方法（プロジェクトAPIが使えない場合）**:
+```bash
+# 自分にアサインされているオープンなIssueを取得してから、
+# In Progressでないものをフィルタリング
 gh issue list --assignee @me --state open --json number,title,labels,milestone,url --limit 50
 ```
 
 **判定**:
 
-- ✅ アサインされたIssueが0件の場合 → その旨を報告して終了（これのみ例外）
+- ✅ 「To Do」ステータスのIssueが0件の場合 → その旨を報告して終了（これのみ例外）
 - ✅ 1件以上ある場合 → **質問せず**次のステップへ自動進行
+
+**重要**: In ProgressステータスのIssueは対象外（他の人が作業中の可能性）
 
 #### 2. 優先順位判定とソート（自動実行）
 
