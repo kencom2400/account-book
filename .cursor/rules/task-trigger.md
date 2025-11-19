@@ -81,8 +81,14 @@ export TODO_STATUS_NAME="📋 To Do"
 
 ```bash
 # 自分にアサインされているオープンなIssueから、"In Progress" ラベルが付いていないものをフィルタリング
-gh issue list --assignee @me --state open --json number,title,labels,milestone,url --limit 50 | jq 'map(select(.labels | map(.name) | contains(["In Progress"]) | not))'
+gh issue list --assignee @me --state open --json number,title,labels,milestone,url --limit 50 | jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
 ```
+
+**jqフィルターについて**:
+
+- `any(. == "In Progress")`: 配列内に特定の要素が存在するかをチェック（可読性が高い）
+- `contains(["In Progress"])`: 部分配列が含まれるかをチェック（複数要素の確認に適している）
+- 単一要素の存在確認には`any`を使用することが推奨されます
 
 **判定**:
 
