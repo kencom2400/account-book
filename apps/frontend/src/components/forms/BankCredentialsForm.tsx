@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bank } from '@account-book/types';
 import { showErrorToast } from '@/components/notifications/ErrorToast';
 import { ErrorModal } from '@/components/notifications/ErrorModal';
@@ -44,6 +44,15 @@ export function BankCredentialsForm({
   const [showApiSecret, setShowApiSecret] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const addNotification = useNotificationStore((state) => state.addNotification);
+  const prevErrorRef = useRef<string | null>(null);
+
+  // エラーがpropsで渡された場合の処理（useEffectで実行）
+  useEffect(() => {
+    if (error && error !== prevErrorRef.current) {
+      prevErrorRef.current = error;
+      handleError(error, errorDetails);
+    }
+  }, [error, errorDetails]);
 
   // エラー発生時の通知処理
   const handleError = (errorMessage: string, details?: string): void => {
@@ -109,11 +118,6 @@ export function BankCredentialsForm({
       });
     }
   };
-
-  // エラーがpropsで渡された場合の処理
-  if (error && !loading) {
-    handleError(error, errorDetails);
-  }
 
   return (
     <>
