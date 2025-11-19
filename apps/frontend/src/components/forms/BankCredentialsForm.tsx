@@ -24,7 +24,7 @@ export function BankCredentialsForm({
   bank,
   onSubmit,
   loading = false,
-}: BankCredentialsFormProps) {
+}: BankCredentialsFormProps): React.JSX.Element {
   const [formData, setFormData] = useState<BankCredentialsData>({
     bankCode: bank.code,
     branchCode: '',
@@ -56,14 +56,14 @@ export function BankCredentialsForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     if (validate()) {
       onSubmit(formData);
     }
   };
 
-  const handleChange = (field: keyof BankCredentialsData, value: string) => {
+  const handleChange = (field: keyof BankCredentialsData, value: string): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // エラーをクリア
     if (errors[field]) {
@@ -95,12 +95,8 @@ export function BankCredentialsForm({
           disabled
           className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
         />
-        <p className="mt-1 text-xs text-gray-500">
-          4桁の数字（自動入力済み）
-        </p>
-        {errors.bankCode && (
-          <p className="mt-1 text-sm text-red-600">{errors.bankCode}</p>
-        )}
+        <p className="mt-1 text-xs text-gray-500">4桁の数字（自動入力済み）</p>
+        {errors.bankCode && <p className="mt-1 text-sm text-red-600">{errors.bankCode}</p>}
       </div>
 
       {/* 支店コード */}
@@ -116,12 +112,8 @@ export function BankCredentialsForm({
           placeholder="例: 001"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
-          3桁の数字で入力してください
-        </p>
-        {errors.branchCode && (
-          <p className="mt-1 text-sm text-red-600">{errors.branchCode}</p>
-        )}
+        <p className="mt-1 text-xs text-gray-500">3桁の数字で入力してください</p>
+        {errors.branchCode && <p className="mt-1 text-sm text-red-600">{errors.branchCode}</p>}
       </div>
 
       {/* 口座番号 */}
@@ -137,9 +129,7 @@ export function BankCredentialsForm({
           placeholder="例: 1234567"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
-          7桁の数字で入力してください
-        </p>
+        <p className="mt-1 text-xs text-gray-500">7桁の数字で入力してください</p>
         {errors.accountNumber && (
           <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
         )}
@@ -157,9 +147,7 @@ export function BankCredentialsForm({
           placeholder="銀行から発行されたAPIキーを入力"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
-          銀行によっては必要な場合があります
-        </p>
+        <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
       </div>
 
       {/* APIシークレット（オプション） */}
@@ -183,20 +171,14 @@ export function BankCredentialsForm({
             {showApiSecret ? '非表示' : '表示'}
           </button>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
-          銀行によっては必要な場合があります
-        </p>
+        <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
       </div>
 
       {/* 注意事項 */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-yellow-400"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+            <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -205,9 +187,7 @@ export function BankCredentialsForm({
             </svg>
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">
-              セキュリティに関する注意
-            </h3>
+            <h3 className="text-sm font-medium text-yellow-800">セキュリティに関する注意</h3>
             <div className="mt-2 text-sm text-yellow-700">
               <p>
                 入力された認証情報は暗号化されて安全に保存されます。
@@ -255,4 +235,3 @@ export function BankCredentialsForm({
     </form>
   );
 }
-

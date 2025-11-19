@@ -18,7 +18,7 @@ const CATEGORY_LABELS: Record<BankCategory, string> = {
 /**
  * 銀行選択コンポーネント
  */
-export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) {
+export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps): React.JSX.Element {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [filteredBanks, setFilteredBanks] = useState<Bank[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
 
   // 銀行一覧を取得
   useEffect(() => {
-    const fetchBanks = async () => {
+    const fetchBanks = async (): Promise<void> => {
       try {
         setLoading(true);
         const data = await getSupportedBanks();
@@ -42,7 +42,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
       }
     };
 
-    fetchBanks();
+    void fetchBanks();
   }, []);
 
   // 検索とフィルタリング
@@ -109,7 +109,7 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps) 
             key={category}
             onClick={() => setSelectedCategory(category as BankCategory)}
             className={`px-4 py-2 font-medium ${
-              selectedCategory === category
+              String(selectedCategory) === category
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
