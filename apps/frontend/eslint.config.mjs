@@ -112,7 +112,7 @@ export default tseslint.config(
     
     // 設定ファイルとJest関連ファイルは型チェックから除外
     {
-        files: ['*.config.{js,mjs,cjs}', '*.setup.{js,mjs,cjs}', 'jest.config.js', 'jest.setup.js'],
+        files: ['*.config.{js,mjs,cjs,ts}', '*.setup.{js,mjs,cjs}', 'jest.config.js', 'jest.setup.js'],
         languageOptions: {
             globals: {
                 ...globals.node,
@@ -122,6 +122,8 @@ export default tseslint.config(
         rules: {
             '@typescript-eslint/no-require-imports': 'off', // CommonJS許可
             'no-undef': 'off', // globalsで定義されているものでもno-undefが発火する場合があるため
+            '@typescript-eslint/no-unsafe-member-access': 'off', // 設定ファイルでは型安全性チェックを緩和
+            '@typescript-eslint/no-unsafe-return': 'off', // 設定ファイルでは型安全性チェックを緩和
         },
         ...tseslint.configs.disableTypeChecked,
     },
