@@ -19,7 +19,7 @@ interface CategoryBreakdownProps {
 /**
  * カテゴリ別内訳コンポーネント
  */
-export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
+export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps): React.JSX.Element {
   const getCategoryLabel = (type: CategoryType): string => {
     switch (type) {
       case CategoryType.INCOME:
@@ -63,9 +63,7 @@ export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
           <CardTitle>カテゴリ別内訳</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            データがありません
-          </div>
+          <div className="text-center py-8 text-gray-500">データがありません</div>
         </CardContent>
       </Card>
     );
@@ -79,14 +77,17 @@ export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
       <CardContent>
         <div className="space-y-3">
           {categories.map(([type, data]) => (
-            <div key={type} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50">
+            <div
+              key={type}
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+            >
               <div className="flex items-center space-x-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryColor(type)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryColor(type)}`}
+                >
                   {getCategoryLabel(type)}
                 </span>
-                <span className="text-sm text-gray-500">
-                  {data.count}件
-                </span>
+                <span className="text-sm text-gray-500">{data.count}件</span>
               </div>
               <span className="text-lg font-semibold text-gray-900">
                 {formatCurrency(Math.abs(data.total))}
@@ -98,4 +99,3 @@ export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
     </Card>
   );
 }
-

@@ -4,13 +4,20 @@
 ╔════════════════════════════════════════════════════════════╗
 ║  🚨 CRITICAL RULE - PUSH前の必須チェック 🚨              ║
 ║                                                            ║
-║  コードファイルを変更した場合、push前に必ず実行：         ║
-║  1. ./scripts/build.sh                                    ║
-║  2. ./scripts/lint.sh                                     ║
-║  3. ./scripts/test.sh                                     ║
-║  4. ./scripts/test/test-e2e.sh                            ║
+║  pushする前に必ず以下のスクリプトを実行すること：         ║
 ║                                                            ║
+║  1. ./scripts/test/lint.sh                                ║
+║  2. ./scripts/test/test.sh all                            ║
+║  3. ./scripts/test/test-e2e.sh frontend                   ║
+║                                                            ║
+║  【理由】                                                  ║
+║  - pushするとGitHub ActionsでCIが実行される               ║
+║  - CI失敗は無駄なリソース消費とフィードバック遅延        ║
+║  - ローカルチェックでCI失敗を事前に防止する               ║
+║                                                            ║
+║  【原則】                                                  ║
 ║  エラーがある場合はpush禁止。修正してから再実行。         ║
+║  ドキュメントのみの変更でもlintは実行推奨。               ║
 ╚════════════════════════════════════════════════════════════╝
 ```
 
@@ -18,19 +25,26 @@
 
 ### push前に必ず実行すること
 
-**以下の条件に該当する場合、push前に必ずbuild/lint/testを実行：**
+**重要**: pushする前に必ず以下のスクリプトを実行してエラーがないことを確認する。
 
-1. ✅ `.ts`, `.tsx`, `.js`, `.jsx` ファイルを変更した
-2. ✅ ソースコード（`src/`, `apps/`配下）を変更した
-3. ✅ テストファイル（`*.spec.ts`, `*.test.ts`）を変更した
+**理由**:
+
+- pushするとGitHub ActionsでCIが実行される
+- CI実行には時間とリソースが必要（約3-5分）
+- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
+- フィードバックループが短縮され、開発効率が向上する
 
 **実行手順：**
 
 ```bash
-./scripts/build.sh              # ビルドエラーチェック
-./scripts/lint.sh               # コードスタイルチェック
-./scripts/test.sh               # ユニットテスト実行
-./scripts/test/test-e2e.sh      # E2Eテスト実行
+# 1. Lintチェック（必須）
+./scripts/test/lint.sh
+
+# 2. ユニットテスト（必須）
+./scripts/test/test.sh all
+
+# 3. E2Eテスト（必須）
+./scripts/test/test-e2e.sh frontend
 ```
 
 **エラーがある場合：**
@@ -38,14 +52,26 @@
 1. ❌ **絶対にpushしない**
 2. ✅ エラー内容をユーザーに報告
 3. ✅ 修正方法を提案または修正を実施
-4. ✅ 修正後、再度build/lint/testを実行
+4. ✅ 修正後、再度全てのスクリプトを実行
 5. ✅ エラーがなくなったらcommit & push
 
-**スキップ可能な場合：**
+**例外: スキップ可能な場合**
 
-- ドキュメントファイルのみ変更（`.md`, `README`等）
-- 設定ファイルのみ変更（`package.json`, `.gitignore`等）
-- ただし、`eslint.config.*`, `tsconfig.json`等の開発設定は実行すること
+以下の場合のみ、一部スクリプトをスキップ可能：
+
+- ドキュメントファイル（`*.md`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+- 設定ファイル（`.cursor/**`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+
+**ただし、以下の設定ファイル変更時は全スクリプト実行必須：**
+
+- `eslint.config.*`, `tsconfig.json`, `jest.config.*`, `package.json`, `pnpm-workspace.yaml`
+
+**実行時間の目安：**
+
+- lint: 約30-60秒
+- test: 約1-2分
+- e2e: 約30-60秒
+- 合計: 約3-4分（CI実行より短い）
 
 ---
 
@@ -266,16 +292,16 @@ gh pr edit $PR_NUMBER --body "<最終的な説明>"
 ### PR作成前のチェックリスト
 
 - [ ] すべての変更がコミット済み
-- [ ] **コードファイルを変更した場合**: build/lint/test/test-e2eを実行してエラーがないことを確認
+- [ ] **push前のローカルチェックを完了（必須）**
 
   ```bash
-  ./scripts/build.sh
-  ./scripts/lint.sh
-  ./scripts/test.sh
-  ./scripts/test/test-e2e.sh
+  ./scripts/test/lint.sh
+  ./scripts/test/test.sh all
+  ./scripts/test/test-e2e.sh frontend
   ```
 
-  - 注: ドキュメントや設定ファイルのみの変更の場合は不要
+  - 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+  - 注: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能（上記「push前に必ず実行すること」セクション参照）
 
 - [ ] テストが通ることを確認
 - [ ] Lintエラーがないことを確認
@@ -374,17 +400,22 @@ git commit -m "feat(transaction): 取引履歴取得機能を実装"
 
 **重要**: push前に必ず以下を確認する
 
-#### コードファイルを変更した場合の必須チェック
+#### push前のローカルチェック（必須）
+
+**理由**: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる。
 
 ```bash
-# build/lint/test/test-e2eを実行してエラーがないことを確認
-./scripts/build.sh
-./scripts/lint.sh
-./scripts/test.sh
-./scripts/test/test-e2e.sh
+# 1. Lintチェック（必須）
+./scripts/test/lint.sh
+
+# 2. ユニットテスト（必須）
+./scripts/test/test.sh all
+
+# 3. E2Eテスト（必須）
+./scripts/test/test-e2e.sh frontend
 ```
 
-**注**: ドキュメントや設定ファイルのみの変更の場合は不要
+**注**: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能（上記「push前に必ず実行すること」セクション参照）
 
 #### プッシュ
 
@@ -600,16 +631,16 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: レビュー指摘に対応 - <具体的な修正内容>"`
   4. エラーがある場合は修正してから再度commit
-  5. **push前に必ず実行**: コードファイルを変更した場合は、build/lint/test/test-e2eを実行してエラーがないことを確認
+  5. **push前に必ずローカルチェックを実行（必須）**
 
      ```bash
-     ./scripts/build.sh
-     ./scripts/lint.sh
-     ./scripts/test.sh
-     ./scripts/test/test-e2e.sh
+     ./scripts/test/lint.sh
+     ./scripts/test/test.sh all
+     ./scripts/test/test-e2e.sh frontend
      ```
 
-     - 注: ドキュメントや設定ファイルのみの変更の場合は不要
+     - 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+     - 注: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能
 
   6. `git push origin <ブランチ名>`
   7. 次の指摘に進む（CI確認は後でまとめて実施）
@@ -629,6 +660,66 @@ gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | sele
 - **CIが失敗している場合**
   - エラー内容を確認して修正
   - 修正後、再度commit/pushしてCIが成功することを確認
+
+- **全ての指摘への対応が完了したら、必ずGeminiのレビューコメントスレッドに返信する（必須）**
+  1. CIの状況を確認（既に完了しているCIの結果を確認）
+  2. CIが成功していることを確認
+  3. Geminiのレビューコメントを取得してIDを確認
+  4. コメントスレッドに返信を投稿
+
+  ```bash
+  # 1. CIの状況確認
+  gh pr checks <PR番号>
+
+  # 2. Geminiのレビューコメントを確認してIDを取得
+  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path, line}'
+
+  # 例: コメントID 2540860155 が取得できた場合
+
+  # 3. 最新のコミットSHAを取得
+  COMMIT_SHA=$(git rev-parse HEAD)
+
+  # 4. Geminiのコメントスレッドに返信を投稿
+  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
+    --method POST \
+    --field body="@gemini-code-assist
+
+  ご指摘いただいた点について対応しました。
+
+  ## 修正内容
+
+  1. **[指摘内容のサマリー]**
+     - 修正内容: [具体的な修正内容]
+     - コミット: [commit hash]
+
+  ## テスト結果
+
+  - ✅ Lint: 成功
+  - ✅ ユニットテスト: 全テスト通過
+  - ✅ E2Eテスト: 全テスト通過
+  - ✅ CI: 成功
+
+  ご確認よろしくお願いいたします。" \
+    --field commit_id="$COMMIT_SHA" \
+    --field in_reply_to=2540860155
+  ```
+
+  **コメントスレッド返信の仕組み**:
+  - `in_reply_to`: 返信先のコメントID（Geminiのコメント）
+  - `commit_id`: 現在のコミットSHA（必須）
+  - これにより、Geminiのコメントスレッドに直接返信される
+
+  **返信内容のポイント**:
+  - `@gemini-code-assist`でメンションする
+  - 各指摘に対する修正内容を具体的に記載
+  - コミットハッシュを明記
+  - テスト結果とCI結果を報告
+  - 丁寧な言葉遣いで感謝の意を表す
+
+  **注意**:
+  - Geminiからの指摘に対応した場合は、**必ず返信すること**
+  - **コメントスレッドに返信する**ことで、対応状況が明確になる
+  - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
 
 **禁止事項**:
 
@@ -654,10 +745,50 @@ git add apps/backend/src/modules/securities/domain/entities/securities-account.e
 git commit -m "fix: Geminiの指摘に対応 - totalProfitLossの計算を修正"
 git push origin feature/fr-003-securities-integration
 
-# すべての指摘対応後、まとめてCIの状況確認
+# すべての指摘対応後、まとめてCIの状況確認とGeminiへの返信
 gh pr checks 153
 # 既に完了しているCIの結果を確認
-# エラーがあれば対応、成功していれば完了
+# エラーがあれば対応、成功していればGeminiのレビューコメントに返信
+
+# Geminiのコメントを確認してIDを取得
+gh api repos/kencom2400/account-book/pulls/153/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
+
+# 例: コメントID 2540860155 が見つかった場合
+
+# コミットSHAを取得
+COMMIT_SHA=$(git rev-parse HEAD)
+
+# Geminiのコメントスレッドに返信を投稿（必須）
+gh api repos/kencom2400/account-book/pulls/153/comments \
+  --method POST \
+  --field body="@gemini-code-assist
+
+ご指摘いただいた点について対応しました。
+
+## 修正内容
+
+1. **accountIdの取得方法**
+   - 修正内容: @Paramデコレータを使用してパスパラメータから取得するように修正
+   - コミット: abc1234
+
+2. **DTOの適正化**
+   - 修正内容: DTOからaccountIdを削除し、パスパラメータのみで受け取るように変更
+   - コミット: def5678
+
+3. **totalProfitLossの計算ロジック**
+   - 修正内容: 評価損益の計算式を修正し、正しい損益が算出されるように改善
+   - コミット: ghi9012
+
+## テスト結果
+
+- ✅ Lint: 成功
+- ✅ ユニットテスト: 全テスト通過
+- ✅ E2Eテスト: 全テスト通過
+- ✅ CI: 成功
+
+ご確認よろしくお願いいたします。" \
+  --field commit_id="$COMMIT_SHA" \
+  --field in_reply_to=2540860155
 ```
 
 **悪い例**:
@@ -673,10 +804,68 @@ git push
   - 例：`fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正`
   - 例：`fix: Geminiの指摘に対応 - エラーハンドリングを追加`
 
-#### 5-3. 対応完了の報告
+#### 5-3. 対応完了の報告（必須）
 
-- すべての指摘に対応し終わったら、**CIの状況を確認する**
-- 既に完了しているCIの結果を確認し、エラーがあれば対応する
+すべての指摘に対応し終わったら、以下を実施する：
+
+1. **CIの状況を確認する**
+   - 既に完了しているCIの結果を確認
+   - エラーがあれば対応する
+
+   ```bash
+   gh pr checks <PR番号>
+   # または詳細な情報を取得
+   gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | {name: .name, status: .conclusion, url: .detailsUrl}'
+   ```
+
+2. **CIが成功していることを確認**
+
+3. **Geminiのレビューコメントスレッドに返信を投稿（必須）**
+
+   ```bash
+   # Geminiのコメントを確認してIDを取得
+   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
+
+   # 例: コメントID 2540860155 が取得できた場合
+
+   # コミットSHAを取得
+   COMMIT_SHA=$(git rev-parse HEAD)
+
+   # Geminiのコメントスレッドに返信を投稿
+   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
+     --method POST \
+     --field body="@gemini-code-assist
+
+   ご指摘いただいた点について対応しました。
+
+   ## 修正内容
+
+   1. **[指摘内容のサマリー]**
+      - 修正内容: [具体的な修正内容]
+      - コミット: [commit hash]
+
+   ## テスト結果
+
+   - ✅ Lint: 成功
+   - ✅ ユニットテスト: 全テスト通過
+   - ✅ E2Eテスト: 全テスト通過
+   - ✅ CI: 成功
+
+   ご確認よろしくお願いいたします。" \
+     --field commit_id="$COMMIT_SHA" \
+     --field in_reply_to=2540860155
+   ```
+
+   **コメントスレッド返信の重要性**:
+   - `in_reply_to`フィールドを使用することで、Geminiのコメントスレッドに直接返信される
+   - PRコメントとは異なり、対応状況が該当の指摘と紐付けられて明確になる
+   - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
+
+**重要**:
+
+- Geminiからの指摘に対応した場合は、**必ずコメントスレッドに返信すること**
+- 通常のPRコメントではなく、**レビューコメントのスレッドに返信する**
+- 返信がないと、対応が完了したかどうかが不明確になる
 
 #### 5-4. 再発防止策の実施（重要）
 
@@ -715,27 +904,53 @@ Geminiからの指摘を受けた場合、**必ず以下を実施すること**�
    git push origin <branch-name>
    ```
 
-5. **コメントに反映**
-   - Geminiへの対応完了コメントに「再発防止策を実施」と記載
-   - 更新したルールファイルへのリンクを追加
+5. **Geminiへの返信コメントに再発防止策を含める**
+   - 対応完了コメントに「再発防止策を実施」と記載
+   - 更新したルールファイルとコミットハッシュを明記
 
-**例**:
+**返信コメントの例**:
 
-```markdown
-## Geminiの指摘に対応しました ✅
+```bash
+# Geminiのコメントを確認してIDを取得
+gh api repos/kencom2400/account-book/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
 
-### 修正内容
+# コミットSHAを取得
+COMMIT_SHA=$(git rev-parse HEAD)
 
-[修正内容の詳細]
+# コメントスレッドに返信
+gh api repos/kencom2400/account-book/pulls/<PR番号>/comments \
+  --method POST \
+  --field body="@gemini-code-assist
 
-### 再発防止策
+ご指摘いただいた点について対応しました。
+
+## 修正内容
+
+1. **Enum型の比較方法**
+   - 修正内容: Object.entriesの戻り値を明示的に[BankCategory, string][]型にキャスト
+   - コミット: abc1234
+
+## テスト結果
+
+- ✅ Lint: 成功（@typescript-eslint/no-unsafe-enum-comparison警告を解消）
+- ✅ ユニットテスト: 44テスト全て通過
+- ✅ E2Eテスト: 全テスト通過
+- ✅ CI: 成功
+
+## 再発防止策
 
 今回の指摘を踏まえ、以下のルールを更新しました：
 
-- `.cursor/rules/code-quality-checklist.md`: 危険な型キャストの禁止ルールを追加
-- `.cursor/rules/project.md`: 型安全性の重要性を強調
+- \`.cursor/rules/code-quality-checklist.md\`: Enum型の型安全な比較手法を追加（コミット: def5678）
+  - 悪い例と良い例を具体的に記載
+  - 実装チェックリストに項目を追加
+  - Geminiレビューから学んだ教訓セクションに追加
 
 これにより、今後同様の問題が発生することを防ぎます。
+
+ご確認よろしくお願いいたします。" \
+  --field commit_id="$COMMIT_SHA" \
+  --field in_reply_to=<GeminiのコメントID>
 ```
 
 **AIアシスタントへの指示**:
@@ -744,36 +959,10 @@ Geminiからの指摘を受けた場合、**必ず以下を実施すること**�
 - 指摘内容を深く理解し、根本原因を特定
 - チェックリストに追加すべき項目がないか検討
 - ルール更新は別コミットとして実施（対応コミットと分離）
-- CIが成功していることを確認してから、該当のコメントに返信する
-- ヒアドキュメントを使用して複数行のコメントを投稿
-
-```bash
-# 1. CIの状況確認（既存の結果を確認）
-gh pr checks <PR番号>
-# または詳細な情報を取得
-gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | {name: .name, status: .conclusion, url: .detailsUrl}'
-
-# 2. CIが失敗している場合
-# エラー内容を確認して修正し、再度commit/push
-
-# 3. CIが成功している場合、コメントを投稿
-gh pr comment <PR番号> --body "$(cat <<'EOF'
-## Geminiの提案に対応しました ✅
-
-ご提案いただいた改善点を実施しました：
-
-### 修正内容
-1. [具体的な修正内容1]
-2. [具体的な修正内容2]
-3. [具体的な修正内容3]
-
-提案いただいた改善により、[改善された点]になりました。ありがとうございました！
-
-コミット: [commit hash1], [commit hash2], [commit hash3]
-CI: ✅ 成功
-EOF
-)"
-```
+- **CIが成功していることを確認してから、必ずGeminiのレビューコメントスレッドに返信する**
+- 返信には修正内容、テスト結果、再発防止策を含める
+- `in_reply_to`フィールドを使用してコメントスレッドに直接返信する
+- 通常のPRコメント（`gh pr comment`）ではなく、レビューコメントAPI（`gh api repos/{owner}/{repo}/pulls/{PR番号}/comments`）を使用する
 
 ### 6. CI (lint, test, build)の確認と対応（自動実行）
 

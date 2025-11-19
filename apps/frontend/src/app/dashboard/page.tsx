@@ -11,7 +11,7 @@ import { Transaction } from '@account-book/types';
 /**
  * ダッシュボードページ
  */
-export default function DashboardPage() {
+export default function DashboardPage(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const currentMonth: number = now.getMonth() + 1;
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (): Promise<void> => {
       try {
         setLoading(true);
         setError(null);

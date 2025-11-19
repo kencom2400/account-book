@@ -11,7 +11,7 @@ interface TransactionListProps {
 /**
  * 取引一覧コンポーネント
  */
-export function TransactionList({ transactions }: TransactionListProps) {
+export function TransactionList({ transactions }: TransactionListProps): React.JSX.Element {
   const getCategoryTypeColor = (type: CategoryType): string => {
     switch (type) {
       case CategoryType.INCOME:
@@ -35,11 +35,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
   };
 
   if (transactions.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        取引データがありません
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-500">取引データがありません</div>;
   }
 
   return (
@@ -70,15 +66,15 @@ export function TransactionList({ transactions }: TransactionListProps) {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {new Date(transaction.date).toLocaleDateString('ja-JP')}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-900">
-                {transaction.description}
-              </td>
+              <td className="px-6 py-4 text-sm text-gray-900">{transaction.description}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <span className={`font-medium ${getCategoryTypeColor(transaction.category.type)}`}>
                   {transaction.category.name}
                 </span>
               </td>
-              <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${getCategoryTypeColor(transaction.category.type)}`}>
+              <td
+                className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${getCategoryTypeColor(transaction.category.type)}`}
+              >
                 {formatAmount(transaction.amount, transaction.category.type)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -99,4 +95,3 @@ export function TransactionList({ transactions }: TransactionListProps) {
     </div>
   );
 }
-

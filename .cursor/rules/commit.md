@@ -205,66 +205,60 @@ chore(setup): プロジェクト初期設定
 
 ### push前のチェックリスト
 
-**重要**: 以下のチェックは、**CIが実行されるファイル（コードファイル）を変更した場合のみ必須**です。CIが実行されないファイル（ドキュメント、設定ファイルなど）のみの変更の場合は不要です。
+**重要**: 以下のチェックは**全てのpush時に必須**です。
 
-**CIが実行されるファイルの例：**
+**理由**:
 
-- `apps/**/*.{ts,tsx,js,jsx}` - アプリケーションコード
-- `libs/**/*.{ts,tsx,js,jsx}` - ライブラリコード
-- `*.{ts,tsx,js,jsx}` - ルートのコードファイル
-- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` - 依存関係とパッケージ管理設定
-- `tsconfig.json`, `tsconfig.*.json` - TypeScript設定ファイル
-- `eslint.config.*`, `.eslintrc.*` - ESLint設定ファイル
-- `turbo.json` - Turbo（モノレポ）設定ファイル
-- `.github/workflows/**` - GitHub Actionsワークフローファイル
-- `jest.config.*`, `jest.setup.*` - Jest設定ファイル
-- `next.config.*`, `nest-cli.json` - フレームワーク設定ファイル
-- `.prettierrc*`, `.prettierignore` - Prettier設定ファイル
-- `.gitignore` - Git設定ファイル
-- `scripts/**/*.sh` - ビルド/テスト/デプロイスクリプト
-- その他のビルド/設定ファイル（`.nvmrc`, `.node-version`, `postcss.config.*`, `tailwind.config.*` など）
+- pushするとGitHub ActionsでCIが実行される
+- CI実行には時間とリソースが必要（約3-5分）
+- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
+- フィードバックループが短縮され、開発効率が向上する
 
-**CIが実行されないファイルの例：**
+**pushする前に以下を実行してエラーがないことを確認すること：**
 
-- `*.md` - ドキュメントファイル
-- `.cursor/**` - Cursor設定ファイル
-- `docs/**` - ドキュメントディレクトリ
-
-**コードファイルを変更した場合、pushする前に以下を実行してエラーがないことを確認すること：**
-
-1. **ビルドが成功するか確認（必須）**
+1. **Lintチェック（必須）**
 
    ```bash
-   ./scripts/build.sh
-   ```
-
-   - フロントエンドとバックエンドの両方が正常にビルドできることを確認
-
-2. **ユニットテストがすべてパスするか確認（必須）**
-
-   ```bash
-   ./scripts/test.sh
-   ```
-
-   - すべてのユニットテストが成功することを確認
-
-3. **E2Eテストがすべてパスするか確認（必須）**
-
-   ```bash
-   ./scripts/test/test-e2e.sh
-   ```
-
-   - すべてのE2Eテストが成功することを確認
-
-4. **Lintエラーがないか確認（必須）**
-
-   ```bash
-   ./scripts/lint.sh
+   ./scripts/test/lint.sh
    ```
 
    - フロントエンドとバックエンドの両方でlintエラーがないことを確認
 
-**重要**: コードファイルを変更した場合、pushする前に**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/test/test-e2e.sh`、`./scripts/lint.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してからpushすること。
+2. **ユニットテスト（必須）**
+
+   ```bash
+   ./scripts/test/test.sh all
+   ```
+
+   - すべてのユニットテストが成功することを確認
+
+3. **E2Eテスト（必須）**
+
+   ```bash
+   ./scripts/test/test-e2e.sh frontend
+   ```
+
+   - すべてのE2Eテストが成功することを確認
+
+**実行時間の目安：**
+
+- lint: 約30-60秒
+- test: 約1-2分
+- e2e: 約30-60秒
+- 合計: 約3-4分（CI実行より短い）
+
+**例外: 一部スキップ可能な場合**
+
+以下の場合のみ、一部スクリプトをスキップ可能：
+
+- ドキュメントファイル（`*.md`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+- 設定ファイル（`.cursor/**`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+
+**ただし、以下の設定ファイル変更時は全スクリプト実行必須：**
+
+- `eslint.config.*`, `tsconfig.json`, `jest.config.*`, `package.json`, `pnpm-workspace.yaml`
+
+**重要**: エラーがある場合は、修正してからpushすること。
 
 ## Gitコマンド例
 

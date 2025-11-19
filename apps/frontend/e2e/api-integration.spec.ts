@@ -19,7 +19,6 @@ test.describe('API統合', () => {
     const response = await responsePromise;
     if (response) {
       expect(response.ok()).toBeTruthy();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const data = await response.json();
       expect(data).toBeDefined();
     }
@@ -27,8 +26,8 @@ test.describe('API統合', () => {
 
   test('APIエラーが適切にハンドリングされる', async ({ page }) => {
     // APIをモック（エラーを返す）
-    await page.route('**/api/transactions*', (route) => {
-      route.fulfill({
+    await page.route('**/api/transactions*', async (route) => {
+      await route.fulfill({
         status: 500,
         body: JSON.stringify({ error: 'Internal Server Error' }),
       });

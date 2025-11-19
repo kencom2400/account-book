@@ -23,7 +23,7 @@ export function MonthlySummaryCard({
   expense,
   balance,
   transactionCount,
-}: MonthlySummaryCardProps) {
+}: MonthlySummaryCardProps): React.JSX.Element {
   const balanceColor = balance >= 0 ? 'text-green-600' : 'text-red-600';
 
   return (
@@ -38,17 +38,13 @@ export function MonthlySummaryCard({
           {/* 収入 */}
           <div className="flex justify-between items-center">
             <span className="text-gray-600">収入</span>
-            <span className="text-2xl font-bold text-green-600">
-              {formatCurrency(income)}
-            </span>
+            <span className="text-2xl font-bold text-green-600">{formatCurrency(income)}</span>
           </div>
 
           {/* 支出 */}
           <div className="flex justify-between items-center">
             <span className="text-gray-600">支出</span>
-            <span className="text-2xl font-bold text-red-600">
-              {formatCurrency(expense)}
-            </span>
+            <span className="text-2xl font-bold text-red-600">{formatCurrency(expense)}</span>
           </div>
 
           {/* 区切り線 */}
@@ -58,7 +54,8 @@ export function MonthlySummaryCard({
           <div className="flex justify-between items-center">
             <span className="text-gray-800 font-semibold">収支差額</span>
             <span className={`text-3xl font-bold ${balanceColor}`}>
-              {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+              {balance >= 0 ? '+' : ''}
+              {formatCurrency(balance)}
             </span>
           </div>
 
@@ -66,9 +63,7 @@ export function MonthlySummaryCard({
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">取引件数</span>
-              <span className="font-medium text-gray-700">
-                {transactionCount}件
-              </span>
+              <span className="font-medium text-gray-700">{transactionCount}件</span>
             </div>
           </div>
         </div>
@@ -76,4 +71,3 @@ export function MonthlySummaryCard({
     </Card>
   );
 }
-

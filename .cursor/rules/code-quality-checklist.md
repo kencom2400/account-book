@@ -69,6 +69,45 @@ function process(data: unknown): void {
 const mockRepo = { findById: jest.fn() } as any;
 ```
 
+#### 1-3. Enum型の型安全な比較
+
+```typescript
+// ❌ 避けるべきパターン
+{Object.entries(CATEGORY_LABELS).map(([category, label]) => (
+  <button
+    onClick={() => setSelectedCategory(category as BankCategory)}
+    className={String(selectedCategory) === category ? '...' : '...'}
+  >
+))}
+```
+
+**問題**:
+
+- `Object.entries()`の戻り値は`[string, T][]`型で、キーが文字列型として扱われる
+- `category as BankCategory`のような型アサーションは型安全性を損なう
+- `String(selectedCategory)`のような回避策は意図が不明確
+
+**正しい対応**:
+
+```typescript
+// ✅ 明示的な型キャストで型安全に
+{(Object.entries(CATEGORY_LABELS) as [BankCategory, string][]).map(([category, label]) => (
+  <button
+    onClick={() => setSelectedCategory(category)}
+    className={selectedCategory === category ? '...' : '...'}
+  >
+))}
+```
+
+**改善点**:
+
+- `Object.entries()`の戻り値を`[BankCategory, string][]`型に明示的にキャスト
+- 型アサーションを削除し、型システムが正しく推論できるようにする
+- 直接Enum比較が可能になり、`@typescript-eslint/no-unsafe-enum-comparison`警告を解消
+- コードの意図が明確で、型安全性が向上
+
+**原則**: Enum型を扱う際は、型アサーションではなく明示的な型キャストで型を定義する
+
 ---
 
 ## 2. データアクセスと配列操作
@@ -361,6 +400,8 @@ const mockRepo = {
 - [ ] クエリパラメータの全組み合わせに対応しているか？
 - [ ] 型キャストを使っていないか？（使う場合は型定義を見直す）
 - [ ] 未使用のコード（トークン、ファイル）を残していないか？
+- [ ] Enum型の比較は型安全か？（`Object.entries()`使用時は明示的な型キャストを追加）
+- [ ] 型アサーション（`as`）を使わず、型システムで推論できるようにしているか？
 
 #### Phase 3: パフォーマンス
 
@@ -408,7 +449,19 @@ const mockRepo = {
    - 修正内容をテストで確認
    - コミットメッセージに再発防止策を記載
 
-5. **ルール更新のコミット**
+5. **push前のローカルチェック（必須）**
+   - **必ず**以下のスクリプトを実行してエラーがないことを確認
+   - 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+
+   ```bash
+   ./scripts/test/lint.sh
+   ./scripts/test/test.sh all
+   ./scripts/test/test-e2e.sh frontend
+   ```
+
+   - 注: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能
+
+6. **ルール更新のコミット**
    - 指摘内容から学んだ教訓をルールファイルに反映
    - 将来の開発で同じ問題を起こさないようにする
 
@@ -424,13 +477,28 @@ const mockRepo = {
 2. 問題がある場合は設計から見直す
 3. 型安全性を最優先に考える
 
+**push前のチェック（必須）**:
+
+1. **必ず**以下のスクリプトを実行してエラーがないことを確認
+2. 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+
+```bash
+./scripts/test/lint.sh
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+```
+
+3. エラーがある場合は修正してからpushすること
+4. ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能
+
 **レビュー指摘を受けた時**:
 
 1. 指摘内容を深く理解する
 2. 根本原因を特定する
 3. このチェックリストに該当項目がなければ追加する
 4. 類似箇所も合わせて修正する
-5. ルール更新を別コミットで実施する
+5. push前に必ずローカルチェックを実行
+6. ルール更新を別コミットで実施する
 
 **チェックリストに違反しそうな時**:
 
@@ -621,6 +689,8 @@ rules: {
 - **型情報の活用が重要**: Type-aware linting により、より多くの潜在的バグを検出できる
 - **公式の推奨設定を信頼**: フレームワーク開発者が推奨する設定には理由がある
 - **環境ごとの最適化**: 全てのファイルに同じルールを適用するのは非効率
+- **Enum型の型安全性**: `Object.entries()`使用時は明示的な型キャストで型を保証する
+- **型アサーションより型キャスト**: `as`による型アサーションではなく、明示的な型キャストでTypeScriptの型システムを活用する
 
 ---
 
@@ -682,6 +752,24 @@ jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
 4. **並行処理**: 競合状態を考慮、排他制御実装
 5. **パフォーマンス**: スケーラビリティ考慮、警告コメント追加
 6. **コマンド可読性**: jqフィルターなど、意図が明確な記述を心がける
+7. **push前のチェック**: 必ずローカルで lint/test/e2e を実行してCI失敗を防止
+
+### push前の必須チェック
+
+**重要**: pushする前に**必ず**以下を実行すること
+
+```bash
+./scripts/test/lint.sh
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+```
+
+**理由**:
+
+- pushするとGitHub ActionsでCIが実行される（約3-5分）
+- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
+- フィードバックループが短縮され、開発効率が向上する
+- 実行時間: 約3-4分（CI実行より短い）
 
 ### このチェックリストの更新
 

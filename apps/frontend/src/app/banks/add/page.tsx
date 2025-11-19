@@ -13,7 +13,7 @@ type Step = 'select' | 'credentials' | 'result';
 /**
  * 銀行追加ページ
  */
-export default function AddBankPage() {
+export default function AddBankPage(): React.JSX.Element {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>('select');
   const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
@@ -23,13 +23,13 @@ export default function AddBankPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // 銀行選択
-  const handleSelectBank = (bank: Bank) => {
+  const handleSelectBank = (bank: Bank): void => {
     setSelectedBank(bank);
     setCurrentStep('credentials');
   };
 
   // 接続テスト実行
-  const handleTestConnection = async (credentialsData: BankCredentialsData) => {
+  const handleTestConnection = async (credentialsData: BankCredentialsData): Promise<void> => {
     setLoading(true);
     setCredentials(credentialsData);
 
@@ -56,7 +56,7 @@ export default function AddBankPage() {
   };
 
   // 銀行を登録
-  const handleRegisterBank = async () => {
+  const handleRegisterBank = async (): Promise<void> => {
     if (!selectedBank || !credentials) return;
 
     setLoading(true);
@@ -85,13 +85,13 @@ export default function AddBankPage() {
   };
 
   // 再試行（認証情報入力に戻る）
-  const handleRetry = () => {
+  const handleRetry = (): void => {
     setCurrentStep('credentials');
     setTestResult(null);
   };
 
   // 銀行選択に戻る
-  const handleBackToSelect = () => {
+  const handleBackToSelect = (): void => {
     setCurrentStep('select');
     setSelectedBank(null);
     setTestResult(null);
@@ -107,12 +107,7 @@ export default function AddBankPage() {
             onClick={() => router.back()}
             className="text-blue-600 hover:text-blue-800 mb-4 flex items-center"
           >
-            <svg
-              className="w-5 h-5 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -123,9 +118,7 @@ export default function AddBankPage() {
             戻る
           </button>
           <h1 className="text-3xl font-bold text-gray-900">銀行口座を追加</h1>
-          <p className="mt-2 text-gray-600">
-            銀行口座を連携して、自動で取引履歴を取得します
-          </p>
+          <p className="mt-2 text-gray-600">銀行口座を連携して、自動で取引履歴を取得します</p>
         </div>
 
         {/* ステップインジケーター */}
@@ -134,14 +127,10 @@ export default function AddBankPage() {
             <div className="flex-1">
               <div
                 className={`w-full h-2 rounded ${
-                  currentStep === 'select'
-                    ? 'bg-blue-600'
-                    : 'bg-blue-200'
+                  currentStep === 'select' ? 'bg-blue-600' : 'bg-blue-200'
                 }`}
               ></div>
-              <div className="mt-2 text-sm font-medium text-gray-900">
-                1. 銀行選択
-              </div>
+              <div className="mt-2 text-sm font-medium text-gray-900">1. 銀行選択</div>
             </div>
             <div className="w-8"></div>
             <div className="flex-1">
@@ -152,9 +141,7 @@ export default function AddBankPage() {
                     : 'bg-gray-300'
                 }`}
               ></div>
-              <div className="mt-2 text-sm font-medium text-gray-900">
-                2. 認証情報入力
-              </div>
+              <div className="mt-2 text-sm font-medium text-gray-900">2. 認証情報入力</div>
             </div>
             <div className="w-8"></div>
             <div className="flex-1">
@@ -163,9 +150,7 @@ export default function AddBankPage() {
                   currentStep === 'result' ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               ></div>
-              <div className="mt-2 text-sm font-medium text-gray-900">
-                3. 接続テスト
-              </div>
+              <div className="mt-2 text-sm font-medium text-gray-900">3. 接続テスト</div>
             </div>
           </div>
         </div>
@@ -232,4 +217,3 @@ export default function AddBankPage() {
     </div>
   );
 }
-
