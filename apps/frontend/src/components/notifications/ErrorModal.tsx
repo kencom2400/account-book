@@ -9,7 +9,7 @@ export interface ErrorModalProps {
   details?: string;
   institutionId?: string;
   timestamp?: Date;
-  onRetry?: () => void;
+  onRetry?: () => Promise<void> | void;
 }
 
 const getHeaderColor = (type: NotificationType): string => {
@@ -41,12 +41,12 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
     return null;
   }
 
-  const handleRetry = (): void => {
+  const handleRetry = async (): Promise<void> => {
     if (!onRetry) return;
 
     setIsRetrying(true);
     try {
-      onRetry();
+      await onRetry();
       onClose();
     } catch (error: unknown) {
       console.error('Retry failed:', error);

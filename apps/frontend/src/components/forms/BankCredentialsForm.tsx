@@ -45,10 +45,16 @@ export function BankCredentialsForm({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const prevErrorRef = useRef<string | null>(null);
+  const errorTimestampRef = useRef<Date | null>(null);
 
   // エラー発生時の通知処理
   const handleError = useCallback(
     (errorMessage: string, details?: string): void => {
+      // エラー発生時刻を記録（初回のみ）
+      if (!errorTimestampRef.current) {
+        errorTimestampRef.current = new Date();
+      }
+
       // Zustand storeに通知を追加
       addNotification({
         type: 'error',
@@ -290,7 +296,7 @@ export function BankCredentialsForm({
         message={error || ''}
         details={errorDetails}
         institutionId={bank.code}
-        timestamp={new Date()}
+        timestamp={errorTimestampRef.current || undefined}
         onRetry={(): void => {
           if (validate()) {
             onSubmit(formData);
