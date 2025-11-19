@@ -69,6 +69,45 @@ function process(data: unknown): void {
 const mockRepo = { findById: jest.fn() } as any;
 ```
 
+#### 1-3. Enum型の型安全な比較
+
+```typescript
+// ❌ 避けるべきパターン
+{Object.entries(CATEGORY_LABELS).map(([category, label]) => (
+  <button
+    onClick={() => setSelectedCategory(category as BankCategory)}
+    className={String(selectedCategory) === category ? '...' : '...'}
+  >
+))}
+```
+
+**問題**:
+
+- `Object.entries()`の戻り値は`[string, T][]`型で、キーが文字列型として扱われる
+- `category as BankCategory`のような型アサーションは型安全性を損なう
+- `String(selectedCategory)`のような回避策は意図が不明確
+
+**正しい対応**:
+
+```typescript
+// ✅ 明示的な型キャストで型安全に
+{(Object.entries(CATEGORY_LABELS) as [BankCategory, string][]).map(([category, label]) => (
+  <button
+    onClick={() => setSelectedCategory(category)}
+    className={selectedCategory === category ? '...' : '...'}
+  >
+))}
+```
+
+**改善点**:
+
+- `Object.entries()`の戻り値を`[BankCategory, string][]`型に明示的にキャスト
+- 型アサーションを削除し、型システムが正しく推論できるようにする
+- 直接Enum比較が可能になり、`@typescript-eslint/no-unsafe-enum-comparison`警告を解消
+- コードの意図が明確で、型安全性が向上
+
+**原則**: Enum型を扱う際は、型アサーションではなく明示的な型キャストで型を定義する
+
 ---
 
 ## 2. データアクセスと配列操作
@@ -361,6 +400,8 @@ const mockRepo = {
 - [ ] クエリパラメータの全組み合わせに対応しているか？
 - [ ] 型キャストを使っていないか？（使う場合は型定義を見直す）
 - [ ] 未使用のコード（トークン、ファイル）を残していないか？
+- [ ] Enum型の比較は型安全か？（`Object.entries()`使用時は明示的な型キャストを追加）
+- [ ] 型アサーション（`as`）を使わず、型システムで推論できるようにしているか？
 
 #### Phase 3: パフォーマンス
 
@@ -621,6 +662,8 @@ rules: {
 - **型情報の活用が重要**: Type-aware linting により、より多くの潜在的バグを検出できる
 - **公式の推奨設定を信頼**: フレームワーク開発者が推奨する設定には理由がある
 - **環境ごとの最適化**: 全てのファイルに同じルールを適用するのは非効率
+- **Enum型の型安全性**: `Object.entries()`使用時は明示的な型キャストで型を保証する
+- **型アサーションより型キャスト**: `as`による型アサーションではなく、明示的な型キャストでTypeScriptの型システムを活用する
 
 ---
 
