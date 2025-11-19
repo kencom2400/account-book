@@ -15,10 +15,6 @@ export default tseslint.config(
             "dist/",
             "node_modules/",
             ".env*.local",
-            "jest.config.js",
-            "jest.setup.js",
-            "*.config.{js,mjs,cjs}",
-            "next-env.d.ts",
         ],
     },
 
@@ -112,7 +108,13 @@ export default tseslint.config(
     
     // 設定ファイルとJest関連ファイルは型チェックから除外
     {
-        files: ['*.config.{js,mjs,cjs}', '*.setup.{js,mjs,cjs}', 'jest.config.js', 'jest.setup.js'],
+        files: ['**/*.config.{js,mjs,cjs}', '**/*.setup.{js,mjs,cjs}', '**/jest.config.js', '**/jest.setup.js', 'eslint.config.mjs'],
+        ...tseslint.configs.disableTypeChecked,
+    },
+    
+    // 設定ファイルとJest関連ファイルの追加設定
+    {
+        files: ['**/*.config.{js,mjs,cjs}', '**/*.setup.{js,mjs,cjs}', '**/jest.config.js', '**/jest.setup.js', 'eslint.config.mjs'],
         languageOptions: {
             globals: {
                 ...globals.node,
@@ -123,12 +125,11 @@ export default tseslint.config(
             '@typescript-eslint/no-require-imports': 'off', // CommonJS許可
             'no-undef': 'off', // globalsで定義されているものでもno-undefが発火する場合があるため
         },
-        ...tseslint.configs.disableTypeChecked,
     },
     
-    // Next.js型定義ファイルは除外
+    // Next.js型定義ファイルの設定
     {
-        files: ['next-env.d.ts'],
+        files: ['**/next-env.d.ts'],
         rules: {
             '@typescript-eslint/triple-slash-reference': 'off',
         },
