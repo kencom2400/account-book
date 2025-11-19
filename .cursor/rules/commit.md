@@ -201,7 +201,7 @@ chore(setup): プロジェクト初期設定
 - [ ] 変更内容が一貫性を持っているか確認
 - [ ] コミットメッセージが適切か確認
 
-**重要**: commitしたら、**必ず**`./scripts/build.sh`、`./scripts/test.sh`、`./scripts/lint.sh`、`./scripts/test/test-e2e.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してから再度commitすること。
+**重要**: commitしたら、**必ず**`./scripts/test/lint.sh`、`./scripts/test/test.sh all`、`./scripts/build/build.sh`を実行してエラーが無いことを確認すること。エラーがある場合は、修正してから再度commitすること。
 
 ### push前のチェックリスト
 

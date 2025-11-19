@@ -163,9 +163,9 @@ gh pr edit $PR_NUMBER --body "<更新された説明>"
 
 ```bash
 # 必須チェック（コードファイル変更時）
-./scripts/build/build.sh
 ./scripts/test/lint.sh
-./scripts/test/test.sh
+./scripts/test/test.sh all
+./scripts/build/build.sh
 ```
 
 **実行内容:**
@@ -225,7 +225,7 @@ gh pr edit $PR_NUMBER --body "<最終的な説明>"
 
    ```bash
    # チェック実行
-   ./scripts/build/build.sh && ./scripts/test/lint.sh && ./scripts/test/test.sh && ./scripts/test/test-e2e.sh
+   ./scripts/test/lint.sh && ./scripts/test/test.sh all && ./scripts/build/build.sh
 
    # ドラフト解除
    gh pr ready $PR_NUMBER

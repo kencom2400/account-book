@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ToasterContainer } from '@/components/notifications/ErrorToast';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>): React.JSX.Element {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ToasterContainer />
+      </body>
     </html>
   );
 }

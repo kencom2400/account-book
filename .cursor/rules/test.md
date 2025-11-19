@@ -114,7 +114,7 @@ expect(result.amount).toBe(1000);
    - 新規UI機能を実装した場合: Frontend E2Eテストを作成
    - 既存のE2Eテストが失敗する場合は、実装状況に応じて修正またはスキップ
 3. **必ずテストを実行する**
-   - ユニットテスト: `./scripts/test.sh`
+   - ユニットテスト: `./scripts/test/test.sh all`
    - E2Eテスト: `./scripts/test/test-e2e.sh`
 4. **全てのテストが成功するまで修正する**
 5. コミット前に再度テストを実行し、全て成功することを確認する
@@ -177,7 +177,7 @@ pnpm test:e2e
 
 - [ ] 新規実装に対応するユニットテストコードを作成した
 - [ ] APIエンドポイントやUI機能を実装した場合、E2Eテストコードを作成した
-- [ ] ユニットテストを実行し、全て成功した（`./scripts/test.sh`）
+- [ ] ユニットテストを実行し、全て成功した（`./scripts/test/test.sh all`）
 - [ ] E2Eテストを実行し、全て成功した（`./scripts/test/test-e2e.sh`）
 - [ ] Linterエラーがない
 - [ ] 不要なconsole.log等のデバッグコードを削除した

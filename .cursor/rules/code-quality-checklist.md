@@ -875,6 +875,83 @@ export default tseslint.config(
 - 複数ブロックの役割をコメントで明確化
 - 技術的制約がある場合は、その理由をドキュメント化
 
+### 12-4. コールバック関数の型定義
+
+**非同期処理に対応したコールバック型**:
+
+❌ **悪い例** - 同期関数のみを想定:
+
+```typescript
+interface Props {
+  onRetry?: () => void;
+}
+
+const handleRetry = (): void => {
+  if (!onRetry) return;
+  onRetry(); // 非同期処理の完了を待てない
+  onClose(); // リトライ完了前に閉じてしまう
+};
+```
+
+✅ **良い例** - 同期・非同期両方に対応:
+
+```typescript
+interface Props {
+  onRetry?: () => Promise<void> | void; // Promise対応
+}
+
+const handleRetry = async (): Promise<void> => {
+  if (!onRetry) return;
+  await onRetry(); // 完了を待つ
+  onClose(); // 完了後に閉じる
+};
+```
+
+**Geminiレビューから学んだ教訓**:
+
+- コールバックが非同期処理である可能性を考慮
+- `Promise<void> | void` 型で同期・非同期両方をサポート
+- `async/await` を使って非同期処理の完了を待つ
+- エラーハンドリングを適切に実装
+
+### 12-5. 日時の固定化
+
+**再レンダリングで値が変わる問題**:
+
+❌ **悪い例** - 毎回新しいDateが生成される:
+
+```typescript
+<ErrorModal
+  timestamp={new Date()}  // 再レンダリングで変わる
+  // フォーム入力中にエラー時刻が更新されてしまう
+/>
+```
+
+✅ **良い例** - useRefで初回の値を保持:
+
+```typescript
+const errorTimestampRef = useRef<Date | null>(null);
+
+const handleError = (message: string): void => {
+  // 初回のみタイムスタンプを記録
+  if (!errorTimestampRef.current) {
+    errorTimestampRef.current = new Date();
+  }
+  // ...
+};
+
+<ErrorModal
+  timestamp={errorTimestampRef.current || undefined}
+/>
+```
+
+**Geminiレビューから学んだ教訓**:
+
+- `new Date()` を直接propsに渡すと再レンダリングで値が変わる
+- `useRef` で初回の値を保持して固定化
+- ユーザーに一貫した情報を提供
+- 状態変更のトリガーにならない値は `useRef` を使用
+
 ---
 
 ## 13. まとめ

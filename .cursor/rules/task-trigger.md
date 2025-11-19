@@ -44,45 +44,40 @@
 
 #### 1. チケット取得（自動実行）
 
-**必須**: 以下の手順で「To Do」ステータスのIssueのみを取得：
+```
+╔════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL: 必ず代替方法を使用すること 🚨              ║
+║                                                            ║
+║  GitHub Projects APIは assignees 情報を返さない           ║
+║  必ず以下の「代替方法」を使用してIssueを取得すること      ║
+║                                                            ║
+║  間違った方法: gh project item-list を使用                ║
+║  正しい方法: gh issue list --assignee @me を使用         ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+**❌ 使用禁止の方法（assignees情報が取得できないため）:**
 
 ```bash
-# 設定値の読み込み（オプション）
-# プロジェクト固有の設定がある場合は .cursor/config.sh から読み込み
-if [ -f ".cursor/config.sh" ]; then
-  source .cursor/config.sh
-fi
+# ❌ この方法は使用禁止！
+# GitHub Projects APIはassignees情報を含まないため、
+# アサインされていないIssueも取得してしまう
+gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | \
+  jq --arg status_name "$TODO_STATUS_NAME" '.items[] | select(.status.name == $status_name) | .content'
+```
 
-# 設定値（デフォルト値またはconfig.shから読み込み）
-PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
-TODO_STATUS_NAME="${TODO_STATUS_NAME:-📋 To Do}"
+**✅ 必須: 以下の代替方法を使用すること:**
 
-# オーナー名をコマンドで動的に取得
-OWNER=$(gh repo view --json owner --jq '.owner.login')
-
-# Step 1: GitHub Projectsから「To Do」ステータスのアイテムを取得
-gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | jq --arg status_name "$TODO_STATUS_NAME" '.items[] | select(.status.name == $status_name) | .content'
-
-# Step 2: 取得したアイテムから自分にアサインされているIssueをフィルタリング
-# ※ 実際の実装では、上記のJSONから number, title, labels, url を抽出
+```bash
+# ✅ この方法を必ず使用すること
+# 自分にアサインされているオープンなIssueから、"In Progress" ラベルが付いていないものを取得
+gh issue list --assignee @me --state open --json number,title,labels,url --limit 50 | \
+  jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
 ```
 
 **設定のカスタマイズ**:
 
-`.cursor/config.sh` ファイルを作成することで、プロジェクト固有の設定を管理できます：
-
-```bash
-# .cursor/config.sh の例
-export PROJECT_NUMBER=1
-export TODO_STATUS_NAME="📋 To Do"
-```
-
-**代替方法（プロジェクトAPIが使えない場合）**:
-
-```bash
-# 自分にアサインされているオープンなIssueから、"In Progress" ラベルが付いていないものをフィルタリング
-gh issue list --assignee @me --state open --json number,title,labels,milestone,url --limit 50 | jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
-```
+`.cursor/config.sh` ファイルを作成することで、プロジェクト固有の設定を管理できます（※現在は使用しない）
 
 **jqフィルターについて**:
 
@@ -92,10 +87,13 @@ gh issue list --assignee @me --state open --json number,title,labels,milestone,u
 
 **判定**:
 
-- ✅ 「To Do」ステータスのIssueが0件の場合 → その旨を報告して終了（これのみ例外）
+- ✅ 自分にアサインされているIssueが0件の場合 → その旨を報告して終了（これのみ例外）
 - ✅ 1件以上ある場合 → **質問せず**次のステップへ自動進行
 
-**重要**: In ProgressステータスのIssueは対象外（他の人が作業中の可能性）
+**重要**:
+
+- **必ず`gh issue list --assignee @me`を使用すること**
+- `gh project item-list`は使用禁止（assignees情報が取得できないため）
 
 #### 2. 優先順位判定とソート（自動実行）
 
@@ -165,6 +163,17 @@ issues.sort((a, b) => {
   return a.number - b.number; // Issue IDで昇順
 });
 ```
+
+### 🔴 実行時の必須チェックリスト
+
+**@start-task 実行時、以下を必ず確認すること:**
+
+- [ ] `gh issue list --assignee @me` を使用したか？
+- [ ] `gh project item-list` を使用していないか？（使用禁止）
+- [ ] 取得したIssueに自分がアサインされているか確認したか？
+- [ ] 優先度順にソートしたか？
+- [ ] 最優先のIssue（1件のみ）を選択したか？
+- [ ] ユーザーに「どれにしますか？」と質問していないか？（禁止）
 
 ### 🔴 実行時の必須ルール
 
