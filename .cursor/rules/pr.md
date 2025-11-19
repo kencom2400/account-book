@@ -4,13 +4,20 @@
 ╔════════════════════════════════════════════════════════════╗
 ║  🚨 CRITICAL RULE - PUSH前の必須チェック 🚨              ║
 ║                                                            ║
-║  コードファイルを変更した場合、push前に必ず実行：         ║
-║  1. ./scripts/build.sh                                    ║
-║  2. ./scripts/lint.sh                                     ║
-║  3. ./scripts/test.sh                                     ║
-║  4. ./scripts/test/test-e2e.sh                            ║
+║  pushする前に必ず以下のスクリプトを実行すること：         ║
 ║                                                            ║
+║  1. ./scripts/test/lint.sh                                ║
+║  2. ./scripts/test/test.sh all                            ║
+║  3. ./scripts/test/test-e2e.sh frontend                   ║
+║                                                            ║
+║  【理由】                                                  ║
+║  - pushするとGitHub ActionsでCIが実行される               ║
+║  - CI失敗は無駄なリソース消費とフィードバック遅延        ║
+║  - ローカルチェックでCI失敗を事前に防止する               ║
+║                                                            ║
+║  【原則】                                                  ║
 ║  エラーがある場合はpush禁止。修正してから再実行。         ║
+║  ドキュメントのみの変更でもlintは実行推奨。               ║
 ╚════════════════════════════════════════════════════════════╝
 ```
 
@@ -18,19 +25,26 @@
 
 ### push前に必ず実行すること
 
-**以下の条件に該当する場合、push前に必ずbuild/lint/testを実行：**
+**重要**: pushする前に必ず以下のスクリプトを実行してエラーがないことを確認する。
 
-1. ✅ `.ts`, `.tsx`, `.js`, `.jsx` ファイルを変更した
-2. ✅ ソースコード（`src/`, `apps/`配下）を変更した
-3. ✅ テストファイル（`*.spec.ts`, `*.test.ts`）を変更した
+**理由**:
+
+- pushするとGitHub ActionsでCIが実行される
+- CI実行には時間とリソースが必要（約3-5分）
+- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
+- フィードバックループが短縮され、開発効率が向上する
 
 **実行手順：**
 
 ```bash
-./scripts/build.sh              # ビルドエラーチェック
-./scripts/lint.sh               # コードスタイルチェック
-./scripts/test.sh               # ユニットテスト実行
-./scripts/test/test-e2e.sh      # E2Eテスト実行
+# 1. Lintチェック（必須）
+./scripts/test/lint.sh
+
+# 2. ユニットテスト（必須）
+./scripts/test/test.sh all
+
+# 3. E2Eテスト（必須）
+./scripts/test/test-e2e.sh frontend
 ```
 
 **エラーがある場合：**
@@ -38,14 +52,26 @@
 1. ❌ **絶対にpushしない**
 2. ✅ エラー内容をユーザーに報告
 3. ✅ 修正方法を提案または修正を実施
-4. ✅ 修正後、再度build/lint/testを実行
+4. ✅ 修正後、再度全てのスクリプトを実行
 5. ✅ エラーがなくなったらcommit & push
 
-**スキップ可能な場合：**
+**例外: スキップ可能な場合**
 
-- ドキュメントファイルのみ変更（`.md`, `README`等）
-- 設定ファイルのみ変更（`package.json`, `.gitignore`等）
-- ただし、`eslint.config.*`, `tsconfig.json`等の開発設定は実行すること
+以下の場合のみ、一部スクリプトをスキップ可能：
+
+- ドキュメントファイル（`*.md`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+- 設定ファイル（`.cursor/**`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+
+**ただし、以下の設定ファイル変更時は全スクリプト実行必須：**
+
+- `eslint.config.*`, `tsconfig.json`, `jest.config.*`, `package.json`, `pnpm-workspace.yaml`
+
+**実行時間の目安：**
+
+- lint: 約30-60秒
+- test: 約1-2分
+- e2e: 約30-60秒
+- 合計: 約3-4分（CI実行より短い）
 
 ---
 
@@ -266,16 +292,16 @@ gh pr edit $PR_NUMBER --body "<最終的な説明>"
 ### PR作成前のチェックリスト
 
 - [ ] すべての変更がコミット済み
-- [ ] **コードファイルを変更した場合**: build/lint/test/test-e2eを実行してエラーがないことを確認
+- [ ] **push前のローカルチェックを完了（必須）**
 
   ```bash
-  ./scripts/build.sh
-  ./scripts/lint.sh
-  ./scripts/test.sh
-  ./scripts/test/test-e2e.sh
+  ./scripts/test/lint.sh
+  ./scripts/test/test.sh all
+  ./scripts/test/test-e2e.sh frontend
   ```
 
-  - 注: ドキュメントや設定ファイルのみの変更の場合は不要
+  - 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+  - 注: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能（上記「push前に必ず実行すること」セクション参照）
 
 - [ ] テストが通ることを確認
 - [ ] Lintエラーがないことを確認
@@ -374,17 +400,22 @@ git commit -m "feat(transaction): 取引履歴取得機能を実装"
 
 **重要**: push前に必ず以下を確認する
 
-#### コードファイルを変更した場合の必須チェック
+#### push前のローカルチェック（必須）
+
+**理由**: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる。
 
 ```bash
-# build/lint/test/test-e2eを実行してエラーがないことを確認
-./scripts/build.sh
-./scripts/lint.sh
-./scripts/test.sh
-./scripts/test/test-e2e.sh
+# 1. Lintチェック（必須）
+./scripts/test/lint.sh
+
+# 2. ユニットテスト（必須）
+./scripts/test/test.sh all
+
+# 3. E2Eテスト（必須）
+./scripts/test/test-e2e.sh frontend
 ```
 
-**注**: ドキュメントや設定ファイルのみの変更の場合は不要
+**注**: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能（上記「push前に必ず実行すること」セクション参照）
 
 #### プッシュ
 
@@ -600,16 +631,16 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
   2. `git add <修正したファイル>`
   3. `git commit -m "fix: レビュー指摘に対応 - <具体的な修正内容>"`
   4. エラーがある場合は修正してから再度commit
-  5. **push前に必ず実行**: コードファイルを変更した場合は、build/lint/test/test-e2eを実行してエラーがないことを確認
+  5. **push前に必ずローカルチェックを実行（必須）**
 
      ```bash
-     ./scripts/build.sh
-     ./scripts/lint.sh
-     ./scripts/test.sh
-     ./scripts/test/test-e2e.sh
+     ./scripts/test/lint.sh
+     ./scripts/test/test.sh all
+     ./scripts/test/test-e2e.sh frontend
      ```
 
-     - 注: ドキュメントや設定ファイルのみの変更の場合は不要
+     - 理由: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+     - 注: ドキュメントや設定ファイルのみの変更の場合は、一部スキップ可能
 
   6. `git push origin <ブランチ名>`
   7. 次の指摘に進む（CI確認は後でまとめて実施）
