@@ -742,7 +742,142 @@ jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
 
 ---
 
-## 12. まとめ
+## 12. ESLint Flat Config設定
+
+**原則**: ESLint Flat Configでは、グローバルignoresと個別ルール設定の相互作用に注意する。
+
+### 12-1. グローバルignoresと個別ルール設定の衝突
+
+#### ❌ 問題のあるパターン
+
+```javascript
+export default tseslint.config(
+  {
+    ignores: ['jest.config.js', '*.config.{js,mjs,cjs}', 'next-env.d.ts'],
+  },
+
+  // 個別設定（適用されない！）
+  {
+    files: ['jest.config.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  }
+);
+```
+
+**問題**:
+
+- グローバル`ignores`に含まれるファイルは完全に除外される
+- 後続の個別設定ブロックが無視される
+- 設定ファイルに対するルールカスタマイズができない
+
+#### ✅ 正しいパターン
+
+```javascript
+export default tseslint.config(
+  // グローバルignoresには完全に除外したいもののみ
+  {
+    ignores: ['.next/', 'dist/', 'node_modules/'],
+  },
+
+  // 個別設定が必要なファイルはignoresから除外し、専用ブロックで設定
+  {
+    files: ['**/*.config.{js,mjs,cjs}', '**/jest.config.js'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['**/*.config.{js,mjs,cjs}', '**/jest.config.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+    },
+  }
+);
+```
+
+**重要なポイント**:
+
+1. **グローバルignores**: ビルド成果物など、完全に除外すべきファイルのみ
+2. **個別設定**: 設定ファイルなど、カスタムルールが必要なファイルはignoresから除外
+3. **2ブロック分離**: `disableTypeChecked`は`parserOptions`無効化が必要なため、別ブロックで適用
+
+### 12-2. disableTypeCheckedの適用方法
+
+#### ❌ 避けるべきパターン
+
+```javascript
+// 1つのブロックで統合しようとすると失敗する
+{
+    files: ['*.config.js'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+        globals: { ...globals.node },
+    },
+    rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+    },
+}
+```
+
+**問題**: `disableTypeChecked`の`parserOptions`無効化が正しく適用されない
+
+#### ✅ 正しいパターン
+
+```javascript
+// ステップ1: 型チェック無効化
+{
+    files: ['*.config.js'],
+    ...tseslint.configs.disableTypeChecked,
+},
+
+// ステップ2: グローバル変数とルール設定
+{
+    files: ['*.config.js'],
+    languageOptions: {
+        globals: { ...globals.node },
+    },
+    rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+    },
+},
+```
+
+**理由**: 2つのステップに分けることで、型チェック無効化と追加設定が確実に適用される
+
+### 12-3. コメントによる保守性向上
+
+同じファイルを対象とする複数の設定ブロックがある場合、コメントで役割を明確化：
+
+```javascript
+// 設定ファイルとJest関連ファイルは型チェックから除外（ステップ1: 型チェック無効化）
+{
+    files: ['**/*.config.{js,mjs,cjs}'],
+    ...tseslint.configs.disableTypeChecked,
+},
+
+// 設定ファイルとJest関連ファイルの追加設定（ステップ2: グローバル変数とルール設定）
+{
+    files: ['**/*.config.{js,mjs,cjs}'],
+    languageOptions: { /* ... */ },
+    rules: { /* ... */ },
+},
+```
+
+**Geminiレビューから学んだ教訓**:
+
+- グローバルignoresは最小限にする
+- 個別ルールが必要なファイルはignoresから除外
+- disableTypeCheckedは別ブロックで適用
+- 複数ブロックの役割をコメントで明確化
+- 技術的制約がある場合は、その理由をドキュメント化
+
+---
+
+## 13. まとめ
 
 ### 最優先事項
 
