@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bank } from '@account-book/types';
 import { showErrorToast } from '@/components/notifications/ErrorToast';
 import { ErrorModal } from '@/components/notifications/ErrorModal';
@@ -46,39 +46,42 @@ export function BankCredentialsForm({
   const addNotification = useNotificationStore((state) => state.addNotification);
   const prevErrorRef = useRef<string | null>(null);
 
+  // エラー発生時の通知処理
+  const handleError = useCallback(
+    (errorMessage: string, details?: string): void => {
+      // Zustand storeに通知を追加
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+        details,
+        institutionId: bank.code,
+        retryable: true,
+      });
+
+      // トースト通知を表示
+      showErrorToast('error', errorMessage, {
+        details,
+        onRetry: () => {
+          // フォームを再送信
+          if (validate()) {
+            onSubmit(formData);
+          }
+        },
+        onShowDetails: () => {
+          setShowErrorModal(true);
+        },
+      });
+    },
+    [addNotification, bank.code, formData, onSubmit]
+  );
+
   // エラーがpropsで渡された場合の処理（useEffectで実行）
   useEffect(() => {
     if (error && error !== prevErrorRef.current) {
       prevErrorRef.current = error;
       handleError(error, errorDetails);
     }
-  }, [error, errorDetails]);
-
-  // エラー発生時の通知処理
-  const handleError = (errorMessage: string, details?: string): void => {
-    // Zustand storeに通知を追加
-    addNotification({
-      type: 'error',
-      message: errorMessage,
-      details,
-      institutionId: bank.code,
-      retryable: true,
-    });
-
-    // トースト通知を表示
-    showErrorToast('error', errorMessage, {
-      details,
-      onRetry: () => {
-        // フォームを再送信
-        if (validate()) {
-          onSubmit(formData);
-        }
-      },
-      onShowDetails: () => {
-        setShowErrorModal(true);
-      },
-    });
-  };
+  }, [error, errorDetails, handleError]);
 
   // バリデーション
   const validate = (): boolean => {

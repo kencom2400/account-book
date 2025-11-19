@@ -41,12 +41,12 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
     return null;
   }
 
-  const handleRetry = async (): Promise<void> => {
+  const handleRetry = (): void => {
     if (!onRetry) return;
 
     setIsRetrying(true);
     try {
-      await onRetry();
+      onRetry();
       onClose();
     } catch (error: unknown) {
       console.error('Retry failed:', error);
