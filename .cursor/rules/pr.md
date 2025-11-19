@@ -661,32 +661,34 @@ gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | sele
   - エラー内容を確認して修正
   - 修正後、再度commit/pushしてCIが成功することを確認
 
-- **全ての指摘への対応が完了したら、必ずPRコメントで返信する（必須）**
+- **全ての指摘への対応が完了したら、必ずGeminiのレビューコメントスレッドに返信する（必須）**
   1. CIの状況を確認（既に完了しているCIの結果を確認）
   2. CIが成功していることを確認
-  3. Geminiのレビューコメントに対して返信を投稿
+  3. Geminiのレビューコメントを取得してIDを確認
+  4. コメントスレッドに返信を投稿
 
   ```bash
   # 1. CIの状況確認
   gh pr checks <PR番号>
 
-  # 2. CIが成功している場合、Geminiのレビューに返信
-  gh pr comment <PR番号> --body "$(cat <<'EOF'
-  @gemini-code-assist
+  # 2. Geminiのレビューコメントを確認してIDを取得
+  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path, line}'
+
+  # 例: コメントID 2540860155 が取得できた場合
+
+  # 3. 最新のコミットSHAを取得
+  COMMIT_SHA=$(git rev-parse HEAD)
+
+  # 4. Geminiのコメントスレッドに返信を投稿
+  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
+    --method POST \
+    --field body="@gemini-code-assist
 
   ご指摘いただいた点について対応しました。
 
   ## 修正内容
 
-  1. **[指摘内容1のサマリー]**
-     - 修正内容: [具体的な修正内容]
-     - コミット: [commit hash]
-
-  2. **[指摘内容2のサマリー]**
-     - 修正内容: [具体的な修正内容]
-     - コミット: [commit hash]
-
-  3. **[指摘内容3のサマリー]**
+  1. **[指摘内容のサマリー]**
      - 修正内容: [具体的な修正内容]
      - コミット: [commit hash]
 
@@ -697,10 +699,15 @@ gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | sele
   - ✅ E2Eテスト: 全テスト通過
   - ✅ CI: 成功
 
-  ご確認よろしくお願いいたします。
-  EOF
-  )"
+  ご確認よろしくお願いいたします。" \
+    --field commit_id="$COMMIT_SHA" \
+    --field in_reply_to=2540860155
   ```
+
+  **コメントスレッド返信の仕組み**:
+  - `in_reply_to`: 返信先のコメントID（Geminiのコメント）
+  - `commit_id`: 現在のコミットSHA（必須）
+  - これにより、Geminiのコメントスレッドに直接返信される
 
   **返信内容のポイント**:
   - `@gemini-code-assist`でメンションする
@@ -709,7 +716,10 @@ gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | sele
   - テスト結果とCI結果を報告
   - 丁寧な言葉遣いで感謝の意を表す
 
-  **注意**: Geminiからの指摘に対応した場合は、**必ず返信すること**。返信がないと、対応が完了したかどうかが不明確になる。
+  **注意**:
+  - Geminiからの指摘に対応した場合は、**必ず返信すること**
+  - **コメントスレッドに返信する**ことで、対応状況が明確になる
+  - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
 
 **禁止事項**:
 
@@ -738,11 +748,20 @@ git push origin feature/fr-003-securities-integration
 # すべての指摘対応後、まとめてCIの状況確認とGeminiへの返信
 gh pr checks 153
 # 既に完了しているCIの結果を確認
-# エラーがあれば対応、成功していればGeminiのレビューに返信
+# エラーがあれば対応、成功していればGeminiのレビューコメントに返信
 
-# CIが成功していることを確認後、返信を投稿（必須）
-gh pr comment 153 --body "$(cat <<'EOF'
-@gemini-code-assist
+# Geminiのコメントを確認してIDを取得
+gh api repos/kencom2400/account-book/pulls/153/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
+
+# 例: コメントID 2540860155 が見つかった場合
+
+# コミットSHAを取得
+COMMIT_SHA=$(git rev-parse HEAD)
+
+# Geminiのコメントスレッドに返信を投稿（必須）
+gh api repos/kencom2400/account-book/pulls/153/comments \
+  --method POST \
+  --field body="@gemini-code-assist
 
 ご指摘いただいた点について対応しました。
 
@@ -767,9 +786,9 @@ gh pr comment 153 --body "$(cat <<'EOF'
 - ✅ E2Eテスト: 全テスト通過
 - ✅ CI: 成功
 
-ご確認よろしくお願いいたします。
-EOF
-)"
+ご確認よろしくお願いいたします。" \
+  --field commit_id="$COMMIT_SHA" \
+  --field in_reply_to=2540860155
 ```
 
 **悪い例**:
@@ -801,21 +820,27 @@ git push
 
 2. **CIが成功していることを確認**
 
-3. **Geminiのレビューコメントに返信を投稿（必須）**
+3. **Geminiのレビューコメントスレッドに返信を投稿（必須）**
 
    ```bash
-   gh pr comment <PR番号> --body "$(cat <<'EOF'
-   @gemini-code-assist
+   # Geminiのコメントを確認してIDを取得
+   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
+
+   # 例: コメントID 2540860155 が取得できた場合
+
+   # コミットSHAを取得
+   COMMIT_SHA=$(git rev-parse HEAD)
+
+   # Geminiのコメントスレッドに返信を投稿
+   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
+     --method POST \
+     --field body="@gemini-code-assist
 
    ご指摘いただいた点について対応しました。
 
    ## 修正内容
 
-   1. **[指摘内容1のサマリー]**
-      - 修正内容: [具体的な修正内容]
-      - コミット: [commit hash]
-
-   2. **[指摘内容2のサマリー]**
+   1. **[指摘内容のサマリー]**
       - 修正内容: [具体的な修正内容]
       - コミット: [commit hash]
 
@@ -826,12 +851,21 @@ git push
    - ✅ E2Eテスト: 全テスト通過
    - ✅ CI: 成功
 
-   ご確認よろしくお願いいたします。
-   EOF
-   )"
+   ご確認よろしくお願いいたします。" \
+     --field commit_id="$COMMIT_SHA" \
+     --field in_reply_to=2540860155
    ```
 
-**重要**: Geminiからの指摘に対応した場合は、**必ず返信すること**。返信がないと、対応が完了したかどうかが不明確になる。
+   **コメントスレッド返信の重要性**:
+   - `in_reply_to`フィールドを使用することで、Geminiのコメントスレッドに直接返信される
+   - PRコメントとは異なり、対応状況が該当の指摘と紐付けられて明確になる
+   - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
+
+**重要**:
+
+- Geminiからの指摘に対応した場合は、**必ずコメントスレッドに返信すること**
+- 通常のPRコメントではなく、**レビューコメントのスレッドに返信する**
+- 返信がないと、対応が完了したかどうかが不明確になる
 
 #### 5-4. 再発防止策の実施（重要）
 
@@ -877,8 +911,16 @@ Geminiからの指摘を受けた場合、**必ず以下を実施すること**�
 **返信コメントの例**:
 
 ```bash
-gh pr comment <PR番号> --body "$(cat <<'EOF'
-@gemini-code-assist
+# Geminiのコメントを確認してIDを取得
+gh api repos/kencom2400/account-book/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
+
+# コミットSHAを取得
+COMMIT_SHA=$(git rev-parse HEAD)
+
+# コメントスレッドに返信
+gh api repos/kencom2400/account-book/pulls/<PR番号>/comments \
+  --method POST \
+  --field body="@gemini-code-assist
 
 ご指摘いただいた点について対応しました。
 
@@ -899,16 +941,16 @@ gh pr comment <PR番号> --body "$(cat <<'EOF'
 
 今回の指摘を踏まえ、以下のルールを更新しました：
 
-- `.cursor/rules/code-quality-checklist.md`: Enum型の型安全な比較手法を追加（コミット: def5678）
+- \`.cursor/rules/code-quality-checklist.md\`: Enum型の型安全な比較手法を追加（コミット: def5678）
   - 悪い例と良い例を具体的に記載
   - 実装チェックリストに項目を追加
   - Geminiレビューから学んだ教訓セクションに追加
 
 これにより、今後同様の問題が発生することを防ぎます。
 
-ご確認よろしくお願いいたします。
-EOF
-)"
+ご確認よろしくお願いいたします。" \
+  --field commit_id="$COMMIT_SHA" \
+  --field in_reply_to=<GeminiのコメントID>
 ```
 
 **AIアシスタントへの指示**:
@@ -917,9 +959,10 @@ EOF
 - 指摘内容を深く理解し、根本原因を特定
 - チェックリストに追加すべき項目がないか検討
 - ルール更新は別コミットとして実施（対応コミットと分離）
-- **CIが成功していることを確認してから、必ずGeminiのレビューに返信する**
+- **CIが成功していることを確認してから、必ずGeminiのレビューコメントスレッドに返信する**
 - 返信には修正内容、テスト結果、再発防止策を含める
-- ヒアドキュメントを使用して複数行のコメントを投稿
+- `in_reply_to`フィールドを使用してコメントスレッドに直接返信する
+- 通常のPRコメント（`gh pr comment`）ではなく、レビューコメントAPI（`gh api repos/{owner}/{repo}/pulls/{PR番号}/comments`）を使用する
 
 ### 6. CI (lint, test, build)の確認と対応（自動実行）
 
