@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   // Docker環境でのホットリロード対応
   webpack: (config: Configuration, { isServer }): Configuration => {
-    if (!isServer && config.watchOptions === undefined) {
+    if (!isServer && !config.watchOptions) {
       config.watchOptions = {
         poll: 1000,
         aggregateTimeout: 300,
