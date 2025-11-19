@@ -7,6 +7,19 @@ set -e
 # プロジェクトルートに移動
 cd "$(dirname "$0")/../.."
 
+# 開発環境の起動方法を選択
+echo "開発環境の起動方法を選択してください:"
+echo "  1) ローカル環境 (nodeenv)"
+echo "  2) Docker環境 (推奨)"
+read -p "選択 (1/2): " -n 1 -r
+echo
+
+if [[ $REPLY == "2" ]]; then
+    ./scripts/dev/dev-docker.sh "$@"
+    exit 0
+fi
+
+# ローカル環境の場合の処理
 # 環境をアクティベート
 if [ -f ".nodeenv/bin/activate" ]; then
   source .nodeenv/bin/activate

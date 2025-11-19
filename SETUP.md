@@ -84,7 +84,59 @@ curl -X POST http://localhost:3001/categories/initialize
 
 ## 開発サーバーの起動
 
-### ターミナル1: バックエンド
+### Docker版（推奨）
+
+Docker環境を使用する場合、以下のコマンドで簡単に起動できます：
+
+```bash
+# すべてのコンテナを起動（バックグラウンド）
+./scripts/dev/dev-docker.sh start
+
+# バックエンドのみ起動
+./scripts/dev/dev-docker.sh start backend
+
+# フロントエンドのみ起動
+./scripts/dev/dev-docker.sh start frontend
+```
+
+アクセス:
+
+- Frontend: http://localhost:3000
+- Backend: http://localhost:3001
+
+**注意**: 初回起動時は、コンテナのビルドに時間がかかります。
+
+**停止方法**:
+
+```bash
+./scripts/dev/dev-docker.sh stop
+# または
+./scripts/dev/stop-docker.sh
+```
+
+**ログ確認**:
+
+```bash
+./scripts/dev/dev-docker.sh logs          # すべてのログ
+./scripts/dev/dev-docker.sh logs backend   # バックエンドのログ
+./scripts/dev/dev-docker.sh logs frontend  # フロントエンドのログ
+```
+
+**状態確認**:
+
+```bash
+./scripts/dev/dev-docker.sh status
+```
+
+**環境リセット**:
+
+```bash
+./scripts/dev/reset-docker.sh
+```
+
+### ローカル環境
+
+#### ターミナル1: バックエンド
 
 ```bash
 cd apps/backend
@@ -93,7 +145,7 @@ pnpm dev
 
 バックエンドは `http://localhost:3001` で起動します。
 
-### ターミナル2: フロントエンド
+#### ターミナル2: フロントエンド
 
 ```bash
 cd apps/frontend

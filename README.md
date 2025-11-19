@@ -6,10 +6,35 @@
 
 ### 前提条件
 
-- Python 3.8+
-- nodeenv
+- Docker と Docker Compose（Docker版を使用する場合）
+- または Python 3.8+ と nodeenv（ローカル環境を使用する場合）
 
 ### インストール
+
+#### Docker版（推奨）
+
+```bash
+# 1. リポジトリのクローン
+git clone https://github.com/kencom2400/account-book.git
+cd account-book
+
+# 2. 環境変数の設定
+cp .env.example .env
+# .envファイルを編集して必要な値を設定
+
+# 3. Docker環境の起動
+./scripts/dev/dev-docker.sh all
+
+# または
+docker-compose up
+```
+
+アクセス:
+
+- Frontend: http://localhost:3000
+- Backend: http://localhost:3001
+
+#### ローカル環境（従来の方法）
 
 ```bash
 # nodeenv環境の作成
@@ -27,6 +52,40 @@ corepack prepare pnpm@8.15.0 --activate
 ```
 
 ### 開発サーバーの起動
+
+#### Docker版
+
+```bash
+# すべてのコンテナを起動（バックグラウンド）
+./scripts/dev/dev-docker.sh start
+
+# バックエンドのみ起動
+./scripts/dev/dev-docker.sh start backend
+
+# フロントエンドのみ起動
+./scripts/dev/dev-docker.sh start frontend
+
+# コンテナを停止
+./scripts/dev/dev-docker.sh stop
+
+# コンテナを再起動
+./scripts/dev/dev-docker.sh restart
+
+# ログを確認
+./scripts/dev/dev-docker.sh logs          # すべてのログ
+./scripts/dev/dev-docker.sh logs backend   # バックエンドのログ
+./scripts/dev/dev-docker.sh logs frontend  # フロントエンドのログ
+
+# コンテナの状態を確認
+./scripts/dev/dev-docker.sh status
+
+# コンテナをビルドして起動
+./scripts/dev/dev-docker.sh build
+```
+
+**注意**: 旧形式（`./scripts/dev/dev-docker.sh all`）も使用可能ですが、フォアグラウンドで実行されます。
+
+#### ローカル環境
 
 ```bash
 # 環境のアクティベート（必要に応じて）

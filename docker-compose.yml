@@ -1,0 +1,78 @@
+# docker-compose.yml
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile.dev
+    container_name: account-book-backend
+    ports:
+      - '3001:3001'
+    volumes:
+      # ソースコードをマウント（ホットリロード用）
+      - ./apps/backend/src:/app/apps/backend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # node_modulesは除外（コンテナ内のものを使用）
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    env_file:
+      - .env
+    networks:
+      - account-book-network
+    command: pnpm dev
+    healthcheck:
+      # wgetが利用できない場合はcurlを使用
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.dev
+    container_name: account-book-frontend
+    ports:
+      - '3000:3000'
+    volumes:
+      # ソースコードをマウント（ホットリロード用）
+      - ./apps/frontend/src:/app/apps/frontend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # Next.jsの設定ファイル
+      - ./apps/frontend/next.config.ts:/app/apps/frontend/next.config.ts
+      - ./apps/frontend/tailwind.config.ts:/app/apps/frontend/tailwind.config.ts
+      - ./apps/frontend/tsconfig.json:/app/apps/frontend/tsconfig.json
+      # node_modulesは除外
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    env_file:
+      - .env
+    networks:
+      - account-book-network
+    depends_on:
+      - backend
+    command: pnpm dev
+
+networks:
+  account-book-network:
+    driver: bridge
+
+# 将来のMySQL追加用（Issue #165 対応時に有効化）
+# volumes:
+#   mysql-data:
+
