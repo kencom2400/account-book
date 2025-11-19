@@ -67,11 +67,16 @@ jobs:
       - name: Run Backend E2E tests
         run: |
           cd apps/backend
+          # secretsが設定されていない場合のフォールバック値を使用
+          export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=}"
+          export CRYPTO_SALT="${CRYPTO_SALT:-dGVzdC1zYWx0LTE2LWJ5dGVz}"
+          export NODE_ENV=test
           pnpm test:e2e
         env:
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
-          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
-          NODE_ENV: test
+          # GitHub Actions lint警告: secretsへのアクセスは実際には問題ありません
+          # secretsが設定されていない場合は、runスクリプト内でフォールバック値が使用されます
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT }}
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: success()
@@ -116,16 +121,18 @@ jobs:
       - name: Run Frontend E2E tests
         run: |
           cd apps/frontend
+          # secretsが設定されていない場合のフォールバック値を使用
+          export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=}"
+          export CRYPTO_SALT="${CRYPTO_SALT:-dGVzdC1zYWx0LTE2LWJ5dGVz}"
+          export NODE_ENV=test
+          export BACKEND_PORT=3001
+          export FRONTEND_PORT=3000
           pnpm test:e2e
         env:
           BASE_URL: http://localhost:3000
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=' }}
-          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz' }}
-          NODE_ENV: test
-          # バックエンド用のPORT（PlaywrightのwebServer設定で使用）
-          BACKEND_PORT: 3001
-          # フロントエンド用のPORT（PlaywrightのwebServer設定で使用）
-          FRONTEND_PORT: 3000
+          # GitHub Actions lint警告を回避するため、envセクションで設定
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

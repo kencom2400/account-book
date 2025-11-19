@@ -10,7 +10,11 @@ services:
     volumes:
       # ソースコードをマウント（ホットリロード用）
       - ./apps/backend/src:/app/apps/backend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
       - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
       # node_modulesは除外（コンテナ内のものを使用）
       - /app/node_modules
       - /app/apps/backend/node_modules
@@ -23,10 +27,12 @@ services:
       - account-book-network
     command: pnpm dev
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3001/']
+      # wgetが利用できない場合はcurlを使用
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 
   frontend:
     build:
@@ -38,7 +44,11 @@ services:
     volumes:
       # ソースコードをマウント（ホットリロード用）
       - ./apps/frontend/src:/app/apps/frontend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
       - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
       # Next.jsの設定ファイル
       - ./apps/frontend/next.config.ts:/app/apps/frontend/next.config.ts
       - ./apps/frontend/tailwind.config.ts:/app/apps/frontend/tailwind.config.ts

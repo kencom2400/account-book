@@ -4,17 +4,31 @@ FROM node:20-alpine AS builder
 RUN npm install -g pnpm@8.15.0
 
 WORKDIR /app
-COPY . .
+
+# 依存関係のインストール（キャッシュ効率化のため、package.jsonを先にコピー）
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/backend/package.json ./apps/backend/
+COPY libs/types/package.json ./libs/types/
+COPY libs/utils/package.json ./libs/utils/
+
 RUN pnpm install --frozen-lockfile
+
+# ソースコードのコピーとビルド
+COPY . .
+RUN pnpm run build --filter=@account-book/types
+RUN pnpm run build --filter=@account-book/utils
 RUN pnpm run build --filter=@account-book/backend
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# 本番環境に必要なファイルのみコピー（イメージサイズの最適化）
 COPY --from=builder /app/apps/backend/dist ./dist
 COPY --from=builder /app/apps/backend/package.json ./
+# 本番環境に必要な依存関係のみコピー
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3001
+ENV NODE_ENV=production
 CMD ["node", "dist/main.js"]
 
