@@ -47,16 +47,34 @@
 **必須**: 以下の手順で「To Do」ステータスのIssueのみを取得：
 
 ```bash
-# 設定値
-PROJECT_NUMBER=1
-OWNER="kencom2400"
-TODO_STATUS_NAME="📋 To Do"
+# 設定値の読み込み（オプション）
+# プロジェクト固有の設定がある場合は .cursor/config.sh から読み込み
+if [ -f ".cursor/config.sh" ]; then
+  source .cursor/config.sh
+fi
+
+# 設定値（デフォルト値またはconfig.shから読み込み）
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
+TODO_STATUS_NAME="${TODO_STATUS_NAME:-📋 To Do}"
+
+# オーナー名をコマンドで動的に取得
+OWNER=$(gh repo view --json owner --jq '.owner.login')
 
 # Step 1: GitHub Projectsから「To Do」ステータスのアイテムを取得
 gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | jq --arg status_name "$TODO_STATUS_NAME" '.items[] | select(.status.name == $status_name) | .content'
 
 # Step 2: 取得したアイテムから自分にアサインされているIssueをフィルタリング
 # ※ 実際の実装では、上記のJSONから number, title, labels, url を抽出
+```
+
+**設定のカスタマイズ**:
+
+`.cursor/config.sh` ファイルを作成することで、プロジェクト固有の設定を管理できます：
+
+```bash
+# .cursor/config.sh の例
+export PROJECT_NUMBER=1
+export TODO_STATUS_NAME="📋 To Do"
 ```
 
 **代替方法（プロジェクトAPIが使えない場合）**:
