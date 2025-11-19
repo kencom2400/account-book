@@ -104,12 +104,12 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps):
         >
           すべて
         </button>
-        {Object.entries(CATEGORY_LABELS).map(([category, label]) => (
+        {(Object.entries(CATEGORY_LABELS) as [BankCategory, string][]).map(([category, label]) => (
           <button
             key={category}
-            onClick={() => setSelectedCategory(category as BankCategory)}
+            onClick={() => setSelectedCategory(category)}
             className={`px-4 py-2 font-medium ${
-              String(selectedCategory) === category
+              selectedCategory === category
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
