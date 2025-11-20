@@ -7,8 +7,39 @@
 ### 前提条件
 
 - Docker と Docker Compose（Docker版を使用する場合）
-- または Python 3.8+ と nodeenv（ローカル環境を使用する場合）
+- または Python 3.8+ と pip3（ローカル環境を使用する場合）
 - MySQL 8.0（データベース）
+
+### 初回セットアップ（推奨）
+
+新しくプロジェクトに参加する場合は、以下のワンコマンドで環境構築が完了します：
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/kencom2400/account-book.git
+cd account-book
+
+# 初回環境セットアップ（自動）
+./scripts/setup/initial-setup.sh
+```
+
+このスクリプトは以下を自動的に実行します：
+
+- Python 3.8+ と pip3 の存在確認
+- nodeenv のインストール
+- Node.js 20.18.1 環境の作成 (.nodeenv)
+- corepack の有効化と pnpm 8.15.0 のセットアップ
+- 依存関係のインストール
+- 共通ライブラリのビルド
+- 環境変数ファイルの作成 (.env)
+- 環境の検証
+
+セットアップ完了後、以下のコマンドで開発を開始できます：
+
+```bash
+# 開発サーバーの起動
+./scripts/dev/dev-parallel.sh
+```
 
 ### インストール
 
