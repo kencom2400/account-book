@@ -24,9 +24,11 @@ if [ -f .env ]; then
 fi
 
 # MySQLダンプ実行
-docker-compose exec -T mysql mysqldump \
+# MYSQL_PWD環境変数を使用してパスワードをプロセスリストから隠蔽
+docker-compose exec -T \
+    -e MYSQL_PWD="${MYSQL_PASSWORD:-password}" \
+    mysql mysqldump \
     -u "${MYSQL_USER:-account_book_user}" \
-    -p"${MYSQL_PASSWORD:-password}" \
     "${MYSQL_DATABASE:-account_book_dev}" \
     > "$BACKUP_FILE"
 

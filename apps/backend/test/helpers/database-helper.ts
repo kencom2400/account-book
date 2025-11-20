@@ -17,21 +17,25 @@ export class E2ETestDatabaseHelper {
   async cleanDatabase(): Promise<void> {
     const entities = this.dataSource.entityMetadatas;
     const driverType = this.dataSource.driver.options.type;
+    const isMysql = driverType === 'mysql' || driverType === 'mariadb';
 
     // 外部キー制約を一時的に無効化（MySQL固有）
-    if (driverType === 'mysql' || driverType === 'mariadb') {
+    if (isMysql) {
       await this.dataSource.query('SET FOREIGN_KEY_CHECKS = 0;');
     }
 
-    // すべてのテーブルをTRUNCATE
-    for (const entity of entities) {
-      const repository = this.dataSource.getRepository(entity.name);
-      await repository.clear();
-    }
-
-    // 外部キー制約を再度有効化（MySQL固有）
-    if (driverType === 'mysql' || driverType === 'mariadb') {
-      await this.dataSource.query('SET FOREIGN_KEY_CHECKS = 1;');
+    try {
+      // すべてのテーブルをTRUNCATE
+      for (const entity of entities) {
+        const repository = this.dataSource.getRepository(entity.name);
+        await repository.clear();
+      }
+    } finally {
+      // 外部キー制約を再度有効化（MySQL固有）
+      // エラーが発生しても必ず実行される
+      if (isMysql) {
+        await this.dataSource.query('SET FOREIGN_KEY_CHECKS = 1;');
+      }
     }
   }
 

@@ -13,7 +13,10 @@ import { DataSource } from 'typeorm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CategoryOrmEntity } from '../src/modules/category/infrastructure/entities/category.orm-entity';
-import { InstitutionOrmEntity } from '../src/modules/institution/infrastructure/entities/institution.orm-entity';
+import {
+  InstitutionOrmEntity,
+  AccountJSON,
+} from '../src/modules/institution/infrastructure/entities/institution.orm-entity';
 import { TransactionOrmEntity } from '../src/modules/transaction/infrastructure/entities/transaction.orm-entity';
 
 interface CategoryJSON {
@@ -44,9 +47,27 @@ interface InstitutionJSON {
   credentials: EncryptedCredentialsJSON;
   isConnected: boolean;
   lastSyncedAt: string | null;
-  accounts: Array<Record<string, unknown>>;
+  accounts: AccountJSON[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * AccountJSON型ガード関数
+ */
+function isValidAccountJSON(account: unknown): account is AccountJSON {
+  if (typeof account !== 'object' || account === null) {
+    return false;
+  }
+  const obj = account as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.institutionId === 'string' &&
+    typeof obj.accountNumber === 'string' &&
+    typeof obj.accountName === 'string' &&
+    typeof obj.balance === 'number' &&
+    typeof obj.currency === 'string'
+  );
 }
 
 interface TransactionJSON {
@@ -144,8 +165,20 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
         entity.lastSyncedAt = inst.lastSyncedAt
           ? new Date(inst.lastSyncedAt)
           : null;
-        // accountsはTypeORMがJSON型として自動変換するため、直接配列を渡す
-        entity.accounts = inst.accounts as unknown as typeof entity.accounts;
+
+        // 型安全なaccountsマッピング
+        if (
+          Array.isArray(inst.accounts) &&
+          inst.accounts.every(isValidAccountJSON)
+        ) {
+          entity.accounts = inst.accounts;
+        } else {
+          console.warn(
+            `⚠️  Invalid accounts structure for institution ${inst.id}, using empty array`,
+          );
+          entity.accounts = [];
+        }
+
         entity.createdAt = new Date(inst.createdAt);
         entity.updatedAt = new Date(inst.updatedAt);
         return entity;

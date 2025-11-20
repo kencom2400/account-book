@@ -40,9 +40,11 @@ if [ -f .env ]; then
 fi
 
 # MySQLリストア実行
-docker-compose exec -T mysql mysql \
+# MYSQL_PWD環境変数を使用してパスワードをプロセスリストから隠蔽
+docker-compose exec -T \
+    -e MYSQL_PWD="${MYSQL_PASSWORD:-password}" \
+    mysql mysql \
     -u "${MYSQL_USER:-account_book_user}" \
-    -p"${MYSQL_PASSWORD:-password}" \
     "${MYSQL_DATABASE:-account_book_dev}" \
     < "$BACKUP_FILE"
 

@@ -25,21 +25,25 @@ if [ -f .env ]; then
 fi
 
 echo "🗑️  データベースを削除中..."
-docker-compose exec -T mysql mysql \
+# MYSQL_PWD環境変数を使用してパスワードをプロセスリストから隠蔽
+docker-compose exec -T \
+    -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD:-root_password}" \
+    mysql mysql \
     -u root \
-    -p"${MYSQL_ROOT_PASSWORD:-root_password}" \
     -e "DROP DATABASE IF EXISTS ${MYSQL_DATABASE:-account_book_dev};"
 
 echo "🔨 データベースを再作成中..."
-docker-compose exec -T mysql mysql \
+docker-compose exec -T \
+    -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD:-root_password}" \
+    mysql mysql \
     -u root \
-    -p"${MYSQL_ROOT_PASSWORD:-root_password}" \
     -e "CREATE DATABASE ${MYSQL_DATABASE:-account_book_dev} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 echo "🔧 権限を付与中..."
-docker-compose exec -T mysql mysql \
+docker-compose exec -T \
+    -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD:-root_password}" \
+    mysql mysql \
     -u root \
-    -p"${MYSQL_ROOT_PASSWORD:-root_password}" \
     -e "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE:-account_book_dev}.* TO '${MYSQL_USER:-account_book_user}'@'%';"
 
 echo "📝 マイグレーションを実行中..."

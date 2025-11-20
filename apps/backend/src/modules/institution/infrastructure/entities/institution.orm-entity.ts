@@ -12,7 +12,7 @@ import { InstitutionType } from '@account-book/types';
  * AccountJSON型定義
  * accounts JSONフィールドの型定義
  */
-interface AccountJSON {
+export interface AccountJSON {
   id: string;
   institutionId: string;
   accountNumber: string;
