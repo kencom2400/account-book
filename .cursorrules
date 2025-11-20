@@ -6,8 +6,7 @@
 
 以下のルールファイルを**必ず参照**してください：
 
-### 1. プロジェクト全体のガイドライン
-`.cursor/rules/project.md` を読み込んでください。
+### 1. `.cursor/rules/project.md` - プロジェクト全体のガイドライン
 - プロジェクト概要
 - 技術スタック
 - アーキテクチャ原則（Onion Architecture）
@@ -15,53 +14,45 @@
 - 型安全性の絶対遵守
 - any型の使用禁止
 
-### 2. コミットルール
-`.cursor/rules/commit.md` を読み込んでください。
+### 2. `.cursor/rules/commit.md` - コミットルール
 - 作業完了時の自動コミット（最優先ルール）
 - コミットメッセージテンプレート
 - コミット前のチェックリスト
 - push前の必須チェック
 
-### 3. ブランチ管理ルール
-`.cursor/rules/branch.md` を読み込んでください。
+### 3. `.cursor/rules/branch.md` - ブランチ管理ルール
 - Issue開始前のブランチ作成
 - ブランチ命名規則
 - ステータス更新（In Progress）
 
-### 4. Pull Requestルール
-`.cursor/rules/pr.md` を読み込んでください。
+### 4. `.cursor/rules/pr.md` - Pull Requestルール
 - push前の必須チェック（lint/test/e2e）
 - PR自動作成ワークフロー
 - Gemini Code Assistレビューへの対応
 
-### 5. テスト実装ガイドライン
-`.cursor/rules/test.md` を読み込んでください。
+### 5. `.cursor/rules/test.md` - テスト実装ガイドライン
 - 新機能実装時のユニットテスト作成
 - E2Eテスト作成
 - テストでの型安全性
 
-### 6. コード品質チェックリスト
-`.cursor/rules/code-quality-checklist.md` を読み込んでください。
+### 6. `.cursor/rules/code-quality-checklist.md` - コード品質チェックリスト
 - 型安全性（最優先）
 - 危険な型キャストの禁止
 - Enum型の型安全な比較
 - データアクセスと配列操作
 - アーキテクチャとモジュール設計
 
-### 7. CI/CD設定ガイドライン
-`.cursor/rules/ci-cd.md` を読み込んでください。
+### 7. `.cursor/rules/ci-cd.md` - CI/CD設定ガイドライン
 - テスト実行スクリプトの設計原則
 - 環境変数の管理
 - PlaywrightのwebServer設定
 
-### 8. タスク自動実行トリガー
-`.cursor/rules/task-trigger.md` を読み込んでください。
+### 8. `.cursor/rules/task-trigger.md` - タスク自動実行トリガー
 - `@start-task` コマンドの自動実行
 - 質問・確認なしで即座に作業開始
 - 優先順位判定とソート
 
-### 9. GitHub Projects管理
-`.cursor/rules/github-projects.md` を読み込んでください。
+### 9. `.cursor/rules/github-projects.md` - GitHub Projects管理
 - Issueステータス管理
 - プロジェクトボード操作
 
