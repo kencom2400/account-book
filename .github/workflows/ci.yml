@@ -293,7 +293,7 @@ jobs:
           pnpm run migration:run
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: cd apps/frontend && pnpm exec playwright install --with-deps chromium
 
       - name: Run E2E tests (Frontend)
         env:
