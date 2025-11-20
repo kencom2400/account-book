@@ -17,27 +17,12 @@ export const getDatabaseConfig = (
 
   return {
     type: 'mysql',
-    host: configService.get<string>(
-      isTest ? 'MYSQL_TEST_HOST' : 'MYSQL_HOST',
-      'localhost',
-    ),
-    port: configService.get<number>(
-      isTest ? 'MYSQL_TEST_PORT' : 'MYSQL_PORT',
-      isTest ? 3307 : 3306,
-    ),
-    username: configService.get<string>(
-      isTest ? 'MYSQL_TEST_USER' : 'MYSQL_USER',
-      'account_book_user',
-    ),
-    password: configService.get<string>(
-      isTest ? 'MYSQL_TEST_PASSWORD' : 'MYSQL_PASSWORD',
-      'password',
-    ),
-    database: configService.get<string>(
-      isTest ? 'MYSQL_TEST_DATABASE' : 'MYSQL_DATABASE',
-      'account_book_dev',
-    ),
-    entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+    host: configService.get<string>('MYSQL_HOST', 'localhost'),
+    port: configService.get<number>('MYSQL_PORT', 3306),
+    username: configService.get<string>('MYSQL_USER', 'account_book_user'),
+    password: configService.get<string>('MYSQL_PASSWORD', 'password'),
+    database: configService.get<string>('MYSQL_DATABASE', 'account_book_dev'),
+    entities: [__dirname + '/../**/*.orm-entity{.ts,.js}'],
     // 本番環境では synchronize を無効化（マイグレーションを使用）
     synchronize: !isProduction && !isTest,
     // 開発環境でのみクエリログを出力

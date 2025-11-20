@@ -15,7 +15,7 @@ import { CategoryType, TransactionStatus } from '@account-book/types';
  */
 @Entity('transactions')
 @Index(['date', 'institutionId'])
-@Index(['category'])
+@Index(['categoryId'])
 @Index(['status'])
 export class TransactionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })

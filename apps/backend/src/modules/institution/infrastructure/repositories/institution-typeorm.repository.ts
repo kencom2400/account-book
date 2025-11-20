@@ -60,6 +60,22 @@ export class InstitutionTypeOrmRepository {
   }
 
   /**
+   * 接続ステータスで金融機関を取得
+   */
+  async findByConnectionStatus(
+    isConnected: boolean,
+  ): Promise<InstitutionEntity[]> {
+    const ormEntities: InstitutionOrmEntity[] = await this.repository.find({
+      where: { isConnected },
+      order: { name: 'ASC' },
+    });
+
+    return ormEntities.map((entity: InstitutionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
    * 金融機関を保存
    */
   async save(institution: InstitutionEntity): Promise<InstitutionEntity> {

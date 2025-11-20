@@ -213,8 +213,8 @@ describe('Institution Controller (e2e)', () => {
   });
 
   describe('/api/institutions (POST)', () => {
-    it('should create institution with valid data', () => {
-      return request(app.getHttpServer())
+    it('should create institution with valid data', async () => {
+      const res = await request(app.getHttpServer())
         .post('/api/institutions')
         .send({
           name: 'テスト銀行',
@@ -224,17 +224,20 @@ describe('Institution Controller (e2e)', () => {
             branchCode: '001',
             accountNumber: '1234567',
           },
-        })
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.success).toBe(true);
-          expect(res.body.data).toBeDefined();
-          expect(res.body.data.id).toBeDefined();
-          expect(res.body.data.name).toBe('テスト銀行');
-          expect(res.body.data.type).toBe(InstitutionType.BANK);
-          expect(res.body.data.isConnected).toBe(false);
-          expect(res.body.data.credentials).toBeDefined();
         });
+
+      if (res.status !== 201) {
+        console.error('Error response:', JSON.stringify(res.body, null, 2));
+      }
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data.id).toBeDefined();
+      expect(res.body.data.name).toBe('テスト銀行');
+      expect(res.body.data.type).toBe(InstitutionType.BANK);
+      expect(res.body.data.isConnected).toBe(false);
+      expect(res.body.data.credentials).toBeDefined();
     });
 
     it('should return 400 for missing name', () => {

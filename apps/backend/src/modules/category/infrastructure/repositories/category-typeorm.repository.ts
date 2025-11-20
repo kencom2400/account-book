@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { CategoryOrmEntity } from '../entities/category.orm-entity';
 import { CategoryEntity } from '../../domain/entities/category.entity';
 
@@ -61,7 +61,7 @@ export class CategoryTypeOrmRepository {
    */
   async findTopLevel(): Promise<CategoryEntity[]> {
     const ormEntities: CategoryOrmEntity[] = await this.repository.find({
-      where: { parentId: null },
+      where: { parentId: IsNull() },
       order: { order: 'ASC' },
     });
 

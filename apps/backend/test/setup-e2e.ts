@@ -34,14 +34,14 @@ if (!process.env.MYSQL_PORT) {
   process.env.MYSQL_PORT = '3306';
 }
 if (!process.env.MYSQL_USER) {
-  process.env.MYSQL_USER = 'account_book_test_user';
+  process.env.MYSQL_USER = 'account_book_user';
 }
 if (!process.env.MYSQL_PASSWORD) {
-  process.env.MYSQL_PASSWORD = 'test_password';
+  process.env.MYSQL_PASSWORD = 'password';
 }
 if (!process.env.MYSQL_DATABASE) {
-  process.env.MYSQL_DATABASE = 'account_book_test';
+  process.env.MYSQL_DATABASE = 'account_book_dev';
 }
 if (!process.env.MYSQL_ROOT_PASSWORD) {
-  process.env.MYSQL_ROOT_PASSWORD = 'test_root_password';
+  process.env.MYSQL_ROOT_PASSWORD = 'root_password';
 }
