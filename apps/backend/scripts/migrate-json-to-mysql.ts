@@ -144,7 +144,8 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
         entity.lastSyncedAt = inst.lastSyncedAt
           ? new Date(inst.lastSyncedAt)
           : null;
-        entity.accounts = JSON.stringify(inst.accounts);
+        // accountsはTypeORMがJSON型として自動変換するため、直接配列を渡す
+        entity.accounts = inst.accounts as unknown as typeof entity.accounts;
         entity.createdAt = new Date(inst.createdAt);
         entity.updatedAt = new Date(inst.updatedAt);
         return entity;
@@ -190,7 +191,8 @@ async function migrateTransactions(dataSource: DataSource): Promise<void> {
           const entity: TransactionOrmEntity = new TransactionOrmEntity();
           entity.id = txn.id;
           entity.date = new Date(txn.date);
-          entity.amount = txn.amount;
+          // amountはstring型に変換
+          entity.amount = txn.amount.toString();
           entity.categoryId = txn.category.id;
           entity.categoryName = txn.category.name;
           entity.categoryType = txn.category
