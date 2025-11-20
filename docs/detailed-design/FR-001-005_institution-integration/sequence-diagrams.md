@@ -270,8 +270,9 @@ sequenceDiagram
         API-->>UI: 200 OK + ConnectionStatusResponse[]
 
         alt エラーが存在する
-            API->>API: FR-005通知トリガー
-            Note over API: NotificationServiceへ
+            API->>NotificationService: createNotification(errors)
+            Note over NotificationService: FR-005通知作成
+            NotificationService-->>API: void
         end
 
         UI->>UI: 接続状態表示を更新

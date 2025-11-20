@@ -448,21 +448,26 @@ classDiagram
     }
 
     class ConnectionCheckerService {
-        -BankApiAdapter bankApi
-        -CreditCardApiAdapter cardApi
-        -SecuritiesApiAdapter securitiesApi
-        +checkInstitution(institution) Promise~ConnectionCheckResultVO~
-        +checkCreditCard(card) Promise~ConnectionCheckResultVO~
-        +checkSecuritiesAccount(account) Promise~ConnectionCheckResultVO~
+        +checkConnection(id, type, apiClient) Promise~ConnectionCheckResult~
+        +checkMultipleConnections(institutions) Promise~ConnectionCheckResult[]~
+        -performHealthCheck(apiClient, id) Promise~HealthCheckResult~
+        -timeoutPromise() Promise~never~
     }
+
+    note right of ConnectionCheckerService
+        apiClientパラメータは
+        IFinancialApiClientインターフェースを受け取る
+        具象クラスへの依存なし（DIP準拠）
+    end note
 
     MockBankApiAdapter ..> BankApiAdapterInterface
     MockCreditCardApiAdapter ..> CreditCardApiAdapterInterface
     MockSecuritiesApiAdapter ..> SecuritiesApiAdapterInterface
 
-    ConnectionCheckerService --> BankApiAdapterInterface
-    ConnectionCheckerService --> CreditCardApiAdapterInterface
-    ConnectionCheckerService --> SecuritiesApiAdapterInterface
+    ConnectionCheckerService --> IFinancialApiClient : uses
+    BankApiAdapterInterface --|> IFinancialApiClient
+    CreditCardApiAdapterInterface --|> IFinancialApiClient
+    SecuritiesApiAdapterInterface --|> IFinancialApiClient
 ```
 
 ---

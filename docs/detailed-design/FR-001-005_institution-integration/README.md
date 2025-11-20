@@ -86,7 +86,9 @@
 - **Language**: TypeScript 5.x
 - **ORM**: TypeORM (将来的なDB移行用)
 - **Data Storage**: JSON (現在)
-- **Validation**: class-validator, zod
+- **Validation**:
+  - `class-validator`: バックエンドDTO/Entityの検証
+  - `zod`: フロントエンドフォーム検証、API型安全性の補完
 - **Testing**: Jest
 
 ### Frontend
