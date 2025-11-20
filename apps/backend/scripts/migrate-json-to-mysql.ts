@@ -1,0 +1,222 @@
+#!/usr/bin/env node
+
+/**
+ * データ移行スクリプト: JSON → MySQL
+ *
+ * 使用方法:
+ * pnpm ts-node scripts/migrate-json-to-mysql.ts
+ */
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from '../src/app.module';
+import { DataSource } from 'typeorm';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { CategoryOrmEntity } from '../src/modules/category/infrastructure/entities/category.orm-entity';
+import { InstitutionOrmEntity } from '../src/modules/institution/infrastructure/entities/institution.orm-entity';
+import { TransactionOrmEntity } from '../src/modules/transaction/infrastructure/entities/transaction.orm-entity';
+
+interface CategoryJSON {
+  id: string;
+  name: string;
+  type: string;
+  parentId: string | null;
+  icon: string | null;
+  color: string | null;
+  isSystemDefined: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface InstitutionJSON {
+  id: string;
+  name: string;
+  type: string;
+  credentials: Record<string, string>;
+  isConnected: boolean;
+  lastSyncedAt: string | null;
+  accounts: Array<Record<string, unknown>>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface TransactionJSON {
+  id: string;
+  date: string;
+  amount: number;
+  category: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  description: string;
+  institutionId: string;
+  accountId: string;
+  status: string;
+  isReconciled: boolean;
+  relatedTransactionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+async function migrateCategories(dataSource: DataSource): Promise<void> {
+  console.log('📁 カテゴリデータの移行を開始...');
+
+  const filePath: string = path.join(
+    process.cwd(),
+    'data',
+    'categories',
+    'categories.json',
+  );
+
+  try {
+    const content: string = await fs.readFile(filePath, 'utf-8');
+    const categories: CategoryJSON[] = JSON.parse(content) as CategoryJSON[];
+
+    const repository = dataSource.getRepository(CategoryOrmEntity);
+
+    for (const cat of categories) {
+      const entity: CategoryOrmEntity = new CategoryOrmEntity();
+      entity.id = cat.id;
+      entity.name = cat.name;
+      entity.type = cat.type as CategoryOrmEntity['type'];
+      entity.parentId = cat.parentId;
+      entity.icon = cat.icon;
+      entity.color = cat.color;
+      entity.isSystemDefined = cat.isSystemDefined;
+      entity.order = cat.order;
+      entity.createdAt = new Date(cat.createdAt);
+      entity.updatedAt = new Date(cat.updatedAt);
+
+      await repository.save(entity);
+    }
+
+    console.log(`✅ カテゴリ ${categories.length}件を移行しました`);
+  } catch {
+    console.log(`⚠️  カテゴリファイルが見つかりません: ${filePath}`);
+  }
+}
+
+async function migrateInstitutions(dataSource: DataSource): Promise<void> {
+  console.log('📁 金融機関データの移行を開始...');
+
+  const filePath: string = path.join(
+    process.cwd(),
+    'data',
+    'institutions',
+    'institutions.json',
+  );
+
+  try {
+    const content: string = await fs.readFile(filePath, 'utf-8');
+    const institutions: InstitutionJSON[] = JSON.parse(
+      content,
+    ) as InstitutionJSON[];
+
+    const repository = dataSource.getRepository(InstitutionOrmEntity);
+
+    for (const inst of institutions) {
+      const entity: InstitutionOrmEntity = new InstitutionOrmEntity();
+      entity.id = inst.id;
+      entity.name = inst.name;
+      entity.type = inst.type as InstitutionOrmEntity['type'];
+      entity.encryptedCredentials = JSON.stringify(inst.credentials);
+      entity.isConnected = inst.isConnected;
+      entity.lastSyncedAt = inst.lastSyncedAt
+        ? new Date(inst.lastSyncedAt)
+        : null;
+      entity.accounts = JSON.stringify(inst.accounts);
+      entity.createdAt = new Date(inst.createdAt);
+      entity.updatedAt = new Date(inst.updatedAt);
+
+      await repository.save(entity);
+    }
+
+    console.log(`✅ 金融機関 ${institutions.length}件を移行しました`);
+  } catch {
+    console.log(`⚠️  金融機関ファイルが見つかりません: ${filePath}`);
+  }
+}
+
+async function migrateTransactions(dataSource: DataSource): Promise<void> {
+  console.log('📁 取引データの移行を開始...');
+
+  const dirPath: string = path.join(process.cwd(), 'data', 'transactions');
+
+  try {
+    const files: string[] = await fs.readdir(dirPath);
+    const jsonFiles: string[] = files.filter((f: string) =>
+      f.endsWith('.json'),
+    );
+
+    const repository = dataSource.getRepository(TransactionOrmEntity);
+    let totalCount = 0;
+
+    for (const file of jsonFiles) {
+      const filePath: string = path.join(dirPath, file);
+      const content: string = await fs.readFile(filePath, 'utf-8');
+      const transactions: TransactionJSON[] = JSON.parse(
+        content,
+      ) as TransactionJSON[];
+
+      for (const txn of transactions) {
+        const entity: TransactionOrmEntity = new TransactionOrmEntity();
+        entity.id = txn.id;
+        entity.date = new Date(txn.date);
+        entity.amount = txn.amount;
+        entity.categoryId = txn.category.id;
+        entity.categoryName = txn.category.name;
+        entity.categoryType = txn.category
+          .type as TransactionOrmEntity['categoryType'];
+        entity.description = txn.description;
+        entity.institutionId = txn.institutionId;
+        entity.accountId = txn.accountId;
+        entity.status = txn.status as TransactionOrmEntity['status'];
+        entity.isReconciled = txn.isReconciled;
+        entity.relatedTransactionId = txn.relatedTransactionId;
+        entity.createdAt = new Date(txn.createdAt);
+        entity.updatedAt = new Date(txn.updatedAt);
+
+        await repository.save(entity);
+        totalCount++;
+      }
+    }
+
+    console.log(`✅ 取引 ${totalCount}件を移行しました`);
+  } catch (error) {
+    console.log(`⚠️  取引データの移行中にエラー: ${error}`);
+  }
+}
+
+async function bootstrap(): Promise<void> {
+  console.log('🚀 データ移行を開始します...\n');
+
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const dataSource: DataSource = app.get(DataSource);
+
+  try {
+    // データベース接続確認
+    if (!dataSource.isInitialized) {
+      await dataSource.initialize();
+    }
+    console.log('✅ データベース接続成功\n');
+
+    // 各テーブルのデータ移行
+    await migrateCategories(dataSource);
+    await migrateInstitutions(dataSource);
+    await migrateTransactions(dataSource);
+
+    console.log('\n🎉 すべてのデータ移行が完了しました！');
+  } catch (error) {
+    console.error('❌ データ移行中にエラーが発生しました:', error);
+    process.exit(1);
+  } finally {
+    await app.close();
+  }
+}
+
+bootstrap().catch((error: Error) => {
+  console.error('❌ 致命的なエラー:', error);
+  process.exit(1);
+});
