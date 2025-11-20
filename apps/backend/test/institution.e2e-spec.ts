@@ -226,10 +226,6 @@ describe('Institution Controller (e2e)', () => {
           },
         });
 
-      if (res.status !== 201) {
-        console.error('Error response:', JSON.stringify(res.body, null, 2));
-      }
-
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();

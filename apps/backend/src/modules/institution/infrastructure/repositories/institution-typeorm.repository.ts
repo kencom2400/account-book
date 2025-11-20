@@ -95,28 +95,37 @@ export class InstitutionTypeOrmRepository {
    * ORM→ドメインエンティティ変換
    */
   private toDomain(ormEntity: InstitutionOrmEntity): InstitutionEntity {
-    let credentialsData: Record<string, string>;
+    let parsed: unknown;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      credentialsData = JSON.parse(ormEntity.encryptedCredentials);
-
-      // データ構造の検証
-      if (
-        !credentialsData.encrypted ||
-        !credentialsData.iv ||
-        !credentialsData.authTag ||
-        !credentialsData.algorithm ||
-        !credentialsData.version
-      ) {
-        throw new Error(
-          'Invalid credentials data structure: missing required fields',
-        );
-      }
+      parsed = JSON.parse(ormEntity.encryptedCredentials);
     } catch (error) {
       throw new Error(
         `Failed to parse encryptedCredentials for institution ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+
+    // データ構造の検証
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('encrypted' in parsed) ||
+      !('iv' in parsed) ||
+      !('authTag' in parsed) ||
+      !('algorithm' in parsed) ||
+      !('version' in parsed)
+    ) {
+      throw new Error(
+        'Invalid credentials data structure: missing required fields',
+      );
+    }
+
+    const credentialsData = parsed as {
+      encrypted: string;
+      iv: string;
+      authTag: string;
+      algorithm: string;
+      version: string;
+    };
 
     const credentials: EncryptedCredentials = new EncryptedCredentials(
       credentialsData.encrypted,

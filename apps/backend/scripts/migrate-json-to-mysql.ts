@@ -9,7 +9,7 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CategoryOrmEntity } from '../src/modules/category/infrastructure/entities/category.orm-entity';
@@ -89,7 +89,7 @@ interface TransactionJSON {
   updatedAt: string;
 }
 
-async function migrateCategories(dataSource: DataSource): Promise<void> {
+async function migrateCategories(manager: EntityManager): Promise<void> {
   console.log('📁 カテゴリデータの移行を開始...');
 
   const filePath: string = path.join(
@@ -103,7 +103,7 @@ async function migrateCategories(dataSource: DataSource): Promise<void> {
     const content: string = await fs.readFile(filePath, 'utf-8');
     const categories: CategoryJSON[] = JSON.parse(content) as CategoryJSON[];
 
-    const repository = dataSource.getRepository(CategoryOrmEntity);
+    const repository = manager.getRepository(CategoryOrmEntity);
 
     // バッチ処理でパフォーマンス改善
     const entities: CategoryOrmEntity[] = categories.map(
@@ -135,7 +135,7 @@ async function migrateCategories(dataSource: DataSource): Promise<void> {
   }
 }
 
-async function migrateInstitutions(dataSource: DataSource): Promise<void> {
+async function migrateInstitutions(manager: EntityManager): Promise<void> {
   console.log('📁 金融機関データの移行を開始...');
 
   const filePath: string = path.join(
@@ -151,7 +151,7 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
       content,
     ) as InstitutionJSON[];
 
-    const repository = dataSource.getRepository(InstitutionOrmEntity);
+    const repository = manager.getRepository(InstitutionOrmEntity);
 
     // バッチ処理でパフォーマンス改善
     const entities: InstitutionOrmEntity[] = institutions.map(
@@ -197,7 +197,7 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
   }
 }
 
-async function migrateTransactions(dataSource: DataSource): Promise<void> {
+async function migrateTransactions(manager: EntityManager): Promise<void> {
   console.log('📁 取引データの移行を開始...');
 
   const dirPath: string = path.join(process.cwd(), 'data', 'transactions');
@@ -208,7 +208,7 @@ async function migrateTransactions(dataSource: DataSource): Promise<void> {
       f.endsWith('.json'),
     );
 
-    const repository = dataSource.getRepository(TransactionOrmEntity);
+    const repository = manager.getRepository(TransactionOrmEntity);
     let totalCount = 0;
 
     for (const file of jsonFiles) {
@@ -258,24 +258,28 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.createApplicationContext(AppModule);
   const dataSource: DataSource = app.get(DataSource);
+  const queryRunner = dataSource.createQueryRunner();
+
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
   try {
-    // データベース接続確認
-    if (!dataSource.isInitialized) {
-      await dataSource.initialize();
-    }
-    console.log('✅ データベース接続成功\n');
+    console.log('✅ データベース接続成功、トランザクション開始\n');
 
-    // 各テーブルのデータ移行
-    await migrateCategories(dataSource);
-    await migrateInstitutions(dataSource);
-    await migrateTransactions(dataSource);
+    // EntityManagerを渡して各移行処理を実行
+    await migrateCategories(queryRunner.manager);
+    await migrateInstitutions(queryRunner.manager);
+    await migrateTransactions(queryRunner.manager);
 
+    await queryRunner.commitTransaction();
     console.log('\n🎉 すべてのデータ移行が完了しました！');
   } catch (error) {
     console.error('❌ データ移行中にエラーが発生しました:', error);
+    await queryRunner.rollbackTransaction();
+    console.log('↩️  トランザクションをロールバックしました');
     process.exit(1);
   } finally {
+    await queryRunner.release();
     await app.close();
   }
 }
