@@ -8,6 +8,7 @@
 
 - Docker と Docker Compose（Docker版を使用する場合）
 - または Python 3.8+ と pip3（ローカル環境を使用する場合）
+- MySQL 8.0（データベース）
 
 ### 初回セットアップ（推奨）
 
@@ -53,7 +54,7 @@ cd account-book
 cp .env.example .env
 # .envファイルを編集して必要な値を設定
 
-# 3. Docker環境の起動
+# 3. Docker環境の起動（MySQL含む）
 ./scripts/dev/dev-docker.sh all
 
 # または
@@ -64,21 +65,25 @@ docker-compose up
 
 - Frontend: http://localhost:3000
 - Backend: http://localhost:3001
+- MySQL: localhost:3306
 
 #### ローカル環境（従来の方法）
 
 ```bash
-# nodeenv環境の作成
+# 1. MySQLの起動
+./scripts/dev/start-database.sh
+
+# 2. nodeenv環境の作成
 nodeenv --node=20.18.1 --prebuilt .nodeenv
 
-# 環境のアクティベート
+# 3. 環境のアクティベート
 source .nodeenv/bin/activate
 
-# corepackの有効化
+# 4. corepackの有効化
 corepack enable
 corepack prepare pnpm@8.15.0 --activate
 
-# 依存関係のインストールと初期セットアップ
+# 5. 依存関係のインストールと初期セットアップ
 ./scripts/setup/setup.sh
 ```
 

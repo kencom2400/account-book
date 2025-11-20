@@ -3,170 +3,306 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - '.cursor/**'
-      - '*.md'
-      - 'docs/**'
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - '.cursor/**'
-      - '*.md'
-      - 'docs/**'
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm lint
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Run linter
+        run: pnpm run lint
 
   test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm test:unit
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: success()
-        with:
-          files: ./apps/backend/coverage/lcov.info
-          flags: unit
 
-  test-e2e-backend:
-    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: account_book_test
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm build
-      - name: Run Backend E2E tests
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Setup environment variables
+        run: |
+          cat << EOF > .env
+          NODE_ENV=test
+          PORT=3001
+          MYSQL_HOST=127.0.0.1
+          MYSQL_PORT=3306
+          MYSQL_USER=account_book_test_user
+          MYSQL_PASSWORD=test_password
+          MYSQL_DATABASE=account_book_test
+          MYSQL_ROOT_PASSWORD=root_password
+          EOF
+
+      - name: Run migrations
         run: |
           cd apps/backend
-          # secretsが設定されていない場合のフォールバック値を使用
-          export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=}"
-          export CRYPTO_SALT="${CRYPTO_SALT:-dGVzdC1zYWx0LTE2LWJ5dGVz}"
-          export NODE_ENV=test
-          pnpm test:e2e
+          cp ../../.env .env
+          pnpm run migration:run
+
+      - name: Run unit tests
         env:
-          # GitHub Actions lint警告: secretsへのアクセスは実際には問題ありません
-          # secretsが設定されていない場合は、runスクリプト内でフォールバック値が使用されます
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT }}
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: success()
-        with:
-          files: ./apps/backend/coverage-e2e/lcov.info
-          flags: e2e-backend
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
+        run: pnpm run test
 
-  # Docker環境でのテスト（オプション）
-  # 将来的にDocker環境でのテスト実行を検討する場合に有効化
-  # test-docker:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build Docker images
-  #       run: docker-compose build
-  #     - name: Run tests in Docker
-  #       run: |
-  #         docker-compose run --rm backend pnpm test
-  #         docker-compose run --rm frontend pnpm test
-  #     - name: Cleanup
-  #       run: docker-compose down
-
-  test-e2e-frontend:
+  e2e-backend:
+    name: E2E Tests (Backend)
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: account_book_test
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm build
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Setup environment variables
+        run: |
+          cat << EOF > .env
+          NODE_ENV=test
+          PORT=3001
+          MYSQL_HOST=127.0.0.1
+          MYSQL_PORT=3306
+          MYSQL_USER=account_book_test_user
+          MYSQL_PASSWORD=test_password
+          MYSQL_DATABASE=account_book_test
+          MYSQL_ROOT_PASSWORD=root_password
+          EOF
+
+      - name: Run migrations
+        run: |
+          cd apps/backend
+          cp ../../.env .env
+          pnpm run migration:run
+
+      - name: Run E2E tests (Backend)
+        env:
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
+        run: pnpm run test:e2e --filter @account-book/backend
+
+  e2e-frontend:
+    name: E2E Tests (Frontend)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: account_book_test
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Setup environment variables
+        run: |
+          cat << EOF > .env
+          NODE_ENV=test
+          PORT=3001
+          NEXT_PUBLIC_API_URL=http://localhost:3001
+          MYSQL_HOST=127.0.0.1
+          MYSQL_PORT=3306
+          MYSQL_USER=account_book_test_user
+          MYSQL_PASSWORD=test_password
+          MYSQL_DATABASE=account_book_test
+          MYSQL_ROOT_PASSWORD=root_password
+          EOF
+
+      - name: Run migrations
+        run: |
+          cd apps/backend
+          cp ../../.env .env
+          pnpm run migration:run
 
       - name: Install Playwright browsers
-        run: |
-          cd apps/frontend
-          pnpm exec playwright install --with-deps chromium
+        run: cd apps/frontend && pnpm exec playwright install --with-deps chromium
 
-      - name: Run Frontend E2E tests
-        run: |
-          cd apps/frontend
-          # secretsが設定されていない場合のフォールバック値を使用
-          export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=}"
-          export CRYPTO_SALT="${CRYPTO_SALT:-dGVzdC1zYWx0LTE2LWJ5dGVz}"
-          export NODE_ENV=test
-          export BACKEND_PORT=3001
-          export FRONTEND_PORT=3000
-          pnpm test:e2e
+      - name: Run E2E tests (Frontend)
         env:
-          BASE_URL: http://localhost:3000
-          # GitHub Actions lint警告を回避するため、envセクションで設定
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-          CRYPTO_SALT: ${{ secrets.CRYPTO_SALT }}
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: apps/frontend/playwright-report/
-          retention-days: 30
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-results
-          path: apps/frontend/test-results/
-          retention-days: 30
-
-  # build:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v4
-  #       with:
-  #         version: 8.15.0
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-  #         cache: 'pnpm'
-  #     - run: pnpm install
-  #     - run: pnpm build
-  #
-  # NOTE: buildジョブはlintジョブ内で実行されているため、一旦コメントアウト。
-  # 将来、以下のような場合に有効化を検討:
-  # - buildとlintを並列実行したい場合
-  # - build成果物のアップロードが必要な場合
-  # - 本番デプロイ用のビルドを独立して実行したい場合
-
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
+        run: pnpm run test:e2e --filter @account-book/frontend

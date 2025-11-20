@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { CreditCardController } from './presentation/controllers/credit-card.controller';
@@ -16,6 +17,10 @@ import {
   FileSystemCreditCardTransactionRepository,
   FileSystemPaymentRepository,
 } from './infrastructure/repositories/credit-card.repository';
+import { CreditCardTypeOrmRepository } from './infrastructure/repositories/credit-card-typeorm.repository';
+
+// Entities
+import { CreditCardOrmEntity } from './infrastructure/entities/credit-card.orm-entity';
 
 // Adapters
 import { MockCreditCardAPIAdapter } from './infrastructure/adapters/mock-credit-card-api.adapter';
@@ -33,7 +38,7 @@ import {
 import { CRYPTO_SERVICE } from '../institution/institution.tokens';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([CreditCardOrmEntity])],
   controllers: [CreditCardController],
   providers: [
     // Use Cases
@@ -42,11 +47,13 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     FetchPaymentInfoUseCase,
     RefreshCreditCardDataUseCase,
 
-    // Repositories
+    // Repositories - TypeORM版を使用（JSON版は予備として残す）
     {
       provide: CREDIT_CARD_REPOSITORY,
-      useClass: FileSystemCreditCardRepository,
+      useClass: CreditCardTypeOrmRepository,
     },
+    CreditCardTypeOrmRepository,
+    FileSystemCreditCardRepository, // JSONリポジトリは予備として残す
     {
       provide: CREDIT_CARD_TRANSACTION_REPOSITORY,
       useClass: FileSystemCreditCardTransactionRepository,

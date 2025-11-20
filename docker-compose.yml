@@ -1,5 +1,27 @@
 # docker-compose.yml
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: account-book-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-account_book_dev}
+      MYSQL_USER: ${MYSQL_USER:-account_book_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-root_password}']
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - account-book-network
+
   backend:
     build:
       context: .
@@ -21,10 +43,18 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-account_book_dev}
+      - MYSQL_USER=${MYSQL_USER:-account_book_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-password}
     env_file:
       - .env
     networks:
       - account-book-network
+    depends_on:
+      mysql:
+        condition: service_healthy
     command: pnpm dev
     healthcheck:
       # wgetが利用できない場合はcurlを使用
@@ -72,7 +102,5 @@ networks:
   account-book-network:
     driver: bridge
 
-# 将来のMySQL追加用（Issue #165 対応時に有効化）
-# volumes:
-#   mysql-data:
-
+volumes:
+  mysql-data:
