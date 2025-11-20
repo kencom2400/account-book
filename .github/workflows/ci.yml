@@ -118,6 +118,7 @@ jobs:
       - name: Run migrations
         run: |
           cd apps/backend
+          cp ../../.env .env
           pnpm run migration:run
 
       - name: Run unit tests
@@ -193,6 +194,7 @@ jobs:
       - name: Run migrations
         run: |
           cd apps/backend
+          cp ../../.env .env
           pnpm run migration:run
 
       - name: Run E2E tests (Backend)
@@ -269,6 +271,7 @@ jobs:
       - name: Run migrations
         run: |
           cd apps/backend
+          cp ../../.env .env
           pnpm run migration:run
 
       - name: Install Playwright browsers
