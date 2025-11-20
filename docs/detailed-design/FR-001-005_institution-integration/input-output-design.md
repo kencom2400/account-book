@@ -74,14 +74,16 @@
 
 **Request Schema (CreateInstitutionDto):**
 
-| フィールド    | 型     | 必須 | 説明         | 制約                                |
-| ------------- | ------ | ---- | ------------ | ----------------------------------- |
-| name          | string | ✅   | 金融機関名   | 1-100文字                           |
-| type          | string | ✅   | 金融機関種別 | "bank", "credit-card", "securities" |
-| bankCode      | string | ✅   | 銀行コード   | 4桁数字                             |
-| branchCode    | string | ✅   | 支店コード   | 3桁数字                             |
-| accountNumber | string | ✅   | 口座番号     | 7桁数字                             |
-| apiKey        | string | ✅   | APIキー      | 任意長                              |
+| フィールド    | 型     | 必須 | 説明         | 制約                                     |
+| ------------- | ------ | ---- | ------------ | ---------------------------------------- |
+| name          | string | ✅   | 金融機関名   | 1-100文字                                |
+| type          | string | ✅   | 金融機関種別 | "bank", "credit-card", "securities" (※1) |
+| bankCode      | string | ✅   | 銀行コード   | 4桁数字                                  |
+| branchCode    | string | ✅   | 支店コード   | 3桁数字                                  |
+| accountNumber | string | ✅   | 口座番号     | 7桁数字                                  |
+| apiKey        | string | ✅   | APIキー      | 任意長                                   |
+
+**※1**: `type`フィールドは`@account-book/types`パッケージの`InstitutionType` Enumとして実装されており、型安全性が確保されています。
 
 **Response (201 Created):**
 

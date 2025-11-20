@@ -40,6 +40,12 @@ classDiagram
         +toJSON() InstitutionJSONResponse
     }
 
+    note right of InstitutionEntity
+        toJSON()の返り値型は
+        input-output-design.mdで
+        定義されているレスポンスモデル
+    end note
+
     class AccountEntity {
         +string id
         +string accountNumber
@@ -287,33 +293,30 @@ classDiagram
 ```mermaid
 classDiagram
     class ConnectInstitutionUseCase {
-        -InstitutionRepository repository
-        -BankApiAdapter bankApi
-        -EncryptionService encryption
+        -IInstitutionRepository repository
+        -IBankApiAdapter bankApi
+        -ICryptoService encryption
         +execute(dto) Promise~InstitutionEntity~
     }
 
     class ConnectCreditCardUseCase {
-        -CreditCardRepository repository
-        -CreditCardApiAdapter cardApi
-        -EncryptionService encryption
+        -ICreditCardRepository repository
+        -ICreditCardApiAdapter cardApi
+        -ICryptoService encryption
         +execute(dto) Promise~CreditCardEntity~
     }
 
     class ConnectSecuritiesAccountUseCase {
-        -SecuritiesAccountRepository repository
-        -SecuritiesApiAdapter securitiesApi
-        -EncryptionService encryption
+        -ISecuritiesAccountRepository repository
+        -ISecuritiesApiAdapter securitiesApi
+        -ICryptoService encryption
         +execute(dto) Promise~SecuritiesAccountEntity~
     }
 
     class CheckConnectionStatusUseCase {
-        -InstitutionRepository institutionRepo
-        -CreditCardRepository creditCardRepo
-        -SecuritiesAccountRepository securitiesRepo
-        -ConnectionHistoryRepository historyRepo
         -ConnectionCheckerService checker
-        +execute() Promise~ConnectionCheckResultVO[]~
+        -IConnectionHistoryRepository historyRepo
+        +execute(command, institutions) Promise~ConnectionStatusResult[]~
     }
 
     class ScheduledConnectionCheckUseCase {

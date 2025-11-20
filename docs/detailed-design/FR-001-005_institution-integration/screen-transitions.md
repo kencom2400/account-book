@@ -224,9 +224,9 @@ flowchart TD
     UpdateSecStatus --> SaveHistory
     SecError --> SaveHistory
 
-    SaveHistory --> AllComplete{全て完了?}
-    AllComplete -->|はい| CheckErrors{エラーあり?}
-    AllComplete -->|いいえ| ParallelCheck
+    SaveHistory --> CheckBatch{次のバッチあり?}
+    CheckBatch -->|はい| ParallelCheck
+    CheckBatch -->|いいえ| CheckErrors{エラーあり?}
 
     CheckErrors -->|はい| TriggerNotif[FR-005通知トリガー]
     CheckErrors -->|いいえ| UpdateUI[UI更新]
