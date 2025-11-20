@@ -1,5 +1,6 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
+import { getDatabaseConnectionOptions } from './database-common.config';
 
 /**
  * TypeORM データベース接続設定
@@ -15,13 +16,11 @@ export const getDatabaseConfig = (
   const isProduction: boolean = nodeEnv === 'production';
   const isTest: boolean = nodeEnv === 'test';
 
+  const connectionOptions = getDatabaseConnectionOptions();
+
   return {
     type: 'mysql',
-    host: configService.get<string>('MYSQL_HOST', 'localhost'),
-    port: configService.get<number>('MYSQL_PORT', 3306),
-    username: configService.get<string>('MYSQL_USER', 'account_book_user'),
-    password: configService.get<string>('MYSQL_PASSWORD', 'password'),
-    database: configService.get<string>('MYSQL_DATABASE', 'account_book_dev'),
+    ...connectionOptions,
     entities: [__dirname + '/../**/*.orm-entity{.ts,.js}'],
     // 本番環境では synchronize を無効化（マイグレーションを使用）
     synchronize: !isProduction && !isTest,

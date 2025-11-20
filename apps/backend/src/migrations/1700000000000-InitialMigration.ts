@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableForeignKey,
+} from 'typeorm';
 
 export class InitialMigration1700000000000 implements MigrationInterface {
   name = 'InitialMigration1700000000000';
@@ -365,9 +371,55 @@ export class InitialMigration1700000000000 implements MigrationInterface {
         columnNames: ['status'],
       }),
     );
+
+    // 外部キー制約の追加
+    await queryRunner.createForeignKey(
+      'categories',
+      new TableForeignKey({
+        name: 'FK_CATEGORIES_PARENT',
+        columnNames: ['parent_id'],
+        referencedTableName: 'categories',
+        referencedColumnNames: ['id'],
+        onDelete: 'CASCADE',
+      }),
+    );
+
+    await queryRunner.createForeignKey(
+      'transactions',
+      new TableForeignKey({
+        name: 'FK_TRANSACTIONS_CATEGORY',
+        columnNames: ['category_id'],
+        referencedTableName: 'categories',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT', // カテゴリが参照されている場合は削除不可
+      }),
+    );
+
+    await queryRunner.createForeignKey(
+      'transactions',
+      new TableForeignKey({
+        name: 'FK_TRANSACTIONS_INSTITUTION',
+        columnNames: ['institution_id'],
+        referencedTableName: 'institutions',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT', // 金融機関が参照されている場合は削除不可
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    // 外部キー制約を先に削除
+    await queryRunner.dropForeignKey(
+      'transactions',
+      'FK_TRANSACTIONS_INSTITUTION',
+    );
+    await queryRunner.dropForeignKey(
+      'transactions',
+      'FK_TRANSACTIONS_CATEGORY',
+    );
+    await queryRunner.dropForeignKey('categories', 'FK_CATEGORIES_PARENT');
+
+    // テーブルを削除
     await queryRunner.dropTable('transactions');
     await queryRunner.dropTable('credit_cards');
     await queryRunner.dropTable('institutions');

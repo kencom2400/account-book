@@ -76,25 +76,32 @@ async function migrateCategories(dataSource: DataSource): Promise<void> {
 
     const repository = dataSource.getRepository(CategoryOrmEntity);
 
-    for (const cat of categories) {
-      const entity: CategoryOrmEntity = new CategoryOrmEntity();
-      entity.id = cat.id;
-      entity.name = cat.name;
-      entity.type = cat.type as CategoryOrmEntity['type'];
-      entity.parentId = cat.parentId;
-      entity.icon = cat.icon;
-      entity.color = cat.color;
-      entity.isSystemDefined = cat.isSystemDefined;
-      entity.order = cat.order;
-      entity.createdAt = new Date(cat.createdAt);
-      entity.updatedAt = new Date(cat.updatedAt);
+    // バッチ処理でパフォーマンス改善
+    const entities: CategoryOrmEntity[] = categories.map(
+      (cat: CategoryJSON) => {
+        const entity: CategoryOrmEntity = new CategoryOrmEntity();
+        entity.id = cat.id;
+        entity.name = cat.name;
+        entity.type = cat.type as CategoryOrmEntity['type'];
+        entity.parentId = cat.parentId;
+        entity.icon = cat.icon;
+        entity.color = cat.color;
+        entity.isSystemDefined = cat.isSystemDefined;
+        entity.order = cat.order;
+        entity.createdAt = new Date(cat.createdAt);
+        entity.updatedAt = new Date(cat.updatedAt);
+        return entity;
+      },
+    );
 
-      await repository.save(entity);
-    }
+    await repository.save(entities);
 
     console.log(`✅ カテゴリ ${categories.length}件を移行しました`);
-  } catch {
-    console.log(`⚠️  カテゴリファイルが見つかりません: ${filePath}`);
+  } catch (error) {
+    console.error(
+      `⚠️  カテゴリデータの移行中にエラーが発生しました: ${filePath}`,
+      error,
+    );
   }
 }
 
@@ -116,26 +123,33 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
 
     const repository = dataSource.getRepository(InstitutionOrmEntity);
 
-    for (const inst of institutions) {
-      const entity: InstitutionOrmEntity = new InstitutionOrmEntity();
-      entity.id = inst.id;
-      entity.name = inst.name;
-      entity.type = inst.type as InstitutionOrmEntity['type'];
-      entity.encryptedCredentials = JSON.stringify(inst.credentials);
-      entity.isConnected = inst.isConnected;
-      entity.lastSyncedAt = inst.lastSyncedAt
-        ? new Date(inst.lastSyncedAt)
-        : null;
-      entity.accounts = JSON.stringify(inst.accounts);
-      entity.createdAt = new Date(inst.createdAt);
-      entity.updatedAt = new Date(inst.updatedAt);
+    // バッチ処理でパフォーマンス改善
+    const entities: InstitutionOrmEntity[] = institutions.map(
+      (inst: InstitutionJSON) => {
+        const entity: InstitutionOrmEntity = new InstitutionOrmEntity();
+        entity.id = inst.id;
+        entity.name = inst.name;
+        entity.type = inst.type as InstitutionOrmEntity['type'];
+        entity.encryptedCredentials = JSON.stringify(inst.credentials);
+        entity.isConnected = inst.isConnected;
+        entity.lastSyncedAt = inst.lastSyncedAt
+          ? new Date(inst.lastSyncedAt)
+          : null;
+        entity.accounts = JSON.stringify(inst.accounts);
+        entity.createdAt = new Date(inst.createdAt);
+        entity.updatedAt = new Date(inst.updatedAt);
+        return entity;
+      },
+    );
 
-      await repository.save(entity);
-    }
+    await repository.save(entities);
 
     console.log(`✅ 金融機関 ${institutions.length}件を移行しました`);
-  } catch {
-    console.log(`⚠️  金融機関ファイルが見つかりません: ${filePath}`);
+  } catch (error) {
+    console.error(
+      `⚠️  金融機関データの移行中にエラーが発生しました: ${filePath}`,
+      error,
+    );
   }
 }
 
@@ -160,32 +174,36 @@ async function migrateTransactions(dataSource: DataSource): Promise<void> {
         content,
       ) as TransactionJSON[];
 
-      for (const txn of transactions) {
-        const entity: TransactionOrmEntity = new TransactionOrmEntity();
-        entity.id = txn.id;
-        entity.date = new Date(txn.date);
-        entity.amount = txn.amount;
-        entity.categoryId = txn.category.id;
-        entity.categoryName = txn.category.name;
-        entity.categoryType = txn.category
-          .type as TransactionOrmEntity['categoryType'];
-        entity.description = txn.description;
-        entity.institutionId = txn.institutionId;
-        entity.accountId = txn.accountId;
-        entity.status = txn.status as TransactionOrmEntity['status'];
-        entity.isReconciled = txn.isReconciled;
-        entity.relatedTransactionId = txn.relatedTransactionId;
-        entity.createdAt = new Date(txn.createdAt);
-        entity.updatedAt = new Date(txn.updatedAt);
+      // バッチ処理でパフォーマンス改善
+      const entities: TransactionOrmEntity[] = transactions.map(
+        (txn: TransactionJSON) => {
+          const entity: TransactionOrmEntity = new TransactionOrmEntity();
+          entity.id = txn.id;
+          entity.date = new Date(txn.date);
+          entity.amount = txn.amount;
+          entity.categoryId = txn.category.id;
+          entity.categoryName = txn.category.name;
+          entity.categoryType = txn.category
+            .type as TransactionOrmEntity['categoryType'];
+          entity.description = txn.description;
+          entity.institutionId = txn.institutionId;
+          entity.accountId = txn.accountId;
+          entity.status = txn.status as TransactionOrmEntity['status'];
+          entity.isReconciled = txn.isReconciled;
+          entity.relatedTransactionId = txn.relatedTransactionId;
+          entity.createdAt = new Date(txn.createdAt);
+          entity.updatedAt = new Date(txn.updatedAt);
+          return entity;
+        },
+      );
 
-        await repository.save(entity);
-        totalCount++;
-      }
+      await repository.save(entities);
+      totalCount += entities.length;
     }
 
     console.log(`✅ 取引 ${totalCount}件を移行しました`);
   } catch (error) {
-    console.log(`⚠️  取引データの移行中にエラー: ${error}`);
+    console.error(`⚠️  取引データの移行中にエラーが発生しました:`, error);
   }
 }
 

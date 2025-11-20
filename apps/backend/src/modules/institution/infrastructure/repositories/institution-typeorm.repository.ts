@@ -95,10 +95,29 @@ export class InstitutionTypeOrmRepository {
    * ORM→ドメインエンティティ変換
    */
   private toDomain(ormEntity: InstitutionOrmEntity): InstitutionEntity {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const credentialsData: Record<string, string> = JSON.parse(
-      ormEntity.encryptedCredentials,
-    );
+    let credentialsData: Record<string, string>;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      credentialsData = JSON.parse(ormEntity.encryptedCredentials);
+
+      // データ構造の検証
+      if (
+        !credentialsData.encrypted ||
+        !credentialsData.iv ||
+        !credentialsData.authTag ||
+        !credentialsData.algorithm ||
+        !credentialsData.version
+      ) {
+        throw new Error(
+          'Invalid credentials data structure: missing required fields',
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to parse encryptedCredentials for institution ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     const credentials: EncryptedCredentials = new EncryptedCredentials(
       credentialsData.encrypted,
       credentialsData.iv,
@@ -107,15 +126,27 @@ export class InstitutionTypeOrmRepository {
       credentialsData.version,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const accountsData: Array<{
+    let accountsData: Array<{
       id: string;
       institutionId: string;
       accountNumber: string;
       accountName: string;
       balance: number;
       currency: string;
-    }> = JSON.parse(ormEntity.accounts);
+    }>;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      accountsData = JSON.parse(ormEntity.accounts);
+
+      // 配列であることを検証
+      if (!Array.isArray(accountsData)) {
+        throw new Error('Accounts data must be an array');
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to parse accounts for institution ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
     const accounts: AccountEntity[] = accountsData.map(
       (account: {

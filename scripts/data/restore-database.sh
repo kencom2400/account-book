@@ -33,7 +33,10 @@ cd "$(dirname "$0")/../.."
 
 # 環境変数読み込み
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
 fi
 
 # MySQLリストア実行

@@ -79,10 +79,29 @@ export class CreditCardTypeOrmRepository {
    * ORM→ドメインエンティティ変換
    */
   private toDomain(ormEntity: CreditCardOrmEntity): CreditCardEntity {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const credentialsData: Record<string, string> = JSON.parse(
-      ormEntity.encryptedCredentials,
-    );
+    let credentialsData: Record<string, string>;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      credentialsData = JSON.parse(ormEntity.encryptedCredentials);
+
+      // データ構造の検証
+      if (
+        !credentialsData.encrypted ||
+        !credentialsData.iv ||
+        !credentialsData.authTag ||
+        !credentialsData.algorithm ||
+        !credentialsData.version
+      ) {
+        throw new Error(
+          'Invalid credentials data structure: missing required fields',
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to parse encryptedCredentials for credit card ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     const credentials: EncryptedCredentials = new EncryptedCredentials(
       credentialsData.encrypted,
       credentialsData.iv,
