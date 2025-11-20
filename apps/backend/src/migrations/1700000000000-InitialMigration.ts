@@ -266,6 +266,9 @@ export class InitialMigration1700000000000 implements MigrationInterface {
     );
 
     // transactions テーブル作成
+    // 注意: category_nameとcategory_typeは非正規化されたデータです
+    // パフォーマンス最適化のために含めていますが、categories.nameが変更された場合は
+    // アプリケーションレベルで整合性を維持する必要があります
     await queryRunner.createTable(
       new Table({
         name: 'transactions',

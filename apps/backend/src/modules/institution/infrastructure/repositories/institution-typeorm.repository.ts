@@ -184,20 +184,18 @@ export class InstitutionTypeOrmRepository {
    * ドメインエンティティ→ORM変換
    */
   private toOrm(domain: InstitutionEntity): InstitutionOrmEntity {
-    const ormEntity: InstitutionOrmEntity = new InstitutionOrmEntity();
-    ormEntity.id = domain.id;
-    ormEntity.name = domain.name;
-    ormEntity.type = domain.type;
-    ormEntity.encryptedCredentials = JSON.stringify(
-      domain.credentials.toJSON(),
-    );
-    ormEntity.isConnected = domain.isConnected;
-    ormEntity.lastSyncedAt = domain.lastSyncedAt;
-    ormEntity.accounts = JSON.stringify(
-      domain.accounts.map((account: AccountEntity) => account.toJSON()),
-    );
-    ormEntity.createdAt = domain.createdAt;
-    ormEntity.updatedAt = domain.updatedAt;
-    return ormEntity;
+    return this.repository.create({
+      id: domain.id,
+      name: domain.name,
+      type: domain.type,
+      encryptedCredentials: JSON.stringify(domain.credentials.toJSON()),
+      isConnected: domain.isConnected,
+      lastSyncedAt: domain.lastSyncedAt,
+      accounts: JSON.stringify(
+        domain.accounts.map((account: AccountEntity) => account.toJSON()),
+      ),
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    });
   }
 }

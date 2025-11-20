@@ -133,24 +133,22 @@ export class CreditCardTypeOrmRepository {
    * ドメインエンティティ→ORM変換
    */
   private toOrm(domain: CreditCardEntity): CreditCardOrmEntity {
-    const ormEntity: CreditCardOrmEntity = new CreditCardOrmEntity();
-    ormEntity.id = domain.id;
-    ormEntity.cardName = domain.cardName;
-    ormEntity.cardNumber = domain.cardNumber;
-    ormEntity.cardHolderName = domain.cardHolderName;
-    ormEntity.expiryDate = domain.expiryDate;
-    ormEntity.encryptedCredentials = JSON.stringify(
-      domain.credentials.toJSON(),
-    );
-    ormEntity.isConnected = domain.isConnected;
-    ormEntity.lastSyncedAt = domain.lastSyncedAt;
-    ormEntity.paymentDay = domain.paymentDay;
-    ormEntity.closingDay = domain.closingDay;
-    ormEntity.creditLimit = domain.creditLimit;
-    ormEntity.currentBalance = domain.currentBalance;
-    ormEntity.issuer = domain.issuer;
-    ormEntity.createdAt = domain.createdAt;
-    ormEntity.updatedAt = domain.updatedAt;
-    return ormEntity;
+    return this.repository.create({
+      id: domain.id,
+      cardName: domain.cardName,
+      cardNumber: domain.cardNumber,
+      cardHolderName: domain.cardHolderName,
+      expiryDate: domain.expiryDate,
+      encryptedCredentials: JSON.stringify(domain.credentials.toJSON()),
+      isConnected: domain.isConnected,
+      lastSyncedAt: domain.lastSyncedAt,
+      paymentDay: domain.paymentDay,
+      closingDay: domain.closingDay,
+      creditLimit: domain.creditLimit,
+      currentBalance: domain.currentBalance,
+      issuer: domain.issuer,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    });
   }
 }

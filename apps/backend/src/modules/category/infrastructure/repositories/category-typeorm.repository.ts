@@ -122,17 +122,17 @@ export class CategoryTypeOrmRepository {
    * ドメインエンティティ→ORM変換
    */
   private toOrm(domain: CategoryEntity): CategoryOrmEntity {
-    const ormEntity: CategoryOrmEntity = new CategoryOrmEntity();
-    ormEntity.id = domain.id;
-    ormEntity.name = domain.name;
-    ormEntity.type = domain.type;
-    ormEntity.parentId = domain.parentId;
-    ormEntity.icon = domain.icon;
-    ormEntity.color = domain.color;
-    ormEntity.isSystemDefined = domain.isSystemDefined;
-    ormEntity.order = domain.order;
-    ormEntity.createdAt = domain.createdAt;
-    ormEntity.updatedAt = domain.updatedAt;
-    return ormEntity;
+    return this.repository.create({
+      id: domain.id,
+      name: domain.name,
+      type: domain.type,
+      parentId: domain.parentId,
+      icon: domain.icon,
+      color: domain.color,
+      isSystemDefined: domain.isSystemDefined,
+      order: domain.order,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    });
   }
 }

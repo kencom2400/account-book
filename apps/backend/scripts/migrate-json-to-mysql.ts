@@ -29,11 +29,19 @@ interface CategoryJSON {
   updatedAt: string;
 }
 
+interface EncryptedCredentialsJSON {
+  encrypted: string;
+  iv: string;
+  authTag: string;
+  algorithm: string;
+  version: string;
+}
+
 interface InstitutionJSON {
   id: string;
   name: string;
   type: string;
-  credentials: Record<string, string>;
+  credentials: EncryptedCredentialsJSON;
   isConnected: boolean;
   lastSyncedAt: string | null;
   accounts: Array<Record<string, unknown>>;

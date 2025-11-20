@@ -136,21 +136,21 @@ export class TransactionTypeOrmRepository {
    * ドメインエンティティ→ORM変換
    */
   private toOrm(domain: TransactionEntity): TransactionOrmEntity {
-    const ormEntity: TransactionOrmEntity = new TransactionOrmEntity();
-    ormEntity.id = domain.id;
-    ormEntity.date = domain.date;
-    ormEntity.amount = domain.amount;
-    ormEntity.categoryId = domain.category.id;
-    ormEntity.categoryName = domain.category.name;
-    ormEntity.categoryType = domain.category.type;
-    ormEntity.description = domain.description;
-    ormEntity.institutionId = domain.institutionId;
-    ormEntity.accountId = domain.accountId;
-    ormEntity.status = domain.status;
-    ormEntity.isReconciled = domain.isReconciled;
-    ormEntity.relatedTransactionId = domain.relatedTransactionId;
-    ormEntity.createdAt = domain.createdAt;
-    ormEntity.updatedAt = domain.updatedAt;
-    return ormEntity;
+    return this.repository.create({
+      id: domain.id,
+      date: domain.date,
+      amount: domain.amount,
+      categoryId: domain.category.id,
+      categoryName: domain.category.name,
+      categoryType: domain.category.type,
+      description: domain.description,
+      institutionId: domain.institutionId,
+      accountId: domain.accountId,
+      status: domain.status,
+      isReconciled: domain.isReconciled,
+      relatedTransactionId: domain.relatedTransactionId,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    });
   }
 }

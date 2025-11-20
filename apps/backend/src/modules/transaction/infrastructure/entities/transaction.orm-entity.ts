@@ -19,45 +19,45 @@ import { CategoryType, TransactionStatus } from '@account-book/types';
 @Index(['status'])
 export class TransactionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id!: string;
 
   @Column({ type: 'date' })
-  date: Date;
+  date!: Date;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  amount: number;
+  amount!: number;
 
   @Column({ type: 'varchar', length: 36, name: 'category_id' })
-  categoryId: string;
+  categoryId!: string;
 
   @Column({ type: 'varchar', length: 255, name: 'category_name' })
-  categoryName: string;
+  categoryName!: string;
 
   @Column({
     type: 'enum',
     enum: CategoryType,
     name: 'category_type',
   })
-  categoryType: CategoryType;
+  categoryType!: CategoryType;
 
   @Column({ type: 'text' })
-  description: string;
+  description!: string;
 
   @Column({ type: 'varchar', length: 36, name: 'institution_id' })
-  institutionId: string;
+  institutionId!: string;
 
   @Column({ type: 'varchar', length: 36, name: 'account_id' })
-  accountId: string;
+  accountId!: string;
 
   @Column({
     type: 'enum',
     enum: TransactionStatus,
     default: TransactionStatus.COMPLETED,
   })
-  status: TransactionStatus;
+  status!: TransactionStatus;
 
   @Column({ type: 'boolean', default: false, name: 'is_reconciled' })
-  isReconciled: boolean;
+  isReconciled!: boolean;
 
   @Column({
     type: 'varchar',
@@ -65,28 +65,11 @@ export class TransactionOrmEntity {
     nullable: true,
     name: 'related_transaction_id',
   })
-  relatedTransactionId: string | null;
+  relatedTransactionId!: string | null;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
-
-  constructor() {
-    this.id = '';
-    this.date = new Date();
-    this.amount = 0;
-    this.categoryId = '';
-    this.categoryName = '';
-    this.categoryType = CategoryType.EXPENSE;
-    this.description = '';
-    this.institutionId = '';
-    this.accountId = '';
-    this.status = TransactionStatus.COMPLETED;
-    this.isReconciled = false;
-    this.relatedTransactionId = null;
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
+  updatedAt!: Date;
 }

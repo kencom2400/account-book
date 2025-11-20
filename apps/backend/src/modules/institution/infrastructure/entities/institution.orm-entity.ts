@@ -18,44 +18,32 @@ import { InstitutionType } from '@account-book/types';
 @Index(['isConnected'])
 export class InstitutionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  name: string;
+  name!: string;
 
   @Column({
     type: 'enum',
     enum: InstitutionType,
   })
-  type: InstitutionType;
+  type!: InstitutionType;
 
   @Column({ type: 'text', name: 'encrypted_credentials' })
-  encryptedCredentials: string;
+  encryptedCredentials!: string;
 
   @Column({ type: 'boolean', default: false, name: 'is_connected' })
-  isConnected: boolean;
+  isConnected!: boolean;
 
   @Column({ type: 'timestamp', nullable: true, name: 'last_synced_at' })
-  lastSyncedAt: Date | null;
+  lastSyncedAt!: Date | null;
 
   @Column({ type: 'json', nullable: true })
-  accounts: string;
+  accounts!: string;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
-
-  constructor() {
-    this.id = '';
-    this.name = '';
-    this.type = InstitutionType.BANK;
-    this.encryptedCredentials = '';
-    this.isConnected = false;
-    this.lastSyncedAt = null;
-    this.accounts = '[]';
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
+  updatedAt!: Date;
 }

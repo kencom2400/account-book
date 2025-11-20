@@ -18,48 +18,35 @@ import { CategoryType } from '@account-book/types';
 @Index(['parentId'])
 export class CategoryOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({
     type: 'enum',
     enum: CategoryType,
   })
-  type: CategoryType;
+  type!: CategoryType;
 
   @Column({ type: 'varchar', length: 36, nullable: true, name: 'parent_id' })
-  parentId: string | null;
+  parentId!: string | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  icon: string | null;
+  icon!: string | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  color: string | null;
+  color!: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'is_system_defined' })
-  isSystemDefined: boolean;
+  isSystemDefined!: boolean;
 
   @Column({ type: 'int', default: 0 })
-  order: number;
+  order!: number;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
-
-  constructor() {
-    this.id = '';
-    this.name = '';
-    this.type = CategoryType.EXPENSE;
-    this.parentId = null;
-    this.icon = null;
-    this.color = null;
-    this.isSystemDefined = false;
-    this.order = 0;
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
-  }
+  updatedAt!: Date;
 }
