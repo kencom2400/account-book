@@ -46,54 +46,63 @@
 
 ```
 ╔════════════════════════════════════════════════════════════╗
-║  🚨 CRITICAL: 必ず代替方法を使用すること 🚨              ║
+║  🚨 CRITICAL: GitHub Projectsの「📝 To Do」から取得  🚨  ║
 ║                                                            ║
-║  GitHub Projects APIは assignees 情報を返さない           ║
-║  必ず以下の「代替方法」を使用してIssueを取得すること      ║
-║                                                            ║
-║  間違った方法: gh project item-list を使用                ║
-║  正しい方法: gh issue list --assignee @me を使用         ║
+║  1. GitHub Projectsから「📝 To Do」ステータスを取得      ║
+║  2. 各IssueのAssignee情報を確認                           ║
+║  3. 自分にアサインされているIssueをフィルタリング          ║
+║  4. 作業開始時にステータスを「🚧 In Progress」に変更    ║
 ╚════════════════════════════════════════════════════════════╝
 ```
 
-**❌ 使用禁止の方法（assignees情報が取得できないため）:**
+**✅ 必須: 以下の方法を使用すること:**
 
 ```bash
-# ❌ この方法は使用禁止！
-# GitHub Projects APIはassignees情報を含まないため、
-# アサインされていないIssueも取得してしまう
-gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | \
-  jq --arg status_name "$TODO_STATUS_NAME" '.items[] | select(.status.name == $status_name) | .content'
-```
+# ステップ1: GitHub Projectsから "📝 To Do" ステータスのIssue番号を取得
+PROJECT_NUMBER=1
+OWNER="kencom2400"
 
-**✅ 必須: 以下の代替方法を使用すること:**
+TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | \
+  jq -r '.items[] | select(.status == "📝 To Do") | .content.number')
 
-```bash
-# ✅ この方法を必ず使用すること
-# 自分にアサインされているオープンなIssueから、"In Progress" ラベルが付いていないものを取得
-gh issue list --assignee @me --state open --json number,title,labels,url --limit 50 | \
-  jq 'map(select(.labels | map(.name) | any(. == "In Progress") | not))'
+# ステップ2: 各IssueのAssignee情報を確認し、自分にアサインされているものをフィルタリング
+ASSIGNED_ISSUES=()
+for issue_num in $TODO_ISSUES; do
+  assignee=$(gh issue view "$issue_num" --json assignees --jq '.assignees[].login' 2>/dev/null)
+  current_user=$(gh api user --jq '.login')
+
+  if echo "$assignee" | grep -q "$current_user"; then
+    ASSIGNED_ISSUES+=("$issue_num")
+  fi
+done
+
+# ステップ3: アサインされているIssueの詳細を取得
+if [ ${#ASSIGNED_ISSUES[@]} -eq 0 ]; then
+  echo "[]"
+else
+  for issue_num in "${ASSIGNED_ISSUES[@]}"; do
+    gh issue view "$issue_num" --json number,title,labels,url
+  done | jq -s '.'
+fi
 ```
 
 **設定のカスタマイズ**:
 
-`.cursor/config.sh` ファイルを作成することで、プロジェクト固有の設定を管理できます（※現在は使用しない）
+プロジェクト番号とオーナー名：
 
-**jqフィルターについて**:
-
-- `any(. == "In Progress")`: 配列内に特定の要素が存在するかをチェック（可読性が高い）
-- `contains(["In Progress"])`: 部分配列が含まれるかをチェック（複数要素の確認に適している）
-- 単一要素の存在確認には`any`を使用することが推奨されます
+- `PROJECT_NUMBER=1`
+- `OWNER="kencom2400"`
 
 **判定**:
 
-- ✅ 自分にアサインされているIssueが0件の場合 → その旨を報告して終了（これのみ例外）
+- ✅ 自分にアサインされている「📝 To Do」ステータスのIssueが0件の場合 → その旨を報告して終了（これのみ例外）
 - ✅ 1件以上ある場合 → **質問せず**次のステップへ自動進行
 
 **重要**:
 
-- **必ず`gh issue list --assignee @me`を使用すること**
-- `gh project item-list`は使用禁止（assignees情報が取得できないため）
+- **必ずGitHub Projectsの「📝 To Do」ステータスから取得すること**
+- Issue番号取得後、各Issueのアサイン情報を確認すること
+- 作業開始時に`./scripts/github/projects/set-issue-in-progress.sh`を実行し、ステータスを「🚧 In Progress」に変更すること
 
 #### 2. 優先順位判定とソート（自動実行）
 
@@ -130,7 +139,7 @@ gh issue list --assignee @me --state open --json number,title,labels,url --limit
 4. ✅ GitHub ProjectsのステータスをIn Progressに変更：
 
    ```bash
-   ./scripts/set-issue-in-progress.sh <issue_number>
+   ./scripts/github/projects/set-issue-in-progress.sh <issue_number>
    ```
 
    ※ `required_permissions: ["all"]`を指定すること
@@ -168,16 +177,16 @@ issues.sort((a, b) => {
 
 **@start-task 実行時、以下を必ず確認すること:**
 
-- [ ] `gh issue list --assignee @me` を使用したか？
-- [ ] `gh project item-list` を使用していないか？（使用禁止）
-- [ ] 取得したIssueに自分がアサインされているか確認したか？
+- [ ] GitHub Projectsから「📝 To Do」ステータスのIssueを取得したか？
+- [ ] 各IssueのAssignee情報を確認し、自分にアサインされているものをフィルタリングしたか？
 - [ ] 優先度順にソートしたか？
 - [ ] 最優先のIssue（1件のみ）を選択したか？
+- [ ] ブランチ作成前に`./scripts/github/projects/set-issue-in-progress.sh`でステータスを変更したか？
 - [ ] ユーザーに「どれにしますか？」と質問していないか？（禁止）
 
 ### 🔴 実行時の必須ルール
 
-#### ケース1: アサインされているIssueが0件の場合
+#### ケース1: 「📝 To Do」ステータスでアサインされているIssueが0件の場合
 
 - ✅ その旨を報告して終了（**これだけは質問OK**）
 
@@ -186,6 +195,7 @@ issues.sort((a, b) => {
 - ✅ **優先順位に従って最優先の1つを自動選択**
 - ✅ **「どれにしますか？」などの質問は禁止**
 - ✅ **選択したIssueで即座に作業開始**
+- ✅ **作業開始時にステータスを「🚧 In Progress」に変更**
 - ❌ 他のIssueについて言及しない
 - ❌ 選択肢を提示しない
 
@@ -201,8 +211,9 @@ issues.sort((a, b) => {
 以下のIssueは自動的に除外される：
 
 - ✅ クローズ済みのIssue（`--state open` で除外）
-- 👤 他のユーザーにアサインされているIssue（`--assignee @me` で除外）
-- 📝 ドラフトPR状態のIssue
+- 👤 他のユーザーにアサインされているIssue（Assignee情報で除外）
+- 📝 「📝 To Do」ステータス以外のIssue（「🚧 In Progress」「👀 Review」「✅ Done」など）
+- 📋 「📋 Backlog」ステータスのIssue（まだ作業準備が整っていない）
 
 ### 関連スクリプト
 
@@ -283,9 +294,11 @@ source scripts/activate.sh
 ║  ❌ 提案しない                                                ║
 ║  ❌ 待たない                                                  ║
 ║                                                               ║
-║  ✅ 即座に gh issue list を実行                               ║
+║  ✅ GitHub Projectsから「📝 To Do」ステータスのIssueを取得   ║
+║  ✅ 各IssueのAssignee情報を確認                               ║
 ║  ✅ 最優先のIssueを自動選択                                   ║
-║  ✅ ブランチ作成・ステータス更新・作業開始を自動実行           ║
+║  ✅ ステータスを「🚧 In Progress」に変更                     ║
+║  ✅ ブランチ作成・作業開始を自動実行                          ║
 ║                                                               ║
 ║  これは絶対ルールです。例外はありません。                      ║
 ║                                                               ║
@@ -307,11 +320,12 @@ AI応答:
 ```
 最優先タスクを開始します。
 
-[gh issue list コマンドを実行]
-[結果を解析してソート]
+[GitHub Projectsから「📝 To Do」ステータスのIssueを取得]
+[各IssueのAssignee情報を確認]
+[優先度順にソート]
 Issue #42 を選択しました: "ユーザー認証機能の実装"
+[ステータスを「🚧 In Progress」に変更]
 [ブランチ作成]
-[ステータス更新]
 [作業開始...]
 ```
 
