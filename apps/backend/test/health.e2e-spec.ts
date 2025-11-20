@@ -4,9 +4,11 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { E2ETestDatabaseHelper } from './helpers/database-helper';
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication;
+  let dbHelper: E2ETestDatabaseHelper;
   const dataDir = join(process.cwd(), 'data', 'health');
   const historyFile = join(dataDir, 'connection-history.json');
 
@@ -23,6 +25,15 @@ describe('HealthController (e2e)', () => {
       }),
     );
     await app.init();
+
+    // データベースヘルパーの初期化
+    dbHelper = new E2ETestDatabaseHelper(app);
+
+    // データベース接続確認
+    const isConnected: boolean = await dbHelper.checkConnection();
+    if (!isConnected) {
+      throw new Error('Database connection failed');
+    }
   });
 
   afterAll(async () => {
@@ -30,6 +41,9 @@ describe('HealthController (e2e)', () => {
   });
 
   beforeEach(async () => {
+    // 各テスト前にデータベースをクリーンアップ
+    await dbHelper.cleanDatabase();
+
     // テスト用のデータディレクトリをクリーンアップ
     try {
       await fs.mkdir(dataDir, { recursive: true });

@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:libs": "turbo run build --filter=@account-book/types --filter=@account-book/utils",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:unit": "turbo run test:unit",
