@@ -110,6 +110,7 @@ async function migrateCategories(dataSource: DataSource): Promise<void> {
       `⚠️  カテゴリデータの移行中にエラーが発生しました: ${filePath}`,
       error,
     );
+    throw error;
   }
 }
 
@@ -158,6 +159,7 @@ async function migrateInstitutions(dataSource: DataSource): Promise<void> {
       `⚠️  金融機関データの移行中にエラーが発生しました: ${filePath}`,
       error,
     );
+    throw error;
   }
 }
 
@@ -212,6 +214,7 @@ async function migrateTransactions(dataSource: DataSource): Promise<void> {
     console.log(`✅ 取引 ${totalCount}件を移行しました`);
   } catch (error) {
     console.error(`⚠️  取引データの移行中にエラーが発生しました:`, error);
+    throw error;
   }
 }
 

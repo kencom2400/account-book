@@ -47,7 +47,7 @@ export class CreditCardOrmEntity {
   closingDay!: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, name: 'credit_limit' })
-  creditLimit!: number;
+  creditLimit!: string;
 
   @Column({
     type: 'decimal',
@@ -55,7 +55,7 @@ export class CreditCardOrmEntity {
     scale: 2,
     name: 'current_balance',
   })
-  currentBalance!: number;
+  currentBalance!: string;
 
   @Column({ type: 'varchar', length: 255 })
   issuer!: string;

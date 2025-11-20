@@ -115,7 +115,7 @@ export class TransactionTypeOrmRepository {
     return new TransactionEntity(
       ormEntity.id,
       ormEntity.date,
-      ormEntity.amount,
+      parseFloat(ormEntity.amount),
       {
         id: ormEntity.categoryId,
         name: ormEntity.categoryName,
@@ -139,7 +139,7 @@ export class TransactionTypeOrmRepository {
     return this.repository.create({
       id: domain.id,
       date: domain.date,
-      amount: domain.amount,
+      amount: domain.amount.toString(),
       categoryId: domain.category.id,
       categoryName: domain.category.name,
       categoryType: domain.category.type,

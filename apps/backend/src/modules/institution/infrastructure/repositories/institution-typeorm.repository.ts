@@ -126,29 +126,8 @@ export class InstitutionTypeOrmRepository {
       credentialsData.version,
     );
 
-    let accountsData: Array<{
-      id: string;
-      institutionId: string;
-      accountNumber: string;
-      accountName: string;
-      balance: number;
-      currency: string;
-    }>;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      accountsData = JSON.parse(ormEntity.accounts);
-
-      // 配列であることを検証
-      if (!Array.isArray(accountsData)) {
-        throw new Error('Accounts data must be an array');
-      }
-    } catch (error) {
-      throw new Error(
-        `Failed to parse accounts for institution ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-
-    const accounts: AccountEntity[] = accountsData.map(
+    // TypeORMが自動的にJSONをパースするため、直接使用可能
+    const accounts: AccountEntity[] = (ormEntity.accounts || []).map(
       (account: {
         id: string;
         institutionId: string;
@@ -191,8 +170,9 @@ export class InstitutionTypeOrmRepository {
       encryptedCredentials: JSON.stringify(domain.credentials.toJSON()),
       isConnected: domain.isConnected,
       lastSyncedAt: domain.lastSyncedAt,
-      accounts: JSON.stringify(
-        domain.accounts.map((account: AccountEntity) => account.toJSON()),
+      // TypeORMが自動的にJSONにシリアライズするため、直接配列を渡す
+      accounts: domain.accounts.map((account: AccountEntity) =>
+        account.toJSON(),
       ),
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,

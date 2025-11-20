@@ -9,6 +9,19 @@ import {
 import { InstitutionType } from '@account-book/types';
 
 /**
+ * AccountJSON型定義
+ * accounts JSONフィールドの型定義
+ */
+interface AccountJSON {
+  id: string;
+  institutionId: string;
+  accountNumber: string;
+  accountName: string;
+  balance: number;
+  currency: string;
+}
+
+/**
  * InstitutionOrmEntity
  * TypeORM用の金融機関エンティティ
  * データベースのテーブル構造を定義
@@ -39,7 +52,7 @@ export class InstitutionOrmEntity {
   lastSyncedAt!: Date | null;
 
   @Column({ type: 'json', nullable: true })
-  accounts!: string;
+  accounts!: AccountJSON[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;

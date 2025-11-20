@@ -25,7 +25,7 @@ export class TransactionOrmEntity {
   date!: Date;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  amount!: number;
+  amount!: string;
 
   @Column({ type: 'varchar', length: 36, name: 'category_id' })
   categoryId!: string;
