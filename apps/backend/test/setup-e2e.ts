@@ -25,3 +25,23 @@ if (!process.env.NODE_ENV) {
 if (!process.env.PORT) {
   process.env.PORT = '3001';
 }
+
+// MySQL Test Database設定
+if (!process.env.MYSQL_HOST) {
+  process.env.MYSQL_HOST = 'localhost';
+}
+if (!process.env.MYSQL_PORT) {
+  process.env.MYSQL_PORT = '3306';
+}
+if (!process.env.MYSQL_USER) {
+  process.env.MYSQL_USER = 'account_book_test_user';
+}
+if (!process.env.MYSQL_PASSWORD) {
+  process.env.MYSQL_PASSWORD = 'test_password';
+}
+if (!process.env.MYSQL_DATABASE) {
+  process.env.MYSQL_DATABASE = 'account_book_test';
+}
+if (!process.env.MYSQL_ROOT_PASSWORD) {
+  process.env.MYSQL_ROOT_PASSWORD = 'test_root_password';
+}

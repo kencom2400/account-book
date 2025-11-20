@@ -3,9 +3,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
+import { E2ETestDatabaseHelper } from './helpers/database-helper';
 
 describe('Institution Controller (e2e)', () => {
   let app: INestApplication;
+  let dbHelper: E2ETestDatabaseHelper;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,10 +29,24 @@ describe('Institution Controller (e2e)', () => {
     app.setGlobalPrefix('api');
 
     await app.init();
+
+    // データベースヘルパーの初期化
+    dbHelper = new E2ETestDatabaseHelper(app);
+
+    // データベース接続確認
+    const isConnected: boolean = await dbHelper.checkConnection();
+    if (!isConnected) {
+      throw new Error('Database connection failed');
+    }
   });
 
   afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(async () => {
+    // 各テスト前にデータベースをクリーンアップ
+    await dbHelper.cleanDatabase();
   });
 
   describe('/api/institutions/banks/supported (GET)', () => {
@@ -296,11 +312,6 @@ describe('Institution Controller (e2e)', () => {
   });
 
   describe('/api/institutions (GET)', () => {
-    beforeEach(async () => {
-      // テストデータをクリーンアップ
-      // 注: 実際のアプリケーションではテスト用のデータベースを使用すべき
-    });
-
     it('should return all institutions', () => {
       return request(app.getHttpServer())
         .get('/api/institutions')
