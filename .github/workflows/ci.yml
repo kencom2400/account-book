@@ -7,7 +7,49 @@ on:
     branches: [main, develop]
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Run linter
+        run: pnpm run lint
+
   test:
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     services:
@@ -78,11 +120,159 @@ jobs:
           cd apps/backend
           pnpm run migration:run
 
-      - name: Run linter
-        run: pnpm run lint
-
       - name: Run unit tests
         run: pnpm run test
 
-      - name: Run E2E tests
-        run: pnpm run test:e2e
+  e2e-backend:
+    name: E2E Tests (Backend)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: account_book_test
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Setup environment variables
+        run: |
+          cat << EOF > .env
+          NODE_ENV=test
+          PORT=3001
+          MYSQL_HOST=127.0.0.1
+          MYSQL_PORT=3306
+          MYSQL_USER=account_book_test_user
+          MYSQL_PASSWORD=test_password
+          MYSQL_DATABASE=account_book_test
+          MYSQL_ROOT_PASSWORD=root_password
+          EOF
+
+      - name: Run migrations
+        run: |
+          cd apps/backend
+          pnpm run migration:run
+
+      - name: Run E2E tests (Backend)
+        run: pnpm run test:e2e --filter @account-book/backend
+
+  e2e-frontend:
+    name: E2E Tests (Frontend)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: account_book_test
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared libraries
+        run: pnpm run build:libs
+
+      - name: Setup environment variables
+        run: |
+          cat << EOF > .env
+          NODE_ENV=test
+          PORT=3001
+          NEXT_PUBLIC_API_URL=http://localhost:3001
+          MYSQL_HOST=127.0.0.1
+          MYSQL_PORT=3306
+          MYSQL_USER=account_book_test_user
+          MYSQL_PASSWORD=test_password
+          MYSQL_DATABASE=account_book_test
+          MYSQL_ROOT_PASSWORD=root_password
+          EOF
+
+      - name: Run migrations
+        run: |
+          cd apps/backend
+          pnpm run migration:run
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests (Frontend)
+        run: pnpm run test:e2e --filter @account-book/frontend
