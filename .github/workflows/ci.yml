@@ -122,6 +122,15 @@ jobs:
           pnpm run migration:run
 
       - name: Run unit tests
+        env:
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
         run: pnpm run test
 
   e2e-backend:
@@ -198,6 +207,15 @@ jobs:
           pnpm run migration:run
 
       - name: Run E2E tests (Backend)
+        env:
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
         run: pnpm run test:e2e --filter @account-book/backend
 
   e2e-frontend:
@@ -278,4 +296,13 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run E2E tests (Frontend)
+        env:
+          NODE_ENV: test
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: account_book_test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_test
+          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
+          CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
         run: pnpm run test:e2e --filter @account-book/frontend
