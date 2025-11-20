@@ -59,7 +59,7 @@ if command -v python3 &> /dev/null; then
   PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
   PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
   
-  if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 8 ]; then
+  if { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 8 ]; } || [ "$PYTHON_MAJOR" -gt 3 ]; then
     success_msg "Python $PYTHON_VERSION が見つかりました"
   else
     error_msg "Python 3.8以上が必要です（現在: $PYTHON_VERSION）"
@@ -102,7 +102,7 @@ if command -v nodeenv &> /dev/null; then
   success_msg "nodeenv は既にインストールされています"
 else
   echo "📦 nodeenv をインストール中..."
-  pip3 install nodeenv
+  pip3 install --user nodeenv
   
   if command -v nodeenv &> /dev/null; then
     success_msg "nodeenv をインストールしました"
@@ -141,7 +141,7 @@ else
   OPTIONAL_TOOLS_NEEDED=true
 fi
 
-if [ "$OPTIONAL_TOOLS_NEEDED" = true ]; then
+if [[ "$OPTIONAL_TOOLS_NEEDED" == "true" ]]; then
   echo ""
   echo "📝 注意: 任意ツールはGitHub連携スクリプトを使用する場合にのみ必要です"
   echo ""
@@ -235,7 +235,7 @@ echo "  3. Docker版を使用する場合:"
 echo "     ./scripts/dev/dev-docker.sh start"
 echo ""
 
-if [ "$OPTIONAL_TOOLS_NEEDED" = true ]; then
+if [[ "$OPTIONAL_TOOLS_NEEDED" == "true" ]]; then
   echo "任意のツール（GitHub 連携用）:"
   echo ""
   if [ "$OS" == "macOS" ]; then
