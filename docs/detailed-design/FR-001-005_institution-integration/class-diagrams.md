@@ -326,15 +326,15 @@ classDiagram
     }
 
     class GetConnectionHistoryUseCase {
-        -ConnectionHistoryRepository repository
+        -IConnectionHistoryRepository repository
         +execute(institutionId) Promise~ConnectionHistory[]~
     }
 
     class InstitutionAggregationService {
-        -InstitutionRepository institutionRepo
-        -CreditCardRepository creditCardRepo
-        -SecuritiesAccountRepository securitiesRepo
-        +getAllInstitutions() Promise~AllInstitutions~
+        -IInstitutionRepository institutionRepo
+        -ICreditCardRepository creditCardRepo
+        -ISecuritiesAccountRepository securitiesRepo
+        +getAllInstitutions() Promise~IInstitutionInfo[]~
     }
 
     ConnectInstitutionUseCase --> InstitutionRepositoryInterface
@@ -694,7 +694,9 @@ graph TD
     Infrastructure[Infrastructure Layer] --> Domain
     Infrastructure --> Application
 
-    Presentation -.-> Infrastructure
+    note[注: Presentation層はInfrastructure層に直接依存しない<br/>依存性注入により疎結合を実現]
+
+    style note fill:#fff3cd,stroke:#856404
 ```
 
 ### モジュール間の関連

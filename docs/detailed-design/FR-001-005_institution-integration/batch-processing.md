@@ -198,13 +198,21 @@ async executeNotificationCleanup(): Promise<void> {
   try {
     const notifications = await this.notificationRepository.findAll();
     const now = new Date();
-    const threshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30日前
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // 削除対象を抽出
-    const toDelete = notifications.filter(n =>
-      (n.status === 'confirmed' || n.status === 'archived') &&
-      n.createdAt < threshold
-    );
+    const toDelete = notifications.filter(n => {
+      // 確認済み・アーカイブは30日後に削除
+      if ((n.status === 'confirmed' || n.status === 'archived') && n.createdAt < thirtyDaysAgo) {
+        return true;
+      }
+      // 却下は7日後に削除
+      if (n.status === 'dismissed' && n.createdAt < sevenDaysAgo) {
+        return true;
+      }
+      return false;
+    });
 
     // 削除実行
     for (const notification of toDelete) {
@@ -324,26 +332,32 @@ async testConnectionWithRetry(
       ]);
 
       return ConnectionCheckResultVO.success(result);
-    } catch (error) {
-      lastError = error;
-      this.logger.warn(`接続テスト失敗 (試行${attempt}/${maxRetries})`, error);
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(`接続テスト失敗 (試行${attempt}/${maxRetries})`, error);
 
-      // 認証エラーはリトライしない
-      if (error.statusCode === 401 || error.statusCode === 403) {
-        return ConnectionCheckResultVO.needReauth(error.message);
-      }
+        // エラー型を判定
+        const isHttpError = error && typeof error === 'object' && 'statusCode' in error;
 
-      // APIレート制限の場合は60秒待機
-      if (error.statusCode === 429) {
-        await this.sleep(60000);
-        continue;
-      }
+        // 認証エラーはリトライしない
+        if (isHttpError && (error.statusCode === 401 || error.statusCode === 403)) {
+          return ConnectionCheckResultVO.needReauth(error.message);
+        }
 
-      // 最後の試行でなければ5秒待機
-      if (attempt < maxRetries) {
-        await this.sleep(5000);
+        // タイムアウトエラーの判定
+        const isTimeout = error instanceof Error && error.message === 'Timeout';
+
+        // APIレート制限の場合は60秒待機
+        if (isHttpError && error.statusCode === 429) {
+          await this.sleep(60000);
+          continue;
+        }
+
+        // 最後の試行でなければ5秒待機
+        if (attempt < maxRetries) {
+          await this.sleep(5000);
+        }
       }
-    }
   }
 
   return ConnectionCheckResultVO.failure(lastError.message);

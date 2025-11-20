@@ -291,7 +291,7 @@
 | フィールド            | 型     | 必須 | 説明         | 制約                                                   |
 | --------------------- | ------ | ---- | ------------ | ------------------------------------------------------ |
 | securitiesCompanyName | string | ✅   | 証券会社名   | 1-100文字                                              |
-| accountNumber         | string | ✅   | 口座番号     | 任意長                                                 |
+| accountNumber         | string | ✅   | 口座番号     | 1-50文字                                               |
 | accountType           | string | ✅   | 口座種別     | "general", "specific", "nisa", "tsumitate-nisa", "isa" |
 | loginId               | string | ✅   | ログインID   | メールアドレス形式                                     |
 | password              | string | ✅   | パスワード   | 8-100文字                                              |
