@@ -37,8 +37,14 @@
 - [ ] GitHub Projectsから「📝 To Do」ステータスのIssueを取得
 - [ ] 優先度順にソート（priority: critical > high > medium > low）
 - [ ] 最優先Issueを自動選択
-- [ ] ブランチ作成（`feature/issue-XXX-description`）
+- [ ] **🚨 CRITICAL: 必ずフィーチャーブランチを作成**（`feat/XXX-description` または `fix/XXX-description`）
 - [ ] ステータスを「🚧 In Progress」に変更
+
+**🔴 絶対禁止事項:**
+
+- ❌ **mainブランチでの直接作業は絶対禁止**
+- ❌ ブランチ作成をスキップすることは絶対禁止
+- ❌ 作業開始前に必ずブランチを確認する（`git branch`）
 
 **参照ルール:**
 
@@ -48,6 +54,7 @@
 **重要事項:**
 
 - ✅ 質問・確認なしで即座に実行
+- ✅ **必ずフィーチャーブランチを作成してから作業開始**
 - ✅ GitHub ProjectsのステータスをIn Progressに変更
 - ✅ 各IssueのAssignee情報を確認し、自分にアサインされているものをフィルタリング
 
@@ -139,14 +146,23 @@
 
 ### 📤 PR作成ワークフロー
 
+**🚨 CRITICAL: PR作成は必須**
+
+- ❌ **mainブランチへの直接push・コミットは絶対禁止**
+- ✅ **すべての変更は必ずPRを経由してmainにマージ**
+- ✅ PRが承認・マージされるまでIssueはIn Progressのまま
+
 **自動化されたフロー:**
 
-1. **最初のpush時**: ドラフトPRを自動作成
-2. **追加のpush時**: PR本文を自動更新
-3. **ユーザー確認後**: ドラフトを解除してレビュー依頼
+1. **フィーチャーブランチにpush後**: PRを作成
+2. **追加のpush時**: PR本文を自動更新（必要に応じて）
+3. **レビュー依頼**: 必要に応じてレビュアーを指定
+4. **PR承認後**: mainにマージ
+5. **マージ後のみ**: IssueをDoneに変更
 
 **PR作成前チェック:**
 
+- [ ] 現在のブランチがmainではないことを確認（`git branch`）
 - [ ] すべての変更がコミット済み
 - [ ] push前のローカルチェックを完了（lint/test/e2e）
 - [ ] テストが通ることを確認
@@ -188,9 +204,16 @@
 
 ### ✅ マージ時の自動処理
 
-**PRマージ時に自動実行:**
+**🚨 CRITICAL: Issueを Doneに変更するタイミング**
 
-- [ ] 関連IssueのステータスをDoneに更新
+- ✅ **PRがmainにマージされた後のみ** Issueを Doneに変更
+- ❌ **PR作成時やマージ前にDoneに変更することは絶対禁止**
+- ✅ PRマージまではIn Progressのまま維持
+
+**PRマージ時に実行:**
+
+- [ ] PRをmainにマージ
+- [ ] マージ確認後、IssueのステータスをDoneに更新
 - [ ] Issueをクローズ
 
 **参照ルール:**
@@ -233,14 +256,19 @@ gh issue comment <ISSUE_NUMBER> --body "<報告内容>"
 ### GitHub Projectsステータス
 
 ```
-📝 To Do → 🚧 In Progress → 👀 Review → ✅ Done
+📝 To Do → 🚧 In Progress → ✅ Done
 ```
 
 **遷移タイミング:**
 
-- **To Do → In Progress**: タスク開始時（`@start-task`実行時）
-- **In Progress → Review**: PR作成時
-- **Review → Done**: PRマージ時
+- **To Do → In Progress**: タスク開始時（`@start-task`実行時、フィーチャーブランチ作成後）
+- **In Progress → Done**: **PRがmainにマージされた後のみ**
+
+**🚨 CRITICAL: 絶対禁止事項**
+
+- ❌ **PR作成時にDoneに変更することは絶対禁止**
+- ❌ **PRマージ前にDoneに変更することは絶対禁止**
+- ✅ **PRマージ後のみDoneに変更可能**
 
 **参照ルール:**
 
@@ -271,11 +299,14 @@ gh issue comment <ISSUE_NUMBER> --body "<報告内容>"
 ### 絶対に守るべきルール
 
 1. **型安全性**: any型の使用禁止
-2. **自動コミット**: 作業完了時は即座にコミット（質問・確認不要）
-3. **push前チェック**: lint/test/e2eを必ず実行
-4. **@start-task**: 質問せず即座に最優先タスクを開始
-5. **Geminiレビュー対応**: すべての指摘に個別commit/pushで対応
-6. **Issue報告**: commit完了後は必ずGitHub Issueに報告
+2. **🔴 mainブランチでの直接作業禁止**: 必ずフィーチャーブランチを作成
+3. **🔴 PRなしでのmainへのマージ禁止**: すべての変更はPR経由
+4. **🔴 PRマージ前にIssueをDoneに変更することは絶対禁止**
+5. **自動コミット**: 作業完了時は即座にコミット（質問・確認不要）
+6. **push前チェック**: lint/test/e2eを必ず実行
+7. **@start-task**: 質問せず即座に最優先タスクを開始
+8. **Geminiレビュー対応**: すべての指摘に個別commit/pushで対応
+9. **Issue報告**: commit完了後は必ずGitHub Issueに報告
 
 ### push前の必須チェック
 
