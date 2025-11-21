@@ -124,8 +124,13 @@
 ### 4. @start-task
 
 - ✅ **質問せず即座に最優先タスクを開始**
-- ✅ **GitHub Projectsから「📝 To Do」ステータスを取得**
+- ✅ **以下の条件を満たすIssueを選択:**
+  - GitHub Projectsで「📝 To Do」ステータス
+  - 自分がアサインされている
+  - OPENステータス
 - ✅ **優先度順にソート（priority: critical > high > medium > low）**
+- ✅ **優先度が同一の場合はIssue番号が小さい方を優先**
+- ✅ **mainブランチからフィーチャーブランチを作成**
 - ✅ **ステータスを「🚧 In Progress」に変更**
 
 **参照**: `.cursor/rules/04-github-integration.md`
