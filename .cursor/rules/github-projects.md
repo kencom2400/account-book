@@ -291,10 +291,10 @@ gh project item-list 1 --owner @me --format json | jq '[.items[] | {number: .con
 
 ### スクリプト
 
-- **`scripts/github/setup-all-epic-subissues.sh`**: Epic-Subissue一括設定
 - **`scripts/github/restore-all-statuses-pagination.sh`**: ステータス復元（ページネーション対応）
-- **`scripts/github/restore-all-statuses-fixed.sh`**: ステータス復元（100件まで）
-- **`scripts/github/update-epic-status.sh`**: Epic Issueステータス一括更新
+- **`scripts/github/projects/set-issue-in-progress.sh`**: Issueステータスを"In Progress"に変更
+- **`scripts/github/projects/set-issue-done.sh`**: Issueステータスを"Done"に変更
+- **`scripts/github/projects/move-issues-to-backlog.sh`**: IssueをBacklogに移動
 
 ---
 
