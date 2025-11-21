@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConnectionStatus } from '../../domain/value-objects/connection-status.enum';
 import { ConnectionCheckResult } from '../../domain/value-objects/connection-check-result.vo';
+import { isHttpError } from '../../../../common/errors/http-error.interface';
 import type {
   IFinancialApiClient,
   IInstitutionInfo,
@@ -154,6 +155,19 @@ export class ConnectionCheckerService {
         }`,
         error instanceof Error ? error.stack : undefined,
       );
+
+      // HTTPエラーの場合、ステータスコードに応じた処理
+      if (isHttpError(error)) {
+        if (error.statusCode === 401 || error.statusCode === 403) {
+          return {
+            success: false,
+            needsReauth: true,
+            errorMessage: '認証情報が無効です',
+            errorCode: 'AUTH_ERROR',
+          };
+        }
+      }
+
       return {
         success: false,
         errorMessage:

@@ -317,12 +317,14 @@ export class ScheduledConnectionCheckService {
 ### リトライロジック
 
 ```typescript
+import { isHttpError } from '@/common/errors/http-error.interface';
+
 async testConnectionWithRetry(
   adapter: BankApiAdapter,
   credentials: EncryptedCredentials,
   maxRetries: number = 3,
 ): Promise<ConnectionCheckResultVO> {
-  let lastError: Error;
+  let lastError: Error = new Error('Unknown error');
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -333,14 +335,12 @@ async testConnectionWithRetry(
 
       return ConnectionCheckResultVO.success(result);
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof Error ? error : new Error(String(error));
         this.logger.warn(`接続テスト失敗 (試行${attempt}/${maxRetries})`, error);
 
-        // エラー型を判定
-        const isHttpError = error && typeof error === 'object' && 'statusCode' in error;
-
         // 認証エラーはリトライしない
-        if (isHttpError && (error.statusCode === 401 || error.statusCode === 403)) {
+        // isHttpError型ガードを使用することで、statusCodeに安全にアクセス可能
+        if (isHttpError(error) && (error.statusCode === 401 || error.statusCode === 403)) {
           return ConnectionCheckResultVO.needReauth(error.message);
         }
 
@@ -348,7 +348,7 @@ async testConnectionWithRetry(
         const isTimeout = error instanceof Error && error.message === 'Timeout';
 
         // APIレート制限の場合は60秒待機
-        if (isHttpError && error.statusCode === 429) {
+        if (isHttpError(error) && error.statusCode === 429) {
           await this.sleep(60000);
           continue;
         }
