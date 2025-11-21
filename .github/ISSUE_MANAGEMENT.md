@@ -231,6 +231,19 @@ GitHub Actionsで以下の自動化を設定しています：
 - すでに「Done」ステータスの場合はスキップされます
 - エラーが発生してもワークフロー全体は失敗しません（graceful degradation）
 
+**⚠️ 初回セットアップが必要:**
+
+User-levelまたはOrganization-levelのプロジェクトで自動更新を有効にするには、Personal Access Token (PAT)の設定が必要です。
+
+1. **PATの作成**: [GitHub Settings > Tokens](https://github.com/settings/tokens) から「Generate new token (classic)」を選択
+2. **スコープ選択**: `repo` と `project` にチェック
+3. **リポジトリシークレット追加**:
+   - Settings > Secrets and variables > Actions > New repository secret
+   - Name: `PROJECT_PAT`
+   - Secret: 作成したトークンを貼り付け
+
+詳細はワークフローファイルのコメントを参照してください。
+
 **手動更新が必要な場合:**
 
 - ステータスを「📝 To Do」や「🚧 In Progress」に変更する場合は、手動でプロジェクトボードを操作するか、以下のスクリプトを使用：

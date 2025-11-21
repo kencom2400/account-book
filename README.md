@@ -208,7 +208,18 @@ pnpm test:e2e
 
 ### GitHub Projects自動化
 
-Issue/PRをクローズすると、GitHub Projectsのステータスが自動的に「✅ Done」に更新されます。手動でステータスを変更する必要はありません。
+Issue/PRをクローズすると、GitHub Projectsのステータスが自動的に「✅ Done」に更新されます。
+
+**⚠️ 初回セットアップが必要:**
+
+User-levelまたはOrganization-levelのプロジェクトで自動更新を有効にするには、Personal Access Token (PAT)の設定が必要です：
+
+1. **PATの作成**: [GitHub Settings > Tokens](https://github.com/settings/tokens) から「Generate new token (classic)」
+2. **スコープ選択**: `repo` と `project` にチェック
+3. **リポジトリシークレット追加**: 作成したトークンを `PROJECT_PAT` という名前でリポジトリシークレットに追加
+   - Settings > Secrets and variables > Actions > New repository secret
+
+詳細は`.github/workflows/update-project-status.yml`のコメントを参照してください。
 
 ### ローカルでのCI検証
 

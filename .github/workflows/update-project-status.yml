@@ -1,5 +1,18 @@
 name: Update Project Status on Close
 
+# This workflow automatically updates GitHub Projects status to "Done" when issues/PRs are closed
+# 
+# Setup Required:
+# 1. Create a Personal Access Token (Classic) with 'project' scope
+# 2. Add it as a repository secret named 'PROJECT_PAT'
+# 3. Without PROJECT_PAT, the workflow will use GITHUB_TOKEN (limited to repo-level projects only)
+#
+# How to create PROJECT_PAT:
+# - Go to: https://github.com/settings/tokens
+# - Click "Generate new token (classic)"
+# - Select scopes: 'repo', 'project'
+# - Copy the token and add it to repository secrets
+
 on:
   issues:
     types: [closed]
@@ -12,14 +25,15 @@ jobs:
     permissions:
       issues: read
       pull-requests: read
-      repository-projects: write
       contents: read
+      # Note: GITHUB_TOKEN doesn't have access to user/org projects by default
+      # We need to use PAT or GitHub App for cross-project access
 
     steps:
       - name: Update Project Status to Done
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PROJECT_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
