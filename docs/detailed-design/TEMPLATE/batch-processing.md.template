@@ -223,11 +223,12 @@ export class [BatchName]Job {
   }
 
   private createSummary(results: ProcessResult): BatchSummary {
+    const total = results.success + results.failure;
     return {
-      totalProcessed: results.success + results.failure,
+      totalProcessed: total,
       successCount: results.success,
       failureCount: results.failure,
-      successRate: (results.success / (results.success + results.failure)) * 100,
+      successRate: total > 0 ? (results.success / total) * 100 : 0,
     };
   }
 
@@ -531,10 +532,10 @@ export class BatchMetrics {
   }
 
   getMetrics() {
+    const total = this.metrics.totalExecutions;
     return {
       ...this.metrics,
-      successRate:
-        (this.metrics.successExecutions / this.metrics.totalExecutions) * 100,
+      successRate: total > 0 ? (this.metrics.successExecutions / total) * 100 : 0,
     };
   }
 }
