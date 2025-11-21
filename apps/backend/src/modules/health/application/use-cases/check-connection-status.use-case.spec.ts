@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CheckConnectionStatusUseCase } from './check-connection-status.use-case';
 import { ConnectionCheckerService } from '../../infrastructure/services/connection-checker.service';
 import {
@@ -12,6 +13,7 @@ describe('CheckConnectionStatusUseCase', () => {
   let useCase: CheckConnectionStatusUseCase;
   let connectionChecker: jest.Mocked<ConnectionCheckerService>;
   let historyRepository: jest.Mocked<IConnectionHistoryRepository>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   beforeEach(async () => {
     const mockConnectionChecker = {
@@ -28,6 +30,10 @@ describe('CheckConnectionStatusUseCase', () => {
       deleteOlderThan: jest.fn(),
     };
 
+    const mockEventEmitter = {
+      emit: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CheckConnectionStatusUseCase,
@@ -39,6 +45,10 @@ describe('CheckConnectionStatusUseCase', () => {
           provide: CONNECTION_HISTORY_REPOSITORY,
           useValue: mockHistoryRepository,
         },
+        {
+          provide: EventEmitter2,
+          useValue: mockEventEmitter,
+        },
       ],
     }).compile();
 
@@ -47,6 +57,7 @@ describe('CheckConnectionStatusUseCase', () => {
     );
     connectionChecker = module.get(ConnectionCheckerService);
     historyRepository = module.get(CONNECTION_HISTORY_REPOSITORY);
+    eventEmitter = module.get(EventEmitter2);
   });
 
   it('定義されていること', () => {
@@ -191,6 +202,76 @@ describe('CheckConnectionStatusUseCase', () => {
       expect(results[0].errorMessage).toBe('接続に失敗しました');
       expect(results[0].errorCode).toBe('CONNECTION_ERROR');
       expect(historyRepository.saveMany).toHaveBeenCalled();
+    });
+
+    it('エラーが発生した場合、接続失敗イベントを発行する', async () => {
+      const institutions = [
+        {
+          id: 'inst-001',
+          name: '三菱UFJ銀行',
+          type: 'bank' as const,
+          apiClient: {},
+        },
+      ];
+
+      const checkResults = [
+        new ConnectionCheckResult(
+          'inst-001',
+          ConnectionStatus.DISCONNECTED,
+          new Date(),
+          3000,
+          '接続に失敗しました',
+          'CONNECTION_ERROR',
+        ),
+      ];
+
+      connectionChecker.checkMultipleConnections.mockResolvedValue(
+        checkResults,
+      );
+      historyRepository.saveMany.mockResolvedValue();
+
+      await useCase.execute({}, institutions);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'connection.failed',
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              institutionId: 'inst-001',
+              errorMessage: '接続に失敗しました',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('エラーが発生しなかった場合、イベントを発行しない', async () => {
+      const institutions = [
+        {
+          id: 'inst-001',
+          name: '三菱UFJ銀行',
+          type: 'bank' as const,
+          apiClient: {},
+        },
+      ];
+
+      const checkResults = [
+        new ConnectionCheckResult(
+          'inst-001',
+          ConnectionStatus.CONNECTED,
+          new Date(),
+          1500,
+        ),
+      ];
+
+      connectionChecker.checkMultipleConnections.mockResolvedValue(
+        checkResults,
+      );
+      historyRepository.saveMany.mockResolvedValue();
+
+      await useCase.execute({}, institutions);
+
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });
