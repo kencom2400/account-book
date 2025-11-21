@@ -151,16 +151,12 @@ describe('Institution Controller (e2e)', () => {
           expect(res.body.success).toBe(false);
           expect(res.body.error).toBeDefined();
           // Issue #214: detailsフィールドは配列形式
-          if (res.body.error.details && Array.isArray(res.body.error.details)) {
-            const messages = res.body.error.details
-              .map((detail: { message: string }) => detail.message)
-              .join(' ');
-            expect(messages).toContain('支店コード');
-          } else {
-            // フォールバック: メッセージから確認
-            const message = res.body.error.message || '';
-            expect(message).toContain('支店コード');
-          }
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('支店コード');
         });
     });
 
@@ -177,16 +173,12 @@ describe('Institution Controller (e2e)', () => {
           expect(res.body.success).toBe(false);
           expect(res.body.error).toBeDefined();
           // Issue #214: detailsフィールドは配列形式
-          if (res.body.error.details && Array.isArray(res.body.error.details)) {
-            const messages = res.body.error.details
-              .map((detail: { message: string }) => detail.message)
-              .join(' ');
-            expect(messages).toContain('口座番号');
-          } else {
-            // フォールバック: メッセージから確認
-            const message = res.body.error.message || '';
-            expect(message).toContain('口座番号');
-          }
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('口座番号');
         });
     });
 
