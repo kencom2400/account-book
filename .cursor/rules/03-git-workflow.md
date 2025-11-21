@@ -458,9 +458,10 @@ gh issue create \
 ║  🚨 CRITICAL: Geminiレビュー対応の絶対ルール 🚨                   ║
 ║                                                                  ║
 ║  1. すべての指摘に必ず対応する（見落とし禁止）                    ║
-║  2. 1つの指摘に対して、必ず1 commit / 1 pushで対応               ║
+║  2. 1つの指摘に対して、必ず1 commitで対応                        ║
 ║  3. 複数の指摘をまとめて1つのcommitにすることは絶対に禁止         ║
-║  4. すべての指摘対応完了後、必ずPRコメントで返信                  ║
+║  4. すべてのcommit完了後、まとめてpushする                        ║
+║  5. すべての指摘対応完了後、必ずPRコメントで返信                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -495,29 +496,44 @@ query {
 
 #### Step 2: 指摘ごとに個別対応（必須）
 
-**1つの指摘ごとに**：
+**1つの指摘ごとにcommit（pushはまだしない）**：
 
 1. 該当ファイルを修正
 2. `git add <修正したファイル>`
-3. `git commit -m "fix: Gemini指摘対応 - <具体的な修正内容>"`
-4. **push前に必ずローカルチェックを実行（必須）**
-   ```bash
-   ./scripts/test/lint.sh
-   ./scripts/test/test.sh all
-   ./scripts/test/test-e2e.sh frontend
-   ```
-5. `git push origin <ブランチ名>`
-6. 次の指摘に進む（CI確認は後でまとめて実施）
+3. `git commit -m "docs: Gemini指摘対応 - <具体的な修正内容>"`
+4. 次の指摘に進む
 
-#### Step 3: CI確認（推奨）
+**重要**: この段階ではまだpushしない。すべての指摘への対応commitを完了してから、次のステップでまとめてpushする。
 
-複数の指摘対応後、まとめてCIの状況を確認：
+#### Step 3: すべての修正をまとめてpush（必須）
+
+すべての指摘に対するcommitが完了したら、まとめてpushする：
+
+```bash
+# push前に必ずローカルチェックを実行（必須）
+./scripts/test/lint.sh
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+
+# すべてのcommitをまとめてpush
+git push origin <ブランチ名>
+```
+
+**理由**:
+
+- コミットの粒度を保ちつつ、CIの無駄な実行を防ぐ
+- 1回のpushで複数のcommitが含まれるため、CI実行は1回のみ
+- push前にローカルチェックを実行することで、CIエラーを事前に防止
+
+#### Step 4: CI確認（推奨）
+
+push後、CIの状況を確認：
 
 ```bash
 gh pr checks <PR番号>
 ```
 
-#### Step 4: PRコメントで対応完了を報告（必須）
+#### Step 5: PRコメントで対応完了を報告（必須）
 
 ```bash
 gh pr comment <PR番号> --body "## 🙏 Gemini Code Assistレビューへの対応完了
