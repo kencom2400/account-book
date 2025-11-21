@@ -14,6 +14,10 @@ import { FileSystemConnectionHistoryRepository } from './infrastructure/reposito
 
 // Application Services
 import { InstitutionAggregationService } from './application/services/institution-aggregation.service';
+import { NotificationService } from './application/services/notification.service';
+
+// Event Handlers
+import { ConnectionFailedHandler } from './application/handlers/connection-failed.handler';
 
 // Tokens
 import { CONNECTION_HISTORY_REPOSITORY } from './domain/repositories/connection-history.repository.interface';
@@ -36,6 +40,10 @@ import { SecuritiesModule } from '../securities/securities.module';
     // Services
     ConnectionCheckerService,
     InstitutionAggregationService,
+    NotificationService,
+
+    // Event Handlers
+    ConnectionFailedHandler,
 
     // Use Cases
     CheckConnectionStatusUseCase,

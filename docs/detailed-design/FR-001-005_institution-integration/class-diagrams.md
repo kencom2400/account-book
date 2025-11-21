@@ -316,13 +316,22 @@ classDiagram
     class CheckConnectionStatusUseCase {
         -ConnectionCheckerService checker
         -IConnectionHistoryRepository historyRepo
+        -EventEmitter2 eventEmitter
         +execute(command, institutions) Promise~ConnectionStatusResult[]~
     }
 
     class ScheduledConnectionCheckUseCase {
         -CheckConnectionStatusUseCase checkUseCase
-        -NotificationService notification
         +execute() Promise~void~
+    }
+
+    class ConnectionFailedHandler {
+        -NotificationService notificationService
+        +handleConnectionFailed(event) Promise~void~
+    }
+
+    class NotificationService {
+        +createConnectionErrorNotifications(errors) Promise~void~
     }
 
     class GetConnectionHistoryUseCase {
@@ -343,6 +352,9 @@ classDiagram
     CheckConnectionStatusUseCase --> ConnectionHistoryRepositoryInterface
     ScheduledConnectionCheckUseCase --> CheckConnectionStatusUseCase
     GetConnectionHistoryUseCase --> ConnectionHistoryRepositoryInterface
+    ConnectionFailedHandler --> NotificationService
+    CheckConnectionStatusUseCase ..> ConnectionFailedEvent : emits
+    ConnectionFailedHandler ..> ConnectionFailedEvent : handles
 ```
 
 ---

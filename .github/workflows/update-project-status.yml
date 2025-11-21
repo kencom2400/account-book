@@ -1,0 +1,159 @@
+name: Update Project Status on Close
+
+on:
+  issues:
+    types: [closed]
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      repository-projects: write
+      contents: read
+
+    steps:
+      - name: Update Project Status to Done
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = context.payload.issue?.number || context.payload.pull_request?.number;
+            
+            if (!issueNumber) {
+              console.log('No issue or PR number found');
+              return;
+            }
+            
+            console.log(`Processing issue/PR #${issueNumber}...`);
+            
+            try {
+              // GraphQL APIでプロジェクト情報を取得
+              const query = `
+                query {
+                  repository(owner: "${owner}", name: "${repo}") {
+                    issueOrPullRequest(number: ${issueNumber}) {
+                      ... on Issue {
+                        projectItems(first: 10) {
+                          nodes {
+                            id
+                            project {
+                              id
+                              title
+                            }
+                            fieldValueByName(name: "Status") {
+                              ... on ProjectV2ItemFieldSingleSelectValue {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                      ... on PullRequest {
+                        projectItems(first: 10) {
+                          nodes {
+                            id
+                            project {
+                              id
+                              title
+                            }
+                            fieldValueByName(name: "Status") {
+                              ... on ProjectV2ItemFieldSingleSelectValue {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              
+              const result = await github.graphql(query);
+              const projectItems = result.repository.issueOrPullRequest.projectItems.nodes;
+              
+              if (projectItems.length === 0) {
+                console.log('✅ Issue/PR is not in any project. Nothing to update.');
+                return;
+              }
+              
+              // 各プロジェクトアイテムのステータスを「Done」に更新
+              for (const item of projectItems) {
+                const currentStatus = item.fieldValueByName?.name;
+                
+                console.log(`📋 Project: ${item.project.title}`);
+                console.log(`   Current Status: ${currentStatus || 'No Status'}`);
+                
+                if (currentStatus === '✅ Done') {
+                  console.log('   ✅ Already marked as Done. Skipping.');
+                  continue;
+                }
+                
+                console.log('   🔄 Updating status to Done...');
+                
+                // StatusフィールドのIDとDoneオプションIDを取得
+                const projectQuery = `
+                  query {
+                    node(id: "${item.project.id}") {
+                      ... on ProjectV2 {
+                        field(name: "Status") {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                `;
+                
+                const projectData = await github.graphql(projectQuery);
+                const statusField = projectData.node.field;
+                const doneOption = statusField.options.find(opt => opt.name === '✅ Done');
+                
+                if (!doneOption) {
+                  console.log('   ⚠️  Done option not found in project. Skipping.');
+                  continue;
+                }
+                
+                // ステータスを更新
+                const updateMutation = `
+                  mutation {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: "${item.project.id}"
+                      itemId: "${item.id}"
+                      fieldId: "${statusField.id}"
+                      value: {
+                        singleSelectOptionId: "${doneOption.id}"
+                      }
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                `;
+                
+                await github.graphql(updateMutation);
+                console.log(`   ✅ Successfully updated to Done in project ${item.project.title}`);
+              }
+              
+              console.log('');
+              console.log('🎉 All project statuses updated successfully!');
+            } catch (error) {
+              console.error('❌ Error updating project status:', error);
+              console.error('Note: This is non-critical. The workflow will continue.');
+              // エラーが発生してもワークフロー全体は失敗させない
+            }
+

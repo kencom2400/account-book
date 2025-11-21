@@ -1,23 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConnectionCheckerService } from '../../infrastructure/services/connection-checker.service';
 import type { IConnectionHistoryRepository } from '../../domain/repositories/connection-history.repository.interface';
 import { CONNECTION_HISTORY_REPOSITORY } from '../../domain/repositories/connection-history.repository.interface';
 import { ConnectionHistory } from '../../domain/entities/connection-history.entity';
 import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
+import { ConnectionFailedEvent } from '../../domain/events/connection-failed.event';
 
 export interface CheckConnectionStatusCommand {
   institutionId?: string; // 指定されない場合は全金融機関をチェック
-}
-
-export interface ConnectionStatusResult {
-  institutionId: string;
-  institutionName: string;
-  institutionType: 'bank' | 'credit-card' | 'securities';
-  status: string;
-  checkedAt: string;
-  responseTime: number;
-  errorMessage?: string;
-  errorCode?: string;
 }
 
 /**
@@ -32,6 +24,7 @@ export class CheckConnectionStatusUseCase {
     private readonly connectionChecker: ConnectionCheckerService,
     @Inject(CONNECTION_HISTORY_REPOSITORY)
     private readonly historyRepository: IConnectionHistoryRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -100,10 +93,16 @@ export class CheckConnectionStatusUseCase {
       // 結果を返却用の形式に変換
       const results = histories.map((history) => this.toResult(history));
 
-      // エラーがあった場合はログ出力
-      const errorCount = results.filter((r) => r.errorMessage).length;
+      // エラーがあった場合はイベントを発行
+      const errors = results.filter((r) => r.errorMessage);
+      const errorCount = errors.length;
       if (errorCount > 0) {
         this.logger.warn(`${errorCount}件の金融機関で接続エラーが発生しました`);
+        // イベント駆動アーキテクチャ: 接続失敗イベントを発行
+        this.eventEmitter.emit(
+          'connection.failed',
+          new ConnectionFailedEvent(errors, new Date()),
+        );
       }
 
       this.logger.log(
