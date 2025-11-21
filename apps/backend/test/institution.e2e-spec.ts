@@ -3,6 +3,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
+import type { ErrorDetail } from '@account-book/types';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 
 describe('Institution Controller (e2e)', () => {
@@ -15,6 +17,9 @@ describe('Institution Controller (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Global filters
+    app.useGlobalFilters(new HttpExceptionFilter());
 
     // Global pipes
     app.useGlobalPipes(
@@ -131,10 +136,15 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          const message = Array.isArray(res.body.message)
-            ? res.body.message.join(' ')
-            : res.body.message;
-          expect(message).toContain('銀行コードは4桁の数字');
+          expect(res.body.success).toBe(false);
+          expect(res.body.error).toBeDefined();
+          // Issue #214: detailsフィールドは配列形式
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('銀行コード');
         });
     });
 
@@ -148,10 +158,15 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          const message = Array.isArray(res.body.message)
-            ? res.body.message.join(' ')
-            : res.body.message;
-          expect(message).toContain('支店コードは3桁の数字');
+          expect(res.body.success).toBe(false);
+          expect(res.body.error).toBeDefined();
+          // Issue #214: detailsフィールドは配列形式
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('支店コード');
         });
     });
 
@@ -165,10 +180,15 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          const message = Array.isArray(res.body.message)
-            ? res.body.message.join(' ')
-            : res.body.message;
-          expect(message).toContain('口座番号は7桁の数字');
+          expect(res.body.success).toBe(false);
+          expect(res.body.error).toBeDefined();
+          // Issue #214: detailsフィールドは配列形式
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('口座番号');
         });
     });
 
