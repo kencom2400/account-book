@@ -524,7 +524,116 @@ const handleError = (message: string): void => {
 
 ---
 
-## 9. push前の必須チェック
+## 9. スクリプト・ツール開発のベストプラクティス
+
+### 9-1. ユーザビリティとヘルプメッセージ
+
+**原則**: ヘルプメッセージは実際の使用方法と完全に一致させる
+
+```bash
+# ❌ 悪い例: 実際のステータス名と異なる
+echo "例: $0 24 'In Progress'"
+
+# ✅ 良い例: 実際のステータス名（絵文字含む）と一致
+echo "例: $0 24 '🚧 In Progress'"
+```
+
+**理由**:
+
+- ユーザーがコピー&ペーストで即座に使える
+- 絵文字などの特殊文字の使用方法が明確になる
+- エラーを未然に防ぐ
+
+### 9-2. 外部API・コマンドのエラーハンドリング
+
+**原則**: 外部APIやコマンドの結果が空の場合は必ずチェック
+
+```bash
+# ❌ 悪い例: 結果が空の場合にエラーにならない
+FIELD_INFO=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json | \
+  jq '.fields[] | select(.name == "Status")')
+FIELD_ID=$(echo "$FIELD_INFO" | jq -r '.id')
+
+# ✅ 良い例: 結果が空の場合の明確なエラーハンドリング
+FIELD_INFO=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json | \
+  jq '.fields[] | select(.name == "Status")')
+
+if [ -z "$FIELD_INFO" ]; then
+  echo "❌ エラー: プロジェクトに 'Status' フィールドが見つかりませんでした。"
+  exit 1
+fi
+```
+
+**理由**:
+
+- 堅牢性の向上
+- デバッグが容易になる
+- 明確なエラーメッセージでユーザーが対応しやすい
+
+### 9-3. 外部コマンド呼び出しの効率化
+
+**原則**: 同じデータから複数の値を取得する場合は、コマンド呼び出しを1回にまとめる
+
+```bash
+# ❌ 悪い例: 3回のjq呼び出し
+ITEM_ID=$(echo "$ITEM_INFO" | jq -r '.id')
+CURRENT_STATUS=$(echo "$ITEM_INFO" | jq -r '.status')
+TITLE=$(echo "$ITEM_INFO" | jq -r '.title')
+
+# ✅ 良い例: 1回のjq呼び出し + mapfile
+mapfile -t values < <(echo "$ITEM_INFO" | jq -r '.id, .status, .title')
+ITEM_ID="${values[0]}"
+CURRENT_STATUS="${values[1]}"
+TITLE="${values[2]}"
+```
+
+**理由**:
+
+- パフォーマンスの向上（3倍の効率化）
+- プロセス生成のオーバーヘッドを削減
+- コードがより簡潔になる
+
+### 9-4. 設定の外部化と再利用性
+
+**原則**: ハードコードされた設定は環境変数で上書き可能にする
+
+```bash
+# ❌ 悪い例: ハードコード
+PROJECT_NUMBER=1
+OWNER="kencom2400"
+
+# ✅ 良い例: 環境変数で上書き可能
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
+OWNER="${OWNER:-kencom2400}"
+```
+
+**使用方法**:
+
+```bash
+# デフォルト値を使用
+./script.sh
+
+# 環境変数で上書き
+PROJECT_NUMBER=2 OWNER="other-user" ./script.sh
+```
+
+**理由**:
+
+- 他のプロジェクトやリポジトリでも再利用可能
+- テスト環境と本番環境で異なる設定を使える
+- 設定変更のためにスクリプトを編集する必要がない
+
+### 9-5. スクリプト開発のチェックリスト
+
+- [ ] ヘルプメッセージは実際の使用方法と一致しているか？
+- [ ] 外部API・コマンドの結果が空の場合のエラーハンドリングがあるか？
+- [ ] 同じデータへの複数回のアクセスを1回にまとめているか？
+- [ ] ハードコードされた設定を環境変数で上書き可能にしているか？
+- [ ] エラーメッセージは明確で、ユーザーが対応方法を理解できるか？
+
+---
+
+## 10. push前の必須チェック
 
 **重要**: pushする前に**必ず**以下を実行すること
 
@@ -542,7 +651,7 @@ const handleError = (message: string): void => {
 
 ---
 
-## 10. まとめ
+## 11. まとめ
 
 ### 最優先事項
 
