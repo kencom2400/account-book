@@ -1,0 +1,272 @@
+# [機能名] (FR-XXX〜FR-YYY) モジュール詳細設計書
+
+**対象機能**:
+
+- FR-XXX: [機能名1]
+- FR-YYY: [機能名2]
+- (必要に応じて追加)
+
+**作成日**: YYYY-MM-DD
+**最終更新日**: YYYY-MM-DD
+**バージョン**: 1.0
+
+## 概要
+
+このドキュメントは、[機能名] (FR-XXX〜FR-YYY) に関するモジュールの詳細設計を文書化したものです。
+
+**簡単な機能説明**: [2-3文で機能の概要を記載]
+
+## 目次
+
+1. [画面遷移図](./screen-transitions.md) - 画面がある場合
+2. [クラス図](./class-diagrams.md) - **必須**
+3. [シーケンス図](./sequence-diagrams.md) - **必須**
+4. [状態遷移図](./state-transitions.md) - 複雑な状態管理がある場合
+5. [入出力設計](./input-output-design.md) - **必須** (API仕様)
+6. [バッチ処理詳細](./batch-processing.md) - バッチ処理がある場合
+
+## アーキテクチャ概要
+
+このシステムは **Onion Architecture** を採用しており、以下のレイヤ構成となっています。
+
+### レイヤ構成
+
+```
+┌─────────────────────────────────────────┐
+│     Presentation Layer                  │
+│  - Controllers (REST API)               │
+│  - DTOs                                 │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────┴──────────────────────────┐
+│     Application Layer                   │
+│  - Use Cases                            │
+│  - Application Services                 │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────┴──────────────────────────┐
+│     Domain Layer                        │
+│  - Entities                             │
+│  - Value Objects                        │
+│  - Domain Services                      │
+│  - Repository Interfaces                │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────┴──────────────────────────┐
+│     Infrastructure Layer                │
+│  - Repository Implementations           │
+│  - External API Clients                 │
+│  - Database Access                      │
+└─────────────────────────────────────────┘
+```
+
+### レイヤごとの責務
+
+#### Presentation Layer（プレゼンテーション層）
+- **責務**: HTTP リクエスト/レスポンスの処理
+- **主なコンポーネント**:
+  - Controllers: REST APIエンドポイントの定義
+  - DTOs: データ転送オブジェクト
+
+#### Application Layer（アプリケーション層）
+- **責務**: ビジネスロジックの調整、ユースケースの実装
+- **主なコンポーネント**:
+  - Use Cases: 特定のビジネスユースケースの実装
+  - Application Services: アプリケーション全体のサービス
+
+#### Domain Layer（ドメイン層）
+- **責務**: ビジネスルールとドメインロジックの実装
+- **主なコンポーネント**:
+  - Entities: ビジネスエンティティ
+  - Value Objects: 値オブジェクト
+  - Domain Services: ドメインサービス
+  - Repository Interfaces: リポジトリのインターフェース
+
+#### Infrastructure Layer（インフラストラクチャ層）
+- **責務**: 外部システムとのやりとり、永続化
+- **主なコンポーネント**:
+  - Repository Implementations: リポジトリの実装
+  - External API Clients: 外部APIクライアント
+  - Database Access: データベースアクセス
+
+## 主要機能
+
+### [機能1の名前]
+
+**概要**: [機能の簡単な説明]
+
+**実装箇所**:
+- Controller: `[ControllerName]`
+- Use Case: `[UseCaseName]`
+- Entity: `[EntityName]`
+
+### [機能2の名前]
+
+**概要**: [機能の簡単な説明]
+
+**実装箇所**:
+- Controller: `[ControllerName]`
+- Use Case: `[UseCaseName]`
+- Entity: `[EntityName]`
+
+## 技術スタック
+
+### Backend
+- **Framework**: NestJS (Node.js)
+- **Language**: TypeScript
+- **Architecture**: Onion Architecture
+- **ORM**: TypeORM
+- **Database**: MySQL (本番), JSON (開発)
+
+### Frontend
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **UI**: React, Tailwind CSS
+
+## データモデル
+
+### 主要エンティティ
+
+#### [Entity1Name]
+
+```typescript
+interface [Entity1Name] {
+  id: string;
+  // プロパティを記載
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### [Entity2Name]
+
+```typescript
+interface [Entity2Name] {
+  id: string;
+  // プロパティを記載
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## API仕様概要
+
+詳細は [入出力設計](./input-output-design.md) を参照。
+
+### 主要エンドポイント
+
+| メソッド | エンドポイント | 説明 |
+|---------|---------------|------|
+| GET     | `/api/[resource]` | [説明] |
+| POST    | `/api/[resource]` | [説明] |
+| PUT     | `/api/[resource]/:id` | [説明] |
+| DELETE  | `/api/[resource]/:id` | [説明] |
+
+## セキュリティ考慮事項
+
+- [ ] 認証・認可の実装
+- [ ] 入力値のバリデーション
+- [ ] SQLインジェクション対策
+- [ ] XSS対策
+- [ ] CSRF対策
+- [ ] APIレート制限
+
+## パフォーマンス考慮事項
+
+- [ ] データベースクエリの最適化
+- [ ] インデックスの適用
+- [ ] キャッシング戦略
+- [ ] ページネーション実装
+- [ ] 不要なデータの遅延読み込み
+
+## エラーハンドリング
+
+### エラー分類
+
+1. **バリデーションエラー** (400 Bad Request)
+   - 入力値の形式エラー
+   - 必須項目の欠如
+
+2. **認証エラー** (401 Unauthorized)
+   - トークン無効
+   - トークン期限切れ
+
+3. **認可エラー** (403 Forbidden)
+   - アクセス権限なし
+
+4. **リソース未検出** (404 Not Found)
+   - 指定されたリソースが存在しない
+
+5. **サーバーエラー** (500 Internal Server Error)
+   - 予期しないエラー
+
+## テスト方針
+
+### ユニットテスト
+- **対象**: Domain Layer, Application Layer
+- **ツール**: Jest
+- **カバレッジ目標**: 80%以上
+
+### 統合テスト
+- **対象**: API エンドポイント
+- **ツール**: Supertest + Jest
+- **テスト内容**: HTTPリクエスト/レスポンスの検証
+
+### E2Eテスト
+- **対象**: ユーザーシナリオ
+- **ツール**: Playwright
+- **テスト内容**: 画面操作フローの検証
+
+## 実装上の注意事項
+
+1. **型安全性の遵守**
+   - `any`型の使用禁止
+   - すべての関数に適切な型定義
+
+2. **依存性の方向**
+   - 外側のレイヤから内側のレイヤへのみ依存
+   - ドメイン層は他のレイヤに依存しない
+
+3. **エラーハンドリング**
+   - すべての非同期処理にエラーハンドリング
+   - カスタム例外クラスの使用
+
+4. **ロギング**
+   - 重要な処理にログ出力
+   - 機密情報のログ出力禁止
+
+## 関連ドキュメント
+
+- [機能要件書](../../functional-requirements/FR-XXX-YYY_[feature-name].md)
+- [システムアーキテクチャ](../../system-architecture.md)
+- [API仕様書](../../api-specification.md)
+
+## 変更履歴
+
+| バージョン | 日付 | 変更内容 | 作成者 |
+|-----------|------|---------|--------|
+| 1.0 | YYYY-MM-DD | 初版作成 | [名前] |
+
+## チェックリスト
+
+設計書作成時の確認事項：
+
+### 必須項目
+- [ ] アーキテクチャ図が記載されている
+- [ ] 主要エンティティが定義されている
+- [ ] APIエンドポイントが一覧化されている
+- [ ] クラス図へのリンクが設定されている
+- [ ] シーケンス図へのリンクが設定されている
+- [ ] 入出力設計へのリンクが設定されている
+
+### 推奨項目
+- [ ] セキュリティ考慮事項が記載されている
+- [ ] パフォーマンス考慮事項が記載されている
+- [ ] エラーハンドリング方針が明確
+- [ ] テスト方針が記載されている
+
+### オプション項目
+- [ ] 画面遷移図が作成されている（画面がある場合）
+- [ ] 状態遷移図が作成されている（複雑な状態管理がある場合）
+- [ ] バッチ処理詳細が作成されている（バッチ処理がある場合）
+

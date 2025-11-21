@@ -1,0 +1,445 @@
+# シーケンス図
+
+このドキュメントでは、[機能名]の処理フローをシーケンス図で記載しています。
+
+## 目次
+
+1. [[ユースケース1] のフロー](#ユースケース1のフロー)
+2. [[ユースケース2] のフロー](#ユースケース2のフロー)
+3. [エラーハンドリングフロー](#エラーハンドリングフロー)
+
+---
+
+## [ユースケース1] のフロー
+
+### 概要
+
+**ユースケース**: [ユースケースの説明]
+
+**アクター**: [ユーザー/システム/外部サービス]
+
+**前提条件**:
+- [前提条件1]
+- [前提条件2]
+
+**成功時の結果**:
+- [結果1]
+- [結果2]
+
+### 正常系フロー
+
+```mermaid
+sequenceDiagram
+    actor User as ユーザー
+    participant FE as Frontend
+    participant API as API Controller
+    participant UC as UseCase
+    participant Svc as Service
+    participant Repo as Repository
+    participant DB as Database/File
+
+    User->>FE: [アクション実行]
+    FE->>FE: バリデーション
+    FE->>API: POST /api/[endpoint]<br/>{RequestDTO}
+    
+    API->>API: リクエスト検証
+    API->>UC: execute(dto)
+    
+    UC->>Repo: findById(id)
+    Repo->>DB: データ読み込み
+    DB-->>Repo: データ
+    Repo-->>UC: Entity
+    
+    UC->>UC: ビジネスロジック実行
+    
+    alt 条件分岐がある場合
+        UC->>Svc: [追加処理]
+        Svc-->>UC: 結果
+    end
+    
+    UC->>Repo: save(entity)
+    Repo->>DB: データ保存
+    DB-->>Repo: 成功
+    Repo-->>UC: 保存されたEntity
+    
+    UC-->>API: Result<Entity>
+    API->>API: ResponseDTOに変換
+    API-->>FE: 200 OK<br/>{ResponseDTO}
+    FE->>FE: UI更新
+    FE-->>User: 成功メッセージ表示
+```
+
+### ステップ詳細
+
+1. **ユーザーアクション**
+   - [ユーザーが行う操作の詳細]
+
+2. **Frontend バリデーション**
+   - [フロントエンドで実施するバリデーション内容]
+
+3. **API リクエスト**
+   - エンドポイント: `POST /api/[endpoint]`
+   - RequestDTO: `[RequestDTOName]`
+
+4. **UseCase 実行**
+   - [ビジネスロジックの詳細]
+   - トランザクション境界: [範囲を記載]
+
+5. **データ永続化**
+   - [永続化の詳細]
+
+6. **レスポンス**
+   - ResponseDTO: `[ResponseDTOName]`
+   - HTTPステータス: 200 OK
+
+---
+
+## [ユースケース2] のフロー
+
+### 概要
+
+**ユースケース**: [ユースケースの説明]
+
+**アクター**: [アクター]
+
+**前提条件**:
+- [前提条件]
+
+### 正常系フロー
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant API as Controller
+    participant UC as UseCase
+    participant Repo as Repository
+
+    User->>FE: [アクション]
+    FE->>API: GET /api/[endpoint]/:id
+    
+    API->>UC: execute(id)
+    UC->>Repo: findById(id)
+    Repo-->>UC: Entity | null
+    
+    alt Entity が存在する
+        UC-->>API: Result.success(entity)
+        API-->>FE: 200 OK<br/>{ResponseDTO}
+        FE-->>User: データ表示
+    else Entity が存在しない
+        UC-->>API: Result.failure(NotFoundError)
+        API-->>FE: 404 Not Found<br/>{ErrorResponse}
+        FE-->>User: エラーメッセージ表示
+    end
+```
+
+---
+
+## エラーハンドリングフロー
+
+### バリデーションエラー (400 Bad Request)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant FE as Frontend
+    participant API as Controller
+    participant UC as UseCase
+
+    User->>FE: 不正な入力
+    FE->>API: POST /api/[endpoint]<br/>{InvalidDTO}
+    
+    API->>API: リクエスト検証
+    API->>API: バリデーションエラー検出
+    
+    API-->>FE: 400 Bad Request<br/>{ValidationErrorResponse}
+    FE->>FE: エラーメッセージ表示
+    FE-->>User: 入力エラー通知
+```
+
+**エラーレスポンス例**:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "fieldName",
+      "message": "エラーメッセージ"
+    }
+  ]
+}
+```
+
+### リソース未検出エラー (404 Not Found)
+
+```mermaid
+sequenceDiagram
+    participant API as Controller
+    participant UC as UseCase
+    participant Repo as Repository
+
+    API->>UC: execute(id)
+    UC->>Repo: findById(id)
+    Repo-->>UC: null
+    
+    UC->>UC: NotFoundError生成
+    UC-->>API: Result.failure(NotFoundError)
+    
+    API->>API: エラーハンドリング
+    API-->>API: 404 Not Found<br/>{ErrorResponse}
+```
+
+### サーバーエラー (500 Internal Server Error)
+
+```mermaid
+sequenceDiagram
+    participant API as Controller
+    participant UC as UseCase
+    participant Repo as Repository
+
+    API->>UC: execute(dto)
+    UC->>Repo: save(entity)
+    Repo->>Repo: 予期しないエラー発生
+    Repo--xUC: Error
+    
+    UC->>UC: エラーログ出力
+    UC-->>API: Result.failure(InternalError)
+    
+    API->>API: エラーハンドリング
+    API-->>API: 500 Internal Server Error<br/>{ErrorResponse}
+```
+
+---
+
+## 非同期処理フロー（バッチ処理がある場合）
+
+### バックグラウンドジョブ
+
+```mermaid
+sequenceDiagram
+    participant Scheduler as スケジューラー
+    participant Job as ジョブ
+    participant UC as UseCase
+    participant Repo as Repository
+    participant Ext as 外部API
+
+    Scheduler->>Job: 定期実行トリガー
+    
+    loop 各アイテム
+        Job->>UC: execute(item)
+        UC->>Ext: データ取得
+        Ext-->>UC: データ
+        UC->>Repo: save(data)
+        Repo-->>UC: 成功
+        
+        alt エラー発生
+            UC->>UC: エラーログ記録
+            UC->>UC: リトライカウント増加
+        end
+    end
+    
+    Job->>Job: 実行結果サマリ作成
+    Job->>Job: ログ出力
+```
+
+---
+
+## 並行処理フロー（必要な場合）
+
+### 複数リクエストの並行処理
+
+```mermaid
+sequenceDiagram
+    participant API as Controller
+    participant UC as UseCase
+    participant Repo1 as Repository1
+    participant Repo2 as Repository2
+
+    API->>UC: execute(dto)
+    
+    par 並行実行
+        UC->>Repo1: findAll()
+        Repo1-->>UC: データ1
+    and
+        UC->>Repo2: findAll()
+        Repo2-->>UC: データ2
+    end
+    
+    UC->>UC: データ統合
+    UC-->>API: Result<CombinedData>
+```
+
+---
+
+## Webhook受信フロー（外部連携がある場合）
+
+```mermaid
+sequenceDiagram
+    participant Ext as 外部サービス
+    participant API as Webhook Controller
+    participant UC as UseCase
+    participant Repo as Repository
+    participant Queue as キュー
+
+    Ext->>API: POST /webhook<br/>{WebhookPayload}
+    
+    API->>API: 署名検証
+    
+    alt 署名が有効
+        API->>Queue: メッセージをキューに追加
+        Queue-->>API: 受付完了
+        API-->>Ext: 200 OK
+        
+        Note over Queue,UC: 非同期処理
+        Queue->>UC: メッセージ処理
+        UC->>Repo: save(data)
+        Repo-->>UC: 成功
+    else 署名が無効
+        API-->>Ext: 401 Unauthorized
+    end
+```
+
+---
+
+## トランザクション境界
+
+### データベーストランザクション
+
+```mermaid
+sequenceDiagram
+    participant UC as UseCase
+    participant TX as Transaction
+    participant Repo1 as Repository1
+    participant Repo2 as Repository2
+    participant DB as Database
+
+    UC->>TX: beginTransaction()
+    
+    UC->>Repo1: save(entity1)
+    Repo1->>DB: INSERT
+    
+    UC->>Repo2: save(entity2)
+    Repo2->>DB: INSERT
+    
+    alt すべて成功
+        UC->>TX: commit()
+        TX->>DB: COMMIT
+        DB-->>UC: 成功
+    else エラー発生
+        UC->>TX: rollback()
+        TX->>DB: ROLLBACK
+        DB-->>UC: ロールバック完了
+    end
+```
+
+---
+
+## パフォーマンス最適化
+
+### キャッシング戦略
+
+```mermaid
+sequenceDiagram
+    participant API as Controller
+    participant Cache as Cache
+    participant UC as UseCase
+    participant Repo as Repository
+
+    API->>Cache: get(key)
+    
+    alt キャッシュヒット
+        Cache-->>API: データ
+        API-->>API: レスポンス返却
+    else キャッシュミス
+        Cache-->>API: null
+        API->>UC: execute()
+        UC->>Repo: findAll()
+        Repo-->>UC: データ
+        UC-->>API: データ
+        API->>Cache: set(key, data, ttl)
+        API-->>API: レスポンス返却
+    end
+```
+
+---
+
+## チェックリスト
+
+シーケンス図作成時の確認事項：
+
+### 基本項目
+- [ ] 主要なユースケースがすべて記載されている
+- [ ] アクター、参加者が明確に定義されている
+- [ ] 正常系フローが記載されている
+- [ ] 異常系フローが記載されている
+
+### 詳細項目
+- [ ] エラーハンドリングが明確
+- [ ] トランザクション境界が明確（必要な場合）
+- [ ] 非同期処理が適切に表現されている（必要な場合）
+- [ ] レスポンスの型とステータスコードが明記されている
+
+### 実装ガイド
+- [ ] 各ステップに説明が付与されている
+- [ ] 前提条件が明確
+- [ ] 成功時の結果が明確
+
+---
+
+## Mermaid記法のヒント
+
+### 基本構文
+
+```mermaid
+sequenceDiagram
+    participant A as 参加者A
+    participant B as 参加者B
+    
+    A->>B: 同期メッセージ
+    A-->>B: 非同期メッセージ
+    A-xB: 失敗メッセージ
+    B-->>A: 応答
+```
+
+### 条件分岐
+
+```mermaid
+sequenceDiagram
+    alt 条件1
+        A->>B: 処理1
+    else 条件2
+        A->>C: 処理2
+    end
+```
+
+### ループ
+
+```mermaid
+sequenceDiagram
+    loop 繰り返し条件
+        A->>B: 処理
+    end
+```
+
+### 並行処理
+
+```mermaid
+sequenceDiagram
+    par 並行処理
+        A->>B: 処理1
+    and
+        A->>C: 処理2
+    end
+```
+
+### ノート
+
+```mermaid
+sequenceDiagram
+    Note over A,B: ノートの内容
+    Note right of A: 右側のノート
+    Note left of B: 左側のノート
+```
+

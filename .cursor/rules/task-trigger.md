@@ -62,16 +62,18 @@
 PROJECT_NUMBER=1
 OWNER="kencom2400"
 
-TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 100 | \
+TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
   jq -r '.items[] | select(.status == "📝 To Do") | .content.number')
 
-# ステップ2: 各IssueのAssignee情報を確認し、自分にアサインされているものをフィルタリング
+# ステップ2: 各IssueのAssignee情報とState（OPEN/CLOSED）を確認し、自分にアサインされているOPENなものをフィルタリング
 ASSIGNED_ISSUES=()
 for issue_num in $TODO_ISSUES; do
   assignee=$(gh issue view "$issue_num" --json assignees --jq '.assignees[].login' 2>/dev/null)
+  issue_state=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
   current_user=$(gh api user --jq '.login')
 
-  if echo "$assignee" | grep -q "$current_user"; then
+  # OPENなIssueかつ自分にアサインされているもののみを対象
+  if [ "$issue_state" = "OPEN" ] && echo "$assignee" | grep -q "$current_user"; then
     ASSIGNED_ISSUES+=("$issue_num")
   fi
 done
@@ -352,3 +354,23 @@ AI応答:
 ---
 
 **このルールを必ず遵守してください。ユーザーの生産性はこのルールの遵守にかかっています。**
+
+#### Issue取得漏れが発生する
+
+- `--limit` 値を十分に大きく設定（9999（実質無制限）を推奨）
+- プロジェクトアイテム数を確認：`gh project item-list <PROJECT_NUMBER> --owner <OWNER> --format json | jq '.items | length'`
+- 必要に応じて `--limit` 値を増やす
+- 例：プロジェクトに178アイテムある場合、`--limit 100` では取得漏れが発生する
+
+#### CLOSEDなIssueがTo Doステータスに表示される
+
+- プロジェクトボードのステータスとGitHub Issue状態が不整合の場合がある
+- IssueのState（OPEN/CLOSED）を必ず確認し、OPENなもののみを対象とする
+- ステップ2で以下のようにフィルタリングを追加：
+  ```bash
+  issue_state=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
+  if [ "$issue_state" = "OPEN" ] && echo "$assignee" | grep -q "$current_user"; then
+    ASSIGNED_ISSUES+=("$issue_num")
+  fi
+  ```
+- 必要に応じてIssueを再オープンするか、プロジェクトから削除する
