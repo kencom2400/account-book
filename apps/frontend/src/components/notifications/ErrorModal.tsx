@@ -118,7 +118,10 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
                       {Array.isArray(details) ? (
                         <div className="bg-gray-50 rounded p-3 space-y-2">
                           {details.map((detail, index) => (
-                            <div key={index} className="text-xs text-gray-700">
+                            <div
+                              key={`${detail.field || 'error'}-${detail.message}-${index}`}
+                              className="text-xs text-gray-700"
+                            >
                               {detail.field && (
                                 <span className="font-semibold">{detail.field}: </span>
                               )}
