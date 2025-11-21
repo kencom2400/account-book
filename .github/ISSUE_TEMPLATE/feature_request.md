@@ -275,15 +275,15 @@ FEATUREチケットの実装では、コードを書き始める前に詳細設�
 1. **テンプレートをコピー**
 
    ```bash
+   DIR="docs/detailed-design/FR-XXX_feature-name"
    # 新しい機能のディレクトリを作成
-   mkdir -p docs/detailed-design/FR-XXX_feature-name
+   mkdir -p "$DIR"
 
    # テンプレートをコピー
-   cp docs/detailed-design/TEMPLATE/*.template docs/detailed-design/FR-XXX_feature-name/
+   cp docs/detailed-design/TEMPLATE/*.template "$DIR/"
 
    # .templateを削除してリネーム
-   cd docs/detailed-design/FR-XXX_feature-name
-   for file in *.template; do
+   for file in "$DIR"/*.template; do
      mv "$file" "${file%.template}"
    done
    ```
