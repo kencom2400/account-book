@@ -40,9 +40,9 @@ describe('BankCredentialsForm', () => {
     render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} />);
 
     // 銀行コードは入力フィールドの値として自動入力されている
-    const bankCodeInput = screen.getByDisplayValue('0000') as HTMLInputElement;
+    const bankCodeInput = screen.getByDisplayValue('0000');
     expect(bankCodeInput).toBeInTheDocument();
-    expect(bankCodeInput.value).toBe('0000');
+    expect(bankCodeInput).toHaveValue('0000');
   });
 
   it('should validate branch code format', async () => {
@@ -133,16 +133,14 @@ describe('BankCredentialsForm', () => {
   it('should toggle API secret visibility', () => {
     render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} />);
 
-    const apiSecretInput = screen.getByPlaceholderText(
-      '銀行から発行されたAPIシークレットを入力'
-    ) as HTMLInputElement;
+    const apiSecretInput = screen.getByPlaceholderText('銀行から発行されたAPIシークレットを入力');
     const toggleButton = screen.getByText('表示');
 
-    expect(apiSecretInput.type).toBe('password');
+    expect(apiSecretInput).toHaveAttribute('type', 'password');
 
     fireEvent.click(toggleButton);
 
-    expect(apiSecretInput.type).toBe('text');
+    expect(apiSecretInput).toHaveAttribute('type', 'text');
     expect(screen.getByText('非表示')).toBeInTheDocument();
   });
 
@@ -171,11 +169,11 @@ describe('BankCredentialsForm', () => {
   it('should enforce maxLength on inputs', () => {
     render(<BankCredentialsForm bank={mockBank} onSubmit={mockOnSubmit} />);
 
-    const branchCodeInput = screen.getByPlaceholderText('例: 001') as HTMLInputElement;
-    const accountNumberInput = screen.getByPlaceholderText('例: 1234567') as HTMLInputElement;
+    const branchCodeInput = screen.getByPlaceholderText('例: 001');
+    const accountNumberInput = screen.getByPlaceholderText('例: 1234567');
 
-    expect(branchCodeInput.maxLength).toBe(3);
-    expect(accountNumberInput.maxLength).toBe(7);
+    expect(branchCodeInput).toHaveAttribute('maxLength', '3');
+    expect(accountNumberInput).toHaveAttribute('maxLength', '7');
   });
 
   it('should show loading state when loading prop is true', () => {

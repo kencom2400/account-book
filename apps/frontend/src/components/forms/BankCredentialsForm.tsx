@@ -47,6 +47,26 @@ export function BankCredentialsForm({
   const prevErrorRef = useRef<string | null>(null);
   const errorTimestampRef = useRef<Date | null>(null);
 
+  // バリデーション
+  const validate = useCallback((): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!/^\d{4}$/.test(formData.bankCode)) {
+      newErrors.bankCode = '銀行コードは4桁の数字で入力してください';
+    }
+
+    if (!/^\d{3}$/.test(formData.branchCode)) {
+      newErrors.branchCode = '支店コードは3桁の数字で入力してください';
+    }
+
+    if (!/^\d{7}$/.test(formData.accountNumber)) {
+      newErrors.accountNumber = '口座番号は7桁の数字で入力してください';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData.bankCode, formData.branchCode, formData.accountNumber]);
+
   // エラー発生時の通知処理
   const handleError = useCallback(
     (errorMessage: string, details?: string): void => {
@@ -78,7 +98,7 @@ export function BankCredentialsForm({
         },
       });
     },
-    [addNotification, bank.code, formData, onSubmit]
+    [addNotification, bank.code, formData, onSubmit, validate]
   );
 
   // エラーがpropsで渡された場合の処理（useEffectで実行）
@@ -88,26 +108,6 @@ export function BankCredentialsForm({
       handleError(error, errorDetails);
     }
   }, [error, errorDetails, handleError]);
-
-  // バリデーション
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!/^\d{4}$/.test(formData.bankCode)) {
-      newErrors.bankCode = '銀行コードは4桁の数字で入力してください';
-    }
-
-    if (!/^\d{3}$/.test(formData.branchCode)) {
-      newErrors.branchCode = '支店コードは3桁の数字で入力してください';
-    }
-
-    if (!/^\d{7}$/.test(formData.accountNumber)) {
-      newErrors.accountNumber = '口座番号は7桁の数字で入力してください';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
@@ -139,10 +139,11 @@ export function BankCredentialsForm({
 
         {/* 銀行コード */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="bankCode" className="block text-sm font-medium text-gray-700 mb-2">
             銀行コード <span className="text-red-500">*</span>
           </label>
           <input
+            id="bankCode"
             type="text"
             value={formData.bankCode}
             onChange={(e) => handleChange('bankCode', e.target.value)}
@@ -155,10 +156,11 @@ export function BankCredentialsForm({
 
         {/* 支店コード */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="branchCode" className="block text-sm font-medium text-gray-700 mb-2">
             支店コード <span className="text-red-500">*</span>
           </label>
           <input
+            id="branchCode"
             type="text"
             value={formData.branchCode}
             onChange={(e) => handleChange('branchCode', e.target.value)}
@@ -172,10 +174,11 @@ export function BankCredentialsForm({
 
         {/* 口座番号 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">
             口座番号 <span className="text-red-500">*</span>
           </label>
           <input
+            id="accountNumber"
             type="text"
             value={formData.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
@@ -191,10 +194,11 @@ export function BankCredentialsForm({
 
         {/* APIキー（オプション） */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
             APIキー（オプション）
           </label>
           <input
+            id="apiKey"
             type="text"
             value={formData.apiKey}
             onChange={(e) => handleChange('apiKey', e.target.value)}
@@ -206,11 +210,12 @@ export function BankCredentialsForm({
 
         {/* APIシークレット（オプション） */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="apiSecret" className="block text-sm font-medium text-gray-700 mb-2">
             APIシークレット（オプション）
           </label>
           <div className="relative">
             <input
+              id="apiSecret"
               type={showApiSecret ? 'text' : 'password'}
               value={formData.apiSecret}
               onChange={(e) => handleChange('apiSecret', e.target.value)}
