@@ -148,14 +148,20 @@ Issue #XXX「[Issue タイトル]」の作業が完了しました。
 # Issue番号を変数に設定
 ISSUE_NUMBER=XXX
 
-# コメント本文をファイルに保存
-cat > /tmp/issue_comment.md << 'EOF'
+# 一時ファイルを作成（安全な一時ファイル名を自動生成）
+COMMENT_FILE=$(mktemp)
+
+# コメント本文を一時ファイルに保存
+cat > "$COMMENT_FILE" << 'EOF'
 ## 🎉 作業完了報告
 ...（上記テンプレートの内容）
 EOF
 
 # GitHub CLIでコメント投稿
-gh issue comment $ISSUE_NUMBER --body-file /tmp/issue_comment.md
+gh issue comment $ISSUE_NUMBER --body-file "$COMMENT_FILE"
+
+# 一時ファイルを削除
+rm "$COMMENT_FILE"
 ```
 
 ### 手動投稿の場合
