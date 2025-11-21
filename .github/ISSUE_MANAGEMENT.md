@@ -213,7 +213,16 @@ gh milestone create "Phase 7: 最適化" --description "パフォーマンス最
 
 GitHub Actionsで以下の自動化を設定しています：
 
-#### `.github/workflows/update-project-status.yml`
+#### 計画中の自動化（TODO）
+
+以下の自動化ルールは今後実装予定です：
+
+- Issueが作成されたら → Backlogに追加
+- Issueに`status: in-progress`ラベルが付いたら → In Progressに移動
+- Issueに`status: review`ラベルが付いたら → Reviewに移動
+- PRが作成されたら → Reviewに追加
+
+#### `.github/workflows/update-project-status.yml` (実装済み)
 
 **Issue/PRクローズ時の自動更新:**
 
