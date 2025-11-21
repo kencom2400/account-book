@@ -528,6 +528,80 @@ const handleError = (message: string): void => {
 />
 ```
 
+### 7-3. クロージャとuseCallbackの注意点
+
+**問題**: `useCallback`の依存配列に状態を含めると、コールバックがその時点の値をキャプチャしてしまい、後で状態が変更されても古い値を参照し続ける
+
+❌ **悪い例**:
+
+```typescript
+const [formData, setFormData] = useState<FormData>({...});
+
+// handleErrorが呼ばれた時点のformDataをキャプチャ
+const handleError = useCallback(
+  (errorMessage: string): void => {
+    showErrorToast('error', errorMessage, {
+      onRetry: () => {
+        // ここでキャプチャされたformDataは古い可能性がある
+        if (validate()) {
+          onSubmit(formData); // ❌ ユーザーが値を変更しても古いデータが送信される
+        }
+      },
+    });
+  },
+  [formData, validate, onSubmit] // formDataが依存配列に含まれる
+);
+```
+
+**問題点**:
+
+- エラー通知表示後にユーザーがフォームを変更しても、「再試行」ボタンで古いデータが送信される
+- ユーザーの最新の入力が反映されない
+
+✅ **良い例**:
+
+```typescript
+const [formData, setFormData] = useState<FormData>({...});
+const formDataRef = useRef(formData);
+
+// formDataRefを常に最新の状態に保つ
+useEffect(() => {
+  formDataRef.current = formData;
+}, [formData]);
+
+// validate関数がデータ引数を受け取るように変更
+const validate = useCallback((dataToValidate: FormData): boolean => {
+  const newErrors: Record<string, string> = {};
+  // dataToValidateを使ってバリデーション
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+}, []); // setErrorsは安定しているため依存配列は空
+
+// handleErrorでformDataRefを使用
+const handleError = useCallback(
+  (errorMessage: string): void => {
+    showErrorToast('error', errorMessage, {
+      onRetry: () => {
+        // 最新のformDataを参照
+        if (validate(formDataRef.current)) {
+          onSubmit(formDataRef.current); // ✅ 常に最新のデータが送信される
+        }
+      },
+    });
+  },
+  [validate, onSubmit] // formDataは依存配列から除外
+);
+```
+
+**改善点**:
+
+- `formDataRef`を使って常に最新のフォームデータを参照
+- `validate`関数をデータ引数を受け取るように変更し、依存配列を空に
+- `handleError`の依存配列から`formData`を削除し、クロージャ問題を解決
+- エラー通知表示後にユーザーがフォームを変更しても、「再試行」ボタンで最新のデータが送信される
+
+**参考**: PR #238 - Gemini Code Assistレビュー指摘
+
 ---
 
 ## 8. 実装フローチェックリスト
