@@ -6,15 +6,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BankConnectionError } from '../../domain/errors/bank-connection.error';
-
-/**
- * エラー詳細情報の型定義
- */
-interface ErrorDetail {
-  field?: string;
-  message: string;
-  code?: string;
-}
+import { ErrorDetail } from '@account-book/types/api/error-response';
 
 /**
  * BankConnectionError用の例外フィルター
@@ -31,7 +23,29 @@ export class BankConnectionExceptionFilter implements ExceptionFilter {
     if (exception.details) {
       if (Array.isArray(exception.details)) {
         // 既に配列形式の場合
-        details = exception.details as ErrorDetail[];
+        // ErrorDetailの構造を満たしているかチェック
+        details = exception.details.map((detail: unknown): ErrorDetail => {
+          if (
+            typeof detail === 'object' &&
+            detail !== null &&
+            'message' in detail &&
+            typeof (detail as { message: unknown }).message === 'string'
+          ) {
+            const errorDetail = detail as {
+              message: string;
+              field?: string;
+              code?: string;
+            };
+            return {
+              field: errorDetail.field,
+              message: errorDetail.message,
+              code: errorDetail.code,
+            };
+          }
+          return {
+            message: JSON.stringify(detail),
+          };
+        });
       } else if (typeof exception.details === 'object') {
         // オブジェクト形式の場合、配列に変換
         const detailsObj = exception.details as Record<string, unknown>;
