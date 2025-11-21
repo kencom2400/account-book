@@ -57,33 +57,86 @@
 
 ### POST /api/institutions
 
-金融機関（銀行）を登録します。
+**汎用金融機関登録エンドポイント**
 
-**Request Body:**
+全ての種類の金融機関（銀行・クレジットカード・証券口座）を登録できます。
+
+**⚠️ 重要: 推奨される使用方法**
+
+このエンドポイントは汎用的な実装になっていますが、通常は各金融機関種別専用のエンドポイントの使用を推奨します：
+
+- 銀行: このエンドポイント (`POST /api/institutions`)
+- クレジットカード: `POST /api/credit-cards` を推奨
+- 証券口座: `POST /api/securities-accounts` を推奨
+
+**理由:**
+
+- 各種別専用エンドポイントは、その種別に最適化されたバリデーションと処理を提供
+- REST APIの設計原則（リソース指向）に整合
+- 責務の分離が明確
+
+**Request Body (銀行の例):**
 
 ```json
 {
   "name": "三菱UFJ銀行",
   "type": "bank",
-  "bankCode": "0005",
-  "branchCode": "001",
-  "accountNumber": "1234567",
-  "apiKey": "your-api-key-here"
+  "credentials": {
+    "bankCode": "0005",
+    "branchCode": "001",
+    "accountNumber": "1234567",
+    "apiKey": "your-api-key-here"
+  }
 }
 ```
 
 **Request Schema (CreateInstitutionDto):**
 
-| フィールド    | 型     | 必須 | 説明         | 制約                                     |
-| ------------- | ------ | ---- | ------------ | ---------------------------------------- |
-| name          | string | ✅   | 金融機関名   | 1-100文字                                |
-| type          | string | ✅   | 金融機関種別 | "bank", "credit-card", "securities" (※1) |
-| bankCode      | string | ✅   | 銀行コード   | 4桁数字                                  |
-| branchCode    | string | ✅   | 支店コード   | 3桁数字                                  |
-| accountNumber | string | ✅   | 口座番号     | 7桁数字                                  |
-| apiKey        | string | ✅   | APIキー      | 1-500文字                                |
+| フィールド  | 型     | 必須 | 説明         | 制約                                     |
+| ----------- | ------ | ---- | ------------ | ---------------------------------------- |
+| name        | string | ✅   | 金融機関名   | 1-100文字                                |
+| type        | string | ✅   | 金融機関種別 | "bank", "credit-card", "securities" (※1) |
+| credentials | object | ✅   | 認証情報     | 金融機関種別により構造が異なる (※2)      |
 
 **※1**: `type`フィールドは`@account-book/types`パッケージの`InstitutionType` Enumとして実装されており、型安全性が確保されています。
+
+**※2**: `credentials`の構造は金融機関種別によって異なります：
+
+- **銀行 (`type: "bank"`)**:
+
+  ```json
+  {
+    "bankCode": "0005",
+    "branchCode": "001",
+    "accountNumber": "1234567",
+    "apiKey": "your-api-key-here"
+  }
+  ```
+
+- **クレジットカード (`type: "credit-card"`)**:
+
+  ```json
+  {
+    "cardNumber": "1234567812345678",
+    "cardHolderName": "TARO YAMADA",
+    "expiryDate": "2028-12-31",
+    "loginId": "user@example.com",
+    "password": "your-password"
+  }
+  ```
+
+- **証券口座 (`type: "securities"`)**:
+  ```json
+  {
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "loginId": "user@example.com",
+    "password": "your-password",
+    "tradePassword": "1234"
+  }
+  ```
+
+実装上は汎用的な`Record<string, unknown>`型で受け取りますが、各種別専用エンドポイントの使用を推奨します。
 
 **Response (201 Created):**
 
@@ -97,25 +150,19 @@
     "credentials": {
       "encrypted": true
     },
-    "isConnected": true,
-    "lastSyncedAt": "2025-11-20T10:30:00Z",
-    "accounts": [
-      {
-        "id": "acc_0987654321",
-        "accountNumber": "1234567",
-        "accountName": "普通預金",
-        "accountType": "savings",
-        "balance": 500000,
-        "availableBalance": 500000,
-        "createdAt": "2025-11-20T10:30:00Z",
-        "updatedAt": "2025-11-20T10:30:00Z"
-      }
-    ],
+    "isConnected": false,
+    "lastSyncedAt": null,
+    "accounts": [],
     "createdAt": "2025-11-20T10:30:00Z",
     "updatedAt": "2025-11-20T10:30:00Z"
   }
 }
 ```
+
+**注意:**
+
+- 登録直後は `isConnected: false`, `lastSyncedAt: null`, `accounts: []` の状態です
+- 実際の接続確認とアカウント情報取得は別途行われます
 
 ---
 
@@ -572,16 +619,26 @@
 ### 金融機関登録
 
 ```typescript
-// CreateInstitutionDto
+// CreateInstitutionDto (Presentation層)
 {
   name: string (1-100文字),
   type: "bank" | "credit-card" | "securities",
+  credentials: Record<string, unknown> // 金融機関種別により構造が異なる
+}
+
+// 銀行の場合のcredentials例
+{
   bankCode: string (4桁数字、正規表現: /^\d{4}$/),
   branchCode: string (3桁数字、正規表現: /^\d{3}$/),
   accountNumber: string (7桁数字、正規表現: /^\d{7}$/),
   apiKey: string (1-500文字)
 }
 ```
+
+**注意:**
+
+- 実装上は汎用的な`credentials: Record<string, unknown>`で受け取る
+- 各金融機関種別専用エンドポイントの使用を推奨（より厳密なバリデーション）
 
 ### クレジットカード登録
 
