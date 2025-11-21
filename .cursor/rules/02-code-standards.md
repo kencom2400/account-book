@@ -112,6 +112,50 @@ const mockRepo = { findById: jest.fn() } as any;
 ))}
 ```
 
+#### 1-4. 型ガード関数の実装
+
+型ガード関数（Type Guard）を実装する際は、型安全性を損なわないよう注意が必要です。
+
+**❌ 避けるべきパターン**:
+
+```typescript
+// ❌ 型ガード関数内で、証明しようとしている型自身にキャストする
+export function isHttpError(error: unknown): error is HttpError {
+  return (
+    error instanceof Error &&
+    'statusCode' in error &&
+    typeof (error as HttpError).statusCode === 'number' // ← 問題
+  );
+}
+```
+
+**問題点**:
+
+- 型ガード関数が証明しようとしている型（`HttpError`）に、検証前にキャストしている
+- 型ガードの目的（型の証明）と矛盾する
+- 型安全性の観点で改善の余地がある
+
+**✅ 正しい実装**:
+
+```typescript
+// ✅ より限定的な型アサーションを使用
+export function isHttpError(error: unknown): error is HttpError {
+  return (
+    error instanceof Error &&
+    'statusCode' in error &&
+    typeof (error as { statusCode: unknown }).statusCode === 'number'
+  );
+}
+```
+
+**改善点**:
+
+- `{ statusCode: unknown }` という最小限の型アサーションを使用
+- 型ガード自体の堅牢性が向上
+- TypeScriptの型システムをより適切に活用
+
+**参考**: PR #237 - Gemini Code Assistレビュー指摘
+
 ---
 
 ## 2. データアクセスと配列操作
@@ -592,6 +636,68 @@ TITLE="${values[2]}"
 - パフォーマンスの向上（3倍の効率化）
 - プロセス生成のオーバーヘッドを削減
 - コードがより簡潔になる
+
+### 9-3-1. エラーメッセージのユーザーフレンドリー化
+
+APIから返されるエラーメッセージをそのままユーザーに表示することは避けるべきです。
+
+**❌ 避けるべきパターン**:
+
+```typescript
+// ❌ 技術的なエラーメッセージをそのまま表示
+catch (error) {
+  if (isHttpError(error) && error.statusCode === 401) {
+    return Result.failure(error.message); // "Unauthorized: Invalid token format"
+  }
+}
+```
+
+**問題点**:
+
+- APIが返すエラーメッセージは技術的でユーザーにとって分かりにくい
+- エラーメッセージの内容がAPIの実装に依存する
+- 多言語対応が困難
+
+**✅ 正しい実装**:
+
+```typescript
+// ✅ ユーザーフレンドリーな固定メッセージを使用
+catch (error) {
+  if (isHttpError(error) && error.statusCode === 401) {
+    return Result.failure('認証情報が無効です'); // わかりやすい日本語メッセージ
+  }
+}
+```
+
+**改善点**:
+
+- ユーザーが理解しやすい表現
+- 一貫性のあるエラーメッセージ
+- ログには技術的な詳細を記録しつつ、ユーザーにはわかりやすいメッセージを表示
+- 多言語対応が容易
+
+**実装例**:
+
+```typescript
+// ログには詳細、ユーザーには簡潔に
+catch (error) {
+  this.logger.error('認証エラー', {
+    error: error instanceof Error ? error.message : String(error),
+    statusCode: isHttpError(error) ? error.statusCode : undefined,
+  });
+
+  if (isHttpError(error) && (error.statusCode === 401 || error.statusCode === 403)) {
+    return {
+      success: false,
+      needsReauth: true,
+      errorMessage: '認証情報が無効です', // ユーザー向け
+      errorCode: 'AUTH_ERROR',
+    };
+  }
+}
+```
+
+**参考**: PR #237 - Gemini Code Assistレビュー指摘
 
 ### 9-4. 設定の外部化と再利用性
 
