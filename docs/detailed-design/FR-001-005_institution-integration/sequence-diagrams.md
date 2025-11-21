@@ -270,9 +270,13 @@ sequenceDiagram
         API-->>UI: 200 OK + ConnectionStatusResponse[]
 
         alt エラーが存在する
-            API->>NotificationService: createNotification(errors)
-            Note over NotificationService: FR-005通知作成
-            NotificationService-->>API: void
+            UC->>EventEmitter: emit('connection.failed', event)
+            Note over EventEmitter: イベント駆動アーキテクチャ
+            EventEmitter->>Handler: ConnectionFailedHandler.handleConnectionFailed()
+            Handler->>NotificationService: createConnectionErrorNotifications(errors)
+            Note over NotificationService: FR-005通知作成<br/>(Application層)
+            NotificationService-->>Handler: void
+            Handler-->>EventEmitter: void
         end
 
         UI->>UI: 接続状態表示を更新

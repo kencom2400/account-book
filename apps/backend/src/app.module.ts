@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
@@ -26,6 +27,7 @@ import { HealthModule } from './modules/health/health.module';
         getDatabaseConfig(configService),
     }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     // Feature modules
     TransactionModule,
     InstitutionModule,
