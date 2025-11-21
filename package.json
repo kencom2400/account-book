@@ -53,8 +53,5 @@
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
     "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@nestjs/event-emitter": "^3.0.1"
   }
 }

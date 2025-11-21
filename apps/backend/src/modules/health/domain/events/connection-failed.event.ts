@@ -1,4 +1,4 @@
-import type { ConnectionStatusResult } from '../../application/use-cases/check-connection-status.use-case';
+import type { ConnectionStatusResult } from '../types/connection-status-result.type';
 
 /**
  * 接続失敗イベント

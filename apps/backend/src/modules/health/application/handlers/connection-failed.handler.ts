@@ -18,13 +18,11 @@ export class ConnectionFailedHandler {
    * @param event 接続失敗イベント
    */
   @OnEvent('connection.failed')
-  async handleConnectionFailed(event: ConnectionFailedEvent): Promise<void> {
+  handleConnectionFailed(event: ConnectionFailedEvent): void {
     this.logger.log(`接続失敗イベントを受信: ${event.errors.length}件のエラー`);
 
     try {
-      await this.notificationService.createConnectionErrorNotifications(
-        event.errors,
-      );
+      this.notificationService.createConnectionErrorNotifications(event.errors);
     } catch (error) {
       this.logger.error(
         '通知作成中にエラーが発生しました',

@@ -7,10 +7,8 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import {
-  CheckConnectionStatusUseCase,
-  type ConnectionStatusResult,
-} from '../../application/use-cases/check-connection-status.use-case';
+import { CheckConnectionStatusUseCase } from '../../application/use-cases/check-connection-status.use-case';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 import {
   GetConnectionHistoryUseCase,
   type ConnectionHistoryResult,

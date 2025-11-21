@@ -5,21 +5,11 @@ import type { IConnectionHistoryRepository } from '../../domain/repositories/con
 import { CONNECTION_HISTORY_REPOSITORY } from '../../domain/repositories/connection-history.repository.interface';
 import { ConnectionHistory } from '../../domain/entities/connection-history.entity';
 import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 import { ConnectionFailedEvent } from '../../domain/events/connection-failed.event';
 
 export interface CheckConnectionStatusCommand {
   institutionId?: string; // 指定されない場合は全金融機関をチェック
-}
-
-export interface ConnectionStatusResult {
-  institutionId: string;
-  institutionName: string;
-  institutionType: 'bank' | 'credit-card' | 'securities';
-  status: string;
-  checkedAt: string;
-  responseTime: number;
-  errorMessage?: string;
-  errorCode?: string;
 }
 
 /**

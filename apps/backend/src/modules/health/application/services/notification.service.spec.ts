@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationService } from './notification.service';
-import type { ConnectionStatusResult } from '../use-cases/check-connection-status.use-case';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -18,7 +18,7 @@ describe('NotificationService', () => {
   });
 
   describe('createConnectionErrorNotifications', () => {
-    it('接続エラー通知を作成する', async () => {
+    it('接続エラー通知を作成する', () => {
       const errors: ConnectionStatusResult[] = [
         {
           institutionId: 'bank-1',
@@ -42,15 +42,15 @@ describe('NotificationService', () => {
         },
       ];
 
-      await expect(
-        service.createConnectionErrorNotifications(errors),
-      ).resolves.not.toThrow();
+      expect(() => {
+        service.createConnectionErrorNotifications(errors);
+      }).not.toThrow();
     });
 
-    it('空のエラー配列でもエラーを発生させない', async () => {
-      await expect(
-        service.createConnectionErrorNotifications([]),
-      ).resolves.not.toThrow();
+    it('空のエラー配列でもエラーを発生させない', () => {
+      expect(() => {
+        service.createConnectionErrorNotifications([]);
+      }).not.toThrow();
     });
   });
 });

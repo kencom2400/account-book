@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConnectionStatusResult } from '../use-cases/check-connection-status.use-case';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 
 /**
  * 通知サービス
@@ -13,10 +13,10 @@ export class NotificationService {
   /**
    * 接続エラー通知を作成
    * @param errors 接続エラーが発生した金融機関の情報
+   * @note 将来的に非同期処理（通知エンティティの保存、WebSocket送信等）を追加する予定のため、
+   *       呼び出し側ではawaitで呼び出すことを推奨
    */
-  async createConnectionErrorNotifications(
-    errors: ConnectionStatusResult[],
-  ): Promise<void> {
+  createConnectionErrorNotifications(errors: ConnectionStatusResult[]): void {
     this.logger.log(
       `接続エラー通知を作成: ${errors.length}件の金融機関でエラーが発生`,
     );
@@ -31,8 +31,5 @@ export class NotificationService {
         `金融機関接続エラー: ${error.institutionName} (${error.institutionId}) - ${error.errorMessage ?? '不明なエラー'}`,
       );
     }
-
-    // 将来的に非同期処理を追加するため、Promiseを返す
-    await Promise.resolve();
   }
 }

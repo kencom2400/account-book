@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConnectionFailedHandler } from './connection-failed.handler';
 import { NotificationService } from '../services/notification.service';
 import { ConnectionFailedEvent } from '../../domain/events/connection-failed.event';
-import type { ConnectionStatusResult } from '../use-cases/check-connection-status.use-case';
+import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 
 describe('ConnectionFailedHandler', () => {
   let handler: ConnectionFailedHandler;
@@ -48,7 +48,7 @@ describe('ConnectionFailedHandler', () => {
 
       const event = new ConnectionFailedEvent(errors, new Date());
 
-      await handler.handleConnectionFailed(event);
+      handler.handleConnectionFailed(event);
 
       expect(
         notificationService.createConnectionErrorNotifications,
@@ -58,7 +58,7 @@ describe('ConnectionFailedHandler', () => {
       ).toHaveBeenCalledTimes(1);
     });
 
-    it('通知サービスでエラーが発生しても処理を継続する', async () => {
+    it('通知サービスでエラーが発生しても処理を継続する', () => {
       const errors: ConnectionStatusResult[] = [
         {
           institutionId: 'bank-1',
@@ -73,13 +73,15 @@ describe('ConnectionFailedHandler', () => {
 
       const event = new ConnectionFailedEvent(errors, new Date());
 
-      mockNotificationService.createConnectionErrorNotifications.mockRejectedValue(
-        new Error('通知作成エラー'),
+      mockNotificationService.createConnectionErrorNotifications.mockImplementation(
+        () => {
+          throw new Error('通知作成エラー');
+        },
       );
 
-      await expect(
-        handler.handleConnectionFailed(event),
-      ).resolves.not.toThrow();
+      expect(() => {
+        handler.handleConnectionFailed(event);
+      }).not.toThrow();
     });
   });
 });
