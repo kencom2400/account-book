@@ -623,13 +623,60 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
 
 #### 5-2. 提案への対応
 
-**重要**: **1つの指摘に対して、必ず1 commit / 1 pushで対応すること。** 複数の指摘をまとめて1つのcommitにすることは**絶対に禁止**。
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL: Geminiレビュー対応の絶対ルール 🚨                   ║
+║                                                                  ║
+║  1. すべての指摘に必ず対応する（見落とし禁止）                    ║
+║  2. 1つの指摘に対して、必ず1 commit / 1 pushで対応               ║
+║  3. 複数の指摘をまとめて1つのcommitにすることは絶対に禁止         ║
+║  4. すべての指摘対応完了後、必ずPRコメントで返信                  ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+##### Step 1: すべての指摘を確認・リスト化（必須）
+
+Geminiからのレビューコメントを取得したら、**まず指摘の総数を確認**すること：
+
+```bash
+# GraphQL APIで全コメントを取得
+gh api graphql -f query='
+query {
+  repository(owner: "kencom2400", name: "account-book") {
+    pullRequest(number: 228) {
+      reviews(first: 10) {
+        nodes {
+          author { login }
+          body
+          comments(first: 20) {
+            nodes {
+              id
+              path
+              body
+              line
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+**必須**: 指摘の総数を確認し、**すべてに対応する**：
+
+- ❌ 「主要な指摘だけ対応する」は禁止
+- ❌ 「対応しやすい指摘だけ対応する」は禁止
+- ✅ **すべての指摘に対応する**
+
+##### Step 2: 指摘ごとに個別対応（必須）
 
 - Gemini Code Assistから提案があった場合は、その内容を確認し対応する
 - **1つの指摘ごとに**：
   1. 該当ファイルを修正
   2. `git add <修正したファイル>`
-  3. `git commit -m "fix: レビュー指摘に対応 - <具体的な修正内容>"`
+  3. `git commit -m "fix: Gemini指摘対応 - <具体的な修正内容>"`
   4. エラーがある場合は修正してから再度commit
   5. **push前に必ずローカルチェックを実行（必須）**
 
@@ -644,6 +691,8 @@ gh pr view <PR番号> --json comments --jq '.comments[] | select(.author.login |
 
   6. `git push origin <ブランチ名>`
   7. 次の指摘に進む（CI確認は後でまとめて実施）
+
+##### Step 3: CI確認（推奨）
 
 - **複数の指摘を対応した後、まとめてCIの状況確認**（推奨）
   - すべての指摘に対応し終わったら、CIの状況を確認する
@@ -661,248 +710,188 @@ gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | sele
   - エラー内容を確認して修正
   - 修正後、再度commit/pushしてCIが成功することを確認
 
-- **全ての指摘への対応が完了したら、必ずGeminiのレビューコメントスレッドに返信する（必須）**
-  1. CIの状況を確認（既に完了しているCIの結果を確認）
-  2. CIが成功していることを確認
-  3. Geminiのレビューコメントを取得してIDを確認
-  4. コメントスレッドに返信を投稿
+##### Step 4: PRコメントで対応完了を報告（必須）
 
-  ```bash
-  # 1. CIの状況確認
-  gh pr checks <PR番号>
+**重要**: **すべての指摘への対応が完了したら、必ずPR全体のコメントで返信する（必須）**
 
-  # 2. Geminiのレビューコメントを確認してIDを取得
-  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path, line}'
+```bash
+# PRコメントを投稿
+gh pr comment <PR番号> --body "## 🙏 Gemini Code Assistレビューへの対応完了
 
-  # 例: コメントID 2540860155 が取得できた場合
+ご指摘いただいた<N>つの点について、すべて対応しました。ありがとうございました。
 
-  # 3. 最新のコミットSHAを取得
-  COMMIT_SHA=$(git rev-parse HEAD)
+---
 
-  # 4. Geminiのコメントスレッドに返信を投稿
-  gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
-    --method POST \
-    --field body="@gemini-code-assist
+## 📝 修正内容サマリー
 
-  ご指摘いただいた点について対応しました。
+すべての指摘について、**個別のコミット**で対応しました：
 
-  ## 修正内容
+| # | 指摘内容 | コミット | ステータス |
+|---|---------|----------|-----------|
+| 1 | <指摘1の内容> | \`<hash1>\` | ✅ 完了 |
+| 2 | <指摘2の内容> | \`<hash2>\` | ✅ 完了 |
+| ... | ... | ... | ... |
 
-  1. **[指摘内容のサマリー]**
-     - 修正内容: [具体的な修正内容]
-     - コミット: [commit hash]
+---
 
-  ## テスト結果
+## 📋 主な修正内容
 
-  - ✅ Lint: 成功
-  - ✅ ユニットテスト: 全テスト通過
-  - ✅ E2Eテスト: 全テスト通過
-  - ✅ CI: 成功
+### 1. <指摘1のタイトル>
 
-  ご確認よろしくお願いいたします。" \
-    --field commit_id="$COMMIT_SHA" \
-    --field in_reply_to=2540860155
-  ```
+<修正内容の説明>
 
-  **コメントスレッド返信の仕組み**:
-  - `in_reply_to`: 返信先のコメントID（Geminiのコメント）
-  - `commit_id`: 現在のコミットSHA（必須）
-  - これにより、Geminiのコメントスレッドに直接返信される
+\`\`\`<language>
+// Before
+<変更前のコード>
 
-  **返信内容のポイント**:
-  - `@gemini-code-assist`でメンションする
-  - 各指摘に対する修正内容を具体的に記載
-  - コミットハッシュを明記
-  - テスト結果とCI結果を報告
-  - 丁寧な言葉遣いで感謝の意を表す
+// After
+<変更後のコード>
+\`\`\`
 
-  **注意**:
-  - Geminiからの指摘に対応した場合は、**必ず返信すること**
-  - **コメントスレッドに返信する**ことで、対応状況が明確になる
-  - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
+### 2. <指摘2のタイトル>
+
+...
+
+---
+
+## ✅ テスト結果
+
+すべての修正について確認済みです：
+- ✅ ローカルビルド成功
+- ✅ Lintエラーなし
+- ✅ テスト成功
+
+---
+
+## 🎯 期待される効果
+
+今回の修正により、以下が達成されました：
+- ✅ <効果1>
+- ✅ <効果2>
+
+---
+
+## 🙏 感謝
+
+お褒めの言葉をいただき、ありがとうございます。また、非常に有用な指摘により、さらに品質を高めることができました。"
+```
+
+**返信のポイント**:
+
+- **指摘の総数を明記**（例：「7つの点について」）
+- **表形式で全指摘を一覧**（見落としを防ぐ）
+- 各指摘に対する修正内容を具体的に記載
+- コミットハッシュを明記
+- テスト結果とCI結果を報告
+- 丁寧な言葉遣いで感謝の意を表す
+
+**注意**:
+
+- Geminiからの指摘に対応した場合は、**必ず返信すること**
+- **PR全体のコメント**として投稿する（個別のコメントスレッドへの返信は不要）
+- 返信により、対応状況が明確になり、レビュアーが確認しやすくなる
 
 **禁止事項**:
 
-- ❌ 複数の指摘をまとめて1つのcommitにすること
+- ❌ **複数の指摘をまとめて1つのcommitにすること**
 - ❌ すべての修正をまとめてからcommitすること
 - ❌ 修正途中でcommitをスキップすること
+- ❌ **一部の指摘だけ対応して、他の指摘を無視すること**
+- ❌ **返信をせずに対応完了とすること**
 
-**良い例**:
+##### 良い例・悪い例
 
-```bash
-# 指摘1: accountIdのパスパラメータ修正
-git add apps/backend/src/modules/securities/presentation/controllers/securities.controller.ts
-git commit -m "fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正"
-git push origin feature/fr-003-securities-integration
-
-# 指摘2: DTOからaccountIdを削除
-git add apps/backend/src/modules/securities/presentation/dto/
-git commit -m "fix: Geminiの指摘に対応 - DTOからaccountIdを削除"
-git push origin feature/fr-003-securities-integration
-
-# 指摘3: totalProfitLossの計算修正
-git add apps/backend/src/modules/securities/domain/entities/securities-account.entity.ts
-git commit -m "fix: Geminiの指摘に対応 - totalProfitLossの計算を修正"
-git push origin feature/fr-003-securities-integration
-
-# すべての指摘対応後、まとめてCIの状況確認とGeminiへの返信
-gh pr checks 153
-# 既に完了しているCIの結果を確認
-# エラーがあれば対応、成功していればGeminiのレビューコメントに返信
-
-# Geminiのコメントを確認してIDを取得
-gh api repos/kencom2400/account-book/pulls/153/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
-
-# 例: コメントID 2540860155 が見つかった場合
-
-# コミットSHAを取得
-COMMIT_SHA=$(git rev-parse HEAD)
-
-# Geminiのコメントスレッドに返信を投稿（必須）
-gh api repos/kencom2400/account-book/pulls/153/comments \
-  --method POST \
-  --field body="@gemini-code-assist
-
-ご指摘いただいた点について対応しました。
-
-## 修正内容
-
-1. **accountIdの取得方法**
-   - 修正内容: @Paramデコレータを使用してパスパラメータから取得するように修正
-   - コミット: abc1234
-
-2. **DTOの適正化**
-   - 修正内容: DTOからaccountIdを削除し、パスパラメータのみで受け取るように変更
-   - コミット: def5678
-
-3. **totalProfitLossの計算ロジック**
-   - 修正内容: 評価損益の計算式を修正し、正しい損益が算出されるように改善
-   - コミット: ghi9012
-
-## テスト結果
-
-- ✅ Lint: 成功
-- ✅ ユニットテスト: 全テスト通過
-- ✅ E2Eテスト: 全テスト通過
-- ✅ CI: 成功
-
-ご確認よろしくお願いいたします。" \
-  --field commit_id="$COMMIT_SHA" \
-  --field in_reply_to=2540860155
-```
-
-**悪い例**:
+**✅ 良い例（7つの指摘に正しく対応）**:
 
 ```bash
-# ❌ 複数の指摘をまとめて修正
-git add .
-git commit -m "fix: Geminiの指摘に対応"
+# ステップ1: すべての指摘を確認
+# → 7つの指摘があることを確認
+
+# ステップ2: 指摘ごとに個別対応
+# 指摘1
+git add docs/detailed-design/TEMPLATE/batch-processing.md.template
+git commit -m "fix: Gemini指摘対応 - batch-processing.md.templateのゼロ除算防止"
 git push
+
+# 指摘2
+git add .cursor/rules/task-trigger.md
+git commit -m "fix: Gemini指摘対応 - task-trigger.mdにIssue状態チェックを実装例に追加"
+git push
+
+# 指摘3-7も同様に個別対応...
+
+# ステップ3: PRコメントで報告
+gh pr comment 228 --body "## 🙏 Gemini Code Assistレビューへの対応完了
+
+ご指摘いただいた7つの点について、すべて対応しました。
+
+## 📝 修正内容サマリー
+
+| # | 指摘内容 | コミット | ステータス |
+|---|---------|----------|-----------|
+| 1 | batch-processing.md: ゼロ除算防止 | \`6d40458\` | ✅ 完了 |
+| 2 | task-trigger.md: Issue状態チェック | \`3aef823\` | ✅ 完了 |
+| ... | ... | ... | ... |
+| 7 | issue-199-not-detected.md: limit統一 | \`3fb5114\` | ✅ 完了 |
+
+..."
 ```
 
-- 提案内容をコミットメッセージに記載する
-  - 例：`fix: Geminiの指摘に対応 - accountIdを@Paramで取得するように修正`
-  - 例：`fix: Geminiの指摘に対応 - エラーハンドリングを追加`
+**❌ 悪い例1（指摘をまとめてコミット）**:
 
-#### 5-3. 対応完了の報告（必須）
+```bash
+# すべての指摘をまとめて修正
+git add .
+git commit -m "fix: Geminiレビュー指摘に対応"
+git push
 
-すべての指摘に対応し終わったら、以下を実施する：
+# ❌ 禁止: 複数の指摘を1つのcommitにまとめている
+```
 
-1. **CIの状況を確認する**
-   - 既に完了しているCIの結果を確認
-   - エラーがあれば対応する
+**❌ 悪い例2（一部の指摘だけ対応）**:
 
-   ```bash
-   gh pr checks <PR番号>
-   # または詳細な情報を取得
-   gh pr view <PR番号> --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | {name: .name, status: .conclusion, url: .detailsUrl}'
-   ```
-
-2. **CIが成功していることを確認**
-
-3. **Geminiのレビューコメントスレッドに返信を投稿（必須）**
-
-   ```bash
-   # Geminiのコメントを確認してIDを取得
-   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments --jq '.[] | select(.user.login | contains("gemini")) | {id, body: .body[0:100], path}'
-
-   # 例: コメントID 2540860155 が取得できた場合
-
-   # コミットSHAを取得
-   COMMIT_SHA=$(git rev-parse HEAD)
-
-   # Geminiのコメントスレッドに返信を投稿
-   gh api repos/{owner}/{repo}/pulls/<PR番号>/comments \
-     --method POST \
-     --field body="@gemini-code-assist
-
-   ご指摘いただいた点について対応しました。
-
-   ## 修正内容
-
-   1. **[指摘内容のサマリー]**
-      - 修正内容: [具体的な修正内容]
-      - コミット: [commit hash]
-
-   ## テスト結果
-
-   - ✅ Lint: 成功
-   - ✅ ユニットテスト: 全テスト通過
-   - ✅ E2Eテスト: 全テスト通過
-   - ✅ CI: 成功
-
-   ご確認よろしくお願いいたします。" \
-     --field commit_id="$COMMIT_SHA" \
-     --field in_reply_to=2540860155
-   ```
-
-   **コメントスレッド返信の重要性**:
-   - `in_reply_to`フィールドを使用することで、Geminiのコメントスレッドに直接返信される
-   - PRコメントとは異なり、対応状況が該当の指摘と紐付けられて明確になる
-   - 複数の指摘がある場合は、それぞれのコメントスレッドに個別に返信する
-
-**重要**:
-
-- Geminiからの指摘に対応した場合は、**必ずコメントスレッドに返信すること**
-- 通常のPRコメントではなく、**レビューコメントのスレッドに返信する**
-- 返信がないと、対応が完了したかどうかが不明確になる
+````bash
+# 指摘1-2だけ対応
+git add docs/detailed-design/TEMPLATE/batch-processing.md.template
+git commit -m "fix: Gemini指摘対応 - ゼロ除算防止"
+git push
 
 #### 5-4. 再発防止策の実施（重要）
 
 Geminiからの指摘を受けた場合、**必ず以下を実施すること**：
 
 1. **指摘内容の分析**
-   - 指摘の根本原因を特定
-   - 同様の問題が他の箇所にないか確認
-   - なぜその問題が発生したのかを理解
+- 指摘の根本原因を特定
+- 同様の問題が他の箇所にないか確認
+- なぜその問題が発生したのかを理解
 
 2. **チェックリストの更新**
-   - `.cursor/rules/code-quality-checklist.md`を確認
-   - 該当する項目がない場合は追加
-   - 具体的な悪い例・良い例を記載
+- `.cursor/rules/code-quality-checklist.md`を確認
+- 該当する項目がない場合は追加
+- 具体的な悪い例・良い例を記載
 
 3. **関連ルールの更新**
-   - `project.md`、`test.md`等の関連ルールも必要に応じて更新
-   - より明確な指示を追加
-   - AIアシスタントが理解しやすい表現に改善
+- `project.md`、`test.md`等の関連ルールも必要に応じて更新
+- より明確な指示を追加
+- AIアシスタントが理解しやすい表現に改善
 
 4. **ルール更新のコミット**
 
-   ```bash
-   git add .cursor/rules/
-   git commit -m "docs: Geminiの指摘から学んだ教訓をルールに追加
+```bash
+git add .cursor/rules/
+git commit -m "docs: Geminiの指摘から学んだ教訓をルールに追加
 
-   指摘内容:
-   - [具体的な指摘内容]
+指摘内容:
+- [具体的な指摘内容]
 
-   再発防止策:
-   - [追加したルール内容]
+再発防止策:
+- [追加したルール内容]
 
-   更新ファイル:
-   - code-quality-checklist.md: [追加内容]
-   - project.md: [修正内容]"
-   git push origin <branch-name>
-   ```
+更新ファイル:
+- code-quality-checklist.md: [追加内容]
+- project.md: [修正内容]"
+git push origin <branch-name>
+````
 
 5. **Geminiへの返信コメントに再発防止策を含める**
    - 対応完了コメントに「再発防止策を実施」と記載
