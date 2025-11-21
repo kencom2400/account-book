@@ -46,10 +46,9 @@ if [ -z "$ITEM_INFO" ]; then
   exit 1
 fi
 
-mapfile -t values < <(echo "$ITEM_INFO" | jq -r '.id, .status, .title')
-ITEM_ID="${values[0]}"
-CURRENT_STATUS="${values[1]}"
-TITLE="${values[2]}"
+ITEM_ID=$(echo "$ITEM_INFO" | jq -r '.id')
+CURRENT_STATUS=$(echo "$ITEM_INFO" | jq -r '.status')
+TITLE=$(echo "$ITEM_INFO" | jq -r '.title')
 
 echo "   アイテムID: $ITEM_ID"
 echo "   タイトル: $TITLE"
@@ -72,9 +71,8 @@ if [ -z "$FIELD_INFO" ]; then
   exit 1
 fi
 
-mapfile -t ids < <(echo "$FIELD_INFO" | jq -r --arg status "$STATUS" '.id, (.options[] | select(.name == $status) | .id)')
-FIELD_ID="${ids[0]}"
-STATUS_OPTION_ID="${ids[1]}"
+FIELD_ID=$(echo "$FIELD_INFO" | jq -r '.id')
+STATUS_OPTION_ID=$(echo "$FIELD_INFO" | jq -r --arg status "$STATUS" '.options[] | select(.name == $status) | .id')
 
 if [ -z "$STATUS_OPTION_ID" ]; then
   echo "❌ エラー: ステータス '${STATUS}' が見つかりませんでした"
