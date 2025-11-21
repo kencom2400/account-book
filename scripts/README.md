@@ -119,6 +119,8 @@
 
 ```bash
 ./scripts/test/lint.sh
+# または
+./scripts/test/lint.sh all
 ```
 
 #### 個別チェック
@@ -128,20 +130,108 @@
 ./scripts/test/lint.sh frontend  # フロントエンドのみ
 ```
 
-### テスト実行
+### ユニットテスト実行
 
-#### すべてテスト
+#### すべてのユニットテスト
 
 ```bash
 ./scripts/test/test.sh
+# または
+./scripts/test/test.sh all
+# または
+./scripts/test/test.sh all unit
 ```
 
-#### 個別テスト
+#### 個別のユニットテスト
 
 ```bash
-./scripts/test/test.sh backend   # バックエンドのみ
-./scripts/test/test.sh frontend  # フロントエンドのみ
+./scripts/test/test.sh backend        # バックエンドのみ
+./scripts/test/test.sh frontend       # フロントエンドのみ
+./scripts/test/test.sh backend unit   # バックエンドのみ（明示的）
+./scripts/test/test.sh frontend unit  # フロントエンドのみ（明示的）
 ```
+
+### E2Eテスト実行
+
+#### 前提条件
+
+E2Eテストは**MySQLコンテナ**を使用します。テストスクリプトは、コンテナが起動していない場合に自動で起動を試みます。
+
+#### すべてのE2Eテスト
+
+```bash
+./scripts/test/test-e2e.sh
+# または
+./scripts/test/test-e2e.sh all
+```
+
+#### 個別のE2Eテスト
+
+```bash
+./scripts/test/test-e2e.sh backend   # バックエンドのみ
+./scripts/test/test-e2e.sh frontend  # フロントエンドのみ
+```
+
+#### test.sh経由でのE2E実行
+
+```bash
+./scripts/test/test.sh all e2e        # すべてのE2Eテスト
+./scripts/test/test.sh backend e2e    # バックエンドのみ
+./scripts/test/test.sh frontend e2e   # フロントエンドのみ
+```
+
+### すべてのテスト（ユニット + E2E）
+
+```bash
+./scripts/test/test.sh all all        # すべてのユニットテスト + E2Eテスト
+./scripts/test/test.sh backend all    # バックエンドのすべて
+./scripts/test/test.sh frontend all   # フロントエンドのすべて
+```
+
+### テストスクリプトの引数まとめ
+
+#### `lint.sh`
+
+```bash
+./scripts/test/lint.sh [backend|frontend|all]
+```
+
+- 引数なし、または `all`: すべてチェック
+- `backend`: バックエンドのみ
+- `frontend`: フロントエンドのみ
+
+#### `test.sh`
+
+```bash
+./scripts/test/test.sh [backend|frontend|all] [unit|e2e|all]
+```
+
+**第1引数（対象）:**
+
+- 引数なし、または `all`: すべて
+- `backend`: バックエンドのみ
+- `frontend`: フロントエンドのみ
+
+**第2引数（テストタイプ）:**
+
+- 引数なし、または `unit`: ユニットテストのみ
+- `e2e`: E2Eテストのみ
+- `all`: ユニットテスト + E2Eテスト
+
+#### `test-e2e.sh`
+
+```bash
+./scripts/test/test-e2e.sh [backend|frontend|all]
+```
+
+- 引数なし、または `all`: すべてのE2Eテスト
+- `backend`: バックエンドのE2Eテストのみ
+- `frontend`: フロントエンドのE2Eテストのみ
+
+**特徴:**
+
+- MySQLコンテナが未起動の場合は自動的に起動
+- Frontend E2Eテストは、Playwrightが自動的にバックエンドを起動
 
 ---
 
@@ -352,12 +442,60 @@ ESLintでコードをチェックします。
 ./scripts/test/lint.sh [backend|frontend|all]
 ```
 
+- **引数なし、または `all`**: すべてチェック
+- **`backend`**: バックエンドのみ
+- **`frontend`**: フロントエンドのみ
+
 ### `test.sh`
 
 Jestでテストを実行します。
 
 ```bash
-./scripts/test/test.sh [backend|frontend|all]
+./scripts/test/test.sh [backend|frontend|all] [unit|e2e|all]
+```
+
+**第1引数（対象）:**
+
+- **引数なし、または `all`**: すべて
+- **`backend`**: バックエンドのみ
+- **`frontend`**: フロントエンドのみ
+
+**第2引数（テストタイプ）:**
+
+- **引数なし、または `unit`**: ユニットテストのみ
+- **`e2e`**: E2Eテストのみ
+- **`all`**: ユニットテスト + E2Eテスト
+
+**使用例:**
+
+```bash
+./scripts/test/test.sh                # すべてのユニットテスト
+./scripts/test/test.sh all all        # すべてのテスト（ユニット + E2E）
+./scripts/test/test.sh backend e2e    # バックエンドのE2Eテストのみ
+```
+
+### `test-e2e.sh`
+
+E2Eテストを実行します。
+
+```bash
+./scripts/test/test-e2e.sh [backend|frontend|all]
+```
+
+- **引数なし、または `all`**: すべてのE2Eテスト
+- **`backend`**: バックエンドのE2Eテストのみ
+- **`frontend`**: フロントエンドのE2Eテストのみ
+
+**特徴:**
+
+- MySQLコンテナが未起動の場合は自動的に起動
+- Frontend E2Eテストは、Playwrightが自動的にバックエンドを起動
+
+**使用例:**
+
+```bash
+./scripts/test/test-e2e.sh            # すべてのE2Eテスト
+./scripts/test/test-e2e.sh frontend   # フロントエンドのE2Eテストのみ
 ```
 
 ### `init-categories.sh`
