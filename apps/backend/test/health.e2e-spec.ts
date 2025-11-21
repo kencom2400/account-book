@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication;
@@ -18,6 +19,7 @@ describe('HealthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,

@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
 import type { ErrorDetail } from '@account-book/types';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('Institution Controller (e2e)', () => {
   let app: INestApplication;
@@ -16,6 +17,9 @@ describe('Institution Controller (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Global filters
+    app.useGlobalFilters(new HttpExceptionFilter());
 
     // Global pipes
     app.useGlobalPipes(
