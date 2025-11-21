@@ -102,9 +102,39 @@
 
 **※2**: `credentials`の構造は金融機関種別によって異なります：
 
-- **銀行 (`type: "bank"`)**: `bankCode`, `branchCode`, `accountNumber`, `apiKey`
-- **クレジットカード (`type: "credit-card"`)**: カード会社のログイン情報など
-- **証券口座 (`type: "securities"`)**: 証券会社のログイン情報など
+- **銀行 (`type: "bank"`)**:
+
+  ```json
+  {
+    "bankCode": "0005",
+    "branchCode": "001",
+    "accountNumber": "1234567",
+    "apiKey": "your-api-key-here"
+  }
+  ```
+
+- **クレジットカード (`type: "credit-card"`)**:
+
+  ```json
+  {
+    "cardNumber": "1234567812345678",
+    "cardHolderName": "TARO YAMADA",
+    "expiryDate": "2028-12-31",
+    "loginId": "user@example.com",
+    "password": "your-password"
+  }
+  ```
+
+- **証券口座 (`type: "securities"`)**:
+  ```json
+  {
+    "accountNumber": "12345678",
+    "accountType": "specific",
+    "loginId": "user@example.com",
+    "password": "your-password",
+    "tradePassword": "1234"
+  }
+  ```
 
 実装上は汎用的な`Record<string, unknown>`型で受け取りますが、各種別専用エンドポイントの使用を推奨します。
 
