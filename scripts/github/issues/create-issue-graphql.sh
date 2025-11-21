@@ -325,20 +325,24 @@ else
     
     # ステータスオプションを動的に取得
     STATUS_OPTIONS_JSON=$(gh api graphql -f query='
-    query($projectId: ID!, $fieldId: ID!) {
+    query($projectId: ID!) {
       node(id: $projectId) {
         ... on ProjectV2 {
-          field(id: $fieldId) {
-            ... on ProjectV2SingleSelectField {
-              options {
+          fields(first: 20) {
+            nodes {
+              ... on ProjectV2SingleSelectField {
                 id
                 name
+                options {
+                  id
+                  name
+                }
               }
             }
           }
         }
       }
-    }' -f projectId="$PROJECT_ID" -f fieldId="$STATUS_FIELD_ID" | jq '.data.node.field.options')
+    }' -f projectId="$PROJECT_ID" | jq ".data.node.fields.nodes[] | select(.id == \"$STATUS_FIELD_ID\") | .options")
 
     if [ "$STATUS_OPTIONS_JSON" = "null" ] || [ -z "$STATUS_OPTIONS_JSON" ]; then
         echo "❌ エラー: ステータスオプションの取得に失敗しました"
