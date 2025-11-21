@@ -5,6 +5,7 @@ import { SecuritiesModule } from '../src/modules/securities/securities.module';
 import { ConfigModule } from '@nestjs/config';
 import appConfig from '../src/config/app.config';
 import cryptoConfig from '../src/config/crypto.config';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('Securities API (e2e)', () => {
   let app: INestApplication;
@@ -22,6 +23,7 @@ describe('Securities API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,

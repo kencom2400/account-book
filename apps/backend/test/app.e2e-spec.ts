@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -14,6 +15,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalFilters(new HttpExceptionFilter());
     await app.init();
 
     // データベースヘルパーの初期化
