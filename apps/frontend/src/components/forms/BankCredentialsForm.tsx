@@ -46,26 +46,32 @@ export function BankCredentialsForm({
   const addNotification = useNotificationStore((state) => state.addNotification);
   const prevErrorRef = useRef<string | null>(null);
   const errorTimestampRef = useRef<Date | null>(null);
+  const formDataRef = useRef(formData);
 
-  // バリデーション
-  const validate = useCallback((): boolean => {
+  // formDataRefを常に最新の状態に保つ
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  // バリデーション（データ引数を受け取るように変更）
+  const validate = useCallback((dataToValidate: BankCredentialsData): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!/^\d{4}$/.test(formData.bankCode)) {
+    if (!/^\d{4}$/.test(dataToValidate.bankCode)) {
       newErrors.bankCode = '銀行コードは4桁の数字で入力してください';
     }
 
-    if (!/^\d{3}$/.test(formData.branchCode)) {
+    if (!/^\d{3}$/.test(dataToValidate.branchCode)) {
       newErrors.branchCode = '支店コードは3桁の数字で入力してください';
     }
 
-    if (!/^\d{7}$/.test(formData.accountNumber)) {
+    if (!/^\d{7}$/.test(dataToValidate.accountNumber)) {
       newErrors.accountNumber = '口座番号は7桁の数字で入力してください';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData.bankCode, formData.branchCode, formData.accountNumber]);
+  }, []);
 
   // エラー発生時の通知処理
   const handleError = useCallback(
@@ -88,9 +94,9 @@ export function BankCredentialsForm({
       showErrorToast('error', errorMessage, {
         details,
         onRetry: () => {
-          // フォームを再送信
-          if (validate()) {
-            onSubmit(formData);
+          // フォームを再送信（最新のformDataを使用）
+          if (validate(formDataRef.current)) {
+            onSubmit(formDataRef.current);
           }
         },
         onShowDetails: () => {
@@ -98,7 +104,7 @@ export function BankCredentialsForm({
         },
       });
     },
-    [addNotification, bank.code, formData, onSubmit, validate]
+    [addNotification, bank.code, onSubmit, validate]
   );
 
   // エラーがpropsで渡された場合の処理（useEffectで実行）
@@ -111,7 +117,7 @@ export function BankCredentialsForm({
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
-    if (validate()) {
+    if (validate(formData)) {
       onSubmit(formData);
     }
   };
@@ -303,8 +309,8 @@ export function BankCredentialsForm({
         institutionId={bank.code}
         timestamp={errorTimestampRef.current || undefined}
         onRetry={(): void => {
-          if (validate()) {
-            onSubmit(formData);
+          if (validate(formDataRef.current)) {
+            onSubmit(formDataRef.current);
           }
         }}
       />
