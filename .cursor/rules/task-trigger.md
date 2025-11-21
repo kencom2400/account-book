@@ -275,7 +275,7 @@ gh auth login
 **重要**: `pnpm`、`node`、`npm`、`npx`などのコマンドを実行する際は、必ずnodeenv環境をアクティベートすること。
 
 ```bash
-source scripts/activate.sh
+source scripts/setup/activate.sh
 ```
 
 - このプロジェクトは`nodeenv`を使用しており、これらのツールは`.nodeenv`ディレクトリ内にローカルインストールされている

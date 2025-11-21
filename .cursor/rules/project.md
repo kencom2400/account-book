@@ -54,7 +54,7 @@
 ```bash
 # プロジェクトルートで実行
 cd /path/to/account-book
-source scripts/activate.sh
+source scripts/setup/activate.sh
 ```
 
 アクティベート後、以下のコマンドが使用可能になります：
@@ -68,7 +68,7 @@ source scripts/activate.sh
 
 ```bash
 # 環境をアクティベート
-source scripts/activate.sh
+source scripts/setup/activate.sh
 
 # 依存関係のインストール
 pnpm install
@@ -98,7 +98,7 @@ pnpm build
 **解決方法**:
 
 ```bash
-source scripts/activate.sh
+source scripts/setup/activate.sh
 ```
 
 **問題**: `Error: .nodeenv directory not found`
@@ -113,7 +113,7 @@ source scripts/activate.sh
 
 ##### AIアシスタント向けの注意
 
-- ターミナルコマンドを実行する際は、必ず`source scripts/activate.sh`を最初に実行すること
+- ターミナルコマンドを実行する際は、必ず`source scripts/setup/activate.sh`を最初に実行すること
 - サンドボックス環境の問題ではなく、PATHの問題であることに注意
 - `required_permissions: ["all"]`を指定して実行すること
 
