@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import type { NotificationType } from '@/stores/notification.store';
 
+/**
+ * エラー詳細情報
+ */
+export interface ErrorDetail {
+  field?: string;
+  message: string;
+  code?: string;
+}
+
 export interface ErrorModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: NotificationType;
   message: string;
-  details?: string;
+  /** エラー詳細（文字列または配列形式） */
+  details?: string | ErrorDetail[];
   institutionId?: string;
   timestamp?: Date;
   onRetry?: () => Promise<void> | void;
@@ -113,9 +123,25 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
                   {details && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-900 mb-2">詳細情報</h4>
-                      <div className="bg-gray-50 rounded p-3 text-xs text-gray-700 font-mono whitespace-pre-wrap">
-                        {details}
-                      </div>
+                      {Array.isArray(details) ? (
+                        <div className="bg-gray-50 rounded p-3 space-y-2">
+                          {details.map((detail, index) => (
+                            <div key={index} className="text-xs text-gray-700">
+                              {detail.field && (
+                                <span className="font-semibold">{detail.field}: </span>
+                              )}
+                              <span>{detail.message}</span>
+                              {detail.code && (
+                                <span className="text-gray-500 ml-2">({detail.code})</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 rounded p-3 text-xs text-gray-700 font-mono whitespace-pre-wrap">
+                          {details}
+                        </div>
+                      )}
                     </div>
                   )}
 

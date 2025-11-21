@@ -1,6 +1,7 @@
 /**
  * APIクライアント
  * バックエンドとの通信を行う
+ * Issue #214: エラーレスポンスdetailsフィールドの形式を統一
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -10,6 +11,47 @@ interface ApiResponse<T> {
   data: T;
   count?: number;
   message?: string;
+}
+
+/**
+ * エラー詳細情報
+ */
+export interface ErrorDetail {
+  field?: string;
+  message: string;
+  code?: string;
+}
+
+/**
+ * エラーレスポンス
+ */
+export interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
+}
+
+/**
+ * APIエラークラス
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: ErrorDetail[],
+    public readonly statusCode?: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
 }
 
 /**
@@ -24,7 +66,7 @@ async function get<T>(endpoint: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    await handleErrorResponse(response);
   }
 
   const result = (await response.json()) as ApiResponse<T>;
@@ -44,7 +86,7 @@ async function post<T>(endpoint: string, body: Record<string, unknown> | unknown
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    await handleErrorResponse(response);
   }
 
   const result = (await response.json()) as ApiResponse<T>;
@@ -64,7 +106,7 @@ async function patch<T>(endpoint: string, body: Record<string, unknown> | unknow
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    await handleErrorResponse(response);
   }
 
   const result = (await response.json()) as ApiResponse<T>;
@@ -83,9 +125,45 @@ async function del(endpoint: string): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    await handleErrorResponse(response);
   }
   await response.json();
+}
+
+/**
+ * エラーレスポンスを処理
+ */
+async function handleErrorResponse(response: Response): Promise<never> {
+  let errorResponse: ErrorResponse;
+  try {
+    errorResponse = (await response.json()) as ErrorResponse;
+  } catch {
+    // JSONパースに失敗した場合
+    throw new ApiError(
+      `API Error: ${response.status} ${response.statusText}`,
+      'UNKNOWN_ERROR',
+      undefined,
+      response.status
+    );
+  }
+
+  // エラーレスポンス形式の場合
+  if (!errorResponse.success && errorResponse.error) {
+    throw new ApiError(
+      errorResponse.error.message,
+      errorResponse.error.code,
+      errorResponse.error.details,
+      response.status
+    );
+  }
+
+  // フォールバック
+  throw new ApiError(
+    `API Error: ${response.status} ${response.statusText}`,
+    'UNKNOWN_ERROR',
+    undefined,
+    response.status
+  );
 }
 
 export const apiClient = {

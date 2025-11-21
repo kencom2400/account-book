@@ -48,7 +48,7 @@ describe('ErrorModal', () => {
     expect(screen.getByText('🚨 重大なエラー')).toBeInTheDocument();
   });
 
-  it('詳細情報が表示される', () => {
+  it('詳細情報が表示される（文字列形式）', () => {
     render(
       <ErrorModal
         isOpen={true}
@@ -61,6 +61,44 @@ describe('ErrorModal', () => {
 
     expect(screen.getByText('詳細情報')).toBeInTheDocument();
     expect(screen.getByText('詳細なエラー情報')).toBeInTheDocument();
+  });
+
+  it('詳細情報が表示される（配列形式）', () => {
+    const details = [
+      { field: 'name', message: '名前は必須です' },
+      { field: 'email', message: 'メールアドレスの形式が不正です' },
+    ];
+
+    render(
+      <ErrorModal
+        isOpen={true}
+        onClose={mockOnClose}
+        type="error"
+        message="バリデーションエラー"
+        details={details}
+      />
+    );
+
+    expect(screen.getByText('詳細情報')).toBeInTheDocument();
+    expect(screen.getByText(/name: 名前は必須です/)).toBeInTheDocument();
+    expect(screen.getByText(/email: メールアドレスの形式が不正です/)).toBeInTheDocument();
+  });
+
+  it('配列形式の詳細情報でフィールド名がない場合でも表示される', () => {
+    const details = [{ message: '一般的なエラーメッセージ' }];
+
+    render(
+      <ErrorModal
+        isOpen={true}
+        onClose={mockOnClose}
+        type="error"
+        message="エラー"
+        details={details}
+      />
+    );
+
+    expect(screen.getByText('詳細情報')).toBeInTheDocument();
+    expect(screen.getByText('一般的なエラーメッセージ')).toBeInTheDocument();
   });
 
   it('金融機関IDとタイムスタンプが表示される', () => {

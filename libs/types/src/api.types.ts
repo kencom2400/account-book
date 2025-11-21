@@ -8,10 +8,13 @@ export interface ApiResponse<T> {
   };
 }
 
+import { ErrorDetail } from './api/error-response';
+
 export interface ApiError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  /** 詳細エラー配列（任意） */
+  details?: ErrorDetail[];
 }
 
 export interface PaginatedResponse<T> {
