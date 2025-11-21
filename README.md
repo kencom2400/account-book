@@ -199,7 +199,7 @@ pnpm test:e2e
 
 - Backend E2Eテスト（NestJS）
 - Frontend E2Eテスト（Playwright）
-- 実際のMySQL環境で実行
+- MySQL 8.0サービスコンテナを使用して実行
 
 ### CI設定ファイル
 
