@@ -123,8 +123,8 @@ sequenceDiagram
         UC->>CardAPI: fetchCardInfo(credentials)
         CardAPI-->>UC: CardInfo
 
-        UC->>CardAPI: fetchTransactions(credentials, -3months, now)
-        Note over CardAPI: 過去3ヶ月分の<br/>利用明細を取得
+        UC->>CardAPI: fetchTransactions(credentials, -6months, now)
+        Note over CardAPI: 過去6ヶ月分の<br/>利用明細を取得
         CardAPI-->>UC: Transaction[]
 
         UC->>UC: CreditCardEntityを作成

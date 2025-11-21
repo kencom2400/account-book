@@ -479,17 +479,14 @@ classDiagram
 ```mermaid
 classDiagram
     class InstitutionController {
-        -ConnectInstitutionUseCase connectUseCase
-        -GetInstitutionsUseCase getUseCase
-        -UpdateInstitutionUseCase updateUseCase
-        -DeleteInstitutionUseCase deleteUseCase
-        -TestConnectionUseCase testUseCase
-        +connect(dto) Promise~InstitutionResponse~
-        +getAll() Promise~InstitutionResponse[]~
-        +getById(id) Promise~InstitutionResponse~
-        +update(id, dto) Promise~InstitutionResponse~
-        +delete(id) Promise~void~
-        +testConnection(dto) Promise~TestConnectionResponse~
+        -CreateInstitutionUseCase createUseCase
+        -GetInstitutionsUseCase getInstitutionsUseCase
+        -TestBankConnectionUseCase testBankConnectionUseCase
+        -GetSupportedBanksUseCase getSupportedBanksUseCase
+        +create(dto) Promise~InstitutionResponse~
+        +findAll(query) Promise~InstitutionResponse[]~
+        +getSupportedBanks(query) SupportedBanksResponse[]
+        +testBankConnection(dto) Promise~TestConnectionResponse~
     }
 
     class CreditCardController {
