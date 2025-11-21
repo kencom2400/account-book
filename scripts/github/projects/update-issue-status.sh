@@ -7,8 +7,8 @@ set -e
 # 使い方
 if [ $# -ne 2 ]; then
   echo "使い方: $0 <issue番号> <ステータス>"
-  echo "例: $0 24 'In Progress'"
-  echo "例: $0 24 'Done'"
+  echo "例: $0 24 '🚧 In Progress'"
+  echo "例: $0 24 '✅ Done'"
   echo "例: $0 24 '📝 To Do'"
   echo ""
   echo "利用可能なステータス:"
