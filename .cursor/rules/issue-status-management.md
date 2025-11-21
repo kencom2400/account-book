@@ -23,13 +23,19 @@
 ユーザー: "PRをマージしました"
 ユーザー: "マージ完了"
 ユーザー: "#217をマージした"
+ユーザー: "マージします"（マージ実行後）
 ```
 
 **アクション**:
 
-1. PRの状態を確認
-2. マージされている場合、関連Issueを特定
-3. Issueステータスを「✅ Done」に更新
+1. PRの状態を確認（`gh pr view <PR番号> --json state,mergedAt`）
+2. マージされている場合（`state: "MERGED"`）、関連Issueを特定
+   - PR本文から「Closes #XXX」「Fixes #XXX」「Resolves #XXX」を抽出
+   - 会話の文脈から関連Issueを特定
+3. **プロジェクトステータスを「✅ Done」に更新**（`./scripts/github/projects/set-issue-done.sh <issue番号>`）
+4. Issueをクローズ（必要に応じて）
+
+**重要**: ユーザーが「マージします」と言った場合、マージ実行後に自動的にステータスを更新する
 
 #### PRクローズ時（マージなし）
 
@@ -328,7 +334,9 @@ gh project item-list 1 --owner kencom2400 --format json | jq '.items[] | select(
 
 1. コミット作成
 2. PRプッシュ
-3. **PRマージ後、Issueを「✅ Done」に更新** ← このルールを適用
+3. **PRマージ後、プロジェクトステータスを「✅ Done」に更新** ← このルールを適用
+   - `./scripts/github/projects/set-issue-done.sh <issue番号>`を実行
+   - 関連するすべてのIssueのステータスを更新
 
 ## 📚 参考資料
 
