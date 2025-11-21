@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { NotificationType } from '@/stores/notification.store';
-import type { ErrorDetail } from '@account-book/types/api/error-response';
+import type { ErrorDetail } from '@account-book/types';
 
 export interface ErrorModalProps {
   isOpen: boolean;

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BankConnectionError } from '../../domain/errors/bank-connection.error';
-import { ErrorDetail } from '@account-book/types/api/error-response';
+import { ErrorDetail } from '@account-book/types';
 
 /**
  * BankConnectionError用の例外フィルター

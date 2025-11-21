@@ -3,7 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
-import type { ErrorDetail } from '@account-book/types/api/error-response';
+import type { ErrorDetail } from '@account-book/types';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 
 describe('Institution Controller (e2e)', () => {

@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { ErrorDetail } from '@account-book/types/api/error-response';
+import { ErrorDetail } from '@account-book/types';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {

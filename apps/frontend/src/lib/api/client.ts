@@ -4,7 +4,7 @@
  * Issue #214: エラーレスポンスdetailsフィールドの形式を統一
  */
 
-import type { ErrorDetail, ErrorResponse } from '@account-book/types/api/error-response';
+import type { ErrorDetail, ErrorResponse } from '@account-book/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
