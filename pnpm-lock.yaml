@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@nestjs/event-emitter':
-        specifier: ^3.0.1
-        version: 3.0.1(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.1
