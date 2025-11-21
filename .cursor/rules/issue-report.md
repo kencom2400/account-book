@@ -72,7 +72,8 @@
 ### 基本フォーマット
 
 ```bash
-gh issue comment <ISSUE_NUMBER> --body "
+# コメント本文をヒアドキュメントで変数に格納
+BODY=$(cat <<'EOF'
 ## 🎉 作業完了報告
 
 Issue #<ISSUE_NUMBER>「<Issueタイトル>」の作業が完了しました。
@@ -90,7 +91,7 @@ Issue #<ISSUE_NUMBER>「<Issueタイトル>」の作業が完了しました。
 - <ファイル1>
 - <ファイル2>
 
-**コミット**: \`<コミットメッセージ>\`
+**コミット**: `<コミットメッセージ>`
 
 ---
 
@@ -99,13 +100,13 @@ Issue #<ISSUE_NUMBER>「<Issueタイトル>」の作業が完了しました。
 ### 新規作成ファイル（合計Xファイル）
 
 1. **<カテゴリ1>** (Xファイル)
-   - \`path/to/file1\`
-   - \`path/to/file2\`
+   - `path/to/file1`
+   - `path/to/file2`
 
 ### 更新ファイル（合計Xファイル）
 
 1. **<ファイル名>**
-   - \`path/to/file\`
+   - `path/to/file`
    - <変更内容の概要>
 
 ---
@@ -145,7 +146,7 @@ Issue #<ISSUE_NUMBER>「<Issueタイトル>」の作業が完了しました。
 ## 🔗 関連リンク
 
 - **PR**: <PR URL または「作成予定」>
-- **ブランチ**: \`feature/issue-XXX-description\`
+- **ブランチ**: `feature/issue-XXX-description`
 - **コミット数**: X
 
 ---
@@ -156,7 +157,11 @@ Issue #<ISSUE_NUMBER>「<Issueタイトル>」の作業が完了しました。
 - [ ] git push
 - [ ] PR作成
 - [ ] レビュー依頼
-"
+EOF
+)
+
+# GitHub CLIでコメント投稿
+gh issue comment <ISSUE_NUMBER> --body "$BODY"
 ```
 
 ### 実装例（AIアシスタント用）
