@@ -163,6 +163,84 @@ pnpm test:e2e
 
 詳細は[テスト実行ガイド](./docs/testing-guide.md)を参照してください。
 
+## CI/CD
+
+このプロジェクトはGitHub Actionsを使用してCI/CDパイプラインを構築しています。
+
+### CIパイプライン
+
+`main`または`develop`ブランチへのpushやPull Request時に以下が自動実行されます：
+
+#### 1. Lint（静的解析）
+
+- ESLintによるコードスタイルチェック
+- TypeScriptの型チェック
+- Node.js 20で実行
+
+#### 2. Build（ビルドテスト）
+
+- 共通ライブラリのビルド
+- バックエンドのビルド
+- フロントエンドのビルド
+- Node.js 20と22のマトリックスビルド
+
+#### 3. Unit Tests（ユニットテスト）
+
+- バックエンドとフロントエンドのユニットテスト
+- MySQL 8.0サービスコンテナ使用
+- テストカバレッジレポートのCodecovへのアップロード
+
+#### 4. Security Check（セキュリティチェック）
+
+- pnpm auditによる依存関係の脆弱性スキャン
+- 脆弱性レポートのアーティファクト保存（30日間）
+
+#### 5. E2E Tests（E2Eテスト）
+
+- Backend E2Eテスト（NestJS）
+- Frontend E2Eテスト（Playwright）
+- 実際のMySQL環境で実行
+
+### CI設定ファイル
+
+- `.github/workflows/ci.yml` - メインCIパイプライン
+
+### ローカルでのCI検証
+
+CIと同じチェックをローカルで実行できます：
+
+```bash
+# Lint
+pnpm run lint
+
+# Build
+pnpm run build
+
+# Unit Tests
+pnpm run test
+
+# E2E Tests
+pnpm run test:e2e
+```
+
+または、統合スクリプトを使用：
+
+```bash
+# Lint
+./scripts/test/lint.sh
+
+# Tests
+./scripts/test/test.sh all
+
+# E2E Tests
+./scripts/test/test-e2e.sh all
+```
+
+### バッジ
+
+[![CI](https://github.com/kencom2400/account-book/actions/workflows/ci.yml/badge.svg)](https://github.com/kencom2400/account-book/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/kencom2400/account-book/branch/main/graph/badge.svg)](https://codecov.io/gh/kencom2400/account-book)
+
 ## ビルド
 
 ```bash
