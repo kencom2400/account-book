@@ -43,10 +43,60 @@
 
 **ステータス遷移のタイミング:**
 
+- **Backlog**: Issue作成時（自動設定）
 - **To Do**: 次に取り組むIssueとして選択した時
 - **In Progress**: 実際の作業を開始した時
 - **Review**: PRを作成し、レビューを依頼した時
 - **Done**: PRがマージされ、Issueをクローズした時
+
+### 🚨 Issue作成方法（重要）
+
+**✅ 必須: 専用スクリプトを使用**
+
+新規Issueを作成する際は、**必ず以下のスクリプトを使用**してください：
+
+```bash
+./scripts/github/issues/create-issue.sh <data-file>
+```
+
+**理由:**
+
+- スクリプトは自動的にプロジェクトに追加します
+- ステータスを「📋 Backlog」に自動設定します
+- GitHub CLIの直接使用では、これらの処理が行われません
+
+**使用例:**
+
+```bash
+# 1. Issue用のJSONまたはYAMLファイルを作成
+cat > scripts/github/issues/issue-data/drafts/my-issue.json << EOF
+{
+  "title": "[FEATURE] 新機能の実装",
+  "labels": ["feature", "backend"],
+  "body": "## 概要\n\n詳細な説明..."
+}
+EOF
+
+# 2. スクリプトでIssue作成
+./scripts/github/issues/create-issue.sh scripts/github/issues/issue-data/drafts/my-issue.json
+```
+
+**❌ 禁止: GitHub CLI直接使用**
+
+```bash
+# ❌ これは使用しないでください
+gh issue create --title "..." --body "..."
+```
+
+**理由:**
+
+- プロジェクトに自動追加されません
+- ステータスが"No Status"になります
+- 手動でプロジェクトに追加する手間が発生します
+
+**例外:**
+
+テスト目的など、意図的にプロジェクトに追加したくない場合のみ、GitHub CLI直接使用を許可します。
 
 ---
 

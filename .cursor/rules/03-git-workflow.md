@@ -444,12 +444,23 @@ gh run view <run-id> --log-failed
 
 ✅ **Bugのissueを作成する**
 
+**必ず`create-issue.sh`スクリプトを使用してください:**
+
 ```bash
-gh issue create \
-  --title "[BUG] [CI名]で[エラー数]個のエラー/警告が発生" \
-  --label "bug,infrastructure,priority: high" \
-  --body "[詳細な内容]"
+# 1. Issue用のJSONファイルを作成
+cat > scripts/github/issues/issue-data/drafts/ci-error-bug.json << EOF
+{
+  "title": "[BUG] [CI名]で[エラー数]個のエラー/警告が発生",
+  "labels": ["bug", "infrastructure", "priority: high"],
+  "body": "[詳細な内容]"
+}
+EOF
+
+# 2. スクリプトでIssue作成（自動的にBacklogに設定される）
+./scripts/github/issues/create-issue.sh scripts/github/issues/issue-data/drafts/ci-error-bug.json
 ```
+
+❌ **禁止**: `gh issue create`を直接使用しないでください。プロジェクトに自動追加されません。
 
 ### 🤖 Gemini Code Assistレビュー対応
 

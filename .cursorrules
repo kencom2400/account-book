@@ -150,6 +150,13 @@
 
 **参照**: `.cursor/rules/04-github-integration.md`
 
+### 7. Issue作成方法
+
+- ✅ **必ず専用スクリプトを使用**: `./scripts/github/issues/create-issue.sh`
+- ❌ **`gh issue create`の直接使用は禁止**（プロジェクトに自動追加されないため）
+
+**参照**: `.cursor/rules/04-github-integration.md`
+
 ---
 
 ## 📋 ワークフロー全体像
@@ -188,6 +195,9 @@
 
 # E2Eテスト
 ./scripts/test/test-e2e.sh frontend
+
+# Issue作成（必ずスクリプトを使用）
+./scripts/github/issues/create-issue.sh <data-file>
 
 # Issue報告
 gh issue comment <ISSUE_NUMBER> --body "<報告内容>"
