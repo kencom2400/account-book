@@ -23,7 +23,8 @@ export const getDatabaseConfig = (
     ...connectionOptions,
     entities: [__dirname + '/../**/*.orm-entity{.ts,.js}'],
     // 本番環境では synchronize を無効化（マイグレーションを使用）
-    synchronize: !isProduction && !isTest,
+    // テスト環境ではテーブル自動作成のため synchronize を有効化
+    synchronize: !isProduction,
     // 開発環境でのみクエリログを出力
     logging: !isProduction && !isTest,
     charset: 'utf8mb4',
