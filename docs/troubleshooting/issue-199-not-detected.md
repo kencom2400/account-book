@@ -100,11 +100,17 @@ Issue取得後、以下の情報をユーザーに報告：
 
 ```bash
 # ⚠️ IMPORTANT: --limit は十分に大きな値を指定すること
-# プロジェクトに多数のアイテムがある場合、デフォルト100では不足する
-# 推奨値: --limit 500 以上（プロジェクトの規模に応じて調整）
-TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 500 | \
+# プロジェクトに多数のアイテムがある場合、デフォルト値や100では不足する
+# 推奨値: --limit 9999 （実質無制限）
+TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
   jq -r '.items[] | select(.status == "📝 To Do") | .content.number')
 ```
+
+**limit値の選択理由**:
+
+- `9999`は実質的に無制限として機能
+- プロジェクトの成長に応じて調整不要
+- 根本的な解決策として推奨
 
 ### 2. Issue State確認の追加
 
@@ -113,9 +119,9 @@ OPENなIssueのみをフィルタリングするロジックを追加
 ### 3. トラブルシューティングセクションの追加
 
 - **Issue取得漏れが発生する**
-  - `--limit` 値を十分に大きく設定（500以上推奨）
-  - プロジェクトアイテム数を確認：`gh project item-list <PROJECT_NUMBER> --owner <OWNER> --format json | jq '.items | length'`
-  - 必要に応じて `--limit` 値を増やす
+  - `--limit` 値を十分に大きく設定（9999（実質無制限）を推奨）
+  - プロジェクトアイテム数を確認：`gh project item-list <PROJECT_NUMBER> --owner <OWNER> --format json --limit 9999 | jq '.items | length'`
+  - `task-trigger.md`の実装例と統一した値を使用
 
 - **CLOSEDなIssueがTo Doに表示される**
   - プロジェクトボードのステータスとGitHub Issue状態が不整合の場合
@@ -127,7 +133,7 @@ OPENなIssueのみをフィルタリングするロジックを追加
 ### 1. プロジェクトアイテム数の確認
 
 ```bash
-gh project item-list 1 --owner kencom2400 --format json --limit 500 | jq '.items | length'
+gh project item-list 1 --owner kencom2400 --format json --limit 9999 | jq '.items | length'
 ```
 
 ### 2. To Doステータスのアイテム確認
