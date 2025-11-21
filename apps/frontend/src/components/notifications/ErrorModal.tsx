@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import type { NotificationType } from '@/stores/notification.store';
-
-/**
- * エラー詳細情報
- */
-export interface ErrorDetail {
-  field?: string;
-  message: string;
-  code?: string;
-}
+import type { ErrorDetail } from '@account-book/types/api/error-response';
 
 export interface ErrorModalProps {
   isOpen: boolean;
