@@ -146,7 +146,7 @@ EOF
 ### Issue作成時の手順
 
 1. JSONまたはYAMLファイルを作成
-2. `create-issue.sh`スクリプトで作成
+2. `./scripts/github/issues/create-issue.sh`スクリプトで作成
 3. 自動的にBacklogステータスに設定される
 
 ### 禁止事項
