@@ -34,7 +34,7 @@ export function isHttpError(error: unknown): error is HttpError {
   return (
     error instanceof Error &&
     'statusCode' in error &&
-    typeof (error as HttpError).statusCode === 'number'
+    typeof (error as { statusCode: unknown }).statusCode === 'number'
   );
 }
 

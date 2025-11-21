@@ -341,7 +341,7 @@ async testConnectionWithRetry(
         // 認証エラーはリトライしない
         // isHttpError型ガードを使用することで、statusCodeに安全にアクセス可能
         if (isHttpError(error) && (error.statusCode === 401 || error.statusCode === 403)) {
-          return ConnectionCheckResultVO.needReauth(error.message);
+          return ConnectionCheckResultVO.needReauth('認証情報が無効です');
         }
 
         // タイムアウトエラーの判定
