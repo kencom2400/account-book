@@ -121,7 +121,7 @@ PRの本文から関連Issueを抽出：
 
 ## 📝 実装例
 
-### 例1: PRマージ後の自動更新
+### 例1: PRマージ後の自動更新（複数Issue対応）
 
 ```typescript
 // ユーザー: "PR #217をマージしました"
@@ -131,16 +131,34 @@ const prStatus = await execCommand('gh pr view 217 --json state,mergedAt,body');
 
 // 2. マージ確認
 if (prStatus.state === 'MERGED') {
-  // 3. 関連Issue抽出
-  const issueMatch = prStatus.body.match(/Closes #(\d+)/);
-  if (issueMatch) {
-    const issueNumber = issueMatch[1];
+  // 3. 複数のIssueキーワードに対応して関連Issue抽出
+  const issueKeywords = ['Closes', 'Fixes', 'Resolves', 'closes', 'fixes', 'resolves'];
+  const issueNumbers: number[] = [];
 
-    // 4. ステータス更新
-    await execCommand(`./scripts/github/projects/set-issue-done.sh ${issueNumber}`);
+  for (const keyword of issueKeywords) {
+    // "Closes #123" や "Closes #123, Closes #456" のパターンに対応
+    const regex = new RegExp(`${keyword}\\s+#(\\d+)`, 'g');
+    let match;
+    while ((match = regex.exec(prStatus.body)) !== null) {
+      const issueNumber = parseInt(match[1], 10);
+      if (!issueNumbers.includes(issueNumber)) {
+        issueNumbers.push(issueNumber);
+      }
+    }
+  }
 
-    // 5. 報告
-    console.log(`✅ Issue #${issueNumber}のステータスを「✅ Done」に更新しました`);
+  // 4. 各Issueのステータスを更新
+  for (const issueNumber of issueNumbers) {
+    try {
+      await execCommand(`./scripts/github/projects/set-issue-done.sh ${issueNumber}`);
+      console.log(`✅ Issue #${issueNumber}のステータスを「✅ Done」に更新しました`);
+    } catch (error) {
+      console.error(`⚠️ Issue #${issueNumber}のステータス更新に失敗しました: ${error}`);
+    }
+  }
+
+  if (issueNumbers.length === 0) {
+    console.log('ℹ️ このPRに関連するIssueが見つかりませんでした');
   }
 }
 ```

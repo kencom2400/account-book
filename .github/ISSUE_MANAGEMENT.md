@@ -249,29 +249,10 @@ AIアシスタント（Cursor）が、ユーザーとの対話の中で適切な
 
 以下の自動化ルールは今後実装を検討中です：
 
-#### 計画中の自動化（TODO）
-
-以下の自動化ルールは今後実装予定です：
-
 - Issueが作成されたら → Backlogに追加
 - Issueに`status: in-progress`ラベルが付いたら → In Progressに移動
 - Issueに`status: review`ラベルが付いたら → Reviewに移動
 - PRが作成されたら → Reviewに追加
-
-#### `.github/workflows/update-project-status.yml` (実装済み)
-
-**Issue/PRクローズ時の自動更新:**
-
-- IssueまたはPRがクローズされると、自動的にGitHub Projectsのステータスが「✅ Done」に更新されます
-- 複数のプロジェクトに属していても、全てのプロジェクトで自動更新されます
-- すでに「Done」ステータスの場合はスキップされます
-- エラーが発生してもワークフロー全体は失敗しません（graceful degradation）
-
-**手動更新が必要な場合:**
-
-- ステータスを「📝 To Do」や「🚧 In Progress」に変更する場合は、手動でプロジェクトボードを操作するか、以下のスクリプトを使用：
-  - `./scripts/github/projects/set-issue-in-progress.sh <issue番号>` - In Progressに変更
-  - `./scripts/github/projects/set-issue-done.sh <issue番号>` - Doneに変更（手動で必要な場合）
 
 ## ✍️ Issue作成のベストプラクティス
 
