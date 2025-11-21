@@ -4,6 +4,8 @@
  * Issue #214: エラーレスポンスdetailsフィールドの形式を統一
  */
 
+import type { ErrorDetail, ErrorResponse } from '@account-book/types/api/error-response';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface ApiResponse<T> {
@@ -11,31 +13,6 @@ interface ApiResponse<T> {
   data: T;
   count?: number;
   message?: string;
-}
-
-/**
- * エラー詳細情報
- */
-export interface ErrorDetail {
-  field?: string;
-  message: string;
-  code?: string;
-}
-
-/**
- * エラーレスポンス
- */
-export interface ErrorResponse {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    details?: ErrorDetail[];
-  };
-  metadata: {
-    timestamp: string;
-    version: string;
-  };
 }
 
 /**
