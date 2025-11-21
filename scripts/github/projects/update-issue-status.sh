@@ -46,9 +46,10 @@ if [ -z "$ITEM_INFO" ]; then
   exit 1
 fi
 
-ITEM_ID=$(echo "$ITEM_INFO" | jq -r '.id')
-CURRENT_STATUS=$(echo "$ITEM_INFO" | jq -r '.status')
-TITLE=$(echo "$ITEM_INFO" | jq -r '.title')
+mapfile -t values < <(echo "$ITEM_INFO" | jq -r '.id, .status, .title')
+ITEM_ID="${values[0]}"
+CURRENT_STATUS="${values[1]}"
+TITLE="${values[2]}"
 
 echo "   アイテムID: $ITEM_ID"
 echo "   タイトル: $TITLE"
