@@ -136,10 +136,15 @@ describe('Institution Controller (e2e)', () => {
         })
         .expect(400)
         .expect((res) => {
-          const message = Array.isArray(res.body.message)
-            ? res.body.message.join(' ')
-            : res.body.message;
-          expect(message).toContain('銀行コードは4桁の数字');
+          expect(res.body.success).toBe(false);
+          expect(res.body.error).toBeDefined();
+          // Issue #214: detailsフィールドは配列形式
+          expect(res.body.error.details).toBeDefined();
+          expect(Array.isArray(res.body.error.details)).toBe(true);
+          const messages = res.body.error.details
+            .map((detail: ErrorDetail) => detail.message)
+            .join(' ');
+          expect(messages).toContain('銀行コード');
         });
     });
 
