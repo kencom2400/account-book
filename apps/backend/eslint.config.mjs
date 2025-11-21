@@ -67,4 +67,38 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off', // テストファイルでは戻り値型の明示を不要とする
     },
   },
+  {
+    // TypeORM関連ファイルの設定
+    // 理由: TypeORMはデコレータベースのライブラリで、型推論が難しい
+    // デコレータ（@Entity, @Column等）や TypeORM API（Repository.find等）が error 型として認識されるため
+    // これらのファイルに限定してno-unsafe-*ルールを緩和
+    files: [
+      '**/*.orm-entity.ts',
+      '**/repositories/*-typeorm.repository.ts',
+      '**/migrations/*.ts',
+      '**/typeorm*.config.ts',
+      '**/app.module.ts', // TypeOrmModule.forRootAsync の使用
+      '**/*.module.ts', // TypeOrmModule.forFeature の使用
+    ],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
+    // NestJS EventEmitter関連ファイルの設定
+    // 理由: @nestjs/event-emitterのデコレータ（@OnEvent）やEventEmitter2のAPIが error 型として認識される
+    // これらのファイルに限定してno-unsafe-*ルールを緩和
+    files: [
+      '**/handlers/*.handler.ts',
+      '**/use-cases/check-connection-status.use-case.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
 );
