@@ -20,6 +20,17 @@ else
   exit 1
 fi
 
+# MySQLコンテナの起動確認と自動起動
+echo "🔍 MySQLコンテナの起動状態を確認中..."
+if ! docker ps 2>/dev/null | grep -q "account-book.*mysql"; then
+  echo "ℹ️  MySQLコンテナが起動していません。自動的に起動します..."
+  echo ""
+  ./scripts/dev/start-database.sh
+  echo ""
+fi
+echo "✅ MySQLコンテナが起動しています"
+echo ""
+
 # 引数でテスト対象を指定
 TARGET=${1:-all}
 

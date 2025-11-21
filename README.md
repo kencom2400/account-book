@@ -146,13 +146,30 @@ pnpm --filter @account-book/frontend dev
 
 ## テスト実行
 
+### ユニットテスト
+
 ```bash
 # 全てのテスト（ユニットテスト）
 pnpm test
 
 # ユニットテスト
 pnpm test:unit
+```
 
+### E2Eテスト
+
+#### 前提条件
+
+E2Eテスト実行には、MySQLコンテナが起動している必要があります。
+
+```bash
+# MySQLコンテナの起動
+./scripts/dev/start-database.sh
+```
+
+#### 実行方法
+
+```bash
 # E2Eテスト
 pnpm test:e2e
 
