@@ -67,8 +67,14 @@ echo "📝 ステータスフィールド情報を取得中..."
 FIELD_INFO=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json | \
   jq '.fields[] | select(.name == "Status")')
 
-FIELD_ID=$(echo "$FIELD_INFO" | jq -r '.id')
-STATUS_OPTION_ID=$(echo "$FIELD_INFO" | jq -r --arg status "$STATUS" '.options[] | select(.name == $status) | .id')
+if [ -z "$FIELD_INFO" ]; then
+  echo "❌ エラー: プロジェクトに 'Status' フィールドが見つかりませんでした。"
+  exit 1
+fi
+
+mapfile -t ids < <(echo "$FIELD_INFO" | jq -r --arg status "$STATUS" '.id, (.options[] | select(.name == $status) | .id)')
+FIELD_ID="${ids[0]}"
+STATUS_OPTION_ID="${ids[1]}"
 
 if [ -z "$STATUS_OPTION_ID" ]; then
   echo "❌ エラー: ステータス '${STATUS}' が見つかりませんでした"
