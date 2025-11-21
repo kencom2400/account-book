@@ -21,8 +21,8 @@ fi
 
 ISSUE_NUMBER=$1
 STATUS=$2
-PROJECT_NUMBER=1
-OWNER="kencom2400"
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
+OWNER="${OWNER:-kencom2400}"
 
 echo "🔍 Issue #${ISSUE_NUMBER} の情報を取得中..."
 
