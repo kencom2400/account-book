@@ -6,15 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
-
-/**
- * エラー詳細情報の型定義
- */
-interface ErrorDetail {
-  field?: string;
-  message: string;
-  code?: string;
-}
+import { ErrorDetail } from '@account-book/types/api/error-response';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -35,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const messages = exceptionResponse.message;
         if (Array.isArray(messages)) {
           // ValidationPipeが返すエラーメッセージ配列を変換
-          details = messages.map((msg: string | object) => {
+          details = messages.map((msg: string | object): ErrorDetail => {
             if (typeof msg === 'string') {
               // フィールド名を抽出（例: "name must be a string" -> field: "name"）
               const fieldMatch = msg.match(/^(\w+)\s/);
@@ -45,7 +37,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
               };
             }
             // オブジェクト形式の場合（将来的な拡張用）
-            return msg as ErrorDetail;
+            // ErrorDetailの構造を満たしているかチェック
+            if (
+              typeof msg === 'object' &&
+              msg !== null &&
+              'message' in msg &&
+              typeof (msg as { message: unknown }).message === 'string'
+            ) {
+              const errorObj = msg as {
+                message: string;
+                field?: string;
+                code?: string;
+              };
+              return {
+                field: errorObj.field,
+                message: errorObj.message,
+                code: errorObj.code,
+              };
+            }
+            // フォールバック: オブジェクトを文字列化
+            return {
+              message: JSON.stringify(msg),
+            };
           });
         } else if (typeof messages === 'string') {
           // 単一メッセージの場合
