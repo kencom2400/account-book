@@ -471,7 +471,7 @@ gh issue create \
 gh api graphql -f query='
 query {
   repository(owner: "kencom2400", name: "account-book") {
-    pullRequest(number: 228) {
+    pullRequest(number: <PR番号>) {
       reviews(first: 10) {
         nodes {
           author { login }
