@@ -167,6 +167,10 @@
 # Issue報告
 gh issue comment <ISSUE_NUMBER> --body "<報告内容>"
 
+# PR作成・コメント
+gh pr create --title "<タイトル>" --body "<内容>"
+gh pr comment <PR_NUMBER> --body "<コメント>"
+
 # ステータス更新
 ./scripts/github/projects/set-issue-in-progress.sh <ISSUE_NUMBER>
 ./scripts/github/projects/set-issue-done.sh <ISSUE_NUMBER>
