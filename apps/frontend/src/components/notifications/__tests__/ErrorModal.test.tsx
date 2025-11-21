@@ -80,8 +80,11 @@ describe('ErrorModal', () => {
     );
 
     expect(screen.getByText('詳細情報')).toBeInTheDocument();
-    expect(screen.getByText(/name: 名前は必須です/)).toBeInTheDocument();
-    expect(screen.getByText(/email: メールアドレスの形式が不正です/)).toBeInTheDocument();
+    // フィールド名とメッセージが別々の要素で表示されるため、それぞれ確認
+    expect(screen.getByText(/name/)).toBeInTheDocument();
+    expect(screen.getByText('名前は必須です')).toBeInTheDocument();
+    expect(screen.getByText(/email/)).toBeInTheDocument();
+    expect(screen.getByText('メールアドレスの形式が不正です')).toBeInTheDocument();
   });
 
   it('配列形式の詳細情報でフィールド名がない場合でも表示される', () => {
