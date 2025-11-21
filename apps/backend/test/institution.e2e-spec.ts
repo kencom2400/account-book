@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
 import type { ErrorDetail } from '@account-book/types';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 
 describe('Institution Controller (e2e)', () => {
@@ -16,6 +17,9 @@ describe('Institution Controller (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Global filters
+    app.useGlobalFilters(new HttpExceptionFilter());
 
     // Global pipes
     app.useGlobalPipes(
