@@ -204,6 +204,11 @@ pnpm test:e2e
 ### CI設定ファイル
 
 - `.github/workflows/ci.yml` - メインCIパイプライン
+- `.github/workflows/update-project-status.yml` - Issue/PRクローズ時のプロジェクトステータス自動更新
+
+### GitHub Projects自動化
+
+Issue/PRをクローズすると、GitHub Projectsのステータスが自動的に「✅ Done」に更新されます。手動でステータスを変更する必要はありません。
 
 ### ローカルでのCI検証
 
