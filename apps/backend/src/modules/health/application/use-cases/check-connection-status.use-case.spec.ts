@@ -240,7 +240,7 @@ describe('CheckConnectionStatusUseCase', () => {
               institutionId: 'inst-001',
               errorMessage: '接続に失敗しました',
             }),
-          ]),
+          ]) as unknown[],
         }),
       );
     });
