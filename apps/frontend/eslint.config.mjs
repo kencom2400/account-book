@@ -103,6 +103,8 @@ export default tseslint.config(
             '@typescript-eslint/no-unsafe-call': 'off',
             '@typescript-eslint/no-unsafe-return': 'off',
             '@typescript-eslint/no-unsafe-argument': 'off',
+            '@typescript-eslint/require-await': 'off', // E2Eテストではawait式なしの非同期関数を許可
+            'no-console': 'off', // E2Eテストではconsole.logを許可（パフォーマンス測定結果の出力のため）
         },
     },
     

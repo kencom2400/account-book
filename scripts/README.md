@@ -124,6 +124,24 @@
 ./scripts/test/lint.sh frontend  # フロントエンドのみ
 ```
 
+### パフォーマンステスト実行
+
+```bash
+# すべてのパフォーマンステスト
+./scripts/test/test-perf.sh
+
+# バックエンドのみ
+./scripts/test/test-perf.sh backend
+
+# フロントエンドのみ
+./scripts/test/test-perf.sh frontend
+```
+
+**注意:**
+
+- フロントエンドのパフォーマンステストを実行する前に、BackendとDatabaseが起動している必要があります
+- ログは `logs/backend-perf-test.log` と `logs/frontend-perf-test.log` に保存されます
+
 ### ユニットテスト実行
 
 ```bash
