@@ -89,22 +89,20 @@ export class InstitutionTypeOrmRepository implements IInstitutionRepository {
   }
 
   /**
-   * 金融機関を保存
+   * 金融機関を保存（新規作成・更新の両方に対応）
    */
   async save(institution: InstitutionEntity): Promise<InstitutionEntity> {
     const ormEntity: InstitutionOrmEntity = this.toOrm(institution);
+
+    // accountsをORM Entityに変換してセット
+    ormEntity.accounts = institution.accounts.map((account: AccountEntity) =>
+      this.accountToOrm(account),
+    );
+
+    // cascade: trueにより、口座も自動的に保存・更新される
     const saved: InstitutionOrmEntity =
       await this.institutionRepository.save(ormEntity);
 
-    // 口座も保存
-    if (institution.accounts.length > 0) {
-      const accountOrms: AccountOrmEntity[] = institution.accounts.map(
-        (account: AccountEntity) => this.accountToOrm(account),
-      );
-      await this.accountRepository.save(accountOrms);
-    }
-
-    // 保存後のエンティティを返す
     return this.toDomain(saved);
   }
 

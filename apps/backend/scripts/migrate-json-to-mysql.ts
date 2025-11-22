@@ -187,16 +187,14 @@ async function migrateInstitutions(manager: EntityManager): Promise<void> {
 
     // accountsを別途保存
     const accountRepository = manager.getRepository(AccountOrmEntity);
-    const allAccounts: AccountOrmEntity[] = [];
-
-    institutions.forEach((inst: InstitutionJSON) => {
-      if (
-        Array.isArray(inst.accounts) &&
-        inst.accounts.every(isValidAccountJSON)
-      ) {
-        const accountEntities: AccountOrmEntity[] = inst.accounts.map(
-          (acc: AccountJSON) => {
-            const accEntity: AccountOrmEntity = new AccountOrmEntity();
+    const allAccounts: AccountOrmEntity[] = institutions.flatMap(
+      (inst: InstitutionJSON) => {
+        if (
+          Array.isArray(inst.accounts) &&
+          inst.accounts.every(isValidAccountJSON)
+        ) {
+          return inst.accounts.map((acc: AccountJSON) => {
+            const accEntity = new AccountOrmEntity();
             accEntity.id = acc.id;
             accEntity.institutionId = acc.institutionId;
             accEntity.accountNumber = acc.accountNumber;
@@ -204,11 +202,11 @@ async function migrateInstitutions(manager: EntityManager): Promise<void> {
             accEntity.balance = acc.balance;
             accEntity.currency = acc.currency;
             return accEntity;
-          },
-        );
-        allAccounts.push(...accountEntities);
-      }
-    });
+          });
+        }
+        return [];
+      },
+    );
 
     if (allAccounts.length > 0) {
       await accountRepository.save(allAccounts);
