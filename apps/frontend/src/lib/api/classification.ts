@@ -36,29 +36,11 @@ export interface ClassifyTransactionResponse {
 export async function classifyTransaction(
   request: ClassifyTransactionRequest
 ): Promise<ClassifyTransactionResponse['data']> {
-  const response = await apiClient.post<ClassifyTransactionResponse>(
-    '/transactions/classify',
+  // apiClient.postは ApiResponse<T>.data を返すため、T には実際のデータ型を指定
+  const result = await apiClient.post<ClassifyTransactionResponse['data']>(
+    '/api/transactions/classify',
     request
   );
 
-  // レスポンスの型チェック
-  if (!response.data || typeof response.data !== 'object') {
-    throw new Error('Invalid response from API');
-  }
-
-  // successプロパティの存在確認
-  if ('success' in response.data && 'data' in response.data) {
-    const apiResponse = response.data as {
-      success: boolean;
-      data: ClassifyTransactionResponse['data'];
-    };
-    return apiResponse.data;
-  }
-
-  // 直接dataを返す場合（APIがラップなしでdataを返す場合）
-  if ('category' in response.data && 'confidence' in response.data && 'reason' in response.data) {
-    return response.data;
-  }
-
-  throw new Error('Invalid response structure from API');
+  return result;
 }

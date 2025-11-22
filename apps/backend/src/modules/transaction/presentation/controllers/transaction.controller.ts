@@ -107,6 +107,42 @@ export class TransactionController {
   ) {}
 
   /**
+   * 取引データのカテゴリを自動分類
+   * POST /transactions/classify
+   *
+   * FR-008: 5種類のカテゴリ自動分類機能
+   */
+  @Post('classify')
+  @HttpCode(HttpStatus.OK)
+  async classify(
+    @Body()
+    body: {
+      amount: number;
+      description: string;
+      institutionId?: string;
+      institutionType?: string;
+    },
+  ): Promise<{
+    success: boolean;
+    data: {
+      category: {
+        id: string;
+        name: string;
+        type: CategoryType;
+      };
+      confidence: number;
+      reason: string;
+    };
+  }> {
+    const result = await this.classifyTransactionUseCase.execute(body);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
    * 取引を作成
    * POST /transactions
    */
@@ -202,42 +238,6 @@ export class TransactionController {
     return {
       success: true,
       data: transaction.toJSON(),
-    };
-  }
-
-  /**
-   * 取引データのカテゴリを自動分類
-   * POST /transactions/classify
-   *
-   * FR-008: 5種類のカテゴリ自動分類機能
-   */
-  @Post('classify')
-  @HttpCode(HttpStatus.OK)
-  async classify(
-    @Body()
-    body: {
-      amount: number;
-      description: string;
-      institutionId?: string;
-      institutionType?: string;
-    },
-  ): Promise<{
-    success: boolean;
-    data: {
-      category: {
-        id: string;
-        name: string;
-        type: CategoryType;
-      };
-      confidence: number;
-      reason: string;
-    };
-  }> {
-    const result = await this.classifyTransactionUseCase.execute(body);
-
-    return {
-      success: true,
-      data: result,
     };
   }
 }

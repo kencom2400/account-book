@@ -46,13 +46,12 @@ export default defineConfig({
   webServer: [
     // バックエンドサーバー
     {
-      command: 'pnpm --filter @account-book/backend dev',
+      command: 'cd ../.. && pnpm --filter @account-book/backend dev',
       url: 'http://localhost:3001/api/health/institutions',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
-      cwd: process.cwd(),
       env: {
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
@@ -62,13 +61,12 @@ export default defineConfig({
     },
     // フロントエンドサーバー
     {
-      command: 'pnpm dev',
+      command: 'cd ../.. && pnpm --filter @account-book/frontend dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       stdout: 'pipe',
       stderr: 'pipe',
-      cwd: process.cwd(),
       env: {
         // フロントエンドはポート3000を使用（環境変数PORTを上書き）
         PORT: process.env.FRONTEND_PORT || '3000',

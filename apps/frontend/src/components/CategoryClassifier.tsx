@@ -80,8 +80,11 @@ export default function CategoryClassifier() {
       <div className="space-y-4">
         {/* 金額入力 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">金額</label>
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+            金額
+          </label>
           <input
+            id="amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -93,8 +96,11 @@ export default function CategoryClassifier() {
 
         {/* 説明入力 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">説明</label>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            説明
+          </label>
           <input
+            id="description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
