@@ -148,6 +148,47 @@ pnpm --filter @account-book/backend dev
 pnpm --filter @account-book/frontend dev
 ```
 
+## 開発ワークフロー
+
+### Issue開始スクリプト
+
+Issue作業を効率的に開始するための`start-task.sh`スクリプトを提供しています。
+
+#### 基本的な使い方
+
+```bash
+# 最優先Issueを自動選択して開始
+./scripts/github/workflow/start-task.sh
+
+# Issue番号を指定して開始
+./scripts/github/workflow/start-task.sh #201
+./scripts/github/workflow/start-task.sh 201  # #なしでもOK
+
+# ヘルプ表示
+./scripts/github/workflow/start-task.sh --help
+```
+
+#### 機能
+
+- **自動選択モード（引数なし）**
+  - GitHub Projectsから「📝 To Do」ステータスのIssueを取得
+  - 優先度順に自動ソート（critical > high > medium > low）
+  - 最優先Issueを自動的に開始
+
+- **Issue ID指定モード（引数あり）**
+  - 指定したIssue番号で作業を開始
+  - Issue存在確認、ステータス確認を自動実行
+
+#### スクリプトが実行する処理
+
+1. Issue情報の取得と確認
+2. 自分にアサイン（未アサインの場合）
+3. mainブランチの最新化
+4. フィーチャーブランチの作成（`feature/issue-{番号}-{タイトル}`）
+5. GitHub ProjectsでステータスをIn Progressに変更
+
+詳細は[scripts/github/workflow/README.md](./scripts/github/workflow/README.md)を参照してください。
+
 ## テスト実行
 
 ### ユニットテスト

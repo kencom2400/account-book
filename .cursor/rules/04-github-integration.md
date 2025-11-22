@@ -480,7 +480,59 @@ gh issue comment <ISSUE_NUMBER> --body "$BODY"
    - **GitHub ProjectsのステータスをIn Progressに変更**
    - Issueの内容に従って作業を即座に開始
 
-### Issue取得コマンド
+### ✨ 新機能: start-task.sh スクリプト
+
+Issue #201で実装された`start-task.sh`スクリプトを使用して、Issue開始を自動化できます。
+
+#### 基本的な使い方
+
+```bash
+# 最優先Issueを自動選択
+./scripts/github/workflow/start-task.sh
+
+# Issue番号を指定して開始
+./scripts/github/workflow/start-task.sh #201
+./scripts/github/workflow/start-task.sh 201  # #なしでもOK
+
+# ヘルプ表示
+./scripts/github/workflow/start-task.sh --help
+```
+
+#### 機能
+
+**自動選択モード（引数なし）:**
+
+- GitHub Projectsから「📝 To Do」ステータスのIssueを取得
+- 優先度順に自動ソート
+- 最優先Issueを自動的に開始
+
+**Issue ID指定モード（引数あり）:**
+
+- 指定したIssue番号で作業を開始
+- Issue存在確認、ステータス確認を自動実行
+
+#### スクリプトが実行する処理
+
+1. Issue情報の取得と確認
+   - Issue存在確認
+   - OPENステータス確認
+   - アサイン状況確認
+2. 自分にアサイン（未アサインの場合）
+3. mainブランチの最新化
+4. フィーチャーブランチの作成（`feature/issue-{番号}-{タイトル}`）
+5. GitHub ProjectsでステータスをIn Progressに変更
+
+#### エラーハンドリング
+
+- Issue不存在時: エラーメッセージを表示して終了
+- クローズ済みIssue: エラーメッセージを表示して終了
+- 既にアサイン済み: 確認プロンプトを表示
+- 他の人にアサイン済み: エラーメッセージを表示して終了
+- 無効な形式: エラーメッセージと正しい形式を表示
+
+詳細は[scripts/github/workflow/README.md](../../../scripts/github/workflow/README.md)を参照してください。
+
+### Issue取得コマンド（手動実行の場合）
 
 ```bash
 # ステップ1: GitHub Projectsから "📝 To Do" ステータスのIssue番号を取得
