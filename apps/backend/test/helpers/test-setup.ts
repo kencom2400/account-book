@@ -104,10 +104,10 @@ export async function createTestApp(
   if (enableValidationPipe) {
     app.useGlobalPipes(
       new ValidationPipe({
-        whitelist: validationPipeOptions.whitelist ?? true,
+        whitelist: validationPipeOptions?.whitelist ?? true,
         forbidNonWhitelisted:
-          validationPipeOptions.forbidNonWhitelisted ?? true,
-        transform: validationPipeOptions.transform ?? true,
+          validationPipeOptions?.forbidNonWhitelisted ?? true,
+        transform: validationPipeOptions?.transform ?? true,
       }),
     );
   }
