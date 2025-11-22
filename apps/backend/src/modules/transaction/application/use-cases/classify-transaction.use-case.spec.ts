@@ -51,8 +51,8 @@ describe('ClassifyTransactionUseCase', () => {
         '#4CAF50',
         true,
         1,
-        new Date(),
-        new Date(),
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-01-01T00:00:00Z'),
       );
 
       // モックの設定
@@ -84,8 +84,8 @@ describe('ClassifyTransactionUseCase', () => {
         '#FF5722',
         true,
         1,
-        new Date(),
-        new Date(),
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-01-01T00:00:00Z'),
       );
 
       // モックの設定
@@ -116,8 +116,8 @@ describe('ClassifyTransactionUseCase', () => {
         '#2196F3',
         true,
         1,
-        new Date(),
-        new Date(),
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-01-01T00:00:00Z'),
       );
 
       // モックの設定
@@ -149,8 +149,8 @@ describe('ClassifyTransactionUseCase', () => {
         '#4CAF50',
         true,
         4,
-        new Date(),
-        new Date(),
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-01-01T00:00:00Z'),
       );
 
       const incomeCategory2 = new CategoryEntity(
@@ -162,8 +162,8 @@ describe('ClassifyTransactionUseCase', () => {
         '#4CAF50',
         true,
         1,
-        new Date(),
-        new Date(),
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-01-01T00:00:00Z'),
       );
 
       // モックの設定
