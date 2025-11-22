@@ -10,7 +10,39 @@ import { CategoryType } from '@account-book/types';
 @Injectable()
 export class CategoryClassificationService {
   // カテゴリごとのキーワード辞書
+  // 評価順序: より具体的なカテゴリ（返済・投資・振替）を先に、一般的なカテゴリ（収入・支出）を後に
   private readonly keywords = {
+    [CategoryType.REPAYMENT]: [
+      'ローン',
+      '返済',
+      'loan',
+      'repayment',
+      '住宅ローン',
+      '自動車ローン',
+      '教育ローン',
+    ],
+    [CategoryType.INVESTMENT]: [
+      '株式',
+      '投資信託',
+      '債券',
+      '売買',
+      '配当',
+      '分配金',
+      '株',
+      'fund',
+      'stock',
+      '証券',
+    ],
+    [CategoryType.TRANSFER]: [
+      '振替',
+      'カード引落',
+      '口座振替',
+      '資金移動',
+      'チャージ',
+      '送金',
+      'transfer',
+      '口座間',
+    ],
     [CategoryType.INCOME]: [
       '給与',
       '賞与',
@@ -42,37 +74,6 @@ export class CategoryClassificationService {
       '水道',
       '電気',
       'ガス',
-    ],
-    [CategoryType.TRANSFER]: [
-      '振替',
-      'カード引落',
-      '口座振替',
-      '資金移動',
-      'チャージ',
-      '送金',
-      'transfer',
-      '口座間',
-    ],
-    [CategoryType.REPAYMENT]: [
-      'ローン',
-      '返済',
-      'loan',
-      'repayment',
-      '住宅ローン',
-      '自動車ローン',
-      '教育ローン',
-    ],
-    [CategoryType.INVESTMENT]: [
-      '株式',
-      '投資信託',
-      '債券',
-      '売買',
-      '配当',
-      '分配金',
-      '株',
-      'fund',
-      'stock',
-      '証券',
     ],
   };
 
