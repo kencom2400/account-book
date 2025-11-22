@@ -15,7 +15,14 @@ import { ScheduledSyncJob } from '../../application/jobs/scheduled-sync.job';
 import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { Inject } from '@nestjs/common';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
-import { SyncTransactionsDto, GetSyncHistoryDto } from '../dto/sync.dto';
+import {
+  SyncTransactionsDto,
+  GetSyncHistoryDto,
+  SyncTransactionsResponseDto,
+  SyncStatusResponseDto,
+  SyncHistoryResponseDto,
+  SyncHistoryDetailResponseDto,
+} from '../dto/sync.dto';
 
 /**
  * 同期コントローラー
@@ -38,18 +45,9 @@ export class SyncController {
    */
   @Post()
   @HttpCode(HttpStatus.OK)
-  async syncTransactions(@Body() dto: SyncTransactionsDto): Promise<{
-    success: boolean;
-    data: {
-      syncId: string;
-      status: string;
-      successCount: number;
-      failureCount: number;
-      newTransactionsCount: number;
-      startedAt: Date;
-      completedAt: Date | null;
-    };
-  }> {
+  async syncTransactions(
+    @Body() dto: SyncTransactionsDto,
+  ): Promise<SyncTransactionsResponseDto> {
     this.logger.log('Manual sync requested');
 
     const result = await this.syncTransactionsUseCase.execute({
@@ -75,21 +73,7 @@ export class SyncController {
    * GET /sync/status
    */
   @Get('status')
-  async getSyncStatus(): Promise<{
-    success: boolean;
-    data: {
-      isRunning: boolean;
-      latestSync: {
-        syncId: string;
-        status: string;
-        startedAt: Date;
-        completedAt: Date | null;
-        successCount: number;
-        failureCount: number;
-        newTransactionsCount: number;
-      } | null;
-    };
-  }> {
+  async getSyncStatus(): Promise<SyncStatusResponseDto> {
     const isRunning = this.scheduledSyncJob.isSyncRunning();
     const latestSync = await this.syncHistoryRepository.findLatest();
 
@@ -117,20 +101,9 @@ export class SyncController {
    * GET /sync/history
    */
   @Get('history')
-  async getSyncHistory(@Query() query: GetSyncHistoryDto): Promise<{
-    success: boolean;
-    data: Array<{
-      syncId: string;
-      status: string;
-      startedAt: Date;
-      completedAt: Date | null;
-      totalInstitutions: number;
-      successCount: number;
-      failureCount: number;
-      newTransactionsCount: number;
-      errorMessage: string | null;
-    }>;
-  }> {
+  async getSyncHistory(
+    @Query() query: GetSyncHistoryDto,
+  ): Promise<SyncHistoryResponseDto> {
     let histories;
 
     if (query.startDate && query.endDate) {
@@ -165,21 +138,9 @@ export class SyncController {
    * GET /sync/history/:id
    */
   @Get('history/:id')
-  async getSyncHistoryById(@Param('id') id: string): Promise<{
-    success: boolean;
-    data: {
-      syncId: string;
-      status: string;
-      startedAt: Date;
-      completedAt: Date | null;
-      totalInstitutions: number;
-      successCount: number;
-      failureCount: number;
-      newTransactionsCount: number;
-      errorMessage: string | null;
-      errorDetails: Record<string, unknown> | null;
-    };
-  }> {
+  async getSyncHistoryById(
+    @Param('id') id: string,
+  ): Promise<SyncHistoryDetailResponseDto> {
     const history = await this.syncHistoryRepository.findById(id);
 
     if (!history) {

@@ -45,38 +45,6 @@ export class ScheduledSyncJob {
   }
 
   /**
-   * 手動で同期を実行
-   */
-  async executeManualSync(forceFullSync = false): Promise<void> {
-    if (this.isRunning) {
-      throw new Error(
-        'Sync is already running. Please wait for it to complete.',
-      );
-    }
-
-    this.isRunning = true;
-    this.logger.log('Starting manual sync...');
-
-    try {
-      const result = await this.syncTransactionsUseCase.execute({
-        forceFullSync,
-      });
-
-      this.logger.log(
-        `Manual sync completed: ${result.successCount} success, ${result.failureCount} failed, ${result.newTransactionsCount} new transactions`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Manual sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
-    } finally {
-      this.isRunning = false;
-    }
-  }
-
-  /**
    * 同期が実行中かどうかを確認
    */
   isSyncRunning(): boolean {

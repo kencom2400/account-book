@@ -109,7 +109,11 @@ export class SyncTransactionsUseCase {
 
         if (result.transactions && result.transactions.length > 0) {
           // 前回同期日時以降の新規取引をカウント
-          const lastSyncedAt = creditCard.lastSyncedAt;
+          // forceFullSync=true の場合は全トランザクションを新規とみなす
+          const lastSyncedAt =
+            input.forceFullSync || !creditCard.lastSyncedAt
+              ? null
+              : creditCard.lastSyncedAt;
           const newTransactions = lastSyncedAt
             ? result.transactions.filter(
                 (tx) => new Date(tx.transactionDate) > lastSyncedAt,
@@ -147,7 +151,11 @@ export class SyncTransactionsUseCase {
           });
 
         // 前回同期日時以降の新規取引をカウント
-        const lastSyncedAt = account.lastSyncedAt;
+        // forceFullSync=true の場合は全トランザクションを新規とみなす
+        const lastSyncedAt =
+          input.forceFullSync || !account.lastSyncedAt
+            ? null
+            : account.lastSyncedAt;
         const newTransactions = lastSyncedAt
           ? transactions.filter(
               (tx) => new Date(tx.transactionDate) > lastSyncedAt,
