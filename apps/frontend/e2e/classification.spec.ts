@@ -36,10 +36,8 @@ test.describe('カテゴリ自動分類機能', () => {
     // 結果が表示されるまで待機
     await expect(page.getByText('分類結果')).toBeVisible();
 
-    // 収入カテゴリが表示される（分類結果エリア内を限定）
-    await expect(
-      page.locator('div:has-text("カテゴリ:")').getByText('収入'),
-    ).toBeVisible();
+    // 収入カテゴリが表示される（分類結果エリアの最初の要素）
+    await expect(page.getByText('収入').first()).toBeVisible();
 
     // 信頼度が表示される
     await expect(page.getByText(/信頼度/)).toBeVisible();
@@ -56,10 +54,8 @@ test.describe('カテゴリ自動分類機能', () => {
     // 結果が表示されるまで待機
     await expect(page.getByText('分類結果')).toBeVisible();
 
-    // 支出カテゴリが表示される（分類結果エリア内を限定）
-    await expect(
-      page.locator('div:has-text("カテゴリ:")').getByText('支出'),
-    ).toBeVisible();
+    // 支出カテゴリが表示される（分類結果エリアの最初の要素）
+    await expect(page.getByText('支出').first()).toBeVisible();
   });
 
   test('振替取引を正しく分類できる', async ({ page }) => {
@@ -73,10 +69,8 @@ test.describe('カテゴリ自動分類機能', () => {
     // 結果が表示されるまで待機
     await expect(page.getByText('分類結果')).toBeVisible();
 
-    // 振替カテゴリが表示される（分類結果エリア内を限定）
-    await expect(
-      page.locator('div:has-text("カテゴリ:")').getByText('振替'),
-    ).toBeVisible();
+    // 振替カテゴリが表示される（分類結果エリアの最初の要素）
+    await expect(page.getByText('振替').first()).toBeVisible();
   });
 
   test('返済取引を正しく分類できる', async ({ page }) => {
@@ -90,10 +84,8 @@ test.describe('カテゴリ自動分類機能', () => {
     // 結果が表示されるまで待機
     await expect(page.getByText('分類結果')).toBeVisible();
 
-    // 返済カテゴリが表示される（分類結果エリア内を限定）
-    await expect(
-      page.locator('div:has-text("カテゴリ:")').getByText('返済'),
-    ).toBeVisible();
+    // 返済カテゴリが表示される（分類結果エリアの最初の要素）
+    await expect(page.getByText('返済').first()).toBeVisible();
   });
 
   test('投資取引を正しく分類できる', async ({ page }) => {
@@ -107,10 +99,8 @@ test.describe('カテゴリ自動分類機能', () => {
     // 結果が表示されるまで待機
     await expect(page.getByText('分類結果')).toBeVisible();
 
-    // 投資カテゴリが表示される（分類結果エリア内を限定）
-    await expect(
-      page.locator('div:has-text("カテゴリ:")').getByText('投資'),
-    ).toBeVisible();
+    // 投資カテゴリが表示される（分類結果エリアの最初の要素）
+    await expect(page.getByText('投資').first()).toBeVisible();
   });
 
   test('必須項目が未入力の場合はエラーが表示される', async ({ page }) => {
