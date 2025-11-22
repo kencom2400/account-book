@@ -159,10 +159,11 @@ export class CategoryClassificationService {
     // 各カテゴリのキーワードをチェック（配列の順序で評価）
     for (const [categoryType, keywords] of this.keywordMap) {
       for (const keyword of keywords) {
-        if (normalizedDesc.includes(keyword.toLowerCase())) {
+        const lowerCaseKeyword = keyword.toLowerCase();
+        if (normalizedDesc.includes(lowerCaseKeyword)) {
           const confidence = this.calculateKeywordConfidence(
             normalizedDesc,
-            keyword,
+            lowerCaseKeyword,
           );
           return {
             category: categoryType,
@@ -222,7 +223,7 @@ export class CategoryClassificationService {
     let confidence = 0.8;
 
     // キーワードが説明の冒頭にある場合は信頼度を上げる
-    if (description.startsWith(keyword.toLowerCase())) {
+    if (description.startsWith(keyword)) {
       confidence += 0.1;
     }
 
