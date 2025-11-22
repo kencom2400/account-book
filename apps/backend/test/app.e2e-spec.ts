@@ -1,20 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { createTestApp } from './helpers/test-setup';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
   let dbHelper: E2ETestDatabaseHelper;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    });
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await createTestApp(moduleBuilder, {
+      enableValidationPipe: false,
+      enableHttpExceptionFilter: false,
+    });
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);
