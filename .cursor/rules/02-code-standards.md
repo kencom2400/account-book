@@ -968,229 +968,27 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 ╔═══════════════════════════════════════════════════════════════╗
 ║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
 ║                                                               ║
-║  push前に必ず以下を順番に実行すること（約3-5分）：            ║
-║                                                               ║
-║  1. ./scripts/test/lint.sh         （構文・スタイル）         ║
-║  2. pnpm build（またはturbo build） （ビルド確認）            ║
-║  3. ./scripts/test/test.sh all     （ユニットテスト）         ║
-║  4. ./scripts/test/test-e2e.sh frontend （E2Eテスト）         ║
+║  詳細は `.cursor/rules/03-git-workflow.md` を参照            ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-### 🚨 各ステップの重要性
-
-#### 1. Lintチェック（必須）
+**必須4ステップ**:
 
 ```bash
-./scripts/test/lint.sh
+1. ./scripts/test/lint.sh         # 構文・スタイル
+2. pnpm build                      # ビルド確認 ⭐ 重要
+3. ./scripts/test/test.sh all     # ユニットテスト
+4. ./scripts/test/test-e2e.sh frontend # E2Eテスト
 ```
 
-**検出できるエラー**:
+**実行時間**: 約4-6分
 
-- ESLint violations
-- Prettier formatting errors
-- TypeScript type errors（一部）
+**なぜ重要か**:
 
-**実行時間**: 約30秒
+- ビルドエラーはすべてのCI jobをブロックする
+- ローカルでの早期発見により時間節約（実例: Issue #22で20分の損失を防げた）
 
-#### 2. ビルドチェック（必須・最重要）⭐ NEW
-
-```bash
-# ルートディレクトリから
-pnpm build
-
-# または
-npx turbo build
-```
-
-**検出できるエラー**:
-
-- **TypeScript compilation errors**（最重要）
-- `strictPropertyInitialization` violations
-- Interface/Type compatibility issues
-- Missing dependencies
-- Build configuration errors
-
-**実行時間**: 約1-2分
-
-**❌ よくある見落とし**:
-
-- Lintは通るがビルドは失敗するケース
-- DTOをclassとして定義してプロパティ初期化エラー
-- 型の不整合がビルド時のみ検出される
-
-**なぜビルドチェックが重要か**:
-
-1. **CIは必ずビルドを実行する**
-2. ビルドエラーはすべての後続ステップをブロックする
-3. ローカルでビルドを確認しないと、CIで初めてエラーを発見することになる
-4. CI失敗 → 修正 → 再pushのサイクルは時間の無駄
-
-**実例（Issue #22 / PR #262）**:
-
-```
-# ローカル
-✅ Lint: PASS
-✅ Unit Tests: PASS
-✅ E2E Tests: PASS
-❌ Build: SKIP（実行し忘れ）
-
-# CI
-❌ Build: FAIL - TS2564 errors
-❌ Unit Tests: FAIL（ビルドできないため）
-❌ E2E Tests: FAIL（ビルドできないため）
-
-# 結果
-→ CI全滅、修正commit、再push、時間の無駄
-```
-
-#### 3. ユニットテスト（必須）
-
-```bash
-./scripts/test/test.sh all
-```
-
-**検出できるエラー**:
-
-- Unit test failures
-- Business logic errors
-- Regression errors
-
-**実行時間**: 約1分
-
-#### 4. E2Eテスト（必須）
-
-```bash
-./scripts/test/test-e2e.sh frontend
-```
-
-**検出できるエラー**:
-
-- Integration issues
-- API endpoint errors
-- UI functionality errors
-
-**実行時間**: 約1-2分
-
-### 📊 チェックリスト実行結果の判定
-
-**すべてPASSした場合のみpush可能**:
-
-```bash
-✅ Lint: PASS
-✅ Build: PASS    ← ここが重要！
-✅ Unit Tests: PASS
-✅ E2E Tests: PASS
-
-→ git push OK
-```
-
-**1つでもFAILした場合**:
-
-```bash
-✅ Lint: PASS
-❌ Build: FAIL
-✅ Unit Tests: PASS
-❌ E2E Tests: FAIL
-
-→ 修正してから再度チェック
-→ pushは禁止
-```
-
-### 🔥 最近の失敗例と教訓
-
-#### ケース1: ビルドチェックを忘れた（Issue #22 / PR #262）
-
-**状況**:
-
-- レスポンスDTOをclassとして定義
-- プロパティに初期化子がなかった
-- Lintは通過、ユニットテストも通過
-- **ビルドチェックを実行せずにpush**
-
-**結果**:
-
-- CI Build: ❌ FAIL（TS2564エラー 8箇所）
-- CI Unit Tests: ❌ FAIL（ビルドできないため）
-- CI E2E Tests: ❌ FAIL（ビルドできないため）
-- 合計3つのCIジョブが失敗
-
-**修正内容**:
-
-- レスポンスDTOをinterfaceに変更
-- 修正commit、再push
-
-**時間の損失**:
-
-- CI実行待ち: 約5分
-- エラー確認・修正: 約10分
-- 再CI実行: 約5分
-- **合計**: 約20分
-
-**教訓**:
-
-```
-push前にビルドを確認していれば、1分で発見できた
-→ 19分の時間の無駄を防げた
-```
-
-#### ケース2: E2Eテストを忘れた
-
-**状況**:
-
-- バックエンドAPIエンドポイントを変更
-- Lint、Build、Unit Testsは通過
-- **E2Eテストを実行せずにpush**
-
-**結果**:
-
-- CI E2E Tests: ❌ FAIL
-- フロントエンドとの統合エラー
-
-**教訓**:
-
-```
-APIエンドポイント変更時は必ずE2Eテストを実行する
-```
-
-### ⏱️ 時間投資の正当性
-
-**ローカルチェック**: 約3-5分
-**CI実行時間**: 約3-5分
-**CI失敗時の修正サイクル**: 約15-20分
-
-**結論**: ローカルチェックは時間の節約であり、投資価値が極めて高い
-
-### 🎯 まとめ: 4ステップを必ず実行
-
-```bash
-# 1. Lint
-./scripts/test/lint.sh
-echo "Lint: $?"
-
-# 2. Build ⭐ 忘れずに！
-pnpm build
-echo "Build: $?"
-
-# 3. Unit Tests
-./scripts/test/test.sh all
-echo "Unit Tests: $?"
-
-# 4. E2E Tests
-./scripts/test/test-e2e.sh frontend
-echo "E2E Tests: $?"
-
-# すべてPASSしたらpush
-git push
-```
-
-**理由**:
-
-- pushするとGitHub ActionsでCIが実行される（約3-5分）
-- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
-- **特にビルドエラーはすべてをブロックするため、最優先で確認**
-- フィードバックループが短縮され、開発効率が向上する
-- CI失敗 → 修正 → 再pushのサイクルは時間の大きな無駄
+**詳細**: `.cursor/rules/03-git-workflow.md` の「3. Push前チェック」セクション参照
 
 ---
 
