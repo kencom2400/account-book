@@ -2,40 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InstitutionOrmEntity } from '../entities/institution.orm-entity';
+import { AccountOrmEntity } from '../entities/account.orm-entity';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
-import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
 import { AccountEntity } from '../../domain/entities/account.entity';
+import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
+import { IInstitutionRepository } from '../../domain/repositories/institution.repository.interface';
+import { InstitutionType } from '@account-book/types';
 
 /**
  * InstitutionTypeOrmRepository
  * TypeORMを使用した金融機関リポジトリの実装
  */
 @Injectable()
-export class InstitutionTypeOrmRepository {
+export class InstitutionTypeOrmRepository implements IInstitutionRepository {
   constructor(
     @InjectRepository(InstitutionOrmEntity)
-    private readonly repository: Repository<InstitutionOrmEntity>,
+    private readonly institutionRepository: Repository<InstitutionOrmEntity>,
+    @InjectRepository(AccountOrmEntity)
+    private readonly accountRepository: Repository<AccountOrmEntity>,
   ) {}
-
-  /**
-   * すべての金融機関を取得
-   */
-  async findAll(): Promise<InstitutionEntity[]> {
-    const ormEntities: InstitutionOrmEntity[] = await this.repository.find({
-      order: { name: 'ASC' },
-    });
-    return ormEntities.map((entity: InstitutionOrmEntity) =>
-      this.toDomain(entity),
-    );
-  }
 
   /**
    * IDで金融機関を取得
    */
   async findById(id: string): Promise<InstitutionEntity | null> {
     const ormEntity: InstitutionOrmEntity | null =
-      await this.repository.findOne({
+      await this.institutionRepository.findOne({
         where: { id },
+        relations: ['accounts'],
       });
 
     if (!ormEntity) {
@@ -46,13 +40,14 @@ export class InstitutionTypeOrmRepository {
   }
 
   /**
-   * タイプで金融機関を取得
+   * すべての金融機関を取得
    */
-  async findByType(type: string): Promise<InstitutionEntity[]> {
-    const ormEntities: InstitutionOrmEntity[] = await this.repository.find({
-      where: { type: type as InstitutionOrmEntity['type'] },
-      order: { name: 'ASC' },
-    });
+  async findAll(): Promise<InstitutionEntity[]> {
+    const ormEntities: InstitutionOrmEntity[] =
+      await this.institutionRepository.find({
+        relations: ['accounts'],
+        order: { createdAt: 'ASC' },
+      });
 
     return ormEntities.map((entity: InstitutionOrmEntity) =>
       this.toDomain(entity),
@@ -60,15 +55,33 @@ export class InstitutionTypeOrmRepository {
   }
 
   /**
-   * 接続ステータスで金融機関を取得
+   * タイプで金融機関を取得
+   */
+  async findByType(type: InstitutionType): Promise<InstitutionEntity[]> {
+    const ormEntities: InstitutionOrmEntity[] =
+      await this.institutionRepository.find({
+        where: { type },
+        relations: ['accounts'],
+        order: { createdAt: 'ASC' },
+      });
+
+    return ormEntities.map((entity: InstitutionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * 接続状態で金融機関を取得
    */
   async findByConnectionStatus(
     isConnected: boolean,
   ): Promise<InstitutionEntity[]> {
-    const ormEntities: InstitutionOrmEntity[] = await this.repository.find({
-      where: { isConnected },
-      order: { name: 'ASC' },
-    });
+    const ormEntities: InstitutionOrmEntity[] =
+      await this.institutionRepository.find({
+        where: { isConnected },
+        relations: ['accounts'],
+        order: { createdAt: 'ASC' },
+      });
 
     return ormEntities.map((entity: InstitutionOrmEntity) =>
       this.toDomain(entity),
@@ -80,7 +93,38 @@ export class InstitutionTypeOrmRepository {
    */
   async save(institution: InstitutionEntity): Promise<InstitutionEntity> {
     const ormEntity: InstitutionOrmEntity = this.toOrm(institution);
-    const saved: InstitutionOrmEntity = await this.repository.save(ormEntity);
+    const saved: InstitutionOrmEntity =
+      await this.institutionRepository.save(ormEntity);
+
+    // 口座も保存
+    if (institution.accounts.length > 0) {
+      const accountOrms: AccountOrmEntity[] = institution.accounts.map(
+        (account: AccountEntity) => this.accountToOrm(account),
+      );
+      await this.accountRepository.save(accountOrms);
+    }
+
+    // 保存後のエンティティを返す
+    return this.toDomain(saved);
+  }
+
+  /**
+   * 金融機関を更新
+   */
+  async update(institution: InstitutionEntity): Promise<InstitutionEntity> {
+    const ormEntity: InstitutionOrmEntity = this.toOrm(institution);
+    const saved: InstitutionOrmEntity =
+      await this.institutionRepository.save(ormEntity);
+
+    // 既存の口座を削除してから新規保存（簡単のため）
+    await this.accountRepository.delete({ institutionId: institution.id });
+    if (institution.accounts.length > 0) {
+      const accountOrms: AccountOrmEntity[] = institution.accounts.map(
+        (account: AccountEntity) => this.accountToOrm(account),
+      );
+      await this.accountRepository.save(accountOrms);
+    }
+
     return this.toDomain(saved);
   }
 
@@ -88,70 +132,39 @@ export class InstitutionTypeOrmRepository {
    * 金融機関を削除
    */
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    // 関連する口座も削除される（CASCADE設定による）
+    await this.institutionRepository.delete(id);
+  }
+
+  /**
+   * すべての金融機関を削除（テスト用）
+   */
+  async deleteAll(): Promise<void> {
+    await this.accountRepository.delete({});
+    await this.institutionRepository.delete({});
   }
 
   /**
    * ORM→ドメインエンティティ変換
    */
   private toDomain(ormEntity: InstitutionOrmEntity): InstitutionEntity {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(ormEntity.encryptedCredentials);
-    } catch (error) {
-      throw new Error(
-        `Failed to parse encryptedCredentials for institution ${ormEntity.id}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-
-    // データ構造の検証
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !('encrypted' in parsed) ||
-      !('iv' in parsed) ||
-      !('authTag' in parsed) ||
-      !('algorithm' in parsed) ||
-      !('version' in parsed)
-    ) {
-      throw new Error(
-        'Invalid credentials data structure: missing required fields',
-      );
-    }
-
-    const credentialsData = parsed as {
-      encrypted: string;
-      iv: string;
-      authTag: string;
-      algorithm: string;
-      version: string;
-    };
-
     const credentials: EncryptedCredentials = new EncryptedCredentials(
-      credentialsData.encrypted,
-      credentialsData.iv,
-      credentialsData.authTag,
-      credentialsData.algorithm,
-      credentialsData.version,
+      ormEntity.credentialsEncrypted,
+      ormEntity.credentialsIv,
+      ormEntity.credentialsAuthTag,
+      ormEntity.credentialsAlgorithm,
+      ormEntity.credentialsVersion,
     );
 
-    // TypeORMが自動的にJSONをパースするため、直接使用可能
     const accounts: AccountEntity[] = (ormEntity.accounts || []).map(
-      (account: {
-        id: string;
-        institutionId: string;
-        accountNumber: string;
-        accountName: string;
-        balance: number;
-        currency: string;
-      }) =>
+      (accountOrm: AccountOrmEntity) =>
         new AccountEntity(
-          account.id,
-          account.institutionId,
-          account.accountNumber,
-          account.accountName,
-          account.balance,
-          account.currency,
+          accountOrm.id,
+          accountOrm.institutionId,
+          accountOrm.accountNumber,
+          accountOrm.accountName,
+          Number(accountOrm.balance),
+          accountOrm.currency,
         ),
     );
 
@@ -172,19 +185,41 @@ export class InstitutionTypeOrmRepository {
    * ドメインエンティティ→ORM変換
    */
   private toOrm(domain: InstitutionEntity): InstitutionOrmEntity {
-    return this.repository.create({
+    const credentialsJson: {
+      encrypted: string;
+      iv: string;
+      authTag: string;
+      algorithm: string;
+      version: string;
+    } = domain.credentials.toJSON();
+
+    return this.institutionRepository.create({
       id: domain.id,
       name: domain.name,
       type: domain.type,
-      encryptedCredentials: JSON.stringify(domain.credentials.toJSON()),
+      credentialsEncrypted: credentialsJson.encrypted,
+      credentialsIv: credentialsJson.iv,
+      credentialsAuthTag: credentialsJson.authTag,
+      credentialsAlgorithm: credentialsJson.algorithm,
+      credentialsVersion: credentialsJson.version,
       isConnected: domain.isConnected,
       lastSyncedAt: domain.lastSyncedAt,
-      // TypeORMが自動的にJSONにシリアライズするため、直接配列を渡す
-      accounts: domain.accounts.map((account: AccountEntity) =>
-        account.toJSON(),
-      ),
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
+    });
+  }
+
+  /**
+   * ドメインAccount→ORM変換
+   */
+  private accountToOrm(domain: AccountEntity): AccountOrmEntity {
+    return this.accountRepository.create({
+      id: domain.id,
+      institutionId: domain.institutionId,
+      accountNumber: domain.accountNumber,
+      accountName: domain.accountName,
+      balance: domain.balance,
+      currency: domain.currency,
     });
   }
 }
