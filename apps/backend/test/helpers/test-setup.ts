@@ -117,6 +117,10 @@ export async function createTestApp(
     app.setGlobalPrefix(setPrefix);
   }
 
+  // シャットダウンフックを有効化
+  // ScheduleModuleなどのリソースを適切にクリーンアップするために必要
+  app.enableShutdownHooks();
+
   await app.init();
   return app;
 }
