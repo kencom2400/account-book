@@ -30,6 +30,8 @@ describe('NotificationEntity', () => {
 
   describe('updateStatus', () => {
     it('should update notification status and updatedAt', () => {
+      jest.useFakeTimers();
+
       // Arrange
       const notification: NotificationEntity = NotificationEntity.create(
         'notif-001',
@@ -39,14 +41,8 @@ describe('NotificationEntity', () => {
       );
       const originalUpdatedAt: Date = notification.updatedAt;
 
-      // 時間差を作るために少し待機
-      const waitMs: number = 10;
-      const startTime: number = Date.now();
-      while (Date.now() - startTime < waitMs) {
-        // 待機
-      }
-
       // Act
+      jest.advanceTimersByTime(10); // 10ms進める
       const updatedNotification: NotificationEntity = notification.updateStatus(
         NotificationStatus.CONFIRMED,
       );
@@ -57,6 +53,8 @@ describe('NotificationEntity', () => {
         originalUpdatedAt.getTime(),
       );
       expect(updatedNotification.createdAt).toEqual(notification.createdAt);
+
+      jest.useRealTimers();
     });
   });
 
