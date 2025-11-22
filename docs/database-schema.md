@@ -180,6 +180,8 @@
 
 クレジットカード情報を管理するテーブル。
 
+**注意**: 現在の実装では credit_cards は独立したテーブルとして実装されていますが、概念的には institutions の一種（type='credit_card'）として扱われるべきです。将来的には institutions テーブルに統合するか、外部キーで関連付けることを検討してください。
+
 | カラム名              | データ型      | NULL     | デフォルト                  | 説明                 |
 | --------------------- | ------------- | -------- | --------------------------- | -------------------- |
 | id                    | VARCHAR(36)   | NOT NULL | -                           | 主キー（UUID）       |
@@ -249,6 +251,7 @@
 - category_name と category_type は非正規化データ（パフォーマンス最適化）
 - 取引の検索・表示時にカテゴリテーブルへのJOINを回避
 - カテゴリ名変更時はアプリケーション側で整合性を維持
+- **重要**: related_transaction_id は振替取引の関連付けに使用されるが、現在の実装では外部キー制約は設定されていない（データ整合性の観点から、将来的に外部キー制約の追加を検討）
 
 ---
 
@@ -316,6 +319,16 @@
 | FK_CATEGORIES_PARENT        | categories   | id       | categories   | parent_id      | CASCADE   | CASCADE   |
 | FK_TRANSACTIONS_CATEGORY    | categories   | id       | transactions | category_id    | RESTRICT  | CASCADE   |
 | FK_TRANSACTIONS_INSTITUTION | institutions | id       | transactions | institution_id | RESTRICT  | CASCADE   |
+
+**注意**: transactions.related_transaction_id に対する自己参照外部キー制約は現在実装されていません。データ整合性の観点から、将来的に以下の制約の追加を推奨します：
+
+```sql
+ALTER TABLE transactions
+ADD CONSTRAINT FK_TRANSACTIONS_RELATED
+FOREIGN KEY (related_transaction_id)
+REFERENCES transactions(id)
+ON DELETE SET NULL;
+```
 
 ### 削除ポリシー
 
@@ -420,6 +433,50 @@ PARTITION BY RANGE (YEAR(date) * 100 + MONTH(date)) (
 ---
 
 ## 今後の拡張予定
+
+### Phase 1.5: データ整合性の改善（優先度: 高）
+
+#### 1. transactions.related_transaction_id への外部キー制約追加
+
+振替取引の関連付けに使用される related_transaction_id に自己参照外部キー制約を追加し、データ整合性を保証します。
+
+```sql
+ALTER TABLE transactions
+ADD CONSTRAINT FK_TRANSACTIONS_RELATED
+FOREIGN KEY (related_transaction_id)
+REFERENCES transactions(id)
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+```
+
+**理由**:
+
+- 存在しない取引IDへの参照を防止
+- 関連取引が削除された場合は NULL に設定
+- データの整合性を保証
+
+#### 2. institutions と credit_cards の関係整理
+
+現在、institutions と credit_cards は独立したテーブルですが、概念的には重複しています。以下のいずれかの方法で統合を検討します：
+
+**オプションA**: credit_cards を institutions に統合
+
+```sql
+-- credit_cardsテーブルのデータをinstitutionsに移行
+-- credit_cardsテーブルを削除
+```
+
+**オプションB**: credit_cards に institution_id を追加
+
+```sql
+ALTER TABLE credit_cards
+ADD COLUMN institution_id VARCHAR(36),
+ADD CONSTRAINT FK_CREDIT_CARDS_INSTITUTION
+FOREIGN KEY (institution_id) REFERENCES institutions(id)
+ON DELETE CASCADE;
+```
+
+**推奨**: オプションA（統合）を推奨。institutions.type='credit_card' として扱い、カード固有の情報は JSON フィールドまたは別のリレーションシップテーブルで管理。
 
 ### Phase 2: 追加予定のテーブル
 
