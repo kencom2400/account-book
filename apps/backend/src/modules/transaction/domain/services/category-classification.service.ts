@@ -280,9 +280,6 @@ export class CategoryClassificationService {
 
   /**
    * 分類信頼度を評価
-   *
-   * @deprecated 現在のclassifyTransactionフローでは使用されていません。
-   * 将来的にフロントエンドへのレスポンスに含める予定。
    */
   evaluateConfidence(confidence: number): 'high' | 'medium' | 'low' {
     if (confidence >= 0.9) {
