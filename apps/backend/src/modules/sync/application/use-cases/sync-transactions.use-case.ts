@@ -1,16 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
+import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { SyncHistoryEntity } from '../../domain/entities/sync-history.entity';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
 import { IncrementalSyncStrategy } from '../strategies/incremental-sync.strategy';
 import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
-import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities-account.repository.interface';
+import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
 import { RefreshCreditCardDataUseCase } from '../../../credit-card/application/use-cases/refresh-credit-card-data.use-case';
 import { FetchSecurityTransactionsUseCase } from '../../../securities/application/use-cases/fetch-security-transactions.use-case';
 import { CREDIT_CARD_REPOSITORY } from '../../../credit-card/credit-card.tokens';
@@ -109,16 +103,16 @@ export class SyncTransactionsUseCase {
       try {
         this.logger.log(`Syncing credit card: ${creditCard.id}`);
 
-        const result = await this.refreshCreditCardDataUseCase.execute({
-          creditCardId: creditCard.id,
-        });
+        const result = await this.refreshCreditCardDataUseCase.execute(
+          creditCard.id,
+        );
 
         if (result.transactions && result.transactions.length > 0) {
           // 前回同期日時以降の新規取引をカウント
           const lastSyncedAt = creditCard.lastSyncedAt;
           const newTransactions = lastSyncedAt
             ? result.transactions.filter(
-                (tx) => new Date(tx.date) > lastSyncedAt,
+                (tx) => new Date(tx.transactionDate) > lastSyncedAt,
               )
             : result.transactions;
 
@@ -155,7 +149,9 @@ export class SyncTransactionsUseCase {
         // 前回同期日時以降の新規取引をカウント
         const lastSyncedAt = account.lastSyncedAt;
         const newTransactions = lastSyncedAt
-          ? transactions.filter((tx) => new Date(tx.date) > lastSyncedAt)
+          ? transactions.filter(
+              (tx) => new Date(tx.transactionDate) > lastSyncedAt,
+            )
           : transactions;
 
         totalNewTransactions += newTransactions.length;

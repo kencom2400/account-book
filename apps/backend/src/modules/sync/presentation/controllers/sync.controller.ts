@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { SyncTransactionsUseCase } from '../../application/use-cases/sync-transactions.use-case';
 import { ScheduledSyncJob } from '../../application/jobs/scheduled-sync.job';
-import { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
+import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { Inject } from '@nestjs/common';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
 import { SyncTransactionsDto, GetSyncHistoryDto } from '../dto/sync.dto';
