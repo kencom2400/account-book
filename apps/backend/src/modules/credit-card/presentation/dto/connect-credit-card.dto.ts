@@ -2,33 +2,33 @@ import { IsString, IsNumber, IsDateString, Min, Max } from 'class-validator';
 
 export class ConnectCreditCardDto {
   @IsString()
-  cardName: string;
+  cardName!: string;
 
   @IsString()
-  cardNumber: string; // 下4桁のみ
+  cardNumber!: string; // 下4桁のみ
 
   @IsString()
-  cardHolderName: string;
+  cardHolderName!: string;
 
   @IsDateString()
-  expiryDate: string; // YYYY-MM-DD形式
+  expiryDate!: string; // YYYY-MM-DD形式
 
   @IsString()
-  username: string;
+  username!: string;
 
   @IsString()
-  password: string;
+  password!: string;
 
   @IsString()
-  issuer: string;
+  issuer!: string;
 
   @IsNumber()
   @Min(1)
   @Max(31)
-  paymentDay: number;
+  paymentDay!: number;
 
   @IsNumber()
   @Min(1)
   @Max(31)
-  closingDay: number;
+  closingDay!: number;
 }

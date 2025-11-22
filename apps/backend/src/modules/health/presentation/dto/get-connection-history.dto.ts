@@ -38,13 +38,13 @@ export class GetConnectionHistoryQueryDto {
  * 接続履歴レスポンスDTO
  */
 export class ConnectionHistoryDto {
-  id: string;
-  institutionId: string;
-  institutionName: string;
-  institutionType: string;
-  status: string;
-  checkedAt: string;
-  responseTime: number;
+  id!: string;
+  institutionId!: string;
+  institutionName!: string;
+  institutionType!: string;
+  status!: string;
+  checkedAt!: string;
+  responseTime!: number;
   errorMessage?: string;
   errorCode?: string;
 }
@@ -53,6 +53,6 @@ export class ConnectionHistoryDto {
  * 接続履歴一覧レスポンスDTO
  */
 export class GetConnectionHistoryResponseDto {
-  histories: ConnectionHistoryDto[];
-  totalCount: number;
+  histories!: ConnectionHistoryDto[];
+  totalCount!: number;
 }

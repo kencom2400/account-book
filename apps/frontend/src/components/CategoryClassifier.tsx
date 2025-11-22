@@ -21,14 +21,14 @@ interface ClassificationResult {
   reason: string;
 }
 
-export default function CategoryClassifier() {
+export default function CategoryClassifier(): React.JSX.Element {
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [result, setResult] = useState<ClassificationResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleClassify = async () => {
+  const handleClassify = async (): Promise<void> => {
     if (!amount || !description) {
       setError('金額と説明を入力してください');
       return;
