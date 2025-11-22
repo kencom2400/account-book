@@ -171,14 +171,7 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndex(
-      'holdings',
-      new TableIndex({
-        name: 'IDX_HOLDINGS_SECURITIES_ACCOUNT_ID',
-        columnNames: ['securities_account_id'],
-      }),
-    );
-
+    // security_codeのインデックスのみ作成（外部キーは自動的にインデックスを作成）
     await queryRunner.createIndex(
       'holdings',
       new TableIndex({
@@ -264,14 +257,7 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndex(
-      'security_transactions',
-      new TableIndex({
-        name: 'IDX_SECURITY_TRANSACTIONS_SECURITIES_ACCOUNT_ID',
-        columnNames: ['securities_account_id'],
-      }),
-    );
-
+    // transaction_dateとstatusのインデックスのみ作成（外部キーは自動的にインデックスを作成）
     await queryRunner.createIndex(
       'security_transactions',
       new TableIndex({

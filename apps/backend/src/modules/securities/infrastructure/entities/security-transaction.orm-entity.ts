@@ -15,7 +15,6 @@ import { SecuritiesAccountOrmEntity } from './securities-account.orm-entity';
  * データベースのテーブル構造を定義
  */
 @Entity('security_transactions')
-@Index(['securitiesAccountId'])
 @Index(['transactionDate'])
 @Index(['status'])
 export class SecurityTransactionOrmEntity {
