@@ -42,10 +42,23 @@ export async function classifyTransaction(
   );
 
   // レスポンスの型チェック
-  const responseData = response.data as ClassifyTransactionResponse;
-  if (!responseData?.data) {
+  if (!response.data || typeof response.data !== 'object') {
     throw new Error('Invalid response from API');
   }
 
-  return responseData.data;
+  // successプロパティの存在確認
+  if ('success' in response.data && 'data' in response.data) {
+    const apiResponse = response.data as {
+      success: boolean;
+      data: ClassifyTransactionResponse['data'];
+    };
+    return apiResponse.data;
+  }
+
+  // 直接dataを返す場合（APIがラップなしでdataを返す場合）
+  if ('category' in response.data && 'confidence' in response.data && 'reason' in response.data) {
+    return response.data;
+  }
+
+  throw new Error('Invalid response structure from API');
 }
