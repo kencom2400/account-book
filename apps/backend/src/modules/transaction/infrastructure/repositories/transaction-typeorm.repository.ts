@@ -1,34 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { TransactionOrmEntity } from '../entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
+import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
+import { CategoryType } from '@account-book/types';
 
 /**
  * TransactionTypeOrmRepository
- * TypeORMを使用したトランザクションリポジトリの実装
+ * TypeORMを使用した取引リポジトリの実装
  */
 @Injectable()
-export class TransactionTypeOrmRepository {
+export class TransactionTypeOrmRepository implements ITransactionRepository {
   constructor(
     @InjectRepository(TransactionOrmEntity)
     private readonly repository: Repository<TransactionOrmEntity>,
   ) {}
 
   /**
-   * すべてのトランザクションを取得
-   */
-  async findAll(): Promise<TransactionEntity[]> {
-    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
-      order: { date: 'DESC' },
-    });
-    return ormEntities.map((entity: TransactionOrmEntity) =>
-      this.toDomain(entity),
-    );
-  }
-
-  /**
-   * IDでトランザクションを取得
+   * IDで取引を取得
    */
   async findById(id: string): Promise<TransactionEntity | null> {
     const ormEntity: TransactionOrmEntity | null =
@@ -44,7 +34,20 @@ export class TransactionTypeOrmRepository {
   }
 
   /**
-   * 金融機関IDでトランザクションを取得
+   * すべての取引を取得
+   */
+  async findAll(): Promise<TransactionEntity[]> {
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * 金融機関IDで取引を取得
    */
   async findByInstitutionId(
     institutionId: string,
@@ -60,30 +63,11 @@ export class TransactionTypeOrmRepository {
   }
 
   /**
-   * 期間でトランザクションを取得
+   * 口座IDで取引を取得
    */
-  async findByDateRange(
-    startDate: Date,
-    endDate: Date,
-  ): Promise<TransactionEntity[]> {
-    const ormEntities: TransactionOrmEntity[] = await this.repository
-      .createQueryBuilder('transaction')
-      .where('transaction.date >= :startDate', { startDate })
-      .andWhere('transaction.date <= :endDate', { endDate })
-      .orderBy('transaction.date', 'DESC')
-      .getMany();
-
-    return ormEntities.map((entity: TransactionOrmEntity) =>
-      this.toDomain(entity),
-    );
-  }
-
-  /**
-   * カテゴリでトランザクションを取得
-   */
-  async findByCategoryId(categoryId: string): Promise<TransactionEntity[]> {
+  async findByAccountId(accountId: string): Promise<TransactionEntity[]> {
     const ormEntities: TransactionOrmEntity[] = await this.repository.find({
-      where: { categoryId },
+      where: { accountId },
       order: { date: 'DESC' },
     });
 
@@ -93,7 +77,63 @@ export class TransactionTypeOrmRepository {
   }
 
   /**
-   * トランザクションを保存
+   * 期間で取引を取得
+   */
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: {
+        date: Between(startDate, endDate),
+      },
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * 月で取引を取得
+   */
+  async findByMonth(year: number, month: number): Promise<TransactionEntity[]> {
+    const startDate: Date = new Date(year, month - 1, 1);
+    const endDate: Date = new Date(year, month, 0, 23, 59, 59, 999);
+
+    return this.findByDateRange(startDate, endDate);
+  }
+
+  /**
+   * 年で取引を取得
+   */
+  async findByYear(year: number): Promise<TransactionEntity[]> {
+    const startDate: Date = new Date(year, 0, 1);
+    const endDate: Date = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    return this.findByDateRange(startDate, endDate);
+  }
+
+  /**
+   * 照合が必要な取引を取得（振替で未照合）
+   */
+  async findUnreconciledTransfers(): Promise<TransactionEntity[]> {
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: {
+        categoryType: CategoryType.TRANSFER,
+        isReconciled: false,
+      },
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * 取引を保存
    */
   async save(transaction: TransactionEntity): Promise<TransactionEntity> {
     const ormEntity: TransactionOrmEntity = this.toOrm(transaction);
@@ -102,10 +142,38 @@ export class TransactionTypeOrmRepository {
   }
 
   /**
-   * トランザクションを削除
+   * 複数の取引を一括保存
+   */
+  async saveMany(
+    transactions: TransactionEntity[],
+  ): Promise<TransactionEntity[]> {
+    const ormEntities: TransactionOrmEntity[] = transactions.map(
+      (transaction: TransactionEntity) => this.toOrm(transaction),
+    );
+    const saved: TransactionOrmEntity[] =
+      await this.repository.save(ormEntities);
+    return saved.map((entity: TransactionOrmEntity) => this.toDomain(entity));
+  }
+
+  /**
+   * 取引を更新
+   */
+  async update(transaction: TransactionEntity): Promise<TransactionEntity> {
+    return this.save(transaction);
+  }
+
+  /**
+   * 取引を削除
    */
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
+  }
+
+  /**
+   * すべての取引を削除（テスト用）
+   */
+  async deleteAll(): Promise<void> {
+    await this.repository.delete({});
   }
 
   /**
@@ -115,7 +183,7 @@ export class TransactionTypeOrmRepository {
     return new TransactionEntity(
       ormEntity.id,
       ormEntity.date,
-      parseFloat(ormEntity.amount),
+      Number(ormEntity.amount),
       {
         id: ormEntity.categoryId,
         name: ormEntity.categoryName,
@@ -139,7 +207,7 @@ export class TransactionTypeOrmRepository {
     return this.repository.create({
       id: domain.id,
       date: domain.date,
-      amount: domain.amount.toString(),
+      amount: domain.amount,
       categoryId: domain.category.id,
       categoryName: domain.category.name,
       categoryType: domain.category.type,

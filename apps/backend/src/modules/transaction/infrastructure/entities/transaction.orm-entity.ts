@@ -5,27 +5,30 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 
 /**
  * TransactionOrmEntity
- * TypeORM用のトランザクションエンティティ
+ * TypeORM用の取引エンティティ
  * データベースのテーブル構造を定義
  */
 @Entity('transactions')
-@Index(['date', 'institutionId'])
-@Index(['categoryId'])
+@Index(['institutionId'])
+@Index(['accountId'])
+@Index(['date'])
 @Index(['status'])
 export class TransactionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'timestamp' })
   date!: Date;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  amount!: string;
+  amount!: number;
 
   @Column({ type: 'varchar', length: 36, name: 'category_id' })
   categoryId!: string;
@@ -66,6 +69,10 @@ export class TransactionOrmEntity {
     name: 'related_transaction_id',
   })
   relatedTransactionId!: string | null;
+
+  @ManyToOne(() => TransactionOrmEntity, { nullable: true })
+  @JoinColumn({ name: 'related_transaction_id' })
+  relatedTransaction!: TransactionOrmEntity | null;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;

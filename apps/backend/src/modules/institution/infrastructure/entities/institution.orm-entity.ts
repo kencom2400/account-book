@@ -4,22 +4,11 @@ import {
   PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
   Index,
 } from 'typeorm';
 import { InstitutionType } from '@account-book/types';
-
-/**
- * AccountJSON型定義
- * accounts JSONフィールドの型定義
- */
-export interface AccountJSON {
-  id: string;
-  institutionId: string;
-  accountNumber: string;
-  accountName: string;
-  balance: number;
-  currency: string;
-}
+import { AccountOrmEntity } from './account.orm-entity';
 
 /**
  * InstitutionOrmEntity
@@ -42,8 +31,20 @@ export class InstitutionOrmEntity {
   })
   type!: InstitutionType;
 
-  @Column({ type: 'text', name: 'encrypted_credentials' })
-  encryptedCredentials!: string;
+  @Column({ type: 'text', name: 'credentials_encrypted' })
+  credentialsEncrypted!: string;
+
+  @Column({ type: 'varchar', length: 255, name: 'credentials_iv' })
+  credentialsIv!: string;
+
+  @Column({ type: 'varchar', length: 255, name: 'credentials_auth_tag' })
+  credentialsAuthTag!: string;
+
+  @Column({ type: 'varchar', length: 50, name: 'credentials_algorithm' })
+  credentialsAlgorithm!: string;
+
+  @Column({ type: 'varchar', length: 10, name: 'credentials_version' })
+  credentialsVersion!: string;
 
   @Column({ type: 'boolean', default: false, name: 'is_connected' })
   isConnected!: boolean;
@@ -51,8 +52,10 @@ export class InstitutionOrmEntity {
   @Column({ type: 'timestamp', nullable: true, name: 'last_synced_at' })
   lastSyncedAt!: Date | null;
 
-  @Column({ type: 'json', nullable: true })
-  accounts!: AccountJSON[];
+  @OneToMany(() => AccountOrmEntity, (account) => account.institution, {
+    cascade: true,
+  })
+  accounts!: AccountOrmEntity[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;

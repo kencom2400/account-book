@@ -25,8 +25,8 @@ export const getDatabaseConfig = (
     // 本番環境では synchronize を無効化（マイグレーションを使用）
     // テスト環境ではテーブル自動作成のため synchronize を有効化
     synchronize: !isProduction,
-    // 開発環境でのみクエリログを出力
-    logging: !isProduction && !isTest,
+    // 開発環境・テスト環境でクエリログを出力（エラーデバッグ用）
+    logging: !isProduction || isTest,
     charset: 'utf8mb4',
     timezone: '+09:00',
     // コネクションプール設定

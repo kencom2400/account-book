@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransactionController } from './presentation/controllers/transaction.controller';
-import { TransactionRepository } from './infrastructure/repositories/transaction.repository';
 import { TransactionTypeOrmRepository } from './infrastructure/repositories/transaction-typeorm.repository';
 import { TransactionOrmEntity } from './infrastructure/entities/transaction.orm-entity';
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
@@ -18,13 +17,12 @@ import { CategoryModule } from '../category/category.module';
   imports: [TypeOrmModule.forFeature([TransactionOrmEntity]), CategoryModule],
   controllers: [TransactionController],
   providers: [
-    // Repository - TypeORM版を使用（JSON版は予備として残す）
+    // Repository - TypeORM版を使用
     {
       provide: TRANSACTION_REPOSITORY,
       useClass: TransactionTypeOrmRepository,
     },
     TransactionTypeOrmRepository,
-    TransactionRepository, // JSONリポジトリは予備として残す
     // Domain Services
     TransactionDomainService,
     CategoryClassificationService,

@@ -25,7 +25,7 @@ import type { PortfolioValue } from '../../application/use-cases/calculate-portf
  * SecuritiesController
  * 証券口座・保有銘柄・取引履歴に関するエンドポイント
  */
-@Controller('api/securities')
+@Controller('securities')
 export class SecuritiesController {
   private readonly logger = new Logger(SecuritiesController.name);
 

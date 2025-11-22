@@ -13,11 +13,18 @@ import { DataSource, EntityManager } from 'typeorm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CategoryOrmEntity } from '../src/modules/category/infrastructure/entities/category.orm-entity';
-import {
-  InstitutionOrmEntity,
-  AccountJSON,
-} from '../src/modules/institution/infrastructure/entities/institution.orm-entity';
+import { InstitutionOrmEntity } from '../src/modules/institution/infrastructure/entities/institution.orm-entity';
+import { AccountOrmEntity } from '../src/modules/institution/infrastructure/entities/account.orm-entity';
 import { TransactionOrmEntity } from '../src/modules/transaction/infrastructure/entities/transaction.orm-entity';
+
+interface AccountJSON {
+  id: string;
+  institutionId: string;
+  accountNumber: string;
+  accountName: string;
+  balance: number;
+  currency: string;
+}
 
 interface CategoryJSON {
   id: string;
@@ -160,25 +167,16 @@ async function migrateInstitutions(manager: EntityManager): Promise<void> {
         entity.id = inst.id;
         entity.name = inst.name;
         entity.type = inst.type as InstitutionOrmEntity['type'];
-        entity.encryptedCredentials = JSON.stringify(inst.credentials);
+        // credentialsを分割して保存
+        entity.credentialsEncrypted = inst.credentials.encrypted;
+        entity.credentialsIv = inst.credentials.iv;
+        entity.credentialsAuthTag = inst.credentials.authTag;
+        entity.credentialsAlgorithm = inst.credentials.algorithm;
+        entity.credentialsVersion = inst.credentials.version;
         entity.isConnected = inst.isConnected;
         entity.lastSyncedAt = inst.lastSyncedAt
           ? new Date(inst.lastSyncedAt)
           : null;
-
-        // 型安全なaccountsマッピング
-        if (
-          Array.isArray(inst.accounts) &&
-          inst.accounts.every(isValidAccountJSON)
-        ) {
-          entity.accounts = inst.accounts;
-        } else {
-          console.warn(
-            `⚠️  Invalid accounts structure for institution ${inst.id}, using empty array`,
-          );
-          entity.accounts = [];
-        }
-
         entity.createdAt = new Date(inst.createdAt);
         entity.updatedAt = new Date(inst.updatedAt);
         return entity;
@@ -186,6 +184,33 @@ async function migrateInstitutions(manager: EntityManager): Promise<void> {
     );
 
     await repository.save(entities);
+
+    // accountsを別途保存
+    const accountRepository = manager.getRepository(AccountOrmEntity);
+    const allAccounts: AccountOrmEntity[] = institutions.flatMap(
+      (inst: InstitutionJSON) => {
+        if (
+          Array.isArray(inst.accounts) &&
+          inst.accounts.every(isValidAccountJSON)
+        ) {
+          return inst.accounts.map((acc: AccountJSON) => {
+            const accEntity = new AccountOrmEntity();
+            accEntity.id = acc.id;
+            accEntity.institutionId = acc.institutionId;
+            accEntity.accountNumber = acc.accountNumber;
+            accEntity.accountName = acc.accountName;
+            accEntity.balance = acc.balance;
+            accEntity.currency = acc.currency;
+            return accEntity;
+          });
+        }
+        return [];
+      },
+    );
+
+    if (allAccounts.length > 0) {
+      await accountRepository.save(allAccounts);
+    }
 
     console.log(`✅ 金融機関 ${institutions.length}件を移行しました`);
   } catch (error) {
@@ -224,8 +249,8 @@ async function migrateTransactions(manager: EntityManager): Promise<void> {
           const entity: TransactionOrmEntity = new TransactionOrmEntity();
           entity.id = txn.id;
           entity.date = new Date(txn.date);
-          // amountはstring型に変換
-          entity.amount = txn.amount.toString();
+          // amountは数値型
+          entity.amount = txn.amount;
           entity.categoryId = txn.category.id;
           entity.categoryName = txn.category.name;
           entity.categoryType = txn.category
