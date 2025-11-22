@@ -1,32 +1,42 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { SecuritiesModule } from '../src/modules/securities/securities.module';
-import { ConfigModule } from '@nestjs/config';
-import appConfig from '../src/config/app.config';
-import cryptoConfig from '../src/config/crypto.config';
+import { AppModule } from '../src/app.module';
+import { E2ETestDatabaseHelper } from './helpers/database-helper';
 import { createTestApp } from './helpers/test-setup';
 
 describe('Securities API (e2e)', () => {
   let app: INestApplication;
+  let dbHelper: E2ETestDatabaseHelper;
   let accountId: string;
 
   beforeAll(async () => {
     const moduleBuilder = Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          load: [appConfig, cryptoConfig],
-        }),
-        SecuritiesModule,
-      ],
+      imports: [AppModule],
     });
 
-    app = await createTestApp(moduleBuilder);
+    app = await createTestApp(moduleBuilder, {
+      setPrefix: 'api',
+    });
+
+    // データベースヘルパーの初期化
+    dbHelper = new E2ETestDatabaseHelper(app);
+
+    // データベース接続確認
+    const isConnected: boolean = await dbHelper.checkConnection();
+    if (!isConnected) {
+      throw new Error('Database connection failed');
+    }
   });
 
   afterAll(async () => {
+    await dbHelper.cleanup();
     await app.close();
+  });
+
+  beforeEach(async () => {
+    // 各テスト前にデータベースをクリーンアップ
+    await dbHelper.cleanDatabase();
   });
 
   describe('/api/securities/connect (POST)', () => {
@@ -39,9 +49,15 @@ describe('Securities API (e2e)', () => {
           accountType: 'specific',
           loginId: 'test_user',
           password: 'test_password',
-        })
-        .expect(201);
+        });
 
+      // エラーの詳細をログ出力
+      if (response.status !== 201) {
+        console.error('Response status:', response.status);
+        console.error('Response body:', JSON.stringify(response.body, null, 2));
+      }
+
+      expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('id');
       expect(response.body.data.securitiesCompanyName).toBe('SBI証券');
