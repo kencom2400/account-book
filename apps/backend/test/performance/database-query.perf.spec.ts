@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { performance } from 'perf_hooks';
 import { AppModule } from '../../src/app.module';
 import { DatabaseHelper } from '../helpers/database-helper';
 
@@ -43,7 +44,7 @@ describe('Database Query Performance', () => {
     it('should fetch 100 institutions within 1 second', async () => {
       // 100件のデータを準備
       console.log('Creating 100 institutions...');
-      const createStartTime = Date.now();
+      const createStartTime = performance.now();
 
       const createPromises = [];
       for (let i = 0; i < 100; i++) {
@@ -67,17 +68,17 @@ describe('Database Query Performance', () => {
       }
       await Promise.all(createPromises);
 
-      const createDuration = Date.now() - createStartTime;
+      const createDuration = performance.now() - createStartTime;
       console.log(`Data creation completed: ${createDuration}ms`);
 
       // クエリパフォーマンスを測定
-      const queryStartTime = Date.now();
+      const queryStartTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .expect(200);
 
-      const queryDuration = Date.now() - queryStartTime;
+      const queryDuration = performance.now() - queryStartTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items.length).toBeGreaterThanOrEqual(100);
@@ -94,7 +95,7 @@ describe('Database Query Performance', () => {
     it('should fetch 500 institutions within 2 seconds', async () => {
       // 500件のデータを準備
       console.log('Creating 500 institutions...');
-      const createStartTime = Date.now();
+      const createStartTime = performance.now();
 
       // バッチで作成（50件ずつ）
       for (let batch = 0; batch < 10; batch++) {
@@ -123,17 +124,17 @@ describe('Database Query Performance', () => {
         console.log(`  Batch ${batch + 1}/10 created`);
       }
 
-      const createDuration = Date.now() - createStartTime;
+      const createDuration = performance.now() - createStartTime;
       console.log(`Data creation completed: ${createDuration}ms`);
 
       // クエリパフォーマンスを測定
-      const queryStartTime = Date.now();
+      const queryStartTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .expect(200);
 
-      const queryDuration = Date.now() - queryStartTime;
+      const queryDuration = performance.now() - queryStartTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items.length).toBeGreaterThanOrEqual(500);
@@ -175,14 +176,14 @@ describe('Database Query Performance', () => {
     });
 
     it('should filter by type within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .query({ type: 'bank' })
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -193,14 +194,14 @@ describe('Database Query Performance', () => {
     });
 
     it('should search by name within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .query({ search: 'Institution 1' })
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -241,14 +242,14 @@ describe('Database Query Performance', () => {
     });
 
     it('should fetch first page (20 records) within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .query({ page: 1, limit: 20 })
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items.length).toBeLessThanOrEqual(20);
@@ -268,14 +269,14 @@ describe('Database Query Performance', () => {
       const totalCount = countResponse.body.data.items.length;
       const lastPage = Math.ceil(totalCount / 20);
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .query({ page: lastPage, limit: 20 })
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -290,12 +291,12 @@ describe('Database Query Performance', () => {
       const times: number[] = [];
 
       for (const page of pagesToTest) {
-        const startTime = Date.now();
+        const startTime = performance.now();
         const response = await request(app.getHttpServer())
           .get('/api/institutions')
           .query({ page, limit: 20 })
           .expect(200);
-        const duration = Date.now() - startTime;
+        const duration = performance.now() - startTime;
         times.push(duration);
 
         expect(response.body.success).toBe(true);
@@ -341,9 +342,9 @@ describe('Database Query Performance', () => {
         request(app.getHttpServer()).get('/api/institutions'),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(requests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // すべてのクエリが成功
       responses.forEach((response) => {
@@ -384,9 +385,9 @@ describe('Database Query Performance', () => {
       await Promise.all(createPromises);
 
       // 最初のクエリ（10件）
-      const startTime1 = Date.now();
+      const startTime1 = performance.now();
       await request(app.getHttpServer()).get('/api/institutions').expect(200);
-      const duration1 = Date.now() - startTime1;
+      const duration1 = performance.now() - startTime1;
 
       // さらに10件追加
       for (let i = 10; i < 20; i++) {
@@ -403,9 +404,9 @@ describe('Database Query Performance', () => {
       }
 
       // 2回目のクエリ（20件）
-      const startTime2 = Date.now();
+      const startTime2 = performance.now();
       await request(app.getHttpServer()).get('/api/institutions').expect(200);
-      const duration2 = Date.now() - startTime2;
+      const duration2 = performance.now() - startTime2;
 
       console.log('\nQuery Scaling Analysis:');
       console.log(`  10 records: ${duration1}ms`);
@@ -432,9 +433,9 @@ describe('Database Query Performance', () => {
           request(app.getHttpServer()).get('/api/health'),
         );
 
-        const startTime = Date.now();
+        const startTime = performance.now();
         await Promise.all(requests);
-        const duration = Date.now() - startTime;
+        const duration = performance.now() - startTime;
         waveTimes.push(duration);
 
         console.log(`  Wave ${wave + 1}: ${duration}ms`);

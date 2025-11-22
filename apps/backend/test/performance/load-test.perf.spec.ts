@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { performance } from 'perf_hooks';
 import { AppModule } from '../../src/app.module';
 import { DatabaseHelper } from '../helpers/database-helper';
 
@@ -46,9 +47,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/health'),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(requests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -91,9 +92,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/institutions'),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(requests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -133,9 +134,9 @@ describe('Load Test (Performance)', () => {
           }),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(requests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -165,17 +166,17 @@ describe('Load Test (Performance)', () => {
       const requestCount = 100;
       const times: number[] = [];
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       for (let i = 0; i < requestCount; i++) {
-        const reqStartTime = Date.now();
+        const reqStartTime = performance.now();
         const response = await request(app.getHttpServer()).get('/api/health');
-        times.push(Date.now() - reqStartTime);
+        times.push(performance.now() - reqStartTime);
 
         expect(response.status).toBe(200);
       }
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       const minTime = Math.min(...times);
@@ -219,9 +220,9 @@ describe('Load Test (Performance)', () => {
 
       const allRequests = [...getRequests, ...postRequests];
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(allRequests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // すべてのリクエストが成功
       const successCount = responses.filter(
@@ -250,9 +251,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/health'),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       const responses = await Promise.all(requests);
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       // 成功率を計算
       const successCount = responses.filter((r) => r.status === 200).length;
@@ -287,9 +288,9 @@ describe('Load Test (Performance)', () => {
           request(app.getHttpServer()).get('/api/health'),
         );
 
-        const startTime = Date.now();
+        const startTime = performance.now();
         const responses = await Promise.all(requests);
-        const duration = Date.now() - startTime;
+        const duration = performance.now() - startTime;
         waveTimes.push(duration);
 
         const successCount = responses.filter((r) => r.status === 200).length;

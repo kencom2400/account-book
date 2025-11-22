@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { performance } from 'perf_hooks';
 import { AppModule } from '../../src/app.module';
 import { DatabaseHelper } from '../helpers/database-helper';
 
@@ -40,13 +41,13 @@ describe('API Response Time (Performance)', () => {
 
   describe('Health API Performance', () => {
     it('GET /api/health should respond within 100ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/health')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.status).toBe('ok');
       expect(duration).toBeLessThan(100);
@@ -56,13 +57,13 @@ describe('API Response Time (Performance)', () => {
 
   describe('Institutions API Performance', () => {
     it('GET /api/institutions should respond within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -87,13 +88,13 @@ describe('API Response Time (Performance)', () => {
 
       const institutionId = createResponse.body.data.id;
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get(`/api/institutions/${institutionId}`)
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(institutionId);
@@ -111,14 +112,14 @@ describe('API Response Time (Performance)', () => {
         initialBalance: 1000000,
       };
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .post('/api/institutions')
         .send(dto)
         .expect(201);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBeDefined();
@@ -146,14 +147,14 @@ describe('API Response Time (Performance)', () => {
         name: 'Updated Bank Name',
       };
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .patch(`/api/institutions/${institutionId}`)
         .send(updateDto)
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -176,13 +177,13 @@ describe('API Response Time (Performance)', () => {
 
       const institutionId = createResponse.body.data.id;
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       await request(app.getHttpServer())
         .delete(`/api/institutions/${institutionId}`)
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(duration).toBeLessThan(500);
       console.log(
@@ -193,13 +194,13 @@ describe('API Response Time (Performance)', () => {
 
   describe('Categories API Performance', () => {
     it('GET /api/categories should respond within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/categories')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -211,13 +212,13 @@ describe('API Response Time (Performance)', () => {
 
   describe('Credit Cards API Performance', () => {
     it('GET /api/credit-cards should respond within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/credit-cards')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -229,13 +230,13 @@ describe('API Response Time (Performance)', () => {
 
   describe('Securities API Performance', () => {
     it('GET /api/securities should respond within 500ms', async () => {
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/securities')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(duration).toBeLessThan(500);
@@ -265,13 +266,13 @@ describe('API Response Time (Performance)', () => {
       }
       await Promise.all(createPromises);
 
-      const startTime = Date.now();
+      const startTime = performance.now();
 
       const response = await request(app.getHttpServer())
         .get('/api/institutions')
         .expect(200);
 
-      const duration = Date.now() - startTime;
+      const duration = performance.now() - startTime;
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.items.length).toBeGreaterThanOrEqual(100);
@@ -287,9 +288,9 @@ describe('API Response Time (Performance)', () => {
       const times: number[] = [];
 
       for (let i = 0; i < 10; i++) {
-        const startTime = Date.now();
+        const startTime = performance.now();
         await request(app.getHttpServer()).get('/api/health').expect(200);
-        times.push(Date.now() - startTime);
+        times.push(performance.now() - startTime);
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
