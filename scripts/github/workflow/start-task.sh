@@ -97,7 +97,7 @@ check_assignee() {
       echo "   現在のステータス: ${CURRENT_STATUS}"
       echo ""
       
-      read -p "続行しますか？ [y/N]: " CONFIRM
+      read -r -p "続行しますか？ [y/N]: " CONFIRM
       if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
         echo "キャンセルしました"
         exit 0
@@ -146,7 +146,8 @@ start_task_by_id() {
   git pull origin main > /dev/null 2>&1
   
   # ブランチ名を生成（kebab-case）
-  BRANCH_NAME="feature/issue-${ISSUE_NUM}-$(echo "$TITLE" | sed 's/\[//g' | sed 's/\]//g' | sed 's/：/-/g' | sed 's/:/-/g' | sed 's/ /-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g' | cut -c1-60)"
+  # 英数字以外の文字はすべてハイフンに置き換え、先頭と末尾のハイフンを削除
+  BRANCH_NAME="feature/issue-${ISSUE_NUM}-$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-+|-+$//g' | cut -c1-60)"
   
   echo "🌿 ブランチを作成中: ${BRANCH_NAME}"
   git checkout -b "$BRANCH_NAME" > /dev/null 2>&1
