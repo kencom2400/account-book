@@ -17,6 +17,7 @@ interface ClassificationResult {
     type: CategoryType;
   };
   confidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
   reason: string;
 }
 
@@ -61,15 +62,15 @@ export default function CategoryClassifier() {
     return labels[type] || type;
   };
 
-  const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 0.9) return 'text-green-600';
-    if (confidence >= 0.7) return 'text-yellow-600';
+  const getConfidenceColor = (level: 'high' | 'medium' | 'low'): string => {
+    if (level === 'high') return 'text-green-600';
+    if (level === 'medium') return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getConfidenceLabel = (confidence: number): string => {
-    if (confidence >= 0.9) return '高';
-    if (confidence >= 0.7) return '中';
+  const getConfidenceLabel = (level: 'high' | 'medium' | 'low'): string => {
+    if (level === 'high') return '高';
+    if (level === 'medium') return '中';
     return '低';
   };
 
@@ -151,8 +152,8 @@ export default function CategoryClassifier() {
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">信頼度:</span>
                 <div className="flex items-center space-x-2">
-                  <span className={`font-semibold ${getConfidenceColor(result.confidence)}`}>
-                    {getConfidenceLabel(result.confidence)}
+                  <span className={`font-semibold ${getConfidenceColor(result.confidenceLevel)}`}>
+                    {getConfidenceLabel(result.confidenceLevel)}
                   </span>
                   <span className="text-gray-500">({(result.confidence * 100).toFixed(0)}%)</span>
                 </div>

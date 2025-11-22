@@ -26,6 +26,22 @@ import { TransactionJSONResponse } from '../../domain/entities/transaction.entit
 import type { MonthlySummary } from '../../application/use-cases/calculate-monthly-summary.use-case';
 
 // DTOs
+class ClassifyTransactionDto {
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsString()
+  institutionId?: string;
+
+  @IsOptional()
+  @IsString()
+  institutionType?: string;
+}
+
 class CreateTransactionRequestDto {
   @IsString()
   date: string;
@@ -114,15 +130,7 @@ export class TransactionController {
    */
   @Post('classify')
   @HttpCode(HttpStatus.OK)
-  async classify(
-    @Body()
-    body: {
-      amount: number;
-      description: string;
-      institutionId?: string;
-      institutionType?: string;
-    },
-  ): Promise<{
+  async classify(@Body() body: ClassifyTransactionDto): Promise<{
     success: boolean;
     data: {
       category: {
@@ -131,6 +139,7 @@ export class TransactionController {
         type: CategoryType;
       };
       confidence: number;
+      confidenceLevel: 'high' | 'medium' | 'low';
       reason: string;
     };
   }> {

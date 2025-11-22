@@ -36,6 +36,7 @@ export class ClassifyTransactionUseCase {
       type: CategoryType;
     };
     confidence: number;
+    confidenceLevel: 'high' | 'medium' | 'low';
     reason: string;
   }> {
     // 自動分類を実行
@@ -56,6 +57,7 @@ export class ClassifyTransactionUseCase {
     return {
       category: defaultCategory,
       confidence: classification.confidence,
+      confidenceLevel: classification.confidenceLevel,
       reason: classification.reason,
     };
   }
@@ -85,8 +87,9 @@ export class ClassifyTransactionUseCase {
       };
     }
 
-    // トップレベルカテゴリがない場合は最初のカテゴリを返す
+    // トップレベルカテゴリがない場合は、orderでソートして最初のカテゴリを返す
     if (categories.length > 0) {
+      categories.sort((a, b) => a.order - b.order);
       const category = categories[0];
       return {
         id: category.id,

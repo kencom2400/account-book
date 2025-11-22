@@ -102,7 +102,7 @@ describe('ClassifyTransactionUseCase', () => {
       expect(result.category.type).toBe(CategoryType.EXPENSE);
       expect(result.category.id).toBe('expense-food');
       expect(result.category.name).toBe('食費');
-      expect(result.confidence).toBeGreaterThan(0);
+      expect(result.confidence).toBeGreaterThan(0.7); // キーワードマッチのため0.7以上
     });
 
     it('証券口座の取引は投資カテゴリに分類される', async () => {

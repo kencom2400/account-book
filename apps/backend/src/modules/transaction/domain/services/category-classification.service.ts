@@ -16,7 +16,6 @@ export class CategoryClassificationService {
       '賞与',
       'ボーナス',
       '報酬',
-      '配当',
       '利息',
       '売上',
       '還付',
@@ -93,13 +92,16 @@ export class CategoryClassificationService {
   ): {
     category: CategoryType;
     confidence: number;
+    confidenceLevel: 'high' | 'medium' | 'low';
     reason: string;
   } {
     // 1. 金融機関タイプで判定
     if (institutionType === 'securities') {
+      const confidence = 0.95;
       return {
         category: CategoryType.INVESTMENT,
-        confidence: 0.95,
+        confidence,
+        confidenceLevel: this.evaluateConfidence(confidence),
         reason: '証券口座の取引',
       };
     }
@@ -117,9 +119,11 @@ export class CategoryClassificationService {
     }
 
     // 4. デフォルト: 支出として分類
+    const confidence = 0.5;
     return {
       category: CategoryType.EXPENSE,
-      confidence: 0.5,
+      confidence,
+      confidenceLevel: this.evaluateConfidence(confidence),
       reason: 'デフォルト分類（支出）',
     };
   }
@@ -130,6 +134,7 @@ export class CategoryClassificationService {
   private matchKeywords(description: string): {
     category: CategoryType;
     confidence: number;
+    confidenceLevel: 'high' | 'medium' | 'low';
     reason: string;
   } | null {
     const normalizedDesc = description.toLowerCase();
@@ -140,12 +145,14 @@ export class CategoryClassificationService {
 
       for (const keyword of keywords) {
         if (normalizedDesc.includes(keyword.toLowerCase())) {
+          const confidence = this.calculateKeywordConfidence(
+            normalizedDesc,
+            keyword,
+          );
           return {
             category: categoryType,
-            confidence: this.calculateKeywordConfidence(
-              normalizedDesc,
-              keyword,
-            ),
+            confidence,
+            confidenceLevel: this.evaluateConfidence(confidence),
             reason: `キーワードマッチ: "${keyword}"`,
           };
         }
@@ -161,22 +168,27 @@ export class CategoryClassificationService {
   private classifyByAmount(amount: number): {
     category: CategoryType;
     confidence: number;
+    confidenceLevel: 'high' | 'medium' | 'low';
     reason: string;
   } | null {
     // プラスの金額 = 収入の可能性
     if (amount > 0) {
+      const confidence = 0.7;
       return {
         category: CategoryType.INCOME,
-        confidence: 0.7,
+        confidence,
+        confidenceLevel: this.evaluateConfidence(confidence),
         reason: '入金取引（プラス金額）',
       };
     }
 
     // マイナスの金額 = 支出の可能性
     if (amount < 0) {
+      const confidence = 0.7;
       return {
         category: CategoryType.EXPENSE,
-        confidence: 0.7,
+        confidence,
+        confidenceLevel: this.evaluateConfidence(confidence),
         reason: '出金取引（マイナス金額）',
       };
     }
@@ -211,6 +223,9 @@ export class CategoryClassificationService {
   /**
    * 振替パターンを検出
    * 2つの取引が振替のペアかどうかを判定
+   *
+   * @deprecated 現在のclassifyTransactionフローでは使用されていません。
+   * 将来的に複数取引を同時に分析する機能で使用予定。
    */
   isTransferPattern(
     transaction1: {
@@ -264,6 +279,9 @@ export class CategoryClassificationService {
 
   /**
    * 分類信頼度を評価
+   *
+   * @deprecated 現在のclassifyTransactionフローでは使用されていません。
+   * 将来的にフロントエンドへのレスポンスに含める予定。
    */
   evaluateConfidence(confidence: number): 'high' | 'medium' | 'low' {
     if (confidence >= 0.9) {

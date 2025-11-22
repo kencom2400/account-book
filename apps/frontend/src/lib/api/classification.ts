@@ -22,6 +22,7 @@ export interface ClassifyTransactionResponse {
       type: CategoryType;
     };
     confidence: number;
+    confidenceLevel: 'high' | 'medium' | 'low';
     reason: string;
   };
 }
