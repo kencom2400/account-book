@@ -350,27 +350,36 @@ PENDING → IN_PROGRESS → SUCCESS
 ### 定期自動同期
 
 ```
-Cron                ScheduledSyncJob       SyncTransactionsUseCase    CreditCard/Securities
- |                         |                         |                         |
- |--handleDailySync()----->|                         |                         |
- |                         |                         |                         |
- |                         |--execute()------------->|                         |
- |                         |                         |                         |
- |                         |                         |--Get connected cards--->|
- |                         |                         |<--Cards list------------|
- |                         |                         |                         |
- |                         |                         |--Sync each card-------->|
- |                         |                         |<--Sync result-----------|
- |                         |                         |                         |
- |                         |                         |--Get connected accts--->|
- |                         |                         |<--Accounts list---------|
- |                         |                         |                         |
- |                         |                         |--Sync each account----->|
- |                         |                         |<--Sync result-----------|
- |                         |                         |                         |
- |                         |<--Result (success/fail)-|                         |
- |                         |                         |                         |
- |<--Log completion--------|                         |                         |
+Cron            ScheduledSyncJob   SyncTransactionsUseCase  SyncHistoryRepository  CreditCard/Securities
+ |                      |                      |                         |                |
+ |--handleDailySync()-->|                      |                         |                |
+ |                      |                      |                         |                |
+ |                      |--execute()---------->|                         |                |
+ |                      |                      |                         |                |
+ |                      |                      |--create(syncHistory)--->|                |
+ |                      |                      |<--syncHistory-----------|                |
+ |                      |                      |                         |                |
+ |                      |                      |--update(start)--------->|                |
+ |                      |                      |<--syncHistory-----------|                |
+ |                      |                      |                         |                |
+ |                      |                      |--Get connected cards------------------->|
+ |                      |                      |<--Cards list----------------------------|
+ |                      |                      |                         |                |
+ |                      |                      |--Sync each card------------------------>|
+ |                      |                      |<--Sync result---------------------------|
+ |                      |                      |                         |                |
+ |                      |                      |--Get connected accts------------------->|
+ |                      |                      |<--Accounts list-------------------------|
+ |                      |                      |                         |                |
+ |                      |                      |--Sync each account--------------------->|
+ |                      |                      |<--Sync result---------------------------|
+ |                      |                      |                         |                |
+ |                      |                      |--update(complete)------>|                |
+ |                      |                      |<--syncHistory-----------|                |
+ |                      |                      |                         |                |
+ |                      |<--Result-------------|                         |                |
+ |                      |                      |                         |                |
+ |<--Log completion-----|                      |                         |                |
 ```
 
 ### 手動同期
@@ -454,6 +463,27 @@ User             SyncController      SyncTransactionsUseCase     SyncHistoryRepo
 
 - 並列同期の実装（現在は順次実行）
 - 大量データ処理の最適化
+
+### Phase 6: スケーラビリティ対応
+
+- **分散ロックメカニズムの導入**
+  - 現状: メモリ内フラグ（`isRunning`）による単一インスタンス内での排他制御
+  - 課題: 複数インスタンス環境では、各インスタンスが独自のフラグを持つため、同期ジョブが重複実行される可能性
+  - 解決策:
+    - Redisを利用した分散ロック（`redlock`ライブラリなど）
+    - データベースの行ロックを利用
+    - 環境変数で単一インスタンス/複数インスタンスモードを切り替え可能にする
+
+### Phase 7: アーキテクチャ改善
+
+- **IncrementalSyncStrategyの完全活用**
+  - 現状: `SyncTransactionsUseCase`が各金融機関用のユースケース（`refreshCreditCardDataUseCase`、`fetchSecurityTransactionsUseCase`）を直接呼び出している
+  - 課題: 同期ロジックが分散し、`IncrementalSyncStrategy`がインジェクトされているが実際には使用されていない
+  - 解決策:
+    - `IFinancialInstitutionSync`インターフェースを定義
+    - クレジットカード/証券口座の同期ロジックをアダプタークラスにラップ
+    - `IncrementalSyncStrategy`を介して統一的に同期処理を実行
+    - これにより、関心の分離と再利用性が向上
 
 ---
 

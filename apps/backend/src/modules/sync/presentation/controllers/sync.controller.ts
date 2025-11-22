@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Param,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { SyncTransactionsUseCase } from '../../application/use-cases/sync-transactions.use-case';
 import { ScheduledSyncJob } from '../../application/jobs/scheduled-sync.job';
@@ -22,6 +23,7 @@ import { SyncTransactionsDto, GetSyncHistoryDto } from '../dto/sync.dto';
 @Controller('sync')
 export class SyncController {
   private readonly logger = new Logger(SyncController.name);
+  private static readonly DEFAULT_HISTORY_LIMIT = 50;
 
   constructor(
     private readonly syncTransactionsUseCase: SyncTransactionsUseCase,
@@ -137,7 +139,9 @@ export class SyncController {
         new Date(query.endDate),
       );
     } else {
-      histories = await this.syncHistoryRepository.findAll(50); // 最新50件
+      histories = await this.syncHistoryRepository.findAll(
+        SyncController.DEFAULT_HISTORY_LIMIT,
+      );
     }
 
     return {
@@ -161,34 +165,25 @@ export class SyncController {
    * GET /sync/history/:id
    */
   @Get('history/:id')
-  async getSyncHistoryById(@Param('id') id: string): Promise<
-    | {
-        success: true;
-        data: {
-          syncId: string;
-          status: string;
-          startedAt: Date;
-          completedAt: Date | null;
-          totalInstitutions: number;
-          successCount: number;
-          failureCount: number;
-          newTransactionsCount: number;
-          errorMessage: string | null;
-          errorDetails: Record<string, unknown> | null;
-        };
-      }
-    | {
-        success: false;
-        error: string;
-      }
-  > {
+  async getSyncHistoryById(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: {
+      syncId: string;
+      status: string;
+      startedAt: Date;
+      completedAt: Date | null;
+      totalInstitutions: number;
+      successCount: number;
+      failureCount: number;
+      newTransactionsCount: number;
+      errorMessage: string | null;
+      errorDetails: Record<string, unknown> | null;
+    };
+  }> {
     const history = await this.syncHistoryRepository.findById(id);
 
     if (!history) {
-      return {
-        success: false,
-        error: 'Sync history not found',
-      };
+      throw new NotFoundException('Sync history not found');
     }
 
     return {

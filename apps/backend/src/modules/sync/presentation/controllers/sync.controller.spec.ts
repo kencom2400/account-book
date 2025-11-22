@@ -196,16 +196,14 @@ describe('SyncController', () => {
       expect(result.data.status).toBe(SyncStatus.SUCCESS);
     });
 
-    it('should return error when sync history not found', async () => {
+    it('should throw NotFoundException when sync history not found', async () => {
       // Arrange
       syncHistoryRepository.findById.mockResolvedValue(null);
 
-      // Act
-      const result = await controller.getSyncHistoryById('nonexistent');
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Sync history not found');
+      // Act & Assert
+      await expect(
+        controller.getSyncHistoryById('nonexistent'),
+      ).rejects.toThrow('Sync history not found');
     });
   });
 });

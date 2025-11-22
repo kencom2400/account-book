@@ -1,4 +1,5 @@
 import { SyncStatus } from '../enums/sync-status.enum';
+import { randomUUID } from 'crypto';
 
 /**
  * 同期履歴エンティティ
@@ -37,7 +38,7 @@ export class SyncHistoryEntity {
   static create(totalInstitutions: number): SyncHistoryEntity {
     const now = new Date();
     return new SyncHistoryEntity(
-      `sync_${now.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+      `sync_${randomUUID()}`,
       SyncStatus.PENDING,
       now,
       null,
