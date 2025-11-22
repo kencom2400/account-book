@@ -6,7 +6,7 @@
 
 ### 前提条件
 
-- **Node.js**: 20.18.1 以上（`.nvmrc`で固定）
+- **Node.js**: 20.18.1 (`.nvmrc`でバージョン固定)
 - **pnpm**: 8.15.0 以上
 - Docker と Docker Compose（Docker版を使用する場合）
 - または Python 3.8+ と pip3（ローカル環境を使用する場合）
