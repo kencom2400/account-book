@@ -22,7 +22,13 @@ export class AccountOrmEntity {
   @Column({ type: 'varchar', length: 36, name: 'institution_id' })
   institutionId!: string;
 
-  @ManyToOne(() => InstitutionOrmEntity, (institution) => institution.accounts)
+  @ManyToOne(
+    () => InstitutionOrmEntity,
+    (institution) => institution.accounts,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'institution_id' })
   institution!: InstitutionOrmEntity;
 

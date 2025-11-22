@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InstitutionController } from './presentation/controllers/institution.controller';
-import { InstitutionRepository } from './infrastructure/repositories/institution.repository';
 import { InstitutionTypeOrmRepository } from './infrastructure/repositories/institution-typeorm.repository';
 import { InstitutionOrmEntity } from './infrastructure/entities/institution.orm-entity';
 import { AccountOrmEntity } from './infrastructure/entities/account.orm-entity';
@@ -21,13 +20,12 @@ import {
   imports: [TypeOrmModule.forFeature([InstitutionOrmEntity, AccountOrmEntity])],
   controllers: [InstitutionController],
   providers: [
-    // Repository - TypeORM版を使用（JSON版は予備として残す）
+    // Repository - TypeORM版を使用
     {
       provide: INSTITUTION_REPOSITORY,
       useClass: InstitutionTypeOrmRepository,
     },
     InstitutionTypeOrmRepository,
-    InstitutionRepository, // JSONリポジトリは予備として残す
     // Services
     {
       provide: CRYPTO_SERVICE,

@@ -22,7 +22,7 @@ export class InstitutionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, unique: true })
   name!: string;
 
   @Column({
@@ -52,7 +52,9 @@ export class InstitutionOrmEntity {
   @Column({ type: 'timestamp', nullable: true, name: 'last_synced_at' })
   lastSyncedAt!: Date | null;
 
-  @OneToMany(() => AccountOrmEntity, (account) => account.institution)
+  @OneToMany(() => AccountOrmEntity, (account) => account.institution, {
+    cascade: true,
+  })
   accounts!: AccountOrmEntity[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })

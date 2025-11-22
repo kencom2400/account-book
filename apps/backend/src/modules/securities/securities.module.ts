@@ -21,13 +21,6 @@ import { SecuritiesAccountTypeOrmRepository } from './infrastructure/repositorie
 import { HoldingTypeOrmRepository } from './infrastructure/repositories/holding-typeorm.repository';
 import { SecurityTransactionTypeOrmRepository } from './infrastructure/repositories/security-transaction-typeorm.repository';
 
-// Repositories - FileSystem版（予備として残す）
-import {
-  FileSystemSecuritiesAccountRepository,
-  FileSystemHoldingRepository,
-  FileSystemSecurityTransactionRepository,
-} from './infrastructure/repositories/securities.repository';
-
 // Adapters
 import { MockSecuritiesAPIAdapter } from './infrastructure/adapters/mock-securities-api.adapter';
 
@@ -60,7 +53,7 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     FetchSecurityTransactionsUseCase,
     CalculatePortfolioValueUseCase,
 
-    // Repositories - TypeORM版を使用（FileSystem版は予備として残す）
+    // Repositories - TypeORM版を使用
     {
       provide: SECURITIES_ACCOUNT_REPOSITORY,
       useClass: SecuritiesAccountTypeOrmRepository,
@@ -76,9 +69,6 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     SecuritiesAccountTypeOrmRepository,
     HoldingTypeOrmRepository,
     SecurityTransactionTypeOrmRepository,
-    FileSystemSecuritiesAccountRepository, // FileSystemリポジトリは予備として残す
-    FileSystemHoldingRepository,
-    FileSystemSecurityTransactionRepository,
 
     // Adapters
     {
