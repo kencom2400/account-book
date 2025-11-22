@@ -3,6 +3,9 @@
  * FR-005: 接続失敗時の通知機能
  */
 export class NotificationEntity {
+  private static readonly CONFIRMED_ARCHIVED_RETENTION_DAYS = 30;
+  private static readonly DISMISSED_RETENTION_DAYS = 7;
+
   constructor(
     public readonly id: string,
     public readonly institutionId: string,
@@ -60,9 +63,12 @@ export class NotificationEntity {
     switch (this.status) {
       case NotificationStatus.CONFIRMED:
       case NotificationStatus.ARCHIVED:
-        return daysSinceUpdate >= 30;
+        return (
+          daysSinceUpdate >=
+          NotificationEntity.CONFIRMED_ARCHIVED_RETENTION_DAYS
+        );
       case NotificationStatus.DISMISSED:
-        return daysSinceUpdate >= 7;
+        return daysSinceUpdate >= NotificationEntity.DISMISSED_RETENTION_DAYS;
       case NotificationStatus.PENDING:
       case NotificationStatus.DISPLAYED:
       case NotificationStatus.LATER:
