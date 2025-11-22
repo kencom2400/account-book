@@ -20,6 +20,7 @@ import { CreateTransactionUseCase } from '../../application/use-cases/create-tra
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
+import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 import { TransactionJSONResponse } from '../../domain/entities/transaction.entity';
 import type { MonthlySummary } from '../../application/use-cases/calculate-monthly-summary.use-case';
@@ -102,6 +103,7 @@ export class TransactionController {
     private readonly getTransactionsUseCase: GetTransactionsUseCase,
     private readonly updateTransactionCategoryUseCase: UpdateTransactionCategoryUseCase,
     private readonly calculateMonthlySummaryUseCase: CalculateMonthlySummaryUseCase,
+    private readonly classifyTransactionUseCase: ClassifyTransactionUseCase,
   ) {}
 
   /**
@@ -200,6 +202,42 @@ export class TransactionController {
     return {
       success: true,
       data: transaction.toJSON(),
+    };
+  }
+
+  /**
+   * 取引データのカテゴリを自動分類
+   * POST /transactions/classify
+   *
+   * FR-008: 5種類のカテゴリ自動分類機能
+   */
+  @Post('classify')
+  @HttpCode(HttpStatus.OK)
+  async classify(
+    @Body()
+    body: {
+      amount: number;
+      description: string;
+      institutionId?: string;
+      institutionType?: string;
+    },
+  ): Promise<{
+    success: boolean;
+    data: {
+      category: {
+        id: string;
+        name: string;
+        type: CategoryType;
+      };
+      confidence: number;
+      reason: string;
+    };
+  }> {
+    const result = await this.classifyTransactionUseCase.execute(body);
+
+    return {
+      success: true,
+      data: result,
     };
   }
 }
