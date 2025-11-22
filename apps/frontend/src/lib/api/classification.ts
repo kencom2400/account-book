@@ -40,5 +40,10 @@ export async function classifyTransaction(
     '/transactions/classify',
     request
   );
-  return response.data.data;
+
+  if (!response.data?.data) {
+    throw new Error('Invalid response from API');
+  }
+
+  return response.data.data as ClassifyTransactionResponse['data'];
 }

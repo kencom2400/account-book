@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CategoryClassificationService } from '../../domain/services/category-classification.service';
 import { CategoryType } from '@account-book/types';
 import { CATEGORY_REPOSITORY } from '../../../category/domain/repositories/category.repository.interface';
-import { ICategoryRepository } from '../../../category/domain/repositories/category.repository.interface';
+import type { ICategoryRepository } from '../../../category/domain/repositories/category.repository.interface';
 
 /**
  * ClassifyTransactionUseCase
