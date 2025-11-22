@@ -8,6 +8,19 @@ import {
 } from '../../domain/entities/notification.entity';
 
 /**
+ * 通知のJSON表現
+ */
+interface NotificationJson {
+  id: string;
+  institutionId: string;
+  institutionName: string;
+  message: string;
+  status: NotificationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * 通知リポジトリ実装（JSON形式）
  * FR-005: 通知機能のデータ永続化
  */
@@ -79,16 +92,6 @@ export class NotificationRepository implements INotificationRepository {
         return [];
       }
 
-      interface NotificationJson {
-        id: string;
-        institutionId: string;
-        institutionName: string;
-        message: string;
-        status: NotificationStatus;
-        createdAt: string;
-        updatedAt: string;
-      }
-
       const parsedData: unknown = JSON.parse(fileContent);
 
       if (!Array.isArray(parsedData)) {
@@ -151,16 +154,6 @@ export class NotificationRepository implements INotificationRepository {
   ): Promise<void> {
     try {
       await this.ensureDirectoryExists();
-
-      interface NotificationJson {
-        id: string;
-        institutionId: string;
-        institutionName: string;
-        message: string;
-        status: NotificationStatus;
-        createdAt: string;
-        updatedAt: string;
-      }
 
       const data: NotificationJson[] = notifications.map(
         (n: NotificationEntity): NotificationJson => ({
