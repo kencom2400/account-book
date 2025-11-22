@@ -11,71 +11,87 @@ import { CategoryType } from '@account-book/types';
 export class CategoryClassificationService {
   // カテゴリごとのキーワード辞書
   // 評価順序: より具体的なカテゴリ（返済・投資・振替）を先に、一般的なカテゴリ（収入・支出）を後に
-  private readonly keywords = {
-    [CategoryType.REPAYMENT]: [
-      'ローン',
-      '返済',
-      'loan',
-      'repayment',
-      '住宅ローン',
-      '自動車ローン',
-      '教育ローン',
+  // 配列を使用して順序を明示的に保証
+  private readonly keywordMap: ReadonlyArray<[CategoryType, string[]]> = [
+    [
+      CategoryType.REPAYMENT,
+      [
+        'ローン',
+        '返済',
+        'loan',
+        'repayment',
+        '住宅ローン',
+        '自動車ローン',
+        '教育ローン',
+      ],
     ],
-    [CategoryType.INVESTMENT]: [
-      '株式',
-      '投資信託',
-      '債券',
-      '売買',
-      '配当',
-      '分配金',
-      '株',
-      'fund',
-      'stock',
-      '証券',
+    [
+      CategoryType.INVESTMENT,
+      [
+        '株式',
+        '投資信託',
+        '債券',
+        '売買',
+        '配当',
+        '分配金',
+        '株',
+        'fund',
+        'stock',
+        '証券',
+      ],
     ],
-    [CategoryType.TRANSFER]: [
-      '振替',
-      'カード引落',
-      '口座振替',
-      '資金移動',
-      'チャージ',
-      '送金',
-      'transfer',
-      '口座間',
+    [
+      CategoryType.TRANSFER,
+      [
+        '振替',
+        'カード引落',
+        '口座振替',
+        '資金移動',
+        'チャージ',
+        '送金',
+        'transfer',
+        '口座間',
+      ],
     ],
-    [CategoryType.INCOME]: [
-      '給与',
-      '賞与',
-      'ボーナス',
-      '報酬',
-      '利息',
-      '売上',
-      '還付',
-      'キャッシュバック',
-      '払戻',
-      '返金',
-      '振込',
-      'salary',
-      'bonus',
-      '入金',
+    [
+      CategoryType.INCOME,
+      [
+        '給与',
+        '賞与',
+        'ボーナス',
+        '報酬',
+        '利息',
+        '売上',
+        '還付',
+        'キャッシュバック',
+        '払戻',
+        '返金',
+        '振込',
+        'salary',
+        'bonus',
+        '入金',
+      ],
     ],
-    [CategoryType.EXPENSE]: [
-      '購入',
-      '支払',
-      '決済',
-      '引落',
-      'コンビニ',
-      'スーパー',
-      'レストラン',
-      'カフェ',
-      'ガソリン',
-      '公共料金',
-      '携帯',
-      '水道',
-      '電気',
-      'ガス',
+    [
+      CategoryType.EXPENSE,
+      [
+        '購入',
+        '支払',
+        '決済',
+        '引落',
+        'コンビニ',
+        'スーパー',
+        'レストラン',
+        'カフェ',
+        'ガソリン',
+        '公共料金',
+        '携帯',
+        '水道',
+        '電気',
+        'ガス',
+      ],
     ],
-  };
+  ];
 
   /**
    * 取引データを自動分類
@@ -119,13 +135,13 @@ export class CategoryClassificationService {
       return amountBasedCategory;
     }
 
-    // 4. デフォルト: 支出として分類
-    const confidence = 0.5;
+    // 4. デフォルト: 分類不能な取引（金額0など）は振替として扱う
+    const confidence = 0.4;
     return {
-      category: CategoryType.EXPENSE,
+      category: CategoryType.TRANSFER,
       confidence,
       confidenceLevel: this.evaluateConfidence(confidence),
-      reason: 'デフォルト分類（支出）',
+      reason: '分類不能な取引（金額0）',
     };
   }
 
@@ -140,10 +156,8 @@ export class CategoryClassificationService {
   } | null {
     const normalizedDesc = description.toLowerCase();
 
-    // 各カテゴリのキーワードをチェック
-    for (const [categoryTypeStr, keywords] of Object.entries(this.keywords)) {
-      const categoryType = categoryTypeStr as CategoryType;
-
+    // 各カテゴリのキーワードをチェック（配列の順序で評価）
+    for (const [categoryType, keywords] of this.keywordMap) {
       for (const keyword of keywords) {
         if (normalizedDesc.includes(keyword.toLowerCase())) {
           const confidence = this.calculateKeywordConfidence(
