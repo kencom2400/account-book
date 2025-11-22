@@ -25,7 +25,7 @@ export class GetSyncHistoryDto {
 /**
  * 同期実行レスポンスDTO
  */
-export class SyncTransactionsResponseDto {
+export interface SyncTransactionsResponseDto {
   success: boolean;
   data: {
     syncId: string;
@@ -41,7 +41,7 @@ export class SyncTransactionsResponseDto {
 /**
  * 同期ステータスレスポンスDTO
  */
-export class SyncStatusResponseDto {
+export interface SyncStatusResponseDto {
   success: boolean;
   data: {
     isRunning: boolean;
@@ -60,7 +60,7 @@ export class SyncStatusResponseDto {
 /**
  * 同期履歴一覧レスポンスDTO
  */
-export class SyncHistoryResponseDto {
+export interface SyncHistoryResponseDto {
   success: boolean;
   data: Array<{
     syncId: string;
@@ -78,7 +78,7 @@ export class SyncHistoryResponseDto {
 /**
  * 同期履歴詳細レスポンスDTO
  */
-export class SyncHistoryDetailResponseDto {
+export interface SyncHistoryDetailResponseDto {
   success: boolean;
   data: {
     syncId: string;
