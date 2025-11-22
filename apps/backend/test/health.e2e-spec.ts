@@ -1,10 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { createTestApp } from './helpers/test-setup';
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication;
@@ -13,18 +14,11 @@ describe('HealthController (e2e)', () => {
   const historyFile = join(dataDir, 'connection-history.json');
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    });
 
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-      }),
-    );
-    await app.init();
+    app = await createTestApp(moduleBuilder);
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);

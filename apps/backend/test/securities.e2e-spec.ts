@@ -1,17 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { SecuritiesModule } from '../src/modules/securities/securities.module';
 import { ConfigModule } from '@nestjs/config';
 import appConfig from '../src/config/app.config';
 import cryptoConfig from '../src/config/crypto.config';
+import { createTestApp } from './helpers/test-setup';
 
 describe('Securities API (e2e)', () => {
   let app: INestApplication;
   let accountId: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
@@ -19,16 +20,9 @@ describe('Securities API (e2e)', () => {
         }),
         SecuritiesModule,
       ],
-    }).compile();
+    });
 
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-      }),
-    );
-    await app.init();
+    app = await createTestApp(moduleBuilder);
   });
 
   afterAll(async () => {

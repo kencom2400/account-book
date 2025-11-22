@@ -1,39 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { InstitutionType, BankCategory } from '@account-book/types';
 import type { ErrorDetail } from '@account-book/types';
-import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { createTestApp } from './helpers/test-setup';
 
 describe('Institution Controller (e2e)', () => {
   let app: INestApplication;
   let dbHelper: E2ETestDatabaseHelper;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    });
 
-    app = moduleFixture.createNestApplication();
-
-    // Global filters
-    app.useGlobalFilters(new HttpExceptionFilter());
-
-    // Global pipes
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    // API prefix
-    app.setGlobalPrefix('api');
-
-    await app.init();
+    app = await createTestApp(moduleBuilder, {
+      setPrefix: 'api',
+    });
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);
