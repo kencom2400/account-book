@@ -270,46 +270,24 @@ interface Example {
 
 FEATUREチケットの実装では、コードを書き始める前に詳細設計書を作成します。
 
-#### 詳細設計書の作成手順
+**詳細な作成手順とルールは以下を参照してください:**
 
-1. **テンプレートをコピー**
+- **[ワークフローチェックリスト - 1.5️⃣ 詳細設計フェーズ](../../.cursor/rules/00-WORKFLOW-CHECKLIST.md#15%EF%B8%8F⃣-詳細設計フェーズfeatūreチケットのみ)**
+- **[詳細設計書作成ガイドライン](../../docs/development/detailed-design-guideline.md)**
+- **[テンプレート](../../docs/detailed-design/TEMPLATE/)**
+- **[参考例: FR-001-005](../../docs/detailed-design/FR-001-005_institution-integration/)**
 
-   ```bash
-   DIR="docs/detailed-design/FR-XXX_feature-name"
-   # 新しい機能のディレクトリを作成
-   mkdir -p "$DIR"
+**必須セクション（すべてのFEATUREで作成）:**
 
-   # テンプレートをコピー
-   cp docs/detailed-design/TEMPLATE/*.template "$DIR/"
+- [ ] README.md: 設計書の概要とアーキテクチャ
+- [ ] class-diagrams.md: クラス構造
+- [ ] sequence-diagrams.md: 処理フロー
+- [ ] input-output-design.md: API仕様
 
-   # .templateを削除してリネーム
-   for file in "$DIR"/*.template; do
-     mv "$file" "${file%.template}"
-   done
-   ```
+**設計レビュー:**
 
-2. **必須セクションを作成**（すべてのFEATUREで必須）
-   - [ ] README.md: 設計書の概要とアーキテクチャ
-   - [ ] class-diagrams.md: クラス構造
-   - [ ] sequence-diagrams.md: 処理フロー
-   - [ ] input-output-design.md: API仕様
-
-3. **推奨セクションを作成**（必要に応じて）
-   - [ ] screen-transitions.md: 画面遷移（画面がある場合）
-   - [ ] state-transitions.md: 状態管理（複雑な状態がある場合）
-
-4. **オプションセクションを作成**（必要に応じて）
-   - [ ] batch-processing.md: バッチ処理（バッチ処理がある場合）
-
-5. **設計レビューを受ける**
-   - 設計書を作成したら、PRまたはIssueコメントでレビューを依頼
-   - レビュー承認後に実装を開始
-
-#### 参考資料
-
-- [詳細設計書ガイドライン](../docs/development/detailed-design-guideline.md)
-- [テンプレート](../docs/detailed-design/TEMPLATE/)
-- [参考例: FR-001-005](../docs/detailed-design/FR-001-005_institution-integration/)
+- 設計書を作成したら、PRまたはIssueコメントでレビューを依頼
+- レビュー承認後に実装を開始
 
 ## 🔗 関連情報
 
