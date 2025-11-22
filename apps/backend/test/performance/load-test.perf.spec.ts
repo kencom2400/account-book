@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { performance } from 'perf_hooks';
 import { AppModule } from '../../src/app.module';
 import { DatabaseHelper } from '../helpers/database-helper';
 
 /**
  * 負荷テスト
+ *
+ * 計測精度向上のため、process.hrtime.bigint()を使用（ナノ秒単位の計測）
  *
  * 目標:
  * - 100件の同時リクエストを5秒以内に処理
@@ -15,6 +16,14 @@ import { DatabaseHelper } from '../helpers/database-helper';
  *
  * 参照: docs/test-design.md - Section 10.2
  */
+
+/**
+ * 高精度タイマーヘルパー
+ * process.hrtime.bigint()でナノ秒単位の計測を行い、ミリ秒に変換
+ */
+function measureTime(startTime: bigint): number {
+  return Number(process.hrtime.bigint() - startTime) / 1_000_000;
+}
 describe('Load Test (Performance)', () => {
   let app: INestApplication;
   let databaseHelper: DatabaseHelper;
@@ -47,9 +56,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/health'),
       );
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
       const responses = await Promise.all(requests);
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -92,9 +101,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/institutions'),
       );
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
       const responses = await Promise.all(requests);
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -134,9 +143,9 @@ describe('Load Test (Performance)', () => {
           }),
       );
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
       const responses = await Promise.all(requests);
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       // すべてのリクエストが成功
       responses.forEach((response) => {
@@ -166,17 +175,17 @@ describe('Load Test (Performance)', () => {
       const requestCount = 100;
       const times: number[] = [];
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
 
       for (let i = 0; i < requestCount; i++) {
-        const reqStartTime = performance.now();
+        const reqStartTime = process.hrtime.bigint();
         const response = await request(app.getHttpServer()).get('/api/health');
-        times.push(performance.now() - reqStartTime);
+        times.push(measureTime(reqStartTime));
 
         expect(response.status).toBe(200);
       }
 
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       const minTime = Math.min(...times);
@@ -220,9 +229,9 @@ describe('Load Test (Performance)', () => {
 
       const allRequests = [...getRequests, ...postRequests];
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
       const responses = await Promise.all(allRequests);
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       // すべてのリクエストが成功
       const successCount = responses.filter(
@@ -251,9 +260,9 @@ describe('Load Test (Performance)', () => {
         request(app.getHttpServer()).get('/api/health'),
       );
 
-      const startTime = performance.now();
+      const startTime = process.hrtime.bigint();
       const responses = await Promise.all(requests);
-      const duration = performance.now() - startTime;
+      const duration = measureTime(startTime);
 
       // 成功率を計算
       const successCount = responses.filter((r) => r.status === 200).length;
@@ -288,9 +297,9 @@ describe('Load Test (Performance)', () => {
           request(app.getHttpServer()).get('/api/health'),
         );
 
-        const startTime = performance.now();
+        const startTime = process.hrtime.bigint();
         const responses = await Promise.all(requests);
-        const duration = performance.now() - startTime;
+        const duration = measureTime(startTime);
         waveTimes.push(duration);
 
         const successCount = responses.filter((r) => r.status === 200).length;

@@ -218,6 +218,33 @@ pnpm exec playwright test performance.spec.ts
    }
    ```
 
+   **注意**: この実装は`id`が連番でソート可能（例: 自動インクリメントID）であることを前提としています。
+
+   もし`id`にUUIDを使用している場合、この方法は機能しません。UUIDの場合は以下のような対策を検討してください：
+   - `createdAt`タイムスタンプと`id`を組み合わせてカーソルを作成
+   - 専用のsequenceカラムを追加してソート順を保証
+
+   ```typescript
+   // UUID使用時の例（createdAt + id併用）
+   async findInstitutions(cursor?: { createdAt: Date; id: string }, limit: number = 20) {
+     const qb = this.institutionRepository.createQueryBuilder('institution');
+
+     if (cursor) {
+       qb.where(
+         '(institution.createdAt > :createdAt OR ' +
+         '(institution.createdAt = :createdAt AND institution.id > :id))',
+         { createdAt: cursor.createdAt, id: cursor.id }
+       );
+     }
+
+     return qb
+       .orderBy('institution.createdAt', 'ASC')
+       .addOrderBy('institution.id', 'ASC')
+       .take(limit)
+       .getMany();
+   }
+   ```
+
 #### 4.2.2 API層
 
 **潜在的ボトルネック:**

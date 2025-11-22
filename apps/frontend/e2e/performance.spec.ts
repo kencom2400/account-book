@@ -167,11 +167,13 @@ test.describe.skip('Frontend Rendering Performance', () => {
       if (buttons.length > 0) {
         const startTime = Date.now();
         await buttons[0].click();
-        // クリック後の何らかの変化を待つ（モーダル表示など）
-        await page.waitForTimeout(100);
+        // Note: クリック後の具体的な変化（モーダル表示など）を待つ必要がある
+        // 実際のUIが実装されたら、適切なセレクターに置き換えてください
+        // 例: await page.waitForSelector('.modal-dialog', { state: 'visible', timeout: 500 });
         const duration = Date.now() - startTime;
 
         console.log(`\nButton click response time: ${duration}ms`);
+        // クリック後の変化待ちを実装するまでは、このテストは参考値として扱う
         expect(duration).toBeLessThan(500);
       }
     });
