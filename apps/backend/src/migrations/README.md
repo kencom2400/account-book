@@ -128,6 +128,43 @@ public async up(queryRunner: QueryRunner): Promise<void> {
 
 ## 注意事項
 
+### マイグレーション実行前の必須作業
+
+#### 1. データベースバックアップ
+
+**本番環境・ステージング環境では必須**
+
+```bash
+# バックアップスクリプトを実行
+./scripts/data/backup-database.sh
+
+# バックアップファイルの確認
+ls -lh backups/
+
+# 推奨: バックアップファイルを安全な場所にコピー
+cp backups/account_book_backup_*.sql /path/to/safe/location/
+```
+
+#### 2. マイグレーションのテスト（開発環境）
+
+```bash
+# 1. データベースの状態を確認
+cd apps/backend
+pnpm migration:show
+
+# 2. マイグレーションを実行
+pnpm migration:run
+
+# 3. アプリケーションの動作確認
+# （必要に応じて手動テスト）
+
+# 4. ロールバックのテスト
+pnpm migration:revert
+
+# 5. 再度実行して確認
+pnpm migration:run
+```
+
 ### 本番環境へのデプロイ前
 
 1. **ローカルでテスト**
@@ -157,9 +194,28 @@ public async up(queryRunner: QueryRunner): Promise<void> {
 
 既存データがある場合：
 
-1. データの整合性を確認
-2. 不整合データがあれば事前に修正
-3. 制約を追加
+1. **データの整合性を確認**
+
+   ```sql
+   -- 不整合データの確認例（related_transaction_idの場合）
+   SELECT related_transaction_id
+   FROM transactions
+   WHERE related_transaction_id IS NOT NULL
+     AND related_transaction_id NOT IN (SELECT id FROM transactions);
+   ```
+
+2. **不整合データがあれば事前に修正**
+
+   ```sql
+   -- 不整合データをNULLに設定
+   UPDATE transactions
+   SET related_transaction_id = NULL
+   WHERE related_transaction_id IS NOT NULL
+     AND related_transaction_id NOT IN (SELECT id FROM transactions);
+   ```
+
+3. **制約を追加**
+   - マイグレーションを実行
 
 ## トラブルシューティング
 
