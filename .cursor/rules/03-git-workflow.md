@@ -260,15 +260,16 @@ git rebase origin/main
 ## 3. Push前チェック
 
 ```
-╔════════════════════════════════════════════════════════════╗
-║  🚨 CRITICAL RULE - PUSH前の必須チェック 🚨              ║
-║                                                            ║
-║  pushする前に必ず以下のスクリプトを実行すること：         ║
-║                                                            ║
-║  1. ./scripts/test/lint.sh                                ║
-║  2. ./scripts/test/test.sh all                            ║
-║  3. ./scripts/test/test-e2e.sh frontend                   ║
-╚════════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
+║                                                               ║
+║  pushする前に必ず以下を順番に実行すること：                   ║
+║                                                               ║
+║  1. ./scripts/test/lint.sh         （構文・スタイル）         ║
+║  2. pnpm build                      （ビルド確認）⭐ NEW     ║
+║  3. ./scripts/test/test.sh all     （ユニットテスト）         ║
+║  4. ./scripts/test/test-e2e.sh frontend （E2Eテスト）         ║
+╚═══════════════════════════════════════════════════════════════╝
 ```
 
 ### 🚨 必ず実行すること
@@ -278,6 +279,7 @@ git rebase origin/main
 - pushするとGitHub ActionsでCIが実行される（約3-5分）
 - CI実行には時間とリソースが必要
 - ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
+- **特にビルドエラーはすべてのCI jobをブロックするため、最優先で確認**
 - フィードバックループが短縮され、開発効率が向上する
 
 **実行手順：**
@@ -286,28 +288,93 @@ git rebase origin/main
 # 1. Lintチェック（必須）
 ./scripts/test/lint.sh
 
-# 2. ユニットテスト（必須）
+# 2. ビルドチェック（必須・最重要）⭐ NEW
+pnpm build
+# または
+npx turbo build
+
+# 3. ユニットテスト（必須）
 ./scripts/test/test.sh all
 
-# 3. E2Eテスト（必須）
+# 4. E2Eテスト（必須）
 ./scripts/test/test-e2e.sh frontend
 ```
 
 **実行時間の目安：**
 
 - lint: 約30-60秒
+- **build: 約1-2分** ⭐ NEW
 - test: 約1-2分
-- e2e: 約30-60秒
-- 合計: 約3-4分（CI実行より短い）
+- e2e: 約1-2分
+- **合計: 約4-6分**（CI実行とほぼ同等だが、ローカルでの早期発見により時間節約）
+
+### ⭐ ビルドチェックの重要性（Issue #22 / PR #262から学習）
+
+**なぜビルドチェックが追加されたか**:
+
+1. **実例**: レスポンスDTOをclassとして定義 → プロパティ初期化エラー
+2. Lintは通過、Unit Testsも通過
+3. **ビルドチェックをスキップしてpush**
+4. CI Build: ❌ FAIL（TS2564エラー 8箇所）
+5. CI Unit Tests: ❌ FAIL（ビルドできないため）
+6. CI E2E Tests: ❌ FAIL（ビルドできないため）
+7. 合計**3つのCIジョブが失敗**
+
+**時間の損失**:
+
+- CI実行待ち: 約5分
+- エラー確認・修正: 約10分
+- 再CI実行: 約5分
+- **合計**: 約20分
+
+**教訓**:
+
+```
+ローカルでビルドを確認していれば1分で発見できた
+→ 19分の時間の無駄を防げた
+```
+
+**ビルドで検出できるエラー**:
+
+- TypeScript compilation errors
+- `strictPropertyInitialization` violations
+- Interface/Type compatibility issues
+- Missing dependencies
+- DTOのclass/interface設計ミス
+
+### 📊 チェックリスト実行結果の判定
+
+**すべてPASSした場合のみpush可能**:
+
+```bash
+✅ Lint: PASS
+✅ Build: PASS    ← ⭐ 重要！
+✅ Unit Tests: PASS
+✅ E2E Tests: PASS
+
+→ git push OK
+```
+
+**1つでもFAILした場合**:
+
+```bash
+✅ Lint: PASS
+❌ Build: FAIL    ← ⭐ すべてをブロックする
+❌ Unit Tests: SKIP
+❌ E2E Tests: SKIP
+
+→ 修正してから再度チェック
+→ pushは禁止
+```
 
 ### 例外: 一部スキップ可能な場合
 
 以下の場合のみ、一部スクリプトをスキップ可能：
 
-- ドキュメントファイル（`*.md`）のみの変更: test/e2eはスキップ可、lintは実行推奨
-- 設定ファイル（`.cursor/**`）のみの変更: test/e2eはスキップ可、lintは実行推奨
+- ドキュメントファイル（`*.md`）のみの変更: build/test/e2eはスキップ可、lintは実行推奨
+- 設定ファイル（`.cursor/**`）のみの変更: build/test/e2eはスキップ可、lintは実行推奨
 
-**ただし、以下の設定ファイル変更時は全スクリプト実行必須：**
+**ただし、以下の場合は4ステップすべて実行必須：**
 
 - `eslint.config.*`, `tsconfig.json`, `jest.config.*`, `package.json`, `pnpm-workspace.yaml`
 

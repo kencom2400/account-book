@@ -874,23 +874,121 @@ PROJECT_NUMBER=2 OWNER="other-user" ./script.sh
 - [ ] ハードコードされた設定を環境変数で上書き可能にしているか？
 - [ ] エラーメッセージは明確で、ユーザーが対応方法を理解できるか？
 
+### 9-6. DTO設計の原則
+
+**重要**: リクエストDTOとレスポンスDTOで異なる設計パターンを適用
+
+#### リクエストDTO: `class`を使用
+
+**理由**:
+
+- バリデーションデコレータ（`@IsString()`, `@IsOptional()`等）が必要
+- class-validatorがclassベースで動作
+- インスタンス化され、バリデーションパイプラインで処理される
+
+**実装例**:
+
+```typescript
+import { IsBoolean, IsOptional, IsDateString } from 'class-validator';
+
+export class SyncTransactionsDto {
+  @IsOptional()
+  @IsBoolean()
+  forceFullSync?: boolean;
+}
+
+export class GetSyncHistoryDto {
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+}
+```
+
+#### レスポンスDTO: `interface`を使用
+
+**理由**:
+
+- 単なる型定義であり、メソッドやバリデーションロジックを持たない
+- インスタンス化されない（コントローラーがオブジェクトリテラルを返す）
+- TypeScriptの`strictPropertyInitialization`チェックを回避
+- classとして定義するとプロパティの初期化が必須になり、不要な複雑性が増す
+
+**実装例**:
+
+```typescript
+// ✅ 正しい: interface
+export interface SyncTransactionsResponseDto {
+  success: boolean;
+  data: {
+    syncId: string;
+    status: string;
+    successCount: number;
+    failureCount: number;
+  };
+}
+
+// ❌ 誤り: class（ビルドエラーが発生）
+export class SyncTransactionsResponseDto {
+  success: boolean;  // TS2564: Property has no initializer
+  data: { ... };     // TS2564: Property has no initializer
+}
+```
+
+**ビルドエラーの例**:
+
+```
+TS2564: Property 'success' has no initializer and is not definitely assigned in the constructor.
+TS2564: Property 'data' has no initializer and is not definitely assigned in the constructor.
+```
+
+**classで定義した場合の問題**:
+
+1. プロパティに初期化子が必要（`success: boolean = false`）
+2. または、コンストラクタですべてのプロパティを初期化する必要
+3. レスポンスDTOは型定義のみなので、この複雑性は不要
+
+**まとめ**:
+
+| 用途          | 型          | 理由               |
+| ------------- | ----------- | ------------------ |
+| リクエストDTO | `class`     | バリデーション必要 |
+| レスポンスDTO | `interface` | 型定義のみ         |
+
+**参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
+
 ---
 
 ## 10. push前の必須チェック
 
-**重要**: pushする前に**必ず**以下を実行すること
-
-```bash
-./scripts/test/lint.sh
-./scripts/test/test.sh all
-./scripts/test/test-e2e.sh frontend
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
+║                                                               ║
+║  詳細は `.cursor/rules/03-git-workflow.md` を参照            ║
+╚═══════════════════════════════════════════════════════════════╝
 ```
 
-**理由**:
+**必須4ステップ**:
 
-- pushするとGitHub ActionsでCIが実行される（約3-5分）
-- ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
-- 実行時間: 約3-4分（CI実行より短い）
+```bash
+1. ./scripts/test/lint.sh         # 構文・スタイル
+2. pnpm build                      # ビルド確認 ⭐ 重要
+3. ./scripts/test/test.sh all     # ユニットテスト
+4. ./scripts/test/test-e2e.sh frontend # E2Eテスト
+```
+
+**実行時間**: 約4-6分
+
+**なぜ重要か**:
+
+- ビルドエラーはすべてのCI jobをブロックする
+- ローカルでの早期発見により時間節約（実例: Issue #22で20分の損失を防げた）
+
+**詳細**: `.cursor/rules/03-git-workflow.md` の「3. Push前チェック」セクション参照
 
 ---
 
@@ -902,13 +1000,25 @@ PROJECT_NUMBER=2 OWNER="other-user" ./script.sh
 2. **データ整合性**: IDベースマッピング使用
 3. **アーキテクチャ**: 関心の分離、適切なモジュール設計
 4. **テスト**: 全ての新規実装にテストを作成
-5. **push前チェック**: 必ずローカルで確認
+5. **DTO設計**: リクエストはclass、レスポンスはinterface
+6. **push前チェック**: Lint → **Build** → Unit Test → E2E Test（4ステップ必須）
+
+### push前の4ステップチェック（厳守）
+
+```bash
+# 絶対に忘れずに実行
+./scripts/test/lint.sh
+pnpm build  # ⭐ ビルドチェックを忘れない！
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+```
 
 ### このチェックリストの更新
 
 - Gemini等のコードレビューで新たな指摘を受けた場合
 - 本番環境で問題が発生した場合
 - チーム内でベストプラクティスが見つかった場合
+- **CIで失敗した場合、原因をルールに追加**
 
 **常にこのチェックリストを進化させ、コード品質を向上させてください。**
 

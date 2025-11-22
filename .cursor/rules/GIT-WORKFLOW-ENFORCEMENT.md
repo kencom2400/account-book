@@ -115,14 +115,17 @@ git branch
 ### 3. push前チェック
 
 ```bash
-# 必須チェック（約3-4分）
+# 必須4ステップ（約4-6分）
 ./scripts/test/lint.sh
+pnpm build  # ⭐ ビルドチェック追加
 ./scripts/test/test.sh all
-./scripts/test/test-e2e.sh frontend  # ドキュメントのみの変更時はスキップ可
+./scripts/test/test-e2e.sh frontend
 
 # すべて成功したら push
 git push origin feat/XXX-description  # mainではなくフィーチャーブランチ名を指定
 ```
+
+**詳細**: `.cursor/rules/03-git-workflow.md` の「3. Push前チェック」参照
 
 ---
 
