@@ -1,8 +1,9 @@
 # データベーススキーマ設計書
 
-**文書バージョン**: 1.0  
+**文書バージョン**: 1.1  
 **作成日**: 2025-11-22  
-**最終更新日**: 2025-11-22
+**最終更新日**: 2025-11-22  
+**最終変更**: Issue #125 Repository実装のDB対応
 
 ## 目次
 
@@ -135,17 +136,21 @@
 
 金融機関情報を管理するテーブル。
 
-| カラム名              | データ型     | NULL     | デフォルト                  | 説明                                        |
-| --------------------- | ------------ | -------- | --------------------------- | ------------------------------------------- |
-| id                    | VARCHAR(36)  | NOT NULL | -                           | 主キー（UUID）                              |
-| name                  | VARCHAR(255) | NOT NULL | -                           | 金融機関名（UNIQUE）                        |
-| type                  | ENUM         | NOT NULL | -                           | 機関タイプ（bank, credit_card, securities） |
-| encrypted_credentials | TEXT         | NOT NULL | -                           | 暗号化された認証情報                        |
-| is_connected          | BOOLEAN      | NOT NULL | false                       | 接続状態                                    |
-| last_synced_at        | TIMESTAMP    | NULL     | NULL                        | 最終同期日時                                |
-| accounts              | JSON         | NULL     | NULL                        | 口座情報（配列）                            |
-| created_at            | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                                    |
-| updated_at            | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                                    |
+| カラム名             | データ型     | NULL     | デフォルト                  | 説明                                        |
+| -------------------- | ------------ | -------- | --------------------------- | ------------------------------------------- |
+| id                   | VARCHAR(60)  | NOT NULL | -                           | 主キー（プレフィックス付きUUID）            |
+| name                 | VARCHAR(255) | NOT NULL | -                           | 金融機関名（UNIQUE）                        |
+| type                 | ENUM         | NOT NULL | -                           | 機関タイプ（bank, credit_card, securities） |
+| encrypted_api_key    | TEXT         | NULL     | NULL                        | 暗号化されたAPIキー                         |
+| encrypted_api_secret | TEXT         | NULL     | NULL                        | 暗号化されたAPIシークレット                 |
+| encryption_iv        | VARCHAR(255) | NULL     | NULL                        | 暗号化IV                                    |
+| encryption_auth_tag  | VARCHAR(255) | NULL     | NULL                        | 暗号化認証タグ                              |
+| encryption_algorithm | VARCHAR(50)  | NULL     | NULL                        | 暗号化アルゴリズム                          |
+| encryption_version   | VARCHAR(20)  | NULL     | NULL                        | 暗号化バージョン                            |
+| is_connected         | BOOLEAN      | NOT NULL | false                       | 接続状態                                    |
+| last_synced_at       | TIMESTAMP    | NULL     | NULL                        | 最終同期日時                                |
+| created_at           | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                                    |
+| updated_at           | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                                    |
 
 **主キー**: id  
 **ユニーク制約**: name  
@@ -154,29 +159,136 @@
 - IDX_INSTITUTIONS_TYPE (type)
 - IDX_INSTITUTIONS_IS_CONNECTED (is_connected)
 
-**accounts JSONフィールドの構造**:
-
-```typescript
-[
-  {
-    id: 'acc_001',
-    institutionId: 'inst_001',
-    accountNumber: '****1234',
-    accountName: '普通預金',
-    balance: 500000,
-    currency: 'JPY',
-  },
-];
-```
-
 **備考**:
 
-- encrypted_credentials は AES-256-GCM で暗号化
-- accounts は将来的に独立したテーブルに分離する可能性あり
+- encrypted_api_key/encrypted_api_secret は AES-256-GCM で暗号化
+- 暗号化情報は複数カラムに分割して保存（単一JSONフィールドではなく）
+- accounts は別テーブル `accounts` として分離
 
 ---
 
-### 3. credit_cards（クレジットカード）
+### 3. accounts（口座）
+
+**実装変更**: Phase 1.1でaccountsテーブルを追加しました。
+
+金融機関に紐づく口座情報を管理するテーブル。
+
+| カラム名       | データ型      | NULL     | デフォルト                  | 説明                           |
+| -------------- | ------------- | -------- | --------------------------- | ------------------------------ |
+| id             | VARCHAR(60)   | NOT NULL | -                           | 主キー（プレフィックス付UUID） |
+| institution_id | VARCHAR(60)   | NOT NULL | -                           | 金融機関ID                     |
+| account_number | VARCHAR(255)  | NOT NULL | -                           | 口座番号（マスクされた形式）   |
+| account_name   | VARCHAR(255)  | NOT NULL | -                           | 口座名                         |
+| balance        | DECIMAL(15,2) | NOT NULL | -                           | 残高                           |
+| currency       | VARCHAR(3)    | NOT NULL | JPY                         | 通貨コード                     |
+| created_at     | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                       |
+| updated_at     | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                       |
+
+**主キー**: id  
+**外部キー**: institution_id → institutions(id) ON DELETE CASCADE  
+**インデックス**:
+
+- MySQL は外部キー制約を持つカラムに自動的にインデックスを作成するため、明示的なインデックス定義は不要
+
+**備考**:
+
+- institution_id の外部キー制約により、金融機関削除時に関連口座も自動削除（CASCADE）
+- MySQL は外部キー用のインデックスを自動作成
+
+---
+
+### 4. securities_accounts（証券口座）
+
+**新規追加**: Phase 1.1で証券口座管理機能を追加しました。
+
+証券口座情報を管理するテーブル。
+
+| カラム名         | データ型     | NULL     | デフォルト                  | 説明                           |
+| ---------------- | ------------ | -------- | --------------------------- | ------------------------------ |
+| id               | VARCHAR(60)  | NOT NULL | -                           | 主キー（プレフィックス付UUID） |
+| account_number   | VARCHAR(255) | NOT NULL | -                           | 証券口座番号                   |
+| institution_name | VARCHAR(255) | NOT NULL | -                           | 証券会社名                     |
+| connected_at     | TIMESTAMP    | NOT NULL | -                           | 接続日時                       |
+| last_synced_at   | TIMESTAMP    | NULL     | NULL                        | 最終同期日時                   |
+| created_at       | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                       |
+| updated_at       | TIMESTAMP    | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                       |
+
+**主キー**: id  
+**インデックス**: なし（テーブルサイズが小さいため）
+
+**備考**:
+
+- IDは `sec_acc_` プレフィックス付きUUID（最大60文字）
+- 将来的に institutions テーブルと統合する可能性あり
+
+---
+
+### 5. holdings（保有銘柄）
+
+**新規追加**: Phase 1.1で証券保有銘柄管理機能を追加しました。
+
+証券口座での保有銘柄情報を管理するテーブル。
+
+| カラム名              | データ型      | NULL     | デフォルト                  | 説明                           |
+| --------------------- | ------------- | -------- | --------------------------- | ------------------------------ |
+| id                    | VARCHAR(60)   | NOT NULL | -                           | 主キー（プレフィックス付UUID） |
+| securities_account_id | VARCHAR(60)   | NOT NULL | -                           | 証券口座ID                     |
+| symbol                | VARCHAR(20)   | NOT NULL | -                           | 銘柄コード                     |
+| name                  | VARCHAR(255)  | NOT NULL | -                           | 銘柄名                         |
+| quantity              | DECIMAL(15,2) | NOT NULL | -                           | 保有数量                       |
+| average_price         | DECIMAL(15,2) | NOT NULL | -                           | 平均取得単価                   |
+| current_price         | DECIMAL(15,2) | NOT NULL | -                           | 現在価格                       |
+| created_at            | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                       |
+| updated_at            | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                       |
+
+**主キー**: id  
+**外部キー**: securities_account_id → securities_accounts(id) ON DELETE CASCADE  
+**インデックス**:
+
+- MySQL は外部キー制約を持つカラムに自動的にインデックスを作成するため、明示的なインデックス定義は不要
+
+**備考**:
+
+- IDは `holding_` プレフィックス付きUUID（最大60文字）
+- securities_account_id の外部キー制約により、証券口座削除時に保有銘柄も自動削除（CASCADE）
+- MySQL は外部キー用のインデックスを自動作成
+
+---
+
+### 6. security_transactions（証券取引履歴）
+
+**新規追加**: Phase 1.1で証券取引履歴管理機能を追加しました。
+
+証券口座での取引履歴を管理するテーブル。
+
+| カラム名              | データ型      | NULL     | デフォルト                  | 説明                           |
+| --------------------- | ------------- | -------- | --------------------------- | ------------------------------ |
+| id                    | VARCHAR(60)   | NOT NULL | -                           | 主キー（プレフィックス付UUID） |
+| securities_account_id | VARCHAR(60)   | NOT NULL | -                           | 証券口座ID                     |
+| date                  | TIMESTAMP     | NOT NULL | -                           | 取引日時                       |
+| type                  | VARCHAR(20)   | NOT NULL | -                           | 取引種別（buy, sell）          |
+| symbol                | VARCHAR(20)   | NOT NULL | -                           | 銘柄コード                     |
+| quantity              | DECIMAL(15,2) | NOT NULL | -                           | 数量                           |
+| price                 | DECIMAL(15,2) | NOT NULL | -                           | 単価                           |
+| total_amount          | DECIMAL(15,2) | NOT NULL | -                           | 合計金額                       |
+| created_at            | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                       |
+| updated_at            | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                       |
+
+**主キー**: id  
+**外部キー**: securities_account_id → securities_accounts(id) ON DELETE CASCADE  
+**インデックス**:
+
+- MySQL は外部キー制約を持つカラムに自動的にインデックスを作成するため、明示的なインデックス定義は不要
+
+**備考**:
+
+- IDは `sec_tx_` プレフィックス付きUUID（最大60文字）
+- securities_account_id の外部キー制約により、証券口座削除時に取引履歴も自動削除（CASCADE）
+- MySQL は外部キー用のインデックスを自動作成
+
+---
+
+### 7. credit_cards（クレジットカード）
 
 クレジットカード情報を管理するテーブル。
 
@@ -213,24 +325,24 @@
 
 ---
 
-### 4. transactions（取引）
+### 8. transactions（取引）
 
 取引情報を管理するテーブル。
 
 | カラム名               | データ型      | NULL     | デフォルト                  | 説明                                                |
 | ---------------------- | ------------- | -------- | --------------------------- | --------------------------------------------------- |
-| id                     | VARCHAR(36)   | NOT NULL | -                           | 主キー（UUID）                                      |
+| id                     | VARCHAR(60)   | NOT NULL | -                           | 主キー（プレフィックス付UUID）                      |
 | date                   | DATE          | NOT NULL | -                           | 取引日                                              |
 | amount                 | DECIMAL(15,2) | NOT NULL | -                           | 金額                                                |
-| category_id            | VARCHAR(36)   | NOT NULL | -                           | カテゴリID                                          |
+| category_id            | VARCHAR(60)   | NOT NULL | -                           | カテゴリID                                          |
 | category_name          | VARCHAR(255)  | NOT NULL | -                           | カテゴリ名（非正規化）                              |
 | category_type          | ENUM          | NOT NULL | -                           | カテゴリタイプ（非正規化）                          |
 | description            | TEXT          | NOT NULL | -                           | 説明                                                |
-| institution_id         | VARCHAR(36)   | NOT NULL | -                           | 金融機関ID                                          |
-| account_id             | VARCHAR(36)   | NOT NULL | -                           | 口座ID                                              |
+| institution_id         | VARCHAR(60)   | NOT NULL | -                           | 金融機関ID                                          |
+| account_id             | VARCHAR(60)   | NOT NULL | -                           | 口座ID                                              |
 | status                 | ENUM          | NOT NULL | completed                   | ステータス（pending, completed, failed, cancelled） |
 | is_reconciled          | BOOLEAN       | NOT NULL | false                       | 照合済みフラグ                                      |
-| related_transaction_id | VARCHAR(36)   | NULL     | NULL                        | 関連取引ID（振替用）                                |
+| related_transaction_id | VARCHAR(60)   | NULL     | NULL                        | 関連取引ID（振替用）                                |
 | created_at             | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP           | 作成日時                                            |
 | updated_at             | TIMESTAMP     | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 更新日時                                            |
 
@@ -245,9 +357,11 @@
 - IDX_TRANSACTIONS_DATE_INSTITUTION (date, institution_id)
 - IDX_TRANSACTIONS_CATEGORY (category_id)
 - IDX_TRANSACTIONS_STATUS (status)
+- MySQL は外部キー制約を持つカラムに自動的にインデックスを作成
 
 **備考**:
 
+- IDは `tx_` プレフィックス付きUUID（最大60文字）
 - category_name と category_type は非正規化データ（パフォーマンス最適化）
 - 取引の検索・表示時にカテゴリテーブルへのJOINを回避
 - カテゴリ名変更時はアプリケーション側で整合性を維持
@@ -271,24 +385,36 @@
 3. **ユニークインデックス**
    - ビジネスルールで一意性が必要なカラム
 
+4. **外部キー用インデックス**
+   - MySQLは外部キー制約を持つカラムに自動的にインデックスを作成
+   - 明示的なインデックス定義は不要（重複を避ける）
+
 ### インデックス一覧
 
-| テーブル     | インデックス名                    | カラム               | タイプ      |
-| ------------ | --------------------------------- | -------------------- | ----------- |
-| categories   | PRIMARY                           | id                   | PRIMARY KEY |
-| categories   | IDX_CATEGORIES_TYPE               | type                 | INDEX       |
-| categories   | IDX_CATEGORIES_PARENT_ID          | parent_id            | INDEX       |
-| institutions | PRIMARY                           | id                   | PRIMARY KEY |
-| institutions | name                              | name                 | UNIQUE      |
-| institutions | IDX_INSTITUTIONS_TYPE             | type                 | INDEX       |
-| institutions | IDX_INSTITUTIONS_IS_CONNECTED     | is_connected         | INDEX       |
-| credit_cards | PRIMARY                           | id                   | PRIMARY KEY |
-| credit_cards | IDX_CREDIT_CARDS_ISSUER           | issuer               | INDEX       |
-| credit_cards | IDX_CREDIT_CARDS_IS_CONNECTED     | is_connected         | INDEX       |
-| transactions | PRIMARY                           | id                   | PRIMARY KEY |
-| transactions | IDX_TRANSACTIONS_DATE_INSTITUTION | date, institution_id | INDEX       |
-| transactions | IDX_TRANSACTIONS_CATEGORY         | category_id          | INDEX       |
-| transactions | IDX_TRANSACTIONS_STATUS           | status               | INDEX       |
+| テーブル              | インデックス名                    | カラム                | タイプ      | 備考                                  |
+| --------------------- | --------------------------------- | --------------------- | ----------- | ------------------------------------- |
+| categories            | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| categories            | IDX_CATEGORIES_TYPE               | type                  | INDEX       | -                                     |
+| categories            | IDX_CATEGORIES_PARENT_ID          | parent_id             | INDEX       | MySQL外部キー自動インデックス         |
+| institutions          | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| institutions          | name                              | name                  | UNIQUE      | -                                     |
+| institutions          | IDX_INSTITUTIONS_TYPE             | type                  | INDEX       | -                                     |
+| institutions          | IDX_INSTITUTIONS_IS_CONNECTED     | is_connected          | INDEX       | -                                     |
+| accounts              | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| accounts              | IDX_FK_ACCOUNTS_INSTITUTION       | institution_id        | INDEX       | MySQL外部キー自動インデックス         |
+| securities_accounts   | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| holdings              | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| holdings              | IDX_FK_HOLDINGS_SECURITIES_ACC    | securities_account_id | INDEX       | MySQL外部キー自動インデックス         |
+| security_transactions | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| security_transactions | IDX_FK_SEC_TX_SECURITIES_ACC      | securities_account_id | INDEX       | MySQL外部キー自動インデックス         |
+| credit_cards          | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| credit_cards          | IDX_CREDIT_CARDS_ISSUER           | issuer                | INDEX       | -                                     |
+| credit_cards          | IDX_CREDIT_CARDS_IS_CONNECTED     | is_connected          | INDEX       | -                                     |
+| transactions          | PRIMARY                           | id                    | PRIMARY KEY | -                                     |
+| transactions          | IDX_TRANSACTIONS_DATE_INSTITUTION | date, institution_id  | INDEX       | -                                     |
+| transactions          | IDX_TRANSACTIONS_CATEGORY         | category_id           | INDEX       | MySQL外部キー自動インデックス         |
+| transactions          | IDX_TRANSACTIONS_STATUS           | status                | INDEX       | -                                     |
+| transactions          | IDX_FK_TX_INSTITUTION             | institution_id        | INDEX       | MySQL外部キー自動インデックス（暗黙） |
 
 ### インデックス選択の理由
 
@@ -314,13 +440,19 @@
 
 ### 制約一覧
 
-| 制約名                      | 親テーブル   | 親カラム | 子テーブル   | 子カラム       | ON DELETE | ON UPDATE |
-| --------------------------- | ------------ | -------- | ------------ | -------------- | --------- | --------- |
-| FK_CATEGORIES_PARENT        | categories   | id       | categories   | parent_id      | CASCADE   | CASCADE   |
-| FK_TRANSACTIONS_CATEGORY    | categories   | id       | transactions | category_id    | RESTRICT  | CASCADE   |
-| FK_TRANSACTIONS_INSTITUTION | institutions | id       | transactions | institution_id | RESTRICT  | CASCADE   |
+| 制約名                      | 親テーブル          | 親カラム | 子テーブル            | 子カラム              | ON DELETE | ON UPDATE | 備考            |
+| --------------------------- | ------------------- | -------- | --------------------- | --------------------- | --------- | --------- | --------------- |
+| FK_CATEGORIES_PARENT        | categories          | id       | categories            | parent_id             | CASCADE   | CASCADE   | -               |
+| FK_ACCOUNTS_INSTITUTION     | institutions        | id       | accounts              | institution_id        | CASCADE   | CASCADE   | Phase 1.1で追加 |
+| FK_HOLDINGS_SECURITIES_ACC  | securities_accounts | id       | holdings              | securities_account_id | CASCADE   | CASCADE   | Phase 1.1で追加 |
+| FK_SEC_TX_SECURITIES_ACC    | securities_accounts | id       | security_transactions | securities_account_id | CASCADE   | CASCADE   | Phase 1.1で追加 |
+| FK_TRANSACTIONS_CATEGORY    | categories          | id       | transactions          | category_id           | RESTRICT  | CASCADE   | -               |
+| FK_TRANSACTIONS_INSTITUTION | institutions        | id       | transactions          | institution_id        | RESTRICT  | CASCADE   | -               |
 
-**注意**: transactions.related_transaction_id に対する自己参照外部キー制約は現在実装されていません。データ整合性の観点から、将来的に以下の制約の追加を推奨します：
+**注意**:
+
+- transactions.related_transaction_id に対する自己参照外部キー制約は現在実装されていません。データ整合性の観点から、将来的に以下の制約の追加を推奨します：
+- MySQLは外部キー制約を持つカラムに自動的にインデックスを作成するため、明示的なインデックス定義は不要です。重複インデックスを作成するとマイグレーション時にエラーが発生します。
 
 ```sql
 ALTER TABLE transactions
@@ -336,6 +468,12 @@ ON DELETE SET NULL;
 
 - categories.parent_id → categories.id
   - 親カテゴリを削除すると、子カテゴリも自動的に削除される
+- accounts.institution_id → institutions.id (Phase 1.1で追加)
+  - 金融機関を削除すると、関連する口座も自動的に削除される
+- holdings.securities_account_id → securities_accounts.id (Phase 1.1で追加)
+  - 証券口座を削除すると、保有銘柄も自動的に削除される
+- security_transactions.securities_account_id → securities_accounts.id (Phase 1.1で追加)
+  - 証券口座を削除すると、取引履歴も自動的に削除される
 
 **RESTRICT（削除制限）**:
 
@@ -348,11 +486,15 @@ ON DELETE SET NULL;
 
 ## データ型の選択理由
 
-### VARCHAR(36) for UUIDs
+### データ型の選択理由
 
-- UUID v4を使用（36文字）
+### VARCHAR(60) for Prefixed UUIDs
+
+- プレフィックス付きUUID v4を使用（例: `inst_`, `acc_`, `tx_`, `sec_acc_`, `holding_`, `sec_tx_`）
+- 最大長60文字を確保（プレフィックス + UUID + マージン）
 - 分散環境でも一意性を保証
 - セキュリティ：連番IDよりも推測が困難
+- 可読性：プレフィックスによりエンティティ種別が識別可能
 
 ### DECIMAL(15,2) for 金額
 
@@ -593,12 +735,20 @@ CREATE TABLE events (
 
 ## 変更履歴
 
-| バージョン | 日付       | 変更内容 | 変更者 |
-| ---------- | ---------- | -------- | ------ |
-| 1.0        | 2025-11-22 | 初版作成 | System |
+| バージョン | 日付       | 変更内容                                                                 | 変更者 | 関連Issue |
+| ---------- | ---------- | ------------------------------------------------------------------------ | ------ | --------- |
+| 1.1        | 2025-11-22 | Phase 1.1実装完了に伴う更新                                              | System | #125      |
+|            |            | - institutionsテーブルの認証情報を複数カラムに分割                       |        |           |
+|            |            | - accountsテーブルを追加（JSON→独立テーブル化）                          |        |           |
+|            |            | - securities_accounts, holdings, security_transactionsテーブルを追加     |        |           |
+|            |            | - IDカラムをVARCHAR(60)に変更（プレフィックス付UUID対応）                |        |           |
+|            |            | - CASCADE削除ポリシーの追加（accounts, holdings, security_transactions） |        |           |
+|            |            | - MySQL外部キー自動インデックス仕様の明記                                |        |           |
+| 1.0        | 2025-11-22 | 初版作成                                                                 | System | #123      |
 
 ---
 
-**文書バージョン**: 1.0  
+**文書バージョン**: 1.1  
 **作成日**: 2025-11-22  
-**最終更新日**: 2025-11-22
+**最終更新日**: 2025-11-22  
+**最終変更**: Issue #125 Repository実装のDB対応
