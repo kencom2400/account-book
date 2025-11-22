@@ -14,7 +14,7 @@ import { InstitutionOrmEntity } from './institution.orm-entity';
  * データベースのテーブル構造を定義
  */
 @Entity('accounts')
-@Index(['institution_id'])
+@Index(['institutionId'])
 export class AccountOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;

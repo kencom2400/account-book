@@ -15,8 +15,8 @@ import { SecuritiesAccountOrmEntity } from './securities-account.orm-entity';
  * データベースのテーブル構造を定義
  */
 @Entity('holdings')
-@Index(['securities_account_id'])
-@Index(['security_code'])
+@Index(['securitiesAccountId'])
+@Index(['securityCode'])
 export class HoldingOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;

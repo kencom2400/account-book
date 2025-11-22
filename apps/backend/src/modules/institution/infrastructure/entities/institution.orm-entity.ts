@@ -17,7 +17,7 @@ import { AccountOrmEntity } from './account.orm-entity';
  */
 @Entity('institutions')
 @Index(['type'])
-@Index(['is_connected'])
+@Index(['isConnected'])
 export class InstitutionOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;

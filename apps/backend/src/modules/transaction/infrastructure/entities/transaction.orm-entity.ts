@@ -16,8 +16,8 @@ import { CategoryType, TransactionStatus } from '@account-book/types';
  * データベースのテーブル構造を定義
  */
 @Entity('transactions')
-@Index(['institution_id'])
-@Index(['account_id'])
+@Index(['institutionId'])
+@Index(['accountId'])
 @Index(['date'])
 @Index(['status'])
 export class TransactionOrmEntity {

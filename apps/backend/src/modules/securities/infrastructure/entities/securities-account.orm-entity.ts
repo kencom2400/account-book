@@ -16,7 +16,7 @@ import { SecurityTransactionOrmEntity } from './security-transaction.orm-entity'
  * データベースのテーブル構造を定義
  */
 @Entity('securities_accounts')
-@Index(['is_connected'])
+@Index(['isConnected'])
 export class SecuritiesAccountOrmEntity {
   @PrimaryColumn({ type: 'varchar', length: 36 })
   id!: string;
