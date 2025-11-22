@@ -41,9 +41,11 @@ export async function classifyTransaction(
     request
   );
 
-  if (!response.data?.data) {
+  // レスポンスの型チェック
+  const responseData = response.data as ClassifyTransactionResponse;
+  if (!responseData?.data) {
     throw new Error('Invalid response from API');
   }
 
-  return response.data.data as ClassifyTransactionResponse['data'];
+  return responseData.data;
 }
