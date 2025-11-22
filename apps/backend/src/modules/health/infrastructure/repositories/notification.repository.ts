@@ -18,9 +18,8 @@ export class NotificationRepository implements INotificationRepository {
 
   constructor() {
     // プロジェクトルートからの相対パス
-    const projectRoot: string = path.resolve(__dirname, '../../../../../../');
     this.dataFilePath = path.join(
-      projectRoot,
+      process.cwd(),
       'data',
       'notifications',
       'notifications.json',
