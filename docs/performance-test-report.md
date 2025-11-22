@@ -417,12 +417,13 @@ jobs:
 
       - name: Upload performance report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-report
           path: |
             logs/backend-perf-test.log
             logs/frontend-perf-test.log
+          if-no-files-found: ignore
 ```
 
 ### 5.2 パフォーマンスしきい値の監視

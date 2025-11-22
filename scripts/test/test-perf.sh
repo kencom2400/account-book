@@ -50,7 +50,24 @@ run_backend_perf_tests() {
   if ! nc -z localhost 3306 2>/dev/null; then
     echo -e "${YELLOW}Database not running. Starting database...${NC}"
     ../../scripts/dev/start-database.sh
-    sleep 5
+    
+    echo -e "${YELLOW}Waiting for database to be ready...${NC}"
+    max_wait=30
+    waited=0
+    while ! nc -z localhost 3306 2>/dev/null && [ $waited -lt $max_wait ]; do
+      sleep 1
+      waited=$((waited + 1))
+      echo -n "."
+    done
+    echo ""
+    
+    if [ $waited -ge $max_wait ]; then
+      echo -e "${RED}✗ Database failed to start within ${max_wait} seconds${NC}"
+      cd ../..
+      return 1
+    fi
+    
+    echo -e "${GREEN}✓ Database is ready${NC}"
   fi
 
   echo -e "${YELLOW}Running backend performance tests...${NC}"

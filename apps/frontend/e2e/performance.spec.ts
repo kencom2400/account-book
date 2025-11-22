@@ -34,14 +34,16 @@ test.describe.skip('Frontend Rendering Performance', () => {
       console.log(`\nHome page load time: ${duration}ms`);
       expect(duration).toBeLessThan(3000);
 
-      // パフォーマンスメトリクスを取得
+      // パフォーマンスメトリクスを取得 (Navigation Timing API Level 2)
       const metrics = await page.evaluate(() => {
-        const perfData = window.performance.timing;
-        const navigationStart = perfData.navigationStart;
+        const navigation = performance.getEntriesByType(
+          'navigation'
+        )[0] as PerformanceNavigationTiming;
         return {
-          domContentLoaded: perfData.domContentLoadedEventEnd - navigationStart,
-          loadComplete: perfData.loadEventEnd - navigationStart,
-          domInteractive: perfData.domInteractive - navigationStart,
+          domContentLoaded:
+            navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+          loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
+          domInteractive: navigation.domInteractive,
         };
       });
 
@@ -121,8 +123,8 @@ test.describe.skip('Frontend Rendering Performance', () => {
 
       const startTime = Date.now();
 
-      // 金融機関リストが表示されるまで待機
-      await page.waitForSelector('[data-testid="institutions-list"], .institutions-container', {
+      // 金融機関リストが表示されるまで待機 (data-testid優先)
+      await page.waitForSelector('[data-testid="institutions-list"]', {
         timeout: 5000,
         state: 'visible',
       });
@@ -133,9 +135,7 @@ test.describe.skip('Frontend Rendering Performance', () => {
       expect(duration).toBeLessThan(2000);
 
       // リストアイテムが表示されることを確認
-      const items = await page
-        .locator('[data-testid="institution-item"], .institution-card')
-        .count();
+      const items = await page.locator('[data-testid="institution-item"]').count();
       console.log(`  Items rendered: ${items}`);
     });
 
@@ -144,8 +144,8 @@ test.describe.skip('Frontend Rendering Performance', () => {
 
       const startTime = Date.now();
 
-      // カテゴリリストが表示されるまで待機
-      await page.waitForSelector('[data-testid="categories-list"], .categories-container', {
+      // カテゴリリストが表示されるまで待機 (data-testid優先)
+      await page.waitForSelector('[data-testid="categories-list"]', {
         timeout: 5000,
         state: 'visible',
       });
@@ -320,16 +320,19 @@ test.describe.skip('Frontend Rendering Performance', () => {
     test('Should have good Core Web Vitals', async ({ page }) => {
       await page.goto('/', { waitUntil: 'networkidle' });
 
-      // Core Web Vitalsを取得
+      // Core Web Vitalsを取得（ポーリング方式で必要なメトリクスが揃うまで待機）
       const webVitals = await page.evaluate(() => {
         return new Promise((resolve) => {
           const metrics: Record<string, number> = {};
+          let fcpCaptured = false;
+          let lcpCaptured = false;
 
           // First Contentful Paint (FCP)
           new PerformanceObserver((entryList) => {
             const entries = entryList.getEntriesByName('first-contentful-paint');
-            if (entries.length > 0) {
+            if (entries.length > 0 && !fcpCaptured) {
               metrics.fcp = entries[0].startTime;
+              fcpCaptured = true;
             }
           }).observe({ entryTypes: ['paint'] });
 
@@ -342,11 +345,36 @@ test.describe.skip('Frontend Rendering Performance', () => {
             };
             if (lastEntry) {
               metrics.lcp = lastEntry.renderTime || lastEntry.loadTime || 0;
+              lcpCaptured = true;
             }
           }).observe({ entryTypes: ['largest-contentful-paint'] });
 
-          // First Input Delay (FID) の代わりに、基本的なタイミング情報を取得
-          setTimeout(() => {
+          // ポーリング: FCP と LCP が取得できたら即座に resolve
+          const pollInterval = setInterval(() => {
+            if (fcpCaptured && lcpCaptured) {
+              clearInterval(pollInterval);
+              clearTimeout(timeoutId);
+
+              // Navigation Timing も取得
+              const navigation = performance.getEntriesByType(
+                'navigation'
+              )[0] as PerformanceNavigationTiming;
+              if (navigation) {
+                metrics.domInteractive = navigation.domInteractive;
+                metrics.domContentLoaded =
+                  navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart;
+                metrics.loadComplete = navigation.loadEventEnd - navigation.loadEventStart;
+              }
+
+              resolve(metrics);
+            }
+          }, 100);
+
+          // タイムアウト（最大5秒）：取得できなくても処理を継続
+          const timeoutId = setTimeout(() => {
+            clearInterval(pollInterval);
+
+            // Navigation Timing は取得できているはず
             const navigation = performance.getEntriesByType(
               'navigation'
             )[0] as PerformanceNavigationTiming;
@@ -356,8 +384,9 @@ test.describe.skip('Frontend Rendering Performance', () => {
                 navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart;
               metrics.loadComplete = navigation.loadEventEnd - navigation.loadEventStart;
             }
+
             resolve(metrics);
-          }, 3000);
+          }, 5000);
         });
       });
 
