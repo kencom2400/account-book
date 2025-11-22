@@ -159,9 +159,7 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
    * 取引を更新
    */
   async update(transaction: TransactionEntity): Promise<TransactionEntity> {
-    const ormEntity: TransactionOrmEntity = this.toOrm(transaction);
-    const saved: TransactionOrmEntity = await this.repository.save(ormEntity);
-    return this.toDomain(saved);
+    return this.save(transaction);
   }
 
   /**

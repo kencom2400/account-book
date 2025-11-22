@@ -28,6 +28,9 @@ export class SecurityTransactionOrmEntity {
   @ManyToOne(
     () => SecuritiesAccountOrmEntity,
     (account) => account.transactions,
+    {
+      onDelete: 'CASCADE',
+    },
   )
   @JoinColumn({ name: 'securities_account_id' })
   account!: SecuritiesAccountOrmEntity;

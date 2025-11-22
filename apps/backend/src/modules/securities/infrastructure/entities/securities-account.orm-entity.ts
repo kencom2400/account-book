@@ -69,12 +69,15 @@ export class SecuritiesAccountOrmEntity {
   })
   cashBalance!: number;
 
-  @OneToMany(() => HoldingOrmEntity, (holding) => holding.account)
+  @OneToMany(() => HoldingOrmEntity, (holding) => holding.account, {
+    cascade: true,
+  })
   holdings!: HoldingOrmEntity[];
 
   @OneToMany(
     () => SecurityTransactionOrmEntity,
     (transaction) => transaction.account,
+    { cascade: true },
   )
   transactions!: SecurityTransactionOrmEntity[];
 

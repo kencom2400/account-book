@@ -24,7 +24,9 @@ export class HoldingOrmEntity {
   @Column({ type: 'varchar', length: 60, name: 'securities_account_id' })
   securitiesAccountId!: string;
 
-  @ManyToOne(() => SecuritiesAccountOrmEntity, (account) => account.holdings)
+  @ManyToOne(() => SecuritiesAccountOrmEntity, (account) => account.holdings, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'securities_account_id' })
   account!: SecuritiesAccountOrmEntity;
 
