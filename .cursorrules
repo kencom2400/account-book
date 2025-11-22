@@ -96,6 +96,7 @@
 - ✅ **any型の使用禁止**（テストのJestモック作成時のみ例外）
 - ✅ **Enum型の比較は型安全に**（`Object.entries()`使用時は明示的型キャスト）
 - ✅ **危険な型キャストの禁止**
+- ✅ **DTO設計**: リクエストは`class`、レスポンスは`interface`（Issue #22で学習）
 
 **参照**: `.cursor/rules/02-code-standards.md`
 
@@ -107,19 +108,24 @@
 
 **参照**: `.cursor/rules/03-git-workflow.md`
 
-### 3. push前チェック
+### 3. push前チェック（4ステップ）
 
-- ✅ **必ずlint/test/e2eを実行**
+- ✅ **必ずlint/build/test/e2eを実行**（⭐ buildが追加されました）
 
 ```bash
 ./scripts/test/lint.sh
+pnpm build  # ⭐ ビルドチェックを忘れない！
 ./scripts/test/test.sh all
 ./scripts/test/test-e2e.sh frontend
 ```
 
-**理由**: pushするとGitHub ActionsでCIが実行される。ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる。
+**理由**: 
+- pushするとGitHub ActionsでCIが実行される
+- **特にビルドエラーはすべてのCI jobをブロックするため、最優先で確認**
+- ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
+- 実例: Issue #22でビルドチェック忘れ → CI全滅 → 20分の時間損失
 
-**参照**: `.cursor/rules/03-git-workflow.md`
+**参照**: `.cursor/rules/03-git-workflow.md` / `.cursor/rules/02-code-standards.md`
 
 ### 4. @start-task
 

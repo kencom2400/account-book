@@ -874,23 +874,323 @@ PROJECT_NUMBER=2 OWNER="other-user" ./script.sh
 - [ ] ハードコードされた設定を環境変数で上書き可能にしているか？
 - [ ] エラーメッセージは明確で、ユーザーが対応方法を理解できるか？
 
+### 9-6. DTO設計の原則
+
+**重要**: リクエストDTOとレスポンスDTOで異なる設計パターンを適用
+
+#### リクエストDTO: `class`を使用
+
+**理由**:
+
+- バリデーションデコレータ（`@IsString()`, `@IsOptional()`等）が必要
+- class-validatorがclassベースで動作
+- インスタンス化され、バリデーションパイプラインで処理される
+
+**実装例**:
+
+```typescript
+import { IsBoolean, IsOptional, IsDateString } from 'class-validator';
+
+export class SyncTransactionsDto {
+  @IsOptional()
+  @IsBoolean()
+  forceFullSync?: boolean;
+}
+
+export class GetSyncHistoryDto {
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+}
+```
+
+#### レスポンスDTO: `interface`を使用
+
+**理由**:
+
+- 単なる型定義であり、メソッドやバリデーションロジックを持たない
+- インスタンス化されない（コントローラーがオブジェクトリテラルを返す）
+- TypeScriptの`strictPropertyInitialization`チェックを回避
+- classとして定義するとプロパティの初期化が必須になり、不要な複雑性が増す
+
+**実装例**:
+
+```typescript
+// ✅ 正しい: interface
+export interface SyncTransactionsResponseDto {
+  success: boolean;
+  data: {
+    syncId: string;
+    status: string;
+    successCount: number;
+    failureCount: number;
+  };
+}
+
+// ❌ 誤り: class（ビルドエラーが発生）
+export class SyncTransactionsResponseDto {
+  success: boolean;  // TS2564: Property has no initializer
+  data: { ... };     // TS2564: Property has no initializer
+}
+```
+
+**ビルドエラーの例**:
+
+```
+TS2564: Property 'success' has no initializer and is not definitely assigned in the constructor.
+TS2564: Property 'data' has no initializer and is not definitely assigned in the constructor.
+```
+
+**classで定義した場合の問題**:
+
+1. プロパティに初期化子が必要（`success: boolean = false`）
+2. または、コンストラクタですべてのプロパティを初期化する必要
+3. レスポンスDTOは型定義のみなので、この複雑性は不要
+
+**まとめ**:
+
+| 用途          | 型          | 理由               |
+| ------------- | ----------- | ------------------ |
+| リクエストDTO | `class`     | バリデーション必要 |
+| レスポンスDTO | `interface` | 型定義のみ         |
+
+**参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
+
 ---
 
 ## 10. push前の必須チェック
 
-**重要**: pushする前に**必ず**以下を実行すること
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
+║                                                               ║
+║  push前に必ず以下を順番に実行すること（約3-5分）：            ║
+║                                                               ║
+║  1. ./scripts/test/lint.sh         （構文・スタイル）         ║
+║  2. pnpm build（またはturbo build） （ビルド確認）            ║
+║  3. ./scripts/test/test.sh all     （ユニットテスト）         ║
+║  4. ./scripts/test/test-e2e.sh frontend （E2Eテスト）         ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+### 🚨 各ステップの重要性
+
+#### 1. Lintチェック（必須）
 
 ```bash
 ./scripts/test/lint.sh
+```
+
+**検出できるエラー**:
+
+- ESLint violations
+- Prettier formatting errors
+- TypeScript type errors（一部）
+
+**実行時間**: 約30秒
+
+#### 2. ビルドチェック（必須・最重要）⭐ NEW
+
+```bash
+# ルートディレクトリから
+pnpm build
+
+# または
+npx turbo build
+```
+
+**検出できるエラー**:
+
+- **TypeScript compilation errors**（最重要）
+- `strictPropertyInitialization` violations
+- Interface/Type compatibility issues
+- Missing dependencies
+- Build configuration errors
+
+**実行時間**: 約1-2分
+
+**❌ よくある見落とし**:
+
+- Lintは通るがビルドは失敗するケース
+- DTOをclassとして定義してプロパティ初期化エラー
+- 型の不整合がビルド時のみ検出される
+
+**なぜビルドチェックが重要か**:
+
+1. **CIは必ずビルドを実行する**
+2. ビルドエラーはすべての後続ステップをブロックする
+3. ローカルでビルドを確認しないと、CIで初めてエラーを発見することになる
+4. CI失敗 → 修正 → 再pushのサイクルは時間の無駄
+
+**実例（Issue #22 / PR #262）**:
+
+```
+# ローカル
+✅ Lint: PASS
+✅ Unit Tests: PASS
+✅ E2E Tests: PASS
+❌ Build: SKIP（実行し忘れ）
+
+# CI
+❌ Build: FAIL - TS2564 errors
+❌ Unit Tests: FAIL（ビルドできないため）
+❌ E2E Tests: FAIL（ビルドできないため）
+
+# 結果
+→ CI全滅、修正commit、再push、時間の無駄
+```
+
+#### 3. ユニットテスト（必須）
+
+```bash
 ./scripts/test/test.sh all
+```
+
+**検出できるエラー**:
+
+- Unit test failures
+- Business logic errors
+- Regression errors
+
+**実行時間**: 約1分
+
+#### 4. E2Eテスト（必須）
+
+```bash
 ./scripts/test/test-e2e.sh frontend
+```
+
+**検出できるエラー**:
+
+- Integration issues
+- API endpoint errors
+- UI functionality errors
+
+**実行時間**: 約1-2分
+
+### 📊 チェックリスト実行結果の判定
+
+**すべてPASSした場合のみpush可能**:
+
+```bash
+✅ Lint: PASS
+✅ Build: PASS    ← ここが重要！
+✅ Unit Tests: PASS
+✅ E2E Tests: PASS
+
+→ git push OK
+```
+
+**1つでもFAILした場合**:
+
+```bash
+✅ Lint: PASS
+❌ Build: FAIL
+✅ Unit Tests: PASS
+❌ E2E Tests: FAIL
+
+→ 修正してから再度チェック
+→ pushは禁止
+```
+
+### 🔥 最近の失敗例と教訓
+
+#### ケース1: ビルドチェックを忘れた（Issue #22 / PR #262）
+
+**状況**:
+
+- レスポンスDTOをclassとして定義
+- プロパティに初期化子がなかった
+- Lintは通過、ユニットテストも通過
+- **ビルドチェックを実行せずにpush**
+
+**結果**:
+
+- CI Build: ❌ FAIL（TS2564エラー 8箇所）
+- CI Unit Tests: ❌ FAIL（ビルドできないため）
+- CI E2E Tests: ❌ FAIL（ビルドできないため）
+- 合計3つのCIジョブが失敗
+
+**修正内容**:
+
+- レスポンスDTOをinterfaceに変更
+- 修正commit、再push
+
+**時間の損失**:
+
+- CI実行待ち: 約5分
+- エラー確認・修正: 約10分
+- 再CI実行: 約5分
+- **合計**: 約20分
+
+**教訓**:
+
+```
+push前にビルドを確認していれば、1分で発見できた
+→ 19分の時間の無駄を防げた
+```
+
+#### ケース2: E2Eテストを忘れた
+
+**状況**:
+
+- バックエンドAPIエンドポイントを変更
+- Lint、Build、Unit Testsは通過
+- **E2Eテストを実行せずにpush**
+
+**結果**:
+
+- CI E2E Tests: ❌ FAIL
+- フロントエンドとの統合エラー
+
+**教訓**:
+
+```
+APIエンドポイント変更時は必ずE2Eテストを実行する
+```
+
+### ⏱️ 時間投資の正当性
+
+**ローカルチェック**: 約3-5分
+**CI実行時間**: 約3-5分
+**CI失敗時の修正サイクル**: 約15-20分
+
+**結論**: ローカルチェックは時間の節約であり、投資価値が極めて高い
+
+### 🎯 まとめ: 4ステップを必ず実行
+
+```bash
+# 1. Lint
+./scripts/test/lint.sh
+echo "Lint: $?"
+
+# 2. Build ⭐ 忘れずに！
+pnpm build
+echo "Build: $?"
+
+# 3. Unit Tests
+./scripts/test/test.sh all
+echo "Unit Tests: $?"
+
+# 4. E2E Tests
+./scripts/test/test-e2e.sh frontend
+echo "E2E Tests: $?"
+
+# すべてPASSしたらpush
+git push
 ```
 
 **理由**:
 
 - pushするとGitHub ActionsでCIが実行される（約3-5分）
 - ローカルでエラーを事前に検出することで、無駄なCI実行を防止できる
-- 実行時間: 約3-4分（CI実行より短い）
+- **特にビルドエラーはすべてをブロックするため、最優先で確認**
+- フィードバックループが短縮され、開発効率が向上する
+- CI失敗 → 修正 → 再pushのサイクルは時間の大きな無駄
 
 ---
 
@@ -902,13 +1202,25 @@ PROJECT_NUMBER=2 OWNER="other-user" ./script.sh
 2. **データ整合性**: IDベースマッピング使用
 3. **アーキテクチャ**: 関心の分離、適切なモジュール設計
 4. **テスト**: 全ての新規実装にテストを作成
-5. **push前チェック**: 必ずローカルで確認
+5. **DTO設計**: リクエストはclass、レスポンスはinterface
+6. **push前チェック**: Lint → **Build** → Unit Test → E2E Test（4ステップ必須）
+
+### push前の4ステップチェック（厳守）
+
+```bash
+# 絶対に忘れずに実行
+./scripts/test/lint.sh
+pnpm build  # ⭐ ビルドチェックを忘れない！
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+```
 
 ### このチェックリストの更新
 
 - Gemini等のコードレビューで新たな指摘を受けた場合
 - 本番環境で問題が発生した場合
 - チーム内でベストプラクティスが見つかった場合
+- **CIで失敗した場合、原因をルールに追加**
 
 **常にこのチェックリストを進化させ、コード品質を向上させてください。**
 
