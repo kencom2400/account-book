@@ -55,14 +55,14 @@ export class NotificationEntity {
    * @returns 削除可能な場合はtrue
    */
   canBeDeleted(referenceDate: Date): boolean {
-    const daysSinceCreation: number = this.getDaysSinceCreation(referenceDate);
+    const daysSinceUpdate: number = this.getDaysSinceUpdate(referenceDate);
 
     switch (this.status) {
       case NotificationStatus.CONFIRMED:
       case NotificationStatus.ARCHIVED:
-        return daysSinceCreation >= 30;
+        return daysSinceUpdate >= 30;
       case NotificationStatus.DISMISSED:
-        return daysSinceCreation >= 7;
+        return daysSinceUpdate >= 7;
       case NotificationStatus.PENDING:
       case NotificationStatus.DISPLAYED:
       case NotificationStatus.LATER:
@@ -72,11 +72,11 @@ export class NotificationEntity {
   }
 
   /**
-   * 作成からの経過日数を計算
+   * 更新からの経過日数を計算
    */
-  private getDaysSinceCreation(referenceDate: Date): number {
+  private getDaysSinceUpdate(referenceDate: Date): number {
     const diffMilliseconds: number =
-      referenceDate.getTime() - this.createdAt.getTime();
+      referenceDate.getTime() - this.updatedAt.getTime();
     return Math.floor(diffMilliseconds / (24 * 60 * 60 * 1000));
   }
 }

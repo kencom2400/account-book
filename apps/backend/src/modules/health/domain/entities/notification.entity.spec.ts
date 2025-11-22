@@ -121,8 +121,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.CONFIRMED,
-        new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000), // 29日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000), // 29日前更新
       );
 
       // Act
@@ -141,8 +141,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.CONFIRMED,
-        new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前更新
       );
 
       // Act
@@ -161,8 +161,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.ARCHIVED,
-        new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000), // 29日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000), // 29日前更新
       );
 
       // Act
@@ -181,8 +181,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.ARCHIVED,
-        new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前更新
       );
 
       // Act
@@ -201,8 +201,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.DISMISSED,
-        new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000), // 6日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000), // 6日前更新
       );
 
       // Act
@@ -221,8 +221,8 @@ describe('NotificationEntity', () => {
         'テスト銀行',
         '接続に失敗しました',
         NotificationStatus.DISMISSED,
-        new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7日前
-        now,
+        new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+        new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7日前更新
       );
 
       // Act
