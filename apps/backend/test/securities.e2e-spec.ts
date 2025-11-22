@@ -34,11 +34,6 @@ describe('Securities API (e2e)', () => {
     await app.close();
   });
 
-  beforeEach(async () => {
-    // 各テスト前にデータベースをクリーンアップ
-    await dbHelper.cleanDatabase();
-  });
-
   describe('/api/securities/connect (POST)', () => {
     it('should connect to securities account successfully', async () => {
       const response = await request(app.getHttpServer())

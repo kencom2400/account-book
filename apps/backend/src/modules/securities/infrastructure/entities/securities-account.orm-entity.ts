@@ -18,7 +18,7 @@ import { SecurityTransactionOrmEntity } from './security-transaction.orm-entity'
 @Entity('securities_accounts')
 @Index(['isConnected'])
 export class SecuritiesAccountOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 36 })
+  @PrimaryColumn({ type: 'varchar', length: 60 })
   id!: string;
 
   @Column({ type: 'varchar', length: 255, name: 'securities_company_name' })

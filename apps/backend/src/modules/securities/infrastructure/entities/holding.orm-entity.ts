@@ -18,10 +18,10 @@ import { SecuritiesAccountOrmEntity } from './securities-account.orm-entity';
 @Index(['securitiesAccountId'])
 @Index(['securityCode'])
 export class HoldingOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 36 })
+  @PrimaryColumn({ type: 'varchar', length: 60 })
   id!: string;
 
-  @Column({ type: 'varchar', length: 36, name: 'securities_account_id' })
+  @Column({ type: 'varchar', length: 60, name: 'securities_account_id' })
   securitiesAccountId!: string;
 
   @ManyToOne(() => SecuritiesAccountOrmEntity, (account) => account.holdings)

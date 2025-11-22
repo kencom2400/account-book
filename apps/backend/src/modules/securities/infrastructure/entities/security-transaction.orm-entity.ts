@@ -19,10 +19,10 @@ import { SecuritiesAccountOrmEntity } from './securities-account.orm-entity';
 @Index(['transactionDate'])
 @Index(['status'])
 export class SecurityTransactionOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 36 })
+  @PrimaryColumn({ type: 'varchar', length: 60 })
   id!: string;
 
-  @Column({ type: 'varchar', length: 36, name: 'securities_account_id' })
+  @Column({ type: 'varchar', length: 60, name: 'securities_account_id' })
   securitiesAccountId!: string;
 
   @ManyToOne(

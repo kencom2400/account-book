@@ -18,7 +18,7 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
           {
             name: 'id',
             type: 'varchar',
-            length: '36',
+            length: '60',
             isPrimary: true,
           },
           {
@@ -116,13 +116,13 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
           {
             name: 'id',
             type: 'varchar',
-            length: '36',
+            length: '60',
             isPrimary: true,
           },
           {
             name: 'securities_account_id',
             type: 'varchar',
-            length: '36',
+            length: '60',
           },
           {
             name: 'security_code',
@@ -205,13 +205,13 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
           {
             name: 'id',
             type: 'varchar',
-            length: '36',
+            length: '60',
             isPrimary: true,
           },
           {
             name: 'securities_account_id',
             type: 'varchar',
-            length: '36',
+            length: '60',
           },
           {
             name: 'security_code',
