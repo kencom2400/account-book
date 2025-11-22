@@ -297,3 +297,234 @@ describe.skip('Pagination Performance (Future Implementation)', () => {
 5. **実装状況に応じたテスト**: 未実装機能のテストは`.skip`で明示
 
 これらの観点を今後の開発・レビューで常に意識することで、より高品質なコードベースを維持できます。
+
+---
+
+## 9. パフォーマンス計測の精度向上（第3回レビュー追加）🟠 High
+
+### ❌ 悪い例: Date.now()の使用
+
+```typescript
+const startTime = Date.now();
+await someOperation();
+const duration = Date.now() - startTime;
+```
+
+**問題点**:
+
+- ミリ秒単位の精度しかない
+- システムクロックの変更に影響を受ける
+- 短い処理時間の測定には不十分
+
+### △ 良い例: performance.now()の使用
+
+```typescript
+import { performance } from 'perf_hooks';
+
+const startTime = performance.now();
+await someOperation();
+const duration = performance.now() - startTime;
+```
+
+**利点**:
+
+- マイクロ秒単位の精度
+- 単調増加が保証
+- システムクロックの変更に影響されない
+
+### ✅ 最良の例: process.hrtime.bigint()の使用
+
+```typescript
+// ヘルパー関数を定義
+function measureTime(startTime: bigint): number {
+  return Number(process.hrtime.bigint() - startTime) / 1_000_000;
+}
+
+// テストコード
+const startTime = process.hrtime.bigint();
+await someOperation();
+const duration = measureTime(startTime);
+```
+
+**利点**:
+
+- ナノ秒単位の高精度計測
+- BigInt型で精度の損失なし
+- 短いレスポンスタイムも正確に測定可能
+- 単調増加が保証
+
+---
+
+## 10. データベーステストの実用性 🟠 High
+
+### ❌ 悪い例: データベースにアクセスしないエンドポイント
+
+```typescript
+describe('Database Connection Pool Performance', () => {
+  it('should manage pool efficiently', async () => {
+    // /api/healthはDBにアクセスしないため、コネクションプールを測定できない
+    const requests = Array.from({ length: 30 }, () => request(app).get('/api/health'));
+    await Promise.all(requests);
+  });
+});
+```
+
+**問題点**:
+
+- コネクションプールの負荷を測定できない
+- テスト名と実際の測定内容が乖離
+- 実用的でないパフォーマンステスト
+
+### ✅ 良い例: 実際にDBにアクセスするエンドポイント
+
+```typescript
+describe('Database Connection Pool Performance', () => {
+  it('should manage pool efficiently', async () => {
+    // テストデータを準備
+    await seedTestData();
+
+    // /api/institutionsは実際にDBにアクセスする
+    const requests = Array.from({ length: 30 }, () => request(app).get('/api/institutions'));
+    const startTime = process.hrtime.bigint();
+    await Promise.all(requests);
+    const duration = measureTime(startTime);
+
+    // コネクションプールの効率を正確に測定できる
+    expect(duration).toBeLessThan(3000);
+  });
+});
+```
+
+**利点**:
+
+- 実際のDBアクセスで正確な測定
+- コネクションプールの負荷を適切に評価
+- 実運用に近い条件でのテスト
+
+---
+
+## 11. フロントエンドテストの堅牢性 🟡 Medium
+
+### ❌ 悪い例: 固定時間待機
+
+```typescript
+test('Button clicks should respond quickly', async ({ page }) => {
+  await buttons[0].click();
+  await page.waitForTimeout(100); // 固定100ms待機
+  const duration = Date.now() - startTime;
+});
+```
+
+**問題点**:
+
+- フレーキーテスト（不安定なテスト）の原因
+- 環境によって動作が変わる
+- クリック後の変化を正しく待機していない
+
+### ✅ 良い例: イベントベースの待機
+
+```typescript
+test('Button clicks should respond quickly', async ({ page }) => {
+  await buttons[0].click();
+  // 具体的な変化（モーダル表示など）を待つ
+  await page.waitForSelector('.modal-dialog', {
+    state: 'visible',
+    timeout: 500,
+  });
+  const duration = Date.now() - startTime;
+});
+```
+
+**利点**:
+
+- テストの堅牢性向上
+- 具体的な変化を待つことで意図が明確
+- タイムアウトで無限待機を防止
+
+---
+
+## 12. ドキュメントの実用性 🟡 Medium
+
+### △ 不十分な例: 前提条件が不明確
+
+```typescript
+// Cursor-based pagination（IDベース）
+async findInstitutions(cursor?: string, limit: number = 20) {
+  const qb = this.institutionRepository.createQueryBuilder('institution');
+  if (cursor) {
+    qb.where('institution.id > :cursor', { cursor });
+  }
+  return qb.orderBy('institution.id', 'ASC').take(limit).getMany();
+}
+```
+
+**問題点**:
+
+- UUID使用時に動作しない
+- 前提条件（ID形式）が明記されていない
+
+### ✅ 良い例: 前提条件と代替案を明記
+
+```typescript
+// Cursor-based pagination（IDベース）
+// 注意: idが連番でソート可能（例: 自動インクリメントID）であることを前提
+async findInstitutions(cursor?: string, limit: number = 20) {
+  const qb = this.institutionRepository.createQueryBuilder('institution');
+  if (cursor) {
+    qb.where('institution.id > :cursor', { cursor });
+  }
+  return qb.orderBy('institution.id', 'ASC').take(limit).getMany();
+}
+
+// UUID使用時の代替実装
+async findInstitutionsWithUUID(
+  cursor?: { createdAt: Date; id: string },
+  limit: number = 20
+) {
+  const qb = this.institutionRepository.createQueryBuilder('institution');
+  if (cursor) {
+    qb.where(
+      '(institution.createdAt > :createdAt OR ' +
+      '(institution.createdAt = :createdAt AND institution.id > :id))',
+      { createdAt: cursor.createdAt, id: cursor.id }
+    );
+  }
+  return qb
+    .orderBy('institution.createdAt', 'ASC')
+    .addOrderBy('institution.id', 'ASC')
+    .take(limit)
+    .getMany();
+}
+```
+
+**利点**:
+
+- 前提条件が明確
+- 代替実装例が示されている
+- 実用的なドキュメント
+
+---
+
+## まとめ（更新版）
+
+### 最重要ポイント（第3回レビュー追加）
+
+1. **型安全性を最優先**: モジュール全体でのルール緩和は避け、個別対応を基本とする
+2. **最高精度の測定**: パフォーマンステストでは`process.hrtime.bigint()`を使用
+3. **実用的なテスト**: 実際のDBアクセスを伴うエンドポイントでテスト
+4. **堅牢な待機処理**: 固定sleepではなく、具体的なイベントを待機
+5. **最新APIの使用**: レガシーAPIは避け、標準化された最新APIを使用
+6. **実装状況に応じたテスト**: 未実装機能のテストは`.skip`で明示
+7. **前提条件の明確化**: ドキュメントでは実装の前提条件と代替案を明記
+
+### 計測精度の進化
+
+```
+Date.now() → performance.now() → process.hrtime.bigint()
+   ↓              ↓                    ↓
+ミリ秒         マイクロ秒           ナノ秒
+```
+
+これらの観点を今後の開発・レビューで常に意識することで、より高品質なコードベースを維持できます。
+
+**更新日**: 2025-11-22 (第3回レビュー対応を追加)
