@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+// ORM Entities
+import { SecuritiesAccountOrmEntity } from './infrastructure/entities/securities-account.orm-entity';
+import { HoldingOrmEntity } from './infrastructure/entities/holding.orm-entity';
+import { SecurityTransactionOrmEntity } from './infrastructure/entities/security-transaction.orm-entity';
 
 // Controllers
 import { SecuritiesController } from './presentation/controllers/securities.controller';
@@ -10,7 +16,12 @@ import { FetchHoldingsUseCase } from './application/use-cases/fetch-holdings.use
 import { FetchSecurityTransactionsUseCase } from './application/use-cases/fetch-security-transactions.use-case';
 import { CalculatePortfolioValueUseCase } from './application/use-cases/calculate-portfolio-value.use-case';
 
-// Repositories
+// Repositories - TypeORM版
+import { SecuritiesAccountTypeOrmRepository } from './infrastructure/repositories/securities-account-typeorm.repository';
+import { HoldingTypeOrmRepository } from './infrastructure/repositories/holding-typeorm.repository';
+import { SecurityTransactionTypeOrmRepository } from './infrastructure/repositories/security-transaction-typeorm.repository';
+
+// Repositories - FileSystem版（予備として残す）
 import {
   FileSystemSecuritiesAccountRepository,
   FileSystemHoldingRepository,
@@ -33,7 +44,14 @@ import {
 import { CRYPTO_SERVICE } from '../institution/institution.tokens';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    TypeOrmModule.forFeature([
+      SecuritiesAccountOrmEntity,
+      HoldingOrmEntity,
+      SecurityTransactionOrmEntity,
+    ]),
+  ],
   controllers: [SecuritiesController],
   providers: [
     // Use Cases
@@ -42,19 +60,25 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     FetchSecurityTransactionsUseCase,
     CalculatePortfolioValueUseCase,
 
-    // Repositories
+    // Repositories - TypeORM版を使用（FileSystem版は予備として残す）
     {
       provide: SECURITIES_ACCOUNT_REPOSITORY,
-      useClass: FileSystemSecuritiesAccountRepository,
+      useClass: SecuritiesAccountTypeOrmRepository,
     },
     {
       provide: HOLDING_REPOSITORY,
-      useClass: FileSystemHoldingRepository,
+      useClass: HoldingTypeOrmRepository,
     },
     {
       provide: SECURITY_TRANSACTION_REPOSITORY,
-      useClass: FileSystemSecurityTransactionRepository,
+      useClass: SecurityTransactionTypeOrmRepository,
     },
+    SecuritiesAccountTypeOrmRepository,
+    HoldingTypeOrmRepository,
+    SecurityTransactionTypeOrmRepository,
+    FileSystemSecuritiesAccountRepository, // FileSystemリポジトリは予備として残す
+    FileSystemHoldingRepository,
+    FileSystemSecurityTransactionRepository,
 
     // Adapters
     {

@@ -4,6 +4,7 @@ import { InstitutionController } from './presentation/controllers/institution.co
 import { InstitutionRepository } from './infrastructure/repositories/institution.repository';
 import { InstitutionTypeOrmRepository } from './infrastructure/repositories/institution-typeorm.repository';
 import { InstitutionOrmEntity } from './infrastructure/entities/institution.orm-entity';
+import { AccountOrmEntity } from './infrastructure/entities/account.orm-entity';
 import { CryptoService } from './infrastructure/services/crypto.service';
 import { MockBankApiAdapter } from './infrastructure/adapters/mock-bank-api.adapter';
 import { CreateInstitutionUseCase } from './application/use-cases/create-institution.use-case';
@@ -17,7 +18,7 @@ import {
 } from './institution.tokens';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InstitutionOrmEntity])],
+  imports: [TypeOrmModule.forFeature([InstitutionOrmEntity, AccountOrmEntity])],
   controllers: [InstitutionController],
   providers: [
     // Repository - TypeORM版を使用（JSON版は予備として残す）
