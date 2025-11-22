@@ -46,25 +46,25 @@ describe('NotificationCleanupService', () => {
       const now: Date = new Date();
 
       const notifications: NotificationEntity[] = [
-        // 削除対象: CONFIRMED, 30日経過
+        // 削除対象: CONFIRMED, updatedAtから30日経過
         new NotificationEntity(
           'notif-001',
           'inst-001',
           'テスト銀行',
           '接続失敗',
           NotificationStatus.CONFIRMED,
-          new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-          now,
+          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+          new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前更新
         ),
-        // 削除対象: DISMISSED, 7日経過
+        // 削除対象: DISMISSED, updatedAtから7日経過
         new NotificationEntity(
           'notif-002',
           'inst-002',
           'テストカード',
           '接続失敗',
           NotificationStatus.DISMISSED,
-          new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-          now,
+          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+          new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7日前更新
         ),
         // 削除対象外: PENDING
         new NotificationEntity(
@@ -73,8 +73,8 @@ describe('NotificationCleanupService', () => {
           'テスト証券',
           '接続失敗',
           NotificationStatus.PENDING,
-          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000),
-          now,
+          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+          now, // 今更新
         ),
         // 削除対象外: CONFIRMED, まだ29日
         new NotificationEntity(
@@ -83,8 +83,8 @@ describe('NotificationCleanupService', () => {
           'テスト銀行2',
           '接続失敗',
           NotificationStatus.CONFIRMED,
-          new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000),
-          now,
+          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+          new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000), // 29日前更新
         ),
       ];
 
@@ -149,8 +149,8 @@ describe('NotificationCleanupService', () => {
           'テスト銀行',
           '接続失敗',
           NotificationStatus.CONFIRMED,
-          new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-          now,
+          new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000), // 100日前作成
+          new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30日前更新
         ),
         new NotificationEntity(
           'notif-002',
@@ -158,8 +158,8 @@ describe('NotificationCleanupService', () => {
           'テストカード',
           '接続失敗',
           NotificationStatus.PENDING,
-          now,
-          now,
+          now, // 今作成
+          now, // 今更新
         ),
       ];
 
