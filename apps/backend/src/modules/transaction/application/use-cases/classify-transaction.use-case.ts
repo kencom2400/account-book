@@ -70,40 +70,32 @@ export class ClassifyTransactionUseCase {
     name: string;
     type: CategoryType;
   }> {
-    // カテゴリタイプに対応するトップレベルカテゴリを取得
     const categories = await this.categoryRepository.findByType(type);
 
+    if (categories.length === 0) {
+      // カテゴリが見つからない場合はデフォルト値を返す
+      // （本来はここに到達しないはず）
+      return {
+        id: `default-${type}`,
+        name: this.getDefaultCategoryName(type),
+        type,
+      };
+    }
+
     // トップレベルカテゴリ（親カテゴリがnull）を優先
-    const topLevelCategories = categories.filter((c) => c.parentId === null);
-
-    if (topLevelCategories.length > 0) {
-      // 最初のトップレベルカテゴリを返す（orderの最小値）
-      topLevelCategories.sort((a, b) => a.order - b.order);
-      const category = topLevelCategories[0];
-      return {
-        id: category.id,
-        name: category.name,
-        type: category.type,
-      };
+    let targetCategories = categories.filter((c) => c.parentId === null);
+    if (targetCategories.length === 0) {
+      // トップレベルカテゴリがない場合は、すべてのカテゴリを対象とする
+      targetCategories = categories;
     }
 
-    // トップレベルカテゴリがない場合は、orderでソートして最初のカテゴリを返す
-    if (categories.length > 0) {
-      categories.sort((a, b) => a.order - b.order);
-      const category = categories[0];
-      return {
-        id: category.id,
-        name: category.name,
-        type: category.type,
-      };
-    }
-
-    // カテゴリが見つからない場合はデフォルト値を返す
-    // （本来はここに到達しないはず）
+    // orderでソートして最初のカテゴリを返す
+    targetCategories.sort((a, b) => a.order - b.order);
+    const category = targetCategories[0];
     return {
-      id: `default-${type}`,
-      name: this.getDefaultCategoryName(type),
-      type,
+      id: category.id,
+      name: category.name,
+      type: category.type,
     };
   }
 
