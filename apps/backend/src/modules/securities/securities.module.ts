@@ -87,6 +87,7 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     HOLDING_REPOSITORY,
     SECURITY_TRANSACTION_REPOSITORY,
     SECURITIES_API_CLIENT, // Health moduleから使用するためにexport
+    FetchSecurityTransactionsUseCase, // Sync moduleから使用するためにexport
   ],
 })
 export class SecuritiesModule {}
