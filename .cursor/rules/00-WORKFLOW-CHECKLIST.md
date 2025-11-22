@@ -17,6 +17,8 @@
     ↓
 1️⃣ タスク開始
     ↓
+1.5️⃣ 詳細設計（FEATUREのみ）
+    ↓
 2️⃣ 実装・コミット
     ↓
 3️⃣ push前チェック
@@ -57,6 +59,84 @@
 - ✅ **必ずフィーチャーブランチを作成してから作業開始**
 - ✅ GitHub ProjectsのステータスをIn Progressに変更
 - ✅ 各IssueのAssignee情報を確認し、自分にアサインされているものをフィルタリング
+
+---
+
+## 1.5️⃣ 詳細設計フェーズ（FEATUREチケットのみ）
+
+### 📐 FEATUREチケットでは実装前に詳細設計書を作成
+
+**🚨 CRITICAL: FEATUREチケットの実装開始前に必須**
+
+**対象:**
+
+- ✅ FEATUREラベルのIssue
+- ❌ バグ修正（既存設計の範囲内）
+- ❌ リファクタリング（設計変更を伴わない）
+- ❌ 設定値の変更のみ
+- ❌ ドキュメント修正のみ
+- ❌ テストコードの追加・修正のみ
+
+**必須セクション（すべてのFEATUREで作成）:**
+
+- [ ] **README.md**: 設計書の概要とアーキテクチャ
+- [ ] **class-diagrams.md**: クラス構造
+- [ ] **sequence-diagrams.md**: 処理フロー
+- [ ] **input-output-design.md**: API仕様
+
+**推奨セクション（必要に応じて作成）:**
+
+- [ ] **screen-transitions.md**: 画面遷移（画面がある場合）
+- [ ] **state-transitions.md**: 状態管理（複雑な状態がある場合）
+
+**オプションセクション（必要に応じて作成）:**
+
+- [ ] **batch-processing.md**: バッチ処理（バッチ処理がある場合）
+
+**作成手順:**
+
+```bash
+# 1. ディレクトリ作成（FR番号は機能要件書を参照）
+DIR="docs/detailed-design/FR-XXX_feature-name"
+mkdir -p "$DIR"
+
+# 2. テンプレートをコピー
+cp docs/detailed-design/TEMPLATE/*.template "$DIR/"
+
+# 3. .templateを削除してリネーム
+cd "$DIR"
+for file in *.template; do
+  mv "$file" "${file%.template}"
+done
+
+# 4. 不要なセクションを削除
+# 画面がない場合
+rm screen-transitions.md
+# 状態管理が単純な場合
+rm state-transitions.md
+# バッチ処理がない場合
+rm batch-processing.md
+```
+
+**設計レビュー:**
+
+- [ ] 設計書を作成後、PRまたはIssueコメントでレビュー依頼
+- [ ] レビュー承認後に実装開始
+- [ ] 設計変更が必要な場合は、設計書を更新してから実装変更
+
+**参照資料:**
+
+- **`docs/development/detailed-design-guideline.md`** - 詳細設計書作成ガイドライン
+- **`docs/detailed-design/TEMPLATE/`** - テンプレート
+- **`docs/detailed-design/FR-001-005_institution-integration/`** - 参考例
+
+**重要事項:**
+
+- ✅ **実装前に必ず作成**（手戻り防止）
+- ✅ 必須セクションは必ず作成
+- ✅ Mermaid記法で図を作成
+- ✅ レビュー承認後に実装開始
+- ❌ 実装後の事後作成は避ける
 
 ---
 
@@ -302,11 +382,12 @@ gh issue comment <ISSUE_NUMBER> --body "<報告内容>"
 2. **🔴 mainブランチでの直接作業禁止**: 必ずフィーチャーブランチを作成
 3. **🔴 PRなしでのmainへのマージ禁止**: すべての変更はPR経由
 4. **🔴 PRマージ前にIssueをDoneに変更することは絶対禁止**
-5. **自動コミット**: 作業完了時は即座にコミット（質問・確認不要）
-6. **push前チェック**: lint/test/e2eを必ず実行
-7. **@start-task**: 質問せず即座に最優先タスクを開始
-8. **Geminiレビュー対応**: すべての指摘に個別commit/pushで対応
-9. **Issue報告**: commit完了後は必ずGitHub Issueに報告
+5. **⭐ FEATUREチケットでは実装前に詳細設計書を作成**: 必須セクションは必ず作成
+6. **自動コミット**: 作業完了時は即座にコミット（質問・確認不要）
+7. **push前チェック**: lint/test/e2eを必ず実行
+8. **@start-task**: 質問せず即座に最優先タスクを開始
+9. **Geminiレビュー対応**: すべての指摘に個別commit/pushで対応
+10. **Issue報告**: commit完了後は必ずGitHub Issueに報告
 
 ### push前の必須チェック
 

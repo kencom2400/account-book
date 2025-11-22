@@ -20,11 +20,28 @@ import { CreateTransactionUseCase } from '../../application/use-cases/create-tra
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
+import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 import { TransactionJSONResponse } from '../../domain/entities/transaction.entity';
 import type { MonthlySummary } from '../../application/use-cases/calculate-monthly-summary.use-case';
 
 // DTOs
+class ClassifyTransactionDto {
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsString()
+  institutionId?: string;
+
+  @IsOptional()
+  @IsString()
+  institutionType?: string;
+}
+
 class CreateTransactionRequestDto {
   @IsString()
   date: string;
@@ -102,7 +119,37 @@ export class TransactionController {
     private readonly getTransactionsUseCase: GetTransactionsUseCase,
     private readonly updateTransactionCategoryUseCase: UpdateTransactionCategoryUseCase,
     private readonly calculateMonthlySummaryUseCase: CalculateMonthlySummaryUseCase,
+    private readonly classifyTransactionUseCase: ClassifyTransactionUseCase,
   ) {}
+
+  /**
+   * 取引データのカテゴリを自動分類
+   * POST /transactions/classify
+   *
+   * FR-008: 5種類のカテゴリ自動分類機能
+   */
+  @Post('classify')
+  @HttpCode(HttpStatus.OK)
+  async classify(@Body() body: ClassifyTransactionDto): Promise<{
+    success: boolean;
+    data: {
+      category: {
+        id: string;
+        name: string;
+        type: CategoryType;
+      };
+      confidence: number;
+      confidenceLevel: 'high' | 'medium' | 'low';
+      reason: string;
+    };
+  }> {
+    const result = await this.classifyTransactionUseCase.execute(body);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
 
   /**
    * 取引を作成
