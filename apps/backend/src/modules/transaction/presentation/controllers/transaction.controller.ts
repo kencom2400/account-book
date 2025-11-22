@@ -28,10 +28,10 @@ import type { MonthlySummary } from '../../application/use-cases/calculate-month
 // DTOs
 class ClassifyTransactionDto {
   @IsNumber()
-  amount: number;
+  amount!: number;
 
   @IsString()
-  description: string;
+  description!: string;
 
   @IsOptional()
   @IsString()
@@ -44,26 +44,26 @@ class ClassifyTransactionDto {
 
 class CreateTransactionRequestDto {
   @IsString()
-  date: string;
+  date!: string;
 
   @IsNumber()
-  amount: number;
+  amount!: number;
 
   @IsObject()
-  category: {
+  category!: {
     id: string;
     name: string;
     type: CategoryType;
   };
 
   @IsString()
-  description: string;
+  description!: string;
 
   @IsString()
-  institutionId: string;
+  institutionId!: string;
 
   @IsString()
-  accountId: string;
+  accountId!: string;
 
   @IsOptional()
   @IsEnum(TransactionStatus)
@@ -102,7 +102,7 @@ class GetTransactionsQueryDto {
 
 class UpdateCategoryRequestDto {
   @IsObject()
-  category: {
+  category!: {
     id: string;
     name: string;
     type: CategoryType;

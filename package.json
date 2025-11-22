@@ -24,15 +24,15 @@
   "license": "ISC",
   "lint-staged": {
     "apps/backend/**/*.{ts,tsx}": [
-      "eslint --config apps/backend/eslint.config.mjs --fix",
+      "eslint --config apps/backend/eslint.config.mjs --fix --max-warnings 0",
       "prettier --write"
     ],
-    "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
+    "apps/frontend/**/*.{ts,tsx,js,jsx}": [
+      "eslint --config apps/frontend/eslint.config.mjs --fix --max-warnings 0",
       "prettier --write"
     ],
     "libs/**/*.{ts,tsx}": [
-      "eslint --fix",
+      "eslint --fix --max-warnings 0",
       "prettier --write"
     ],
     "*.{json,md}": [
