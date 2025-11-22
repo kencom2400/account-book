@@ -33,28 +33,15 @@ export class NotificationCleanupService {
     this.logger.log('通知クリーンアップバッチ開始');
 
     try {
-      const notifications: NotificationEntity[] =
-        await this.notificationRepository.findAll();
-      const now: Date = new Date();
+      const { deletedCount, totalCount } = await this.cleanupNotifications();
 
-      // 削除対象を抽出
-      const toDelete: NotificationEntity[] = notifications.filter(
-        (n: NotificationEntity) => n.canBeDeleted(now),
-      );
-
-      if (toDelete.length === 0) {
+      if (deletedCount === 0) {
         this.logger.log('削除対象の通知はありません');
         return;
       }
 
-      // 削除実行
-      const idsToDelete: string[] = toDelete.map(
-        (n: NotificationEntity) => n.id,
-      );
-      await this.notificationRepository.deleteMany(idsToDelete);
-
       this.logger.log(
-        `通知クリーンアップバッチ完了: ${toDelete.length}件削除（全${notifications.length}件中）`,
+        `通知クリーンアップバッチ完了: ${deletedCount}件削除（全${totalCount}件中）`,
       );
     } catch (error) {
       this.logger.error('通知クリーンアップバッチでエラーが発生しました', {
@@ -73,6 +60,26 @@ export class NotificationCleanupService {
   }> {
     this.logger.log('通知クリーンアップ手動実行開始');
 
+    const { deletedCount, totalCount } = await this.cleanupNotifications();
+
+    this.logger.log(
+      `通知クリーンアップ手動実行完了: ${deletedCount}件削除（全${totalCount}件中）`,
+    );
+
+    return {
+      deletedCount,
+      totalCount,
+    };
+  }
+
+  /**
+   * 通知クリーンアップの共通ロジック
+   * @private
+   */
+  private async cleanupNotifications(): Promise<{
+    deletedCount: number;
+    totalCount: number;
+  }> {
     const notifications: NotificationEntity[] =
       await this.notificationRepository.findAll();
     const now: Date = new Date();
@@ -87,10 +94,6 @@ export class NotificationCleanupService {
       );
       await this.notificationRepository.deleteMany(idsToDelete);
     }
-
-    this.logger.log(
-      `通知クリーンアップ手動実行完了: ${toDelete.length}件削除（全${notifications.length}件中）`,
-    );
 
     return {
       deletedCount: toDelete.length,
