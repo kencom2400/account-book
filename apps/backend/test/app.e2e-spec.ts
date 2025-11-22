@@ -30,6 +30,7 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
+    await dbHelper.cleanup();
     await app.close();
   });
 

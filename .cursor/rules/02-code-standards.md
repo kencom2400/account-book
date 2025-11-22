@@ -325,7 +325,70 @@ it('should throw error when invalid data', async () => {
 });
 ```
 
-### テスト実行義務
+#### 4-3. Jest forceExitの使用禁止
+
+**❌ 禁止**:
+
+```typescript
+// jest.config.json
+{
+  "forceExit": true  // ❌ 根本的な問題を隠すため禁止
+}
+```
+
+**問題点**:
+
+- `forceExit: true`はJestが終了しない根本的な原因（リソースリークなど）を隠してしまう
+- Jest公式ドキュメントでもこのオプションの使用は非推奨
+- デバッグが困難になり、将来的な問題の原因となる
+
+**✅ 正しい対応**:
+
+1. **根本原因を特定する**
+
+```bash
+# --detectOpenHandlesで原因を調査
+pnpm test:e2e --detectOpenHandles
+```
+
+2. **一般的な原因と対処法**
+
+```typescript
+// ✅ ScheduleModuleなどのリソースを適切にクリーンアップ
+
+// テストセットアップ（test-setup.ts）
+export async function createTestApp(
+  moduleBuilder: TestingModuleBuilder,
+  options: TestAppOptions = {}
+): Promise<INestApplication> {
+  const moduleFixture = await moduleBuilder.compile();
+  const app = moduleFixture.createNestApplication();
+
+  // シャットダウンフックを有効化
+  // ScheduleModuleなどのリソースを適切にクリーンアップ
+  app.enableShutdownHooks();
+
+  await app.init();
+  return app;
+}
+
+// テストのafterAll
+afterAll(async () => {
+  // app.close()がすべてのリソースをクリーンアップ
+  await app.close();
+});
+```
+
+3. **よくある原因**
+   - **ScheduleModule**: cronジョブやタイマーがアクティブなまま
+   - **データベース接続**: コネクションプールが閉じられていない
+   - **EventEmitter**: リスナーが登録されたまま
+   - **タイマー**: setTimeoutやsetIntervalが残っている
+
+**参考**:
+
+- Jest公式: https://jestjs.io/docs/configuration#forceexit-boolean
+- PR #251 Gemini Code Assistレビュー指摘
 
 #### 新機能実装時
 

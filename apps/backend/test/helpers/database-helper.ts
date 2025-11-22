@@ -71,4 +71,14 @@ export class E2ETestDatabaseHelper {
   async rollbackTransaction(): Promise<void> {
     await this.dataSource.query('ROLLBACK;');
   }
+
+  /**
+   * データベース接続のクリーンアップ
+   * テスト終了時にすべての接続をクローズする
+   */
+  async cleanup(): Promise<void> {
+    if (this.dataSource && this.dataSource.isInitialized) {
+      await this.dataSource.destroy();
+    }
+  }
 }
