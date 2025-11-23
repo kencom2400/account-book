@@ -8,6 +8,18 @@ describe('ErrorModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reactのact警告を抑制（意図的なテストケースのため）
+    jest.spyOn(console, 'error').mockImplementation((message) => {
+      // act警告のみ抑制、その他のエラーは表示
+      if (typeof message === 'string' && message.includes('not wrapped in act')) {
+        return;
+      }
+      console.warn(message);
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('isOpenがfalseの場合は何も表示されない', () => {

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { SyncTransactionsUseCase } from './sync-transactions.use-case';
 import { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
@@ -21,8 +22,23 @@ describe('SyncTransactionsUseCase', () => {
   let securitiesAccountRepository: jest.Mocked<ISecuritiesAccountRepository>;
   let refreshCreditCardDataUseCase: jest.Mocked<RefreshCreditCardDataUseCase>;
   let fetchSecurityTransactionsUseCase: jest.Mocked<FetchSecurityTransactionsUseCase>;
+  let mockLogger: Partial<Logger>;
 
   beforeEach(async () => {
+    // 意図的なエラーテストのLogger出力を抑制
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Loggerのモック作成
+    mockLogger = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+    };
+
     const mockSyncHistoryRepository: Partial<ISyncHistoryRepository> = {
       create: jest.fn(),
       update: jest.fn(),
@@ -78,7 +94,9 @@ describe('SyncTransactionsUseCase', () => {
           useValue: mockFetchSecurityTransactionsUseCase,
         },
       ],
-    }).compile();
+    })
+      .setLogger(mockLogger as Logger)
+      .compile();
 
     useCase = module.get<SyncTransactionsUseCase>(SyncTransactionsUseCase);
     syncHistoryRepository = module.get(SYNC_HISTORY_REPOSITORY);
@@ -88,6 +106,10 @@ describe('SyncTransactionsUseCase', () => {
     fetchSecurityTransactionsUseCase = module.get(
       FetchSecurityTransactionsUseCase,
     );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('execute', () => {
