@@ -209,7 +209,10 @@ export class SyncController {
   getSyncSchedule(): SyncScheduleResponseDto {
     this.logger.log('同期スケジュール設定取得');
 
-    // TODO: スケジュール管理の実装
+    // TODO: スケジュール管理機能の実装。詳細は未実装機能リストを参照。
+    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+    // 【実装方針】: ScheduledSyncJob.getSchedule()から実際の設定を取得
+    // 【依存】: ScheduledSyncJobの動的スケジュール更新機能
     // 現在はモックデータを返す
     return {
       success: true,
@@ -237,7 +240,10 @@ export class SyncController {
   ): SyncScheduleResponseDto {
     this.logger.log('同期スケジュール設定更新');
 
-    // TODO: スケジュール管理の実装
+    // TODO: スケジュール管理機能の実装。詳細は未実装機能リストを参照。
+    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+    // 【実装方針】: ScheduledSyncJob.updateSchedule()を呼び出して実際の設定を更新
+    // 【依存】: ScheduledSyncJobの動的スケジュール更新機能
     // 現在はモックレスポンスを返す
     return {
       success: true,

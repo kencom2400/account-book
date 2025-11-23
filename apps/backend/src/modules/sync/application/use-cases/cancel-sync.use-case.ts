@@ -60,7 +60,10 @@ export class CancelSyncUseCase {
     const cancelledSync = syncHistory.markAsCancelled();
     await this.syncHistoryRepository.update(cancelledSync);
 
-    // TODO: 実際の同期処理を停止する処理を実装
+    // TODO: 実際の同期処理を停止する処理を実装。詳細は未実装機能リストを参照。
+    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+    // 【実装方針】: AbortControllerを導入し、進行中の非同期処理を中断
+    // 【依存】: SyncAllTransactionsUseCaseでAbortController対応が必要
     // 現在はステータスを更新するのみ
 
     this.logger.log(`同期キャンセル完了: ${syncId}`);

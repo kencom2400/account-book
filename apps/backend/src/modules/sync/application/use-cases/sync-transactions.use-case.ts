@@ -74,28 +74,21 @@ export class SyncTransactionsUseCase {
 
     if (totalInstitutions === 0) {
       this.logger.warn('No connected institutions found. Skipping sync.');
-      // TODO: 新しいSyncHistoryに対応が必要
-      // 一時的にnullを返す
-      return {
-        syncHistory: null as unknown as SyncHistory,
-        successCount: 0,
-        failureCount: 0,
-        newTransactionsCount: 0,
-      };
+      // このUseCaseは非推奨であるため、エラーをスローします。
+      throw new Error(
+        'SyncTransactionsUseCase is deprecated and does not support this path. Please use SyncAllTransactionsUseCase.',
+      );
     }
 
-    // TODO: このUseCaseは古い実装です
+    // このUseCaseは古い実装であり、非推奨です
     // 新しいSyncAllTransactionsUseCaseの使用を推奨します
-    this.logger.warn(
+    this.logger.error(
       'sync-transactions.use-case.ts は非推奨です。SyncAllTransactionsUseCaseを使用してください。',
     );
 
-    // 一時的な実装（動作確認のため）
-    return {
-      syncHistory: null as unknown as SyncHistory,
-      successCount: 0,
-      failureCount: 0,
-      newTransactionsCount: 0,
-    };
+    // このUseCaseは非推奨であるため、エラーをスローします。
+    throw new Error(
+      'SyncTransactionsUseCase is deprecated. Please use SyncAllTransactionsUseCase.',
+    );
   }
 }

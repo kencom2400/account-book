@@ -59,7 +59,10 @@ export class GetSyncStatusUseCase {
     // 最新の実行中同期を取得（通常は1件のみ）
     const currentSync = runningSync[0];
 
-    // TODO: 進捗情報の計算（現在はモック）
+    // TODO: 実際の進捗情報を計算・取得するロジックを実装。詳細は未実装機能リストを参照。
+    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+    // 【実装方針】: SyncProgressServiceで共有状態を管理し、リアルタイムで進捗を取得
+    // 【依存】: SyncProgressServiceの実装、またはRedis/Cacheの活用
     // 実際にはOrchestratorまたは別のサービスから進捗情報を取得する必要がある
     const progress = {
       totalInstitutions: 5,

@@ -74,7 +74,7 @@ export class ScheduledSyncJob {
     // 重複実行チェック
     if (this.isRunning) {
       this.logger.warn(
-        '⚠️  前回の同期がまだ実行中です。今回の実行をスキップします。',
+        '前回の同期がまだ実行中です。今回の実行をスキップします。',
       );
       return;
     }
@@ -118,7 +118,9 @@ export class ScheduledSyncJob {
             `  処理時間: ${durationSec}秒`,
         );
 
-        // エラー通知（TODO: 実装）
+        // TODO: エラー通知機能の実装。詳細は未実装機能リストを参照。
+        // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+        // 【実装方針】: NotificationServiceを使用してSlack/Email等に通知
         this.notifyErrors(result);
       }
     } catch (error) {
@@ -132,7 +134,9 @@ export class ScheduledSyncJob {
         error instanceof Error ? error.stack : undefined,
       );
 
-      // 致命的エラーの通知（TODO: 実装）
+      // TODO: 致命的エラーの緊急通知機能を実装。詳細は未実装機能リストを参照。
+      // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+      // 【実装方針】: PagerDuty、管理者への直接通知などの緊急通知システムを導入
       this.notifyCriticalError(error);
     } finally {
       this.isRunning = false;
@@ -199,8 +203,10 @@ export class ScheduledSyncJob {
       this.timezone = timezone;
     }
 
-    // TODO: 動的スケジュール更新の実装
-    // NestJSのSchedulerRegistryを使用した実装が必要
+    // TODO: 動的スケジュール更新機能を実装。詳細は未実装機能リストを参照。
+    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+    // 【実装方針】: SchedulerRegistryを使用してCronJobを動的に再登録
+    // 【依存】: NestJSのSchedulerRegistry
     this.logger.warn(
       '動的スケジュール更新は未実装です。アプリケーション再起動が必要です。',
     );

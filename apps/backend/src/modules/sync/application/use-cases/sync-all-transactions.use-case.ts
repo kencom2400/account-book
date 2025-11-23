@@ -202,7 +202,13 @@ export class SyncAllTransactionsUseCase {
       syncHistory = syncHistory.markAsRunning();
       syncHistory = await this.syncHistoryRepository.update(syncHistory);
 
-      // TODO: ここで実際の金融機関APIから取引を取得
+      // TODO: 実際の金融機関APIから取引を取得する処理を実装。詳細は未実装機能リストを参照。
+      // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+      // 【依存】: FR-001（銀行連携）、FR-002（カード連携）、FR-003（証券連携）
+      // 【実装方針】: institutionTypeに応じて適切なUseCaseを呼び出す
+      //   - FetchBankTransactionsUseCase
+      //   - FetchCreditCardTransactionsUseCase
+      //   - FetchSecurityTransactionsUseCase
       // 現在はモックデータとして処理
       const totalFetched = 0;
       const newRecords = 0;
