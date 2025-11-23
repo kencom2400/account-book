@@ -438,6 +438,101 @@ describe('CreditCardEntity', () => {
 });
 ```
 
+### モックとスパイのクリーンアップ（必須パターン）
+
+**Issue #248 / PR #273で確立されたベストプラクティス**
+
+#### ✅ 推奨パターン（統一すべきアプローチ）
+
+```typescript
+describe('MyService', () => {
+  let service: MyService;
+  // 1. describeスコープでspy変数を宣言
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleLogSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    // 2. beforeEachでspyインスタンスを代入
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // テストモジュールのセットアップ
+    const module = await Test.createTestingModule({
+      providers: [MyService],
+    }).compile();
+
+    service = module.get<MyService>(MyService);
+  });
+
+  afterEach(() => {
+    // 3. jest.clearAllMocks()でモックの呼び出し履歴をクリア
+    jest.clearAllMocks();
+    // 4. 個別にmockRestore()でspyを復元
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+  });
+
+  it('should handle errors gracefully', async () => {
+    // テストロジック
+  });
+});
+```
+
+#### ❌ 避けるべきパターン
+
+```typescript
+// ❌ パターン1: jest.restoreAllMocks()の使用
+afterEach(() => {
+  jest.restoreAllMocks(); // 影響範囲が広く、意図しない副作用の可能性
+});
+
+// ❌ パターン2: spy変数を保存しない
+beforeEach(() => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  // 変数に保存していないため、個別にrestoreできない
+});
+
+// ❌ パターン3: clearAllMocks()の欠如
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
+  // jest.clearAllMocks()がないため、テスト間でモックの呼び出し履歴が残る
+});
+```
+
+#### 📝 このパターンを使う理由
+
+1. **一貫性**: テストスイート全体で同じパターンを使用
+   - コードレビューが容易
+   - メンテナンス性向上
+
+2. **安全性**: 個別リストアで意図しない副作用を防止
+   - `jest.restoreAllMocks()`は影響範囲が広く、他のテストに影響する可能性
+   - 明示的なspy変数宣言で、何がモック化されているか明確
+
+3. **保守性**: spy変数の明示的な宣言で可読性向上
+   - どのオブジェクトがモック化されているか一目でわかる
+   - IDEの補完が効く
+
+4. **テスト分離**: `jest.clearAllMocks()`でテスト間の影響を排除
+   - モックの呼び出し履歴がテスト間で干渉しない
+   - `toHaveBeenCalledTimes()`などのアサーションが正確に動作
+
+#### 🎯 適用ケース
+
+- **コンソール出力の抑制**: 意図的なエラーテストでの出力抑制
+- **外部サービスのモック**: API呼び出し、データベースアクセスなど
+- **日付・時刻のモック**: `Date.now()`、`new Date()`など
+- **ランダム値のモック**: `Math.random()`など
+
+#### 参考
+
+- Issue #248: テスト実行時のエラー出力抑制
+- PR #273: Geminiレビュー対応
+- Gemini指摘: モッククリーンアップの統一
+
 ---
 
 ## 5. ESLint設定のベストプラクティス
