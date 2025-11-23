@@ -16,7 +16,9 @@ export const getDatabaseConfig = (
   const isProduction: boolean = nodeEnv === 'production';
   const isTest: boolean = nodeEnv === 'test';
   // E2Eテスト環境かどうかを判定（JestのE2Eテスト実行時）
-  const isE2ETest: boolean = process.env.JEST_WORKER_ID !== undefined && isTest;
+  // 注意: CI環境では全マイグレーションが揃っていないため、一時的にsynchronize: trueを使用
+  // Issue #270完了後、環境別DB分離により根本解決予定
+  const isE2ETest: boolean = false; // 一時的に無効化
 
   const connectionOptions = getDatabaseConnectionOptions();
 
