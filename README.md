@@ -58,11 +58,11 @@ cd account-book
 cp .env.example .env
 # .envファイルを編集して必要な値を設定
 
-# 3. Docker環境の起動（MySQL含む）
-./scripts/dev/dev-docker.sh all
+# 3. Docker環境の起動（開発環境）
+docker-compose -f docker-compose.dev.yml up -d
 
-# または
-docker-compose up
+# または既存の設定（後方互換性）
+docker-compose up -d
 ```
 
 アクセス:
@@ -71,11 +71,27 @@ docker-compose up
 - Backend: http://localhost:3001
 - MySQL: localhost:3306
 
+**🆕 環境別Docker設定**
+
+プロジェクトでは環境別にDocker設定が分離されています：
+
+| 環境     | Backend | Frontend | MySQL | 用途           |
+| -------- | ------- | -------- | ----- | -------------- |
+| **dev**  | 3001    | 3000     | 3306  | 開発環境       |
+| **test** | 3011    | 3010     | 3316  | ユニットテスト |
+| **e2e**  | 3021    | 3020     | 3326  | E2Eテスト      |
+
+詳細は [DOCKER-COMPOSE.md](DOCKER-COMPOSE.md) を参照してください。
+
 #### ローカル環境（従来の方法）
 
 ```bash
-# 1. MySQLの起動
-./scripts/dev/start-database.sh
+# 1. MySQLの起動（開発環境）
+./scripts/dev/start-database.sh dev
+
+# または特定環境を指定
+./scripts/dev/start-database.sh test   # テスト環境
+./scripts/dev/start-database.sh e2e    # E2E環境
 
 # 2. nodeenv環境の作成
 nodeenv --node=20.18.1 --prebuilt .nodeenv

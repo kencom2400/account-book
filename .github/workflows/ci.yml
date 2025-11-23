@@ -126,7 +126,7 @@ jobs:
           MYSQL_USER: account_book_test_user
           MYSQL_PASSWORD: test_password
         ports:
-          - 3306:3306
+          - 3316:3306
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
@@ -171,9 +171,9 @@ jobs:
         run: |
           cat << EOF > .env
           NODE_ENV=test
-          PORT=3001
+          PORT=3011
           MYSQL_HOST=127.0.0.1
-          MYSQL_PORT=3306
+          MYSQL_PORT=3316
           MYSQL_USER=account_book_test_user
           MYSQL_PASSWORD=test_password
           MYSQL_DATABASE=account_book_test
@@ -190,7 +190,7 @@ jobs:
         env:
           NODE_ENV: test
           MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
+          MYSQL_PORT: 3316
           MYSQL_USER: account_book_test_user
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: account_book_test
@@ -255,11 +255,11 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root_password
-          MYSQL_DATABASE: account_book_test
-          MYSQL_USER: account_book_test_user
-          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_e2e
+          MYSQL_USER: account_book_e2e_user
+          MYSQL_PASSWORD: e2e_password
         ports:
-          - 3306:3306
+          - 3326:3306
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
@@ -304,12 +304,12 @@ jobs:
         run: |
           cat << EOF > .env
           NODE_ENV=test
-          PORT=3001
+          PORT=3021
           MYSQL_HOST=127.0.0.1
-          MYSQL_PORT=3306
-          MYSQL_USER=account_book_test_user
-          MYSQL_PASSWORD=test_password
-          MYSQL_DATABASE=account_book_test
+          MYSQL_PORT=3326
+          MYSQL_USER=account_book_e2e_user
+          MYSQL_PASSWORD=e2e_password
+          MYSQL_DATABASE=account_book_e2e
           MYSQL_ROOT_PASSWORD=root_password
           EOF
 
@@ -322,14 +322,20 @@ jobs:
       - name: Run E2E tests (Backend)
         env:
           NODE_ENV: test
+          TEST_ENV: e2e
           MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: account_book_test_user
-          MYSQL_PASSWORD: test_password
-          MYSQL_DATABASE: account_book_test
+          MYSQL_PORT: 3326
+          MYSQL_USER: account_book_e2e_user
+          MYSQL_PASSWORD: e2e_password
+          MYSQL_DATABASE: account_book_e2e
           ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
           CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
-        run: pnpm run test:e2e --filter @account-book/backend
+        run: |
+          # apps/backend/.envファイルが正しく設定されていることを確認
+          cd apps/backend
+          cat .env
+          cd ../..
+          pnpm run test:e2e --filter @account-book/backend
 
   e2e-frontend:
     name: E2E Tests (Frontend)
@@ -341,11 +347,11 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root_password
-          MYSQL_DATABASE: account_book_test
-          MYSQL_USER: account_book_test_user
-          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: account_book_e2e
+          MYSQL_USER: account_book_e2e_user
+          MYSQL_PASSWORD: e2e_password
         ports:
-          - 3306:3306
+          - 3326:3306
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
@@ -390,13 +396,13 @@ jobs:
         run: |
           cat << EOF > .env
           NODE_ENV=test
-          PORT=3001
-          NEXT_PUBLIC_API_URL=http://localhost:3001
+          PORT=3021
+          NEXT_PUBLIC_API_URL=http://localhost:3021
           MYSQL_HOST=127.0.0.1
-          MYSQL_PORT=3306
-          MYSQL_USER=account_book_test_user
-          MYSQL_PASSWORD=test_password
-          MYSQL_DATABASE=account_book_test
+          MYSQL_PORT=3326
+          MYSQL_USER=account_book_e2e_user
+          MYSQL_PASSWORD=e2e_password
+          MYSQL_DATABASE=account_book_e2e
           MYSQL_ROOT_PASSWORD=root_password
           EOF
 
@@ -412,11 +418,14 @@ jobs:
       - name: Run E2E tests (Frontend)
         env:
           NODE_ENV: test
+          TEST_ENV: e2e
+          BACKEND_PORT_E2E: '3021'
+          FRONTEND_PORT_E2E: '3020'
           MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: account_book_test_user
-          MYSQL_PASSWORD: test_password
-          MYSQL_DATABASE: account_book_test
+          MYSQL_PORT: 3326
+          MYSQL_USER: account_book_e2e_user
+          MYSQL_PASSWORD: e2e_password
+          MYSQL_DATABASE: account_book_e2e
           ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
           CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
         run: pnpm run test:e2e --filter @account-book/frontend

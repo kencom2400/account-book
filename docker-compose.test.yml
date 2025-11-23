@@ -1,0 +1,101 @@
+# docker-compose.test.yml - ユニットテスト環境用設定
+# 使用方法: docker-compose -f docker-compose.test.yml up
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: account-book-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_TEST:-account_book_test}
+      MYSQL_USER: ${MYSQL_USER_TEST:-account_book_test_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_TEST:-test_password}
+    ports:
+      - '${MYSQL_PORT_TEST:-3316}:3306'
+    volumes:
+      - mysql-data-test:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-root_password}']
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - account-book-network-test
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile.dev
+    container_name: account-book-backend-test
+    volumes:
+      # ソースコードをマウント
+      - ./apps/backend/src:/app/apps/backend/src
+      - ./apps/backend/test:/app/apps/backend/test
+      # 共有ライブラリをマウント
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # node_modulesは除外
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+    environment:
+      # 以下の環境変数は固定（.envからの上書きを防止）
+      - NODE_ENV=test
+      - PORT=3001
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=account_book_test
+      - MYSQL_USER=account_book_test_user
+      - MYSQL_PASSWORD=test_password
+    env_file:
+      - .env
+    networks:
+      - account-book-network-test
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: pnpm test
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.dev
+    container_name: account-book-frontend-test
+    volumes:
+      # ソースコードをマウント
+      - ./apps/frontend/src:/app/apps/frontend/src
+      - ./apps/frontend/__tests__:/app/apps/frontend/__tests__
+      # 共有ライブラリをマウント
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # Next.jsの設定ファイル
+      - ./apps/frontend/next.config.ts:/app/apps/frontend/next.config.ts
+      - ./apps/frontend/tailwind.config.ts:/app/apps/frontend/tailwind.config.ts
+      - ./apps/frontend/tsconfig.json:/app/apps/frontend/tsconfig.json
+      # node_modulesは除外
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT_TEST:-3011}
+    env_file:
+      - .env
+    networks:
+      - account-book-network-test
+    depends_on:
+      - backend
+    command: pnpm test
+
+networks:
+  account-book-network-test:
+    driver: bridge
+
+volumes:
+  mysql-data-test:
+

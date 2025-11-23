@@ -1,0 +1,109 @@
+# docker-compose.dev.yml - 開発環境用設定
+# 使用方法: docker-compose -f docker-compose.dev.yml up
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: account-book-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_DEV:-account_book_dev}
+      MYSQL_USER: ${MYSQL_USER_DEV:-account_book_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_DEV:-password}
+    ports:
+      - '${MYSQL_PORT_DEV:-3306}:3306'
+    volumes:
+      - mysql-data-dev:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-root_password}']
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - account-book-network-dev
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile.dev
+    container_name: account-book-backend-dev
+    ports:
+      - '${BACKEND_PORT_DEV:-3001}:3001'
+    volumes:
+      # ソースコードをマウント（ホットリロード用）
+      - ./apps/backend/src:/app/apps/backend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # node_modulesは除外（コンテナ内のものを使用）
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+    environment:
+      # 以下の環境変数は固定（.envからの上書きを防止）
+      - NODE_ENV=development
+      - PORT=3001
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=account_book_dev
+      - MYSQL_USER=account_book_user
+      - MYSQL_PASSWORD=password
+    env_file:
+      - .env
+    networks:
+      - account-book-network-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: pnpm dev
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.dev
+    container_name: account-book-frontend-dev
+    ports:
+      - '${FRONTEND_PORT_DEV:-3000}:3000'
+    volumes:
+      # ソースコードをマウント（ホットリロード用）
+      - ./apps/frontend/src:/app/apps/frontend/src
+      # 共有ライブラリをマウント（ソースファイルの変更を反映）
+      - ./libs:/app/libs
+      # libsのdistディレクトリは除外（コンテナ内でビルド）
+      - /app/libs/types/dist
+      - /app/libs/utils/dist
+      # Next.jsの設定ファイル
+      - ./apps/frontend/next.config.ts:/app/apps/frontend/next.config.ts
+      - ./apps/frontend/tailwind.config.ts:/app/apps/frontend/tailwind.config.ts
+      - ./apps/frontend/tsconfig.json:/app/apps/frontend/tsconfig.json
+      # node_modulesは除外
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT_DEV:-3001}
+    env_file:
+      - .env
+    networks:
+      - account-book-network-dev
+    depends_on:
+      - backend
+    command: pnpm dev
+
+networks:
+  account-book-network-dev:
+    driver: bridge
+
+volumes:
+  mysql-data-dev:
+
