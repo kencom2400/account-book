@@ -78,28 +78,17 @@ describe('SyncTransactionsUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should return deprecation warning', async () => {
+    it('should throw a deprecation error when called', async () => {
       // Arrange
-      const loggerSpy = jest.spyOn(Logger.prototype, 'warn');
+      const loggerSpy = jest.spyOn(Logger.prototype, 'error');
 
-      // Act
-      const result = await useCase.execute({});
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.successCount).toBe(0);
-      expect(result.failureCount).toBe(0);
-      expect(loggerSpy).toHaveBeenCalled();
-    });
-
-    it('should return empty result when no institutions', async () => {
-      // Act
-      const result = await useCase.execute({});
-
-      // Assert
-      expect(result.successCount).toBe(0);
-      expect(result.failureCount).toBe(0);
-      expect(result.newTransactionsCount).toBe(0);
+      // Act & Assert
+      await expect(useCase.execute({})).rejects.toThrow(
+        'SyncTransactionsUseCase is deprecated. Please use SyncAllTransactionsUseCase.',
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'sync-transactions.use-case.ts は非推奨です。SyncAllTransactionsUseCaseを使用してください。',
+      );
     });
   });
 });

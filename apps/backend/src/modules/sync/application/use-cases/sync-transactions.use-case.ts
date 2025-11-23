@@ -55,30 +55,8 @@ export class SyncTransactionsUseCase {
   /**
    * 同期を実行
    */
-  async execute(
-    _input: SyncTransactionsInput = {},
-  ): Promise<SyncTransactionsOutput> {
+  execute(_input: SyncTransactionsInput = {}): Promise<SyncTransactionsOutput> {
     this.logger.log('Starting transaction sync...');
-
-    // 接続済みの金融機関を取得
-    const creditCards = await this.creditCardRepository.findAll();
-    const securitiesAccounts = await this.securitiesAccountRepository.findAll();
-
-    const connectedCreditCards = creditCards.filter((card) => card.isConnected);
-    const connectedSecurities = securitiesAccounts.filter(
-      (account) => account.isConnected,
-    );
-
-    const totalInstitutions =
-      connectedCreditCards.length + connectedSecurities.length;
-
-    if (totalInstitutions === 0) {
-      this.logger.warn('No connected institutions found. Skipping sync.');
-      // このUseCaseは非推奨であるため、エラーをスローします。
-      throw new Error(
-        'SyncTransactionsUseCase is deprecated and does not support this path. Please use SyncAllTransactionsUseCase.',
-      );
-    }
 
     // このUseCaseは古い実装であり、非推奨です
     // 新しいSyncAllTransactionsUseCaseの使用を推奨します

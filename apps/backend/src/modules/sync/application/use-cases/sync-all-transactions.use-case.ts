@@ -9,6 +9,7 @@ import {
   SyncTarget,
 } from '../dto/sync-result.dto';
 import { SyncHistory } from '../../domain/entities/sync-history.entity';
+import { randomUUID } from 'crypto';
 
 /**
  * 全金融機関の取引同期ユースケース
@@ -153,7 +154,7 @@ export class SyncAllTransactionsUseCase {
           }
 
           results.push({
-            syncHistoryId: target.institutionId, // エラー時は仮のID
+            syncHistoryId: randomUUID(), // エラー報告用の一時的なID
             institutionId: target.institutionId,
             institutionName: target.institutionName,
             institutionType: target.institutionType,

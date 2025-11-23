@@ -9,7 +9,7 @@ export interface SyncResult {
   syncHistoryId: string;
   institutionId: string;
   institutionName: string;
-  institutionType: string;
+  institutionType: 'bank' | 'credit-card' | 'securities';
   success: boolean;
   totalFetched: number;
   newRecords: number;

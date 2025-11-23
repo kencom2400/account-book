@@ -130,7 +130,7 @@ export class ScheduledSyncJob {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `❌ 自動同期失敗: ${errorMessage}`,
+        `[ERROR] 自動同期失敗: ${errorMessage}`,
         error instanceof Error ? error.stack : undefined,
       );
 
