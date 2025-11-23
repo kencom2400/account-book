@@ -5,9 +5,23 @@ import { ErrorModal } from '@/components/notifications/ErrorModal';
 describe('ErrorModal', () => {
   const mockOnClose = jest.fn();
   const mockOnRetry = jest.fn();
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Reactのact警告を抑制（意図的なテストケースのため）
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+      // act警告のみ抑制、その他のエラーは表示
+      if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
+        return;
+      }
+      // 他のエラーは console.warn にリダイレクトして表示
+      console.warn(...args);
+    });
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
   });
 
   it('isOpenがfalseの場合は何も表示されない', () => {

@@ -4,6 +4,58 @@
 
 ---
 
+## 🔴 重要: GitHub CLI実行時の権限設定
+
+**GitHub CLI (`gh`) コマンドは、必ず`required_permissions: ['all']`を指定してください。**
+
+### 対象コマンド
+
+以下のコマンドは**すべて`all`権限が必要**：
+
+1. **Issue操作**: `gh issue view`, `gh issue comment`, `gh issue list`
+2. **PR操作**: `gh pr view`, `gh pr create`, `gh pr comment`
+3. **Projects操作**: `gh project item-list`, `gh api graphql`
+4. **ワークフロースクリプト**: `./scripts/github/workflow/start-task.sh`
+
+### 理由
+
+- **証明書検証**: HTTPSでのGitHub API接続
+- **認証トークン**: GitHub Personal Access Tokenへのアクセス
+- **環境変数**: `GH_TOKEN`などの機密情報
+- **ネットワークアクセス**: API呼び出し
+
+### 実装例
+
+```typescript
+// ✅ 正しい
+run_terminal_cmd({
+  command: 'gh issue view 248 --json number,title,body',
+  required_permissions: ["all"]
+})
+
+// ✅ 正しい
+run_terminal_cmd({
+  command: './scripts/github/workflow/start-task.sh',
+  required_permissions: ["all"]
+})
+
+// ❌ エラーになる（証明書検証失敗）
+run_terminal_cmd({
+  command: 'gh issue view 248',
+  required_permissions: ["network"]
+})
+
+// ❌ エラーになる（権限不足）
+run_terminal_cmd({
+  command: './scripts/github/workflow/start-task.sh'
+  // required_permissions指定なし
+})
+```
+
+**Issue #248の経験: `network`権限だけでは証明書検証エラーが発生。最初から`all`権限で実行すること。**
+
+---
+
 ## 📋 目次
 
 1. [GitHub Projects設定](#1-github-projects設定)
@@ -458,6 +510,30 @@ gh issue comment <ISSUE_NUMBER> --body "$BODY"
 
 ### 🚨 トリガー: `@start-task` コマンド
 
+**🔴 重要: 実行権限について**
+
+`@start-task`コマンドの実行時は、以下の理由から**必ず`required_permissions: ['all']`を指定**してください：
+
+1. **GitHub API呼び出し**: Issue情報の取得、プロジェクトステータスの更新
+2. **Git操作**: ブランチの作成、チェックアウト
+3. **証明書検証**: HTTPSでのGitHub接続
+
+**サンドボックス環境ではこれらの操作がエラーになるため、最初からall権限で実行すること。**
+
+```typescript
+// ✅ 正しい実行方法
+run_terminal_cmd({
+  command: "./scripts/github/workflow/start-task.sh",
+  required_permissions: ["all"]
+})
+
+// ❌ サンドボックスではエラーになる
+run_terminal_cmd({
+  command: "./scripts/github/workflow/start-task.sh",
+  // required_permissionsなし、またはnetworkのみ
+})
+```
+
 **実行内容:**
 
 0. **ルールファイル再読込**（最優先）
@@ -537,6 +613,32 @@ Issue #201で実装された`start-task.sh`スクリプトを使用して、Issu
 詳細は[scripts/github/workflow/README.md](../../../scripts/github/workflow/README.md)を参照してください。
 
 ### Issue取得コマンド（手動実行の場合）
+
+**🔴 重要: Issue詳細取得のベストプラクティス**
+
+Issue詳細を取得する際は、**必ず`required_permissions: ['all']`を指定**してください。
+サンドボックス環境では証明書検証やネットワークアクセスの制限により、GitHub API呼び出しが失敗します。
+
+```typescript
+// ✅ 正しい実行方法
+run_terminal_cmd({
+  command: "gh issue view 248 --json number,title,body,labels",
+  required_permissions: ["all"]
+})
+
+// ❌ サンドボックスではエラーになる
+run_terminal_cmd({
+  command: "gh issue view 248 --json number,title,body,labels",
+  required_permissions: ["network"]  // これでもエラーになる
+})
+```
+
+**エラーの理由:**
+- 証明書検証の問題
+- GitHub APIのHTTPS接続
+- 環境変数やトークンへのアクセス
+
+**GitHub CLI (`gh`) コマンドを実行する際は、常に`all`権限を使用すること。**
 
 ```bash
 # ステップ1: GitHub Projectsから "📝 To Do" ステータスのIssue番号を取得

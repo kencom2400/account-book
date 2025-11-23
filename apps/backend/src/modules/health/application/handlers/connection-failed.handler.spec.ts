@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ConnectionFailedHandler } from './connection-failed.handler';
 import { NotificationService } from '../services/notification.service';
 import { ConnectionFailedEvent } from '../../domain/events/connection-failed.event';
@@ -7,12 +8,26 @@ import type { ConnectionStatusResult } from '../../domain/types/connection-statu
 describe('ConnectionFailedHandler', () => {
   let handler: ConnectionFailedHandler;
   let notificationService: NotificationService;
+  let consoleErrorSpy: jest.SpyInstance;
+  let mockLogger: Partial<Logger>;
 
   const mockNotificationService = {
     createConnectionErrorNotifications: jest.fn(),
   };
 
   beforeEach(async () => {
+    // 意図的なエラーテストのコンソール出力を抑制
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Loggerのモック作成
+    mockLogger = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConnectionFailedHandler,
@@ -21,7 +36,9 @@ describe('ConnectionFailedHandler', () => {
           useValue: mockNotificationService,
         },
       ],
-    }).compile();
+    })
+      .setLogger(mockLogger as Logger)
+      .compile();
 
     handler = module.get<ConnectionFailedHandler>(ConnectionFailedHandler);
     notificationService = module.get<NotificationService>(NotificationService);
@@ -29,6 +46,7 @@ describe('ConnectionFailedHandler', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('handleConnectionFailed', () => {
