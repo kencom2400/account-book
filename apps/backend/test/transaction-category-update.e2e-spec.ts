@@ -5,10 +5,12 @@ import { CategoryType, TransactionStatus } from '@account-book/types';
 import { AppModule } from '../src/app.module';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 import { createTestApp } from './helpers/test-setup';
+import { DataSource } from 'typeorm';
 
 describe('Transaction Category Update (e2e)', () => {
   let app: INestApplication;
   let dbHelper: E2ETestDatabaseHelper;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const moduleBuilder = Test.createTestingModule({
@@ -22,6 +24,9 @@ describe('Transaction Category Update (e2e)', () => {
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);
+
+    // DataSourceを取得
+    dataSource = app.get(DataSource);
 
     // データベース接続確認
     const isConnected: boolean = await dbHelper.checkConnection();
@@ -78,6 +83,15 @@ describe('Transaction Category Update (e2e)', () => {
       expect(updateResponse.body.data.category.id).toBe('cat-002');
       expect(updateResponse.body.data.category.name).toBe('交通費');
       expect(updateResponse.body.data.category.type).toBe(CategoryType.EXPENSE);
+
+      // データベースに履歴が記録されていることを確認
+      const history = await dataSource.query(
+        'SELECT * FROM transaction_category_change_history WHERE transactionId = ?',
+        [transactionId],
+      );
+      expect(history).toHaveLength(1);
+      expect(history[0].oldCategoryId).toBe('cat-001');
+      expect(history[0].newCategoryId).toBe('cat-002');
     });
 
     it('存在しない取引IDでエラーが返される', async () => {

@@ -35,8 +35,6 @@ import { CategoryModule } from '../category/category.module';
       provide: TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY,
       useClass: TransactionCategoryChangeHistoryRepository,
     },
-    TransactionTypeOrmRepository,
-    TransactionCategoryChangeHistoryRepository,
     // Domain Services
     TransactionDomainService,
     CategoryClassificationService,

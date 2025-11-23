@@ -45,20 +45,16 @@ case $TARGET in
     ;;
   all)
     echo "🔨 共有型定義のビルド中..."
-    cd libs/types
-    pnpm build
+    (cd libs/types && pnpm build)
     echo ""
     echo "🔨 共有ユーティリティのビルド中..."
-    cd ../utils
-    pnpm build
+    (cd libs/utils && pnpm build)
     echo ""
     echo "🔨 バックエンドのビルド中..."
-    cd ../../apps/backend
-    pnpm build
+    (cd apps/backend && pnpm build)
     echo ""
     echo "🔨 フロントエンドのビルド中..."
-    cd ../frontend
-    pnpm build
+    (cd apps/frontend && pnpm build)
     ;;
   *)
     echo "使用方法: ./scripts/test/build.sh [backend|frontend|types|utils|all]"

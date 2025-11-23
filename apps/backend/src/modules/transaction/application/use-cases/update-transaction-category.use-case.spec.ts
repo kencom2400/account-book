@@ -14,6 +14,8 @@ describe('UpdateTransactionCategoryUseCase', () => {
   let mockRepository: jest.Mocked<ITransactionRepository>;
   let mockHistoryRepository: jest.Mocked<ITransactionCategoryChangeHistoryRepository>;
   let mockDataSource: jest.Mocked<DataSource>;
+  let mockHistorySave: jest.Mock;
+  let mockTransactionSave: jest.Mock;
 
   const mockTransaction = new TransactionEntity(
     'trans-001',
@@ -53,10 +55,20 @@ describe('UpdateTransactionCategoryUseCase', () => {
       deleteAll: jest.fn(),
     } as any;
 
+    // モック関数を作成
+    mockHistorySave = jest.fn().mockResolvedValue({});
+    mockTransactionSave = jest.fn().mockResolvedValue({});
+
     // DataSourceのモックを作成
     const mockEntityManager = {
-      getRepository: jest.fn().mockReturnValue({
-        save: jest.fn().mockResolvedValue({}),
+      getRepository: jest.fn((entity) => {
+        if (entity.name === 'TransactionCategoryChangeHistoryOrmEntity') {
+          return { save: mockHistorySave };
+        }
+        if (entity.name === 'TransactionOrmEntity') {
+          return { save: mockTransactionSave };
+        }
+        return { save: jest.fn() };
       }),
     };
 
@@ -110,6 +122,21 @@ describe('UpdateTransactionCategoryUseCase', () => {
       expect(mockRepository.findById).toHaveBeenCalledWith('trans-001');
       // トランザクション内でデータベース操作が実行されることを確認
       expect(mockDataSource.transaction).toHaveBeenCalled();
+      // 履歴が保存されることを確認
+      expect(mockHistorySave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transactionId: 'trans-001',
+          oldCategoryId: 'cat-001',
+          newCategoryId: 'cat-002',
+        }),
+      );
+      // 取引が保存されることを確認
+      expect(mockTransactionSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'trans-001',
+          categoryId: 'cat-002',
+        }),
+      );
       expect(result.category.id).toBe('cat-002');
       expect(result.category.name).toBe('交通費');
       expect(result.category.type).toBe(CategoryType.EXPENSE);

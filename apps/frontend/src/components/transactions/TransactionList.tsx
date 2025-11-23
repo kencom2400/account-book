@@ -12,6 +12,21 @@ interface TransactionListProps {
 }
 
 /**
+ * カテゴリツリーをフラットな配列に変換するヘルパー関数
+ */
+const flattenCategoryTree = (nodes: CategoryNode[]): Category[] => {
+  const result: Category[] = [];
+  const flatten = (node: CategoryNode): void => {
+    result.push(node.category);
+    if (node.children && node.children.length > 0) {
+      node.children.forEach(flatten);
+    }
+  };
+  nodes.forEach(flatten);
+  return result;
+};
+
+/**
  * 取引一覧コンポーネント（インライン編集機能付き）
  * FR-010: 費目の手動修正機能
  */
@@ -38,24 +53,12 @@ export function TransactionList({
           setCategories(flatCategories);
         }
       } catch (err) {
+        setError('カテゴリの取得に失敗しました。ページを再読み込みしてください。');
         console.error('カテゴリの取得に失敗しました:', err);
       }
     };
     void fetchCategories();
   }, []);
-
-  // カテゴリツリーをフラットな配列に変換
-  const flattenCategoryTree = (nodes: CategoryNode[]): Category[] => {
-    const result: Category[] = [];
-    const flatten = (node: CategoryNode): void => {
-      result.push(node.category);
-      if (node.children && node.children.length > 0) {
-        node.children.forEach(flatten);
-      }
-    };
-    nodes.forEach(flatten);
-    return result;
-  };
 
   const getCategoryTypeColor = (type: CategoryType): string => {
     switch (type) {

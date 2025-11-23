@@ -285,6 +285,36 @@ export class UpdateTransactionCategoryUseCase {
 3. **エンティティマネージャー経由でリポジトリにアクセス**
 4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
 
+#### リポジトリパターンの活用とトランザクション管理
+
+**注意点**: トランザクション内でentityManagerを直接使用すると、リポジトリ層に集約すべきマッピングロジックがユースケース層に漏れ出てしまいます。
+
+**より良いアプローチ** (将来的な改善案):
+
+1. リポジトリメソッドがオプションで`EntityManager`を受け取れるようにする
+2. トランザクション内では、その`EntityManager`をリポジトリメソッドに渡す
+3. 永続化ロジックをリポジトリ層にカプセル化しつつ、アトミックな操作を保証
+
+```typescript
+// ✅ より良い設計 (将来的な改善案)
+export interface IRepository {
+  create(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
+  update(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
+}
+
+// ユースケースでの使用
+await this.dataSource.transaction(async (entityManager) => {
+  await this.historyRepository.create(history, entityManager);
+  return await this.transactionRepository.update(transaction, entityManager);
+});
+```
+
+**トレードオフ**:
+
+- 現状の実装（entityManager直接使用）でも原子性は保証される
+- リポジトリパターンの完全性を優先する場合は、上記の設計を検討
+- プロジェクトの段階や優先度に応じて判断する
+
 #### TypeORMのデコレータの適切な使用
 
 ```typescript
@@ -368,6 +398,67 @@ class HealthController {
   ) {}
 }
 ```
+
+---
+
+### 3-3. NestJSモジュール定義のベストプラクティス
+
+#### ❌ 避けるべきパターン: プロバイダーの重複登録
+
+```typescript
+// ❌ 悪い例: 同じプロバイダーが2回登録されている
+@Module({
+  providers: [
+    {
+      provide: TRANSACTION_REPOSITORY,
+      useClass: TransactionTypeOrmRepository,
+    },
+    TransactionTypeOrmRepository, // ← 重複！
+    {
+      provide: HISTORY_REPOSITORY,
+      useClass: HistoryRepository,
+    },
+    HistoryRepository, // ← 重複！
+    // ...
+  ],
+})
+export class TransactionModule {}
+```
+
+**問題**:
+
+- 同じクラスが2つのインスタンスとして登録される
+- DIコンテナが混乱し、予期しない動作を引き起こす可能性
+- 保守性が低下
+
+#### ✅ 正しいパターン: トークンベースの登録のみ
+
+```typescript
+// ✅ 良い例: トークンベースの登録のみ
+@Module({
+  providers: [
+    {
+      provide: TRANSACTION_REPOSITORY,
+      useClass: TransactionTypeOrmRepository,
+    },
+    {
+      provide: HISTORY_REPOSITORY,
+      useClass: HistoryRepository,
+    },
+    // Domain Services
+    TransactionDomainService,
+    // Use Cases
+    UpdateTransactionCategoryUseCase,
+  ],
+})
+export class TransactionModule {}
+```
+
+**重要なポイント**:
+
+- **トークンで提供されるクラスは、クラス名で再登録しない**
+- **依存性注入はトークン経由で行う**
+- **モジュール定義をシンプルに保つ**
 
 ---
 
@@ -747,6 +838,53 @@ await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText
 - **UI状態の確認で待機**: `expect(...).toBeVisible()`、`expect(...).toHaveText()`など
 - **固定時間待機は最終手段**: どうしても必要な場合のみ使用
 
+#### ✅ E2Eテストでのデータベース状態の検証
+
+**問題**: APIレスポンスの検証のみでは、副作用（データベースへの変更）が正しく実行されたか確認できない。
+
+```typescript
+// ❌ 不十分な例: APIレスポンスのみを検証
+it('取引のカテゴリを更新できる', async () => {
+  const response = await request(app.getHttpServer())
+    .patch(`/transactions/${id}/category`)
+    .send({ category: newCategory })
+    .expect(200);
+
+  expect(response.body.data.category.id).toBe('cat-002');
+  // データベースに履歴が記録されているかは未検証
+});
+```
+
+**✅ 推奨パターン**: APIレスポンスとデータベース状態の両方を検証
+
+```typescript
+// ✅ 良い例: データベース状態も検証
+it('取引のカテゴリを更新できる', async () => {
+  const response = await request(app.getHttpServer())
+    .patch(`/transactions/${id}/category`)
+    .send({ category: newCategory })
+    .expect(200);
+
+  // 1. APIレスポンスの検証
+  expect(response.body.data.category.id).toBe('cat-002');
+
+  // 2. データベース状態の検証
+  const history = await dataSource.query(
+    'SELECT * FROM transaction_category_change_history WHERE transactionId = ?',
+    [id]
+  );
+  expect(history).toHaveLength(1);
+  expect(history[0].oldCategoryId).toBe('cat-001');
+  expect(history[0].newCategoryId).toBe('cat-002');
+});
+```
+
+**重要なポイント**:
+
+- **副作用の検証**: 重要な副作用（履歴記録、通知送信など）は必ずデータベースで確認
+- **E2Eテストの価値最大化**: エンドツーエンドでの動作を完全に検証
+- **dbHelperの活用**: `E2ETestDatabaseHelper`やDataSourceを使用してデータベースにアクセス
+
 ### 4-8. テストでのアサーション追加
 
 #### ✅ 重要な副作用を検証する
@@ -843,6 +981,109 @@ export default tseslint.config(
   }
 );
 ```
+
+---
+
+### 5-3. フロントエンドのエラーハンドリングとパフォーマンス
+
+#### ❌ 避けるべきパターン: ユーザーへの通知なしのエラー処理
+
+```typescript
+// ❌ 悪い例: エラーがコンソールのみに出力される
+useEffect(() => {
+  const fetchCategories = async (): Promise<void> => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('カテゴリの取得に失敗しました:', err); // ユーザーには通知されない
+    }
+  };
+  void fetchCategories();
+}, []);
+```
+
+**問題**:
+
+- ユーザーにエラーが通知されない
+- 空のドロップダウンが表示され、UXが低下
+- ユーザーは何が問題なのか分からない
+
+#### ✅ 正しいパターン: ユーザーへの明示的なエラー表示
+
+```typescript
+// ✅ 良い例: エラーをUIに表示
+useEffect(() => {
+  const fetchCategories = async (): Promise<void> => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      setError('カテゴリの取得に失敗しました。ページを再読み込みしてください。');
+      console.error('カテゴリの取得に失敗しました:', err);
+    }
+  };
+  void fetchCategories();
+}, []);
+
+// UIでエラーを表示
+{error && (
+  <div className="mb-4 text-red-600 p-3 bg-red-50 rounded-md">{error}</div>
+)}
+```
+
+**重要なポイント**:
+
+- **エラーをユーザーに通知**: エラーメッセージを視覚的に表示
+- **リカバリー方法を提示**: 「ページを再読み込みしてください」など
+- **開発者向けログは維持**: `console.error`でデバッグ情報を残す
+
+#### ❌ 避けるべきパターン: コンポーネント内でのヘルパー関数定義
+
+```typescript
+// ❌ 悪い例: コンポーネント内に定義
+export function MyComponent({ data }: Props) {
+  // この関数はレンダリングごとに再定義される
+  const flattenTree = (nodes: Node[]): Item[] => {
+    // ... 実装 ...
+  };
+
+  const flatData = flattenTree(data);
+  // ...
+}
+```
+
+**問題**:
+
+- コンポーネントが再レンダリングされるたびに関数が再定義される
+- パフォーマンスが低下
+- メモリ使用量が増加
+
+#### ✅ 正しいパターン: モジュールレベルでのヘルパー関数定義
+
+```typescript
+// ✅ 良い例: コンポーネント外に定義
+const flattenTree = (nodes: Node[]): Item[] => {
+  const result: Item[] = [];
+  const traverse = (node: Node): void => {
+    result.push(node.item);
+    node.children.forEach(traverse);
+  };
+  nodes.forEach(traverse);
+  return result;
+};
+
+export function MyComponent({ data }: Props) {
+  const flatData = flattenTree(data);
+  // ...
+}
+```
+
+**重要なポイント**:
+
+- **propsやstateに依存しない関数はコンポーネント外に**: 再定義を避ける
+- **パフォーマンス向上**: 関数の参照が一定になる
+- **可読性向上**: コンポーネントのロジックがシンプルになる
 
 ---
 
@@ -1673,3 +1914,51 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 
 - `.cursor/rules/00-WORKFLOW-CHECKLIST.md` - ワークフロー全体
 - `.cursor/rules/01-project.md` - プロジェクト概要
+
+### 6-2. サブシェルを使用したディレクトリ操作
+
+#### ❌ 避けるべきパターン: 連続的な`cd`コマンド
+
+```bash
+# ❌ 悪い例: ディレクトリ構造の変更に脆弱
+all)
+  echo "🔨 共有型定義のビルド中..."
+  cd libs/types
+  pnpm build
+  echo "🔨 共有ユーティリティのビルド中..."
+  cd ../utils  # ← 相対パスに依存
+  pnpm build
+  echo "🔨 バックエンドのビルド中..."
+  cd ../../apps/backend  # ← さらに複雑な相対パス
+  pnpm build
+  ;;
+```
+
+**問題**:
+
+- ディレクトリ構造が変更されると壊れる
+- 相対パスが複雑で可読性が低い
+- スクリプトの現在位置を追跡しにくい
+
+#### ✅ 正しいパターン: サブシェルで独立した実行
+
+```bash
+# ✅ 良い例: サブシェルで各コマンドを独立させる
+all)
+  echo "🔨 共有型定義のビルド中..."
+  (cd libs/types && pnpm build)
+  echo "🔨 共有ユーティリティのビルド中..."
+  (cd libs/utils && pnpm build)
+  echo "🔨 バックエンドのビルド中..."
+  (cd apps/backend && pnpm build)
+  ;;
+```
+
+**重要なポイント**:
+
+- **サブシェル `(...)` の活用**: 各コマンドが独立した環境で実行される
+- **プロジェクトルートを基準**: すべてのパスがルートからの相対パス
+- **堅牢性の向上**: ディレクトリ構造の変更に強い
+- **可読性の向上**: パスが明確で理解しやすい
+
+---
