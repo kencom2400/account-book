@@ -78,12 +78,12 @@ describe('SyncTransactionsUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should throw a deprecation error when called', async () => {
+    it('should throw a deprecation error when called', () => {
       // Arrange
       const loggerSpy = jest.spyOn(Logger.prototype, 'error');
 
       // Act & Assert
-      await expect(useCase.execute({})).rejects.toThrow(
+      expect(() => useCase.execute({})).toThrow(
         'SyncTransactionsUseCase is deprecated. Please use SyncAllTransactionsUseCase.',
       );
       expect(loggerSpy).toHaveBeenCalledWith(
