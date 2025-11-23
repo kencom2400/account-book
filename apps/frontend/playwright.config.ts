@@ -92,6 +92,12 @@ export default defineConfig({
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
         NODE_ENV: TEST_ENV === 'dev' ? 'development' : 'test',
         PORT: backendPort,
+        // MySQL環境変数を明示的に渡す（デフォルト値付き）
+        MYSQL_HOST: process.env.MYSQL_HOST || '127.0.0.1',
+        MYSQL_PORT: process.env.MYSQL_PORT || '3326',
+        MYSQL_USER: process.env.MYSQL_USER || 'account_book_e2e_user',
+        MYSQL_PASSWORD: process.env.MYSQL_PASSWORD || 'e2e_password',
+        MYSQL_DATABASE: process.env.MYSQL_DATABASE || 'account_book_e2e',
       },
     },
     // フロントエンドサーバー
