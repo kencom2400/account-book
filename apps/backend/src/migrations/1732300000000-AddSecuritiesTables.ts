@@ -10,6 +10,15 @@ export class AddSecuritiesTables1732300000000 implements MigrationInterface {
   name = 'AddSecuritiesTables1732300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // テーブル存在チェック（べき等性確保）
+    const securitiesAccountsTable = await queryRunner.getTable(
+      'securities_accounts',
+    );
+    if (securitiesAccountsTable) {
+      // 既に存在する場合はスキップ
+      return;
+    }
+
     // securities_accounts テーブル作成
     await queryRunner.createTable(
       new Table({
