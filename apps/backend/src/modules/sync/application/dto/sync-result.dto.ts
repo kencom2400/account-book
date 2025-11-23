@@ -1,3 +1,5 @@
+import { SyncStatus } from '../../domain/enums/sync-status.enum';
+
 /**
  * 同期結果DTO（Application層内部で使用）
  *
@@ -10,7 +12,8 @@ export interface SyncResult {
   institutionId: string;
   institutionName: string;
   institutionType: 'bank' | 'credit-card' | 'securities';
-  success: boolean;
+  status: SyncStatus; // 同期ステータス（pending/running/completed/failed/cancelled）
+  success: boolean; // 後方互換性のために残す
   totalFetched: number;
   newRecords: number;
   duplicateRecords: number;

@@ -9,6 +9,7 @@ import {
   SyncTarget,
 } from '../dto/sync-result.dto';
 import { SyncHistory } from '../../domain/entities/sync-history.entity';
+import { SyncStatus } from '../../domain/enums/sync-status.enum';
 import { randomUUID } from 'crypto';
 
 /**
@@ -99,18 +100,18 @@ export class SyncAllTransactionsUseCase {
       const institutions = await Promise.all(
         institutionIds.map((id) => this.institutionRepository.findById(id)),
       );
-      const targets: SyncTarget[] = [];
-      for (const inst of institutions) {
-        if (inst !== null && inst.isConnected) {
-          targets.push({
-            institutionId: inst.id,
-            institutionName: inst.name,
-            institutionType: inst.type as 'bank' | 'credit-card' | 'securities',
-            lastSyncDate: inst.lastSyncedAt,
-          });
-        }
-      }
-      return targets;
+      // 型ガードを使用してnullと未接続を除外
+      return institutions
+        .filter(
+          (inst): inst is NonNullable<typeof inst> =>
+            inst !== null && inst.isConnected,
+        )
+        .map((inst) => ({
+          institutionId: inst.id,
+          institutionName: inst.name,
+          institutionType: inst.type as 'bank' | 'credit-card' | 'securities',
+          lastSyncDate: inst.lastSyncedAt,
+        }));
     }
 
     const institutions =
@@ -158,6 +159,7 @@ export class SyncAllTransactionsUseCase {
             institutionId: target.institutionId,
             institutionName: target.institutionName,
             institutionType: target.institutionType,
+            status: SyncStatus.FAILED,
             success: false,
             totalFetched: 0,
             newRecords: 0,
@@ -233,6 +235,7 @@ export class SyncAllTransactionsUseCase {
         institutionId: target.institutionId,
         institutionName: target.institutionName,
         institutionType: target.institutionType,
+        status: syncHistory.status,
         success: true,
         totalFetched,
         newRecords,
@@ -263,6 +266,7 @@ export class SyncAllTransactionsUseCase {
         institutionId: target.institutionId,
         institutionName: target.institutionName,
         institutionType: target.institutionType,
+        status: syncHistory.status,
         success: false,
         totalFetched: 0,
         newRecords: 0,

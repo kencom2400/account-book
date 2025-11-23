@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { SyncAllTransactionsUseCase } from '../use-cases/sync-all-transactions.use-case';
+import { SyncAllTransactionsResult } from '../dto/sync-result.dto';
 
 /**
  * スケジュール同期ジョブのメトリクス
@@ -165,10 +166,7 @@ export class ScheduledSyncJob {
   /**
    * エラー通知（一部失敗）
    */
-  private notifyErrors(result: {
-    results: Array<{ success: boolean; errorMessage: string | null }>;
-    summary: { failureCount: number };
-  }): void {
+  private notifyErrors(result: SyncAllTransactionsResult): void {
     // TODO: 通知サービスの実装
     // 例: Slackへの通知、メール送信など
     const failedInstitutions = result.results.filter((r) => !r.success);

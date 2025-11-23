@@ -37,7 +37,7 @@ classDiagram
         +markAsFailed(error) void
         +markAsCancelled() void
         +incrementRetryCount() void
-        +toJSON() SyncHistoryResponseDto
+        +toJSON() SyncHistoryDto
     }
 
     note right of SyncHistory

@@ -109,13 +109,15 @@ export class UpdateSyncScheduleRequestDto {
   enabled!: boolean;
 
   /**
-   * cron式（例: "0 4 * * *" = 毎日午前4時）
+   * cron式（例: "0 0 4 * * *" = 毎日午前4時）
+   * フォーマット: 秒 分 時 日 月 曜日
    */
   @IsString()
   @Matches(
-    /^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([0-2]?\d|3[01])) (\*|([0]?\d|1[0-2])) (\*|([0-6]))$/,
+    /^(\*|([0-5]?\d)) (\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([0-2]?\d|3[01])) (\*|([0]?\d|1[0-2])) (\*|([0-6]))$/,
     {
-      message: 'Invalid cron expression',
+      message:
+        'Invalid cron expression. Expected format: "second minute hour day month weekday" (6 fields)',
     },
   )
   cronExpression!: string;

@@ -27,7 +27,6 @@ import {
   SyncHistoryDto,
 } from '../dto/sync-response.dto';
 import type { SyncScheduleResponseDto } from '../dto/sync-response.dto';
-import { SyncStatus } from '../../domain/enums/sync-status.enum';
 
 /**
  * 同期コントローラー
@@ -75,13 +74,14 @@ export class SyncController {
       institutionId: r.institutionId,
       institutionName: r.institutionName,
       institutionType: r.institutionType,
-      status: r.success ? SyncStatus.COMPLETED : SyncStatus.FAILED,
+      status: r.status,
       startedAt: r.startedAt.toISOString(),
       completedAt: r.completedAt ? r.completedAt.toISOString() : null,
       totalFetched: r.totalFetched,
       newRecords: r.newRecords,
       duplicateRecords: r.duplicateRecords,
       errorMessage: r.errorMessage,
+      retryCount: 0, // TODO: SyncResultにretryCountを追加
     }));
 
     return {
