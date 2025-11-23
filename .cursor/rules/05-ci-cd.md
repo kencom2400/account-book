@@ -6,6 +6,8 @@
 - **環境変数の管理は明示的かつ安全であること**
 - **テスト実行スクリプトは堅牢で、エラーハンドリングが適切であること**
 - **ポート競合やリソース競合を避ける設計であること**
+- **YAMLの重複は可能な限りアンカー機能で削減すること**
+- **ドキュメントと実装の整合性を常に保つこと**
 
 ## テスト実行スクリプトの設計原則
 
@@ -187,6 +189,100 @@ webServer: [
 
 ## GitHub Actions設定
 
+### CI実行の最適化
+
+#### paths-ignoreによる不要なCI実行の回避
+
+**目的**: ドキュメントやコメント変更など、ソースコードに影響しない変更時にCIをスキップすることで、リソースを節約し、フィードバックを高速化する。
+
+**設定例:**
+
+```yaml
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore: &paths-ignore
+      - '**.md'
+      - 'docs/**'
+      - '.cursor/**/*.md'
+      - '.cursorrules'
+      - '.gitignore'
+      - '.editorconfig'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore: *paths-ignore
+```
+
+**推奨パターン:**
+
+- `**.md`: すべてのマークダウンファイル
+- `docs/**`: ドキュメントディレクトリ全体
+- `.cursor/**/*.md`: Cursor設定内のマークダウンファイル
+- 設定ファイル: `.cursorrules`, `.gitignore`, `.editorconfig`など
+
+**注意事項:**
+
+- ソースコードに影響する可能性があるファイルは含めない
+- 必要に応じてローカルで`pnpm build`と`pnpm test`を実行してから変更をpush
+
+**💡 ベストプラクティス:**
+
+- **YAMLアンカーの活用**: `push`と`pull_request`で同じ設定を使う場合は、アンカー（`&anchor`）とエイリアス（`*anchor`）を使用して重複を削減する
+- **メンテナンス性**: 設定を一箇所にまとめることで、変更時の修正漏れを防ぐ
+
+**学習元**: Issue #267 - Geminiレビュー指摘より
+
+#### timeout-minutesによる無限ループ防止
+
+**目的**: 無限ループや予期せぬ遅延によるCI停止を防止し、GitHub Actions使用時間を管理する。
+
+**設定例:**
+
+```yaml
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  e2e-backend:
+    name: E2E Tests (Backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+  e2e-frontend:
+    name: E2E Tests (Frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+```
+
+**推奨値:**
+
+- 通常のジョブ: `10分`
+- E2Eテストなど時間がかかるジョブ: `15-20分`
+- ビルドジョブ: `10-15分`
+
+**ベストプラクティス:**
+
+1. すべてのジョブに`timeout-minutes`を設定する
+2. 実際の実行時間の2-3倍を目安に設定する
+3. タイムアウト発生時はログを確認し、原因を特定する
+4. **ドキュメントと実装の整合性**: 推奨値と実際の設定例・ci.ymlの値が一致していることを確認する
+
+**💡 学習例**: Issue #267では、ドキュメントの推奨値（E2Eテスト: 15-20分）と設定例（10分）に不整合があり、Geminiレビューで指摘されました。このような不整合は開発者を混乱させるため、ドキュメント作成時は必ず整合性を確認しましょう。
+
+**学習元**: Issue #267 - Geminiレビュー指摘より
+
 ### 環境変数の設定
 
 ```yaml
@@ -227,6 +323,10 @@ webServer: [
 - [ ] PlaywrightのwebServer設定で必要な環境変数を明示的に設定した
 - [ ] 環境変数のデフォルト値を提供した
 - [ ] `reuseExistingServer`を適切に設定した（CI: false, ローカル: true）
+- [ ] すべてのジョブに`timeout-minutes`を設定した
+- [ ] `paths-ignore`を使用して不要なCI実行を回避した
+- [ ] YAML設定で重複がある場合は、アンカーとエイリアスを使用した
+- [ ] ドキュメントの推奨値と実際の設定例・ci.ymlの値が一致していることを確認した
 
 ## 参考資料
 

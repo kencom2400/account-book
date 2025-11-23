@@ -580,8 +580,10 @@ EOF
 
 #### Step 1: すべての指摘を確認・リスト化（必須）
 
+**重要**: Geminiのインラインコメントを取得する際は、必ずGraphQL APIを使用してください。`gh pr view --comments`やREST APIではインラインコメントの詳細が取得できません。
+
 ```bash
-# GraphQL APIで全コメントを取得
+# ✅ 正しい方法: GraphQL APIで全コメントを取得
 gh api graphql -f query='
 query {
   repository(owner: "kencom2400", name: "account-book") {

@@ -3,13 +3,28 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.cursor/**/*.md'
+      - '.cursorrules'
+      - '.gitignore'
+      - '.editorconfig'
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.cursor/**/*.md'
+      - '.cursorrules'
+      - '.gitignore'
+      - '.editorconfig'
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -51,6 +66,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     strategy:
       matrix:
@@ -99,6 +115,7 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     services:
       mysql:
@@ -195,6 +212,7 @@ jobs:
   security:
     name: Security Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -230,6 +248,7 @@ jobs:
   e2e-backend:
     name: E2E Tests (Backend)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       mysql:
@@ -315,6 +334,7 @@ jobs:
   e2e-frontend:
     name: E2E Tests (Frontend)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       mysql:
