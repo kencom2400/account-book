@@ -90,7 +90,7 @@ export default defineConfig({
         ENCRYPTION_KEY:
           process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
         CRYPTO_SALT: process.env.CRYPTO_SALT || 'dGVzdC1zYWx0LTE2LWJ5dGVz',
-        NODE_ENV: process.env.NODE_ENV || 'development',
+        NODE_ENV: TEST_ENV === 'dev' ? 'development' : 'test',
         PORT: backendPort,
       },
     },

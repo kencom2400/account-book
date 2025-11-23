@@ -29,8 +29,6 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile.dev
     container_name: account-book-backend-test
-    ports:
-      - '${BACKEND_PORT_TEST:-3011}:3001'
     volumes:
       # ソースコードをマウント
       - ./apps/backend/src:/app/apps/backend/src
@@ -60,20 +58,12 @@ services:
       mysql:
         condition: service_healthy
     command: pnpm test
-    healthcheck:
-      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile.dev
     container_name: account-book-frontend-test
-    ports:
-      - '${FRONTEND_PORT_TEST:-3010}:3000'
     volumes:
       # ソースコードをマウント
       - ./apps/frontend/src:/app/apps/frontend/src

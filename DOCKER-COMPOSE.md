@@ -447,25 +447,6 @@ services:
 - ❌ Docker環境での誤設定 → 第4層で防止
 - ❌ テスト環境のデータ汚染 → スクリプト層で防止（常に再作成）
 
-```bash
-docker-compose -f docker-compose.dev.yml stop
-```
-
-### 4. ログの確認
-
-問題が発生した場合はログを確認：
-
-```bash
-# すべてのサービスのログ
-docker-compose -f docker-compose.dev.yml logs
-
-# 特定のサービスのログ
-docker-compose -f docker-compose.dev.yml logs backend
-
-# リアルタイムでログを表示
-docker-compose -f docker-compose.dev.yml logs -f
-```
-
 ## 関連ドキュメント
 
 - [CI/CD設定ガイドライン](.cursor/rules/05-ci-cd.md)

@@ -322,6 +322,7 @@ jobs:
       - name: Run E2E tests (Backend)
         env:
           NODE_ENV: test
+          TEST_ENV: e2e
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3326
           MYSQL_USER: account_book_e2e_user
