@@ -12,12 +12,15 @@ describe('NotificationCleanupService', () => {
   let service: NotificationCleanupService;
   let mockRepository: jest.Mocked<INotificationRepository>;
   let mockLogger: Partial<Logger>;
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     // 意図的なエラーテストのLogger出力を抑制
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     // Loggerのモック作成
     mockLogger = {
@@ -55,7 +58,10 @@ describe('NotificationCleanupService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   describe('executeNotificationCleanup', () => {
