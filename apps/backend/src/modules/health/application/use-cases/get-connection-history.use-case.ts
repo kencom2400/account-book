@@ -15,8 +15,8 @@ export interface ConnectionHistoryResult {
   id: string;
   institutionId: string;
   institutionName: string;
-  institutionType: string;
-  status: string;
+  institutionType: 'bank' | 'credit-card' | 'securities';
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
   checkedAt: string;
   responseTime: number;
   errorMessage?: string;
@@ -158,7 +158,7 @@ export class GetConnectionHistoryUseCase {
       institutionId: history.institutionId,
       institutionName: history.institutionName,
       institutionType: history.institutionType,
-      status: history.status,
+      status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
       checkedAt: history.checkedAt.toISOString(),
       responseTime: history.responseTime,
       errorMessage: history.errorMessage,

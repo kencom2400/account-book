@@ -41,8 +41,8 @@ export interface ConnectionHistoryDto {
   id: string;
   institutionId: string;
   institutionName: string;
-  institutionType: string;
-  status: string;
+  institutionType: 'bank' | 'credit-card' | 'securities';
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
   checkedAt: string;
   responseTime: number;
   errorMessage?: string;

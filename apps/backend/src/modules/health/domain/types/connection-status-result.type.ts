@@ -6,7 +6,7 @@ export interface ConnectionStatusResult {
   institutionId: string;
   institutionName: string;
   institutionType: 'bank' | 'credit-card' | 'securities';
-  status: string;
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
   checkedAt: string;
   responseTime: number;
   errorMessage?: string;

@@ -127,7 +127,7 @@ export class CheckConnectionStatusUseCase {
       institutionId: history.institutionId,
       institutionName: history.institutionName,
       institutionType: history.institutionType,
-      status: history.status,
+      status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
       checkedAt: history.checkedAt.toISOString(),
       responseTime: history.responseTime,
       errorMessage: history.errorMessage,
