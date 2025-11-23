@@ -282,6 +282,41 @@ git rebase origin/main
 - **特にビルドエラーはすべてのCI jobをブロックするため、最優先で確認**
 - フィードバックループが短縮され、開発効率が向上する
 
+### 📋 テスト実行の判断基準
+
+#### ✅ テスト・E2Eテストが**必須**な場合
+
+以下のファイルに変更がある場合は、必ずステップ3・4を実行：
+
+- **ソースコード**: `*.ts`, `*.tsx`, `*.js`, `*.jsx`
+- **テストコード**: `*.spec.ts`, `*.test.ts`, `*.e2e-spec.ts`
+- **設定ファイル**: `package.json`, `tsconfig.json`, `jest.config.js`, `playwright.config.ts`
+- **環境設定**: `.env`, `.env.example`, `docker-compose.yml`
+- **スクリプト**: `scripts/**/*.sh`, `scripts/**/*.ts`
+
+#### ⚠️ テスト・E2Eテストが**任意**な場合
+
+以下のファイルのみの変更の場合は、ステップ1・2のみでOK：
+
+- **ドキュメント**: `*.md`, `docs/**/*`
+- **Cursorルール**: `.cursor/**/*.md`, `.cursorrules`
+- **Gitファイル**: `.gitignore`, `.gitattributes`
+- **エディタ設定**: `.vscode/**/*`, `.editorconfig`
+
+**注意**: 上記の場合でも、Lint・ビルドチェック（ステップ1・2）は必須です。
+
+#### 💡 判断のポイント
+
+```bash
+# 変更されたファイルを確認
+git diff --name-only
+
+# マークダウンのみの変更？
+git diff --name-only | grep -v '\.md$' | wc -l
+# → 0の場合: テスト不要（ステップ1・2のみ）
+# → 1以上の場合: テスト必須（ステップ1・2・3・4）
+```
+
 **実行手順：**
 
 ```bash

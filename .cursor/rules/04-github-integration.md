@@ -460,6 +460,10 @@ gh issue comment <ISSUE_NUMBER> --body "$BODY"
 
 **実行内容:**
 
+0. **ルールファイル再読込**（最優先）
+   - すべてのルールファイルを読み込む（@inc-all-rulesと同じ処理）
+   - 最新のプロジェクトルールに従って作業を実行
+
 1. **Issue取得**
    - GitHub Projectsから「📝 To Do」ステータスのIssueを取得
    - 各IssueのAssignee情報を確認
