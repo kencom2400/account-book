@@ -93,10 +93,10 @@ describe('TransactionList', () => {
     render(<TransactionList transactions={mockTransactions} />);
 
     await waitFor(() => {
-      // 支出は「-」付き
-      expect(screen.getByText('-¥1,000')).toBeInTheDocument();
-      // 収入は「+」付き
-      expect(screen.getByText('+¥50,000')).toBeInTheDocument();
+      // 支出は「-」付き（全角円マーク）
+      expect(screen.getByText('-￥1,000')).toBeInTheDocument();
+      // 収入は「+」付き（全角円マーク）
+      expect(screen.getByText('+￥50,000')).toBeInTheDocument();
     });
   });
 

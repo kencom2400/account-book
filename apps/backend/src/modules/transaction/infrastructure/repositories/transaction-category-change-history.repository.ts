@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ITransactionCategoryChangeHistoryRepository } from '../../domain/repositories/transaction-category-change-history.repository.interface';
 import { TransactionCategoryChangeHistoryEntity } from '../../domain/entities/transaction-category-change-history.entity';
-import { TransactionCategoryChangeHistoryOrmEntity } from '../entities/transaction-category-change-history.orm-entity.ts';
+import { TransactionCategoryChangeHistoryOrmEntity } from '../entities/transaction-category-change-history.orm-entity';
 
 /**
  * 取引カテゴリ変更履歴リポジトリ実装

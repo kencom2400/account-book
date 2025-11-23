@@ -3,12 +3,15 @@ import { NotFoundException } from '@nestjs/common';
 import { UpdateTransactionCategoryUseCase } from './update-transaction-category.use-case';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
+import type { ITransactionCategoryChangeHistoryRepository } from '../../domain/repositories/transaction-category-change-history.repository.interface';
+import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from '../../domain/repositories/transaction-category-change-history.repository.interface';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 
 describe('UpdateTransactionCategoryUseCase', () => {
   let useCase: UpdateTransactionCategoryUseCase;
   let mockRepository: jest.Mocked<ITransactionRepository>;
+  let mockHistoryRepository: jest.Mocked<ITransactionCategoryChangeHistoryRepository>;
 
   const mockTransaction = new TransactionEntity(
     'trans-001',
@@ -42,12 +45,22 @@ describe('UpdateTransactionCategoryUseCase', () => {
       getMonthlySummary: jest.fn(),
     } as any;
 
+    mockHistoryRepository = {
+      create: jest.fn(),
+      findByTransactionId: jest.fn(),
+      deleteAll: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UpdateTransactionCategoryUseCase,
         {
           provide: TRANSACTION_REPOSITORY,
           useValue: mockRepository,
+        },
+        {
+          provide: TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY,
+          useValue: mockHistoryRepository,
         },
       ],
     }).compile();
