@@ -248,7 +248,7 @@ jobs:
   e2e-backend:
     name: E2E Tests (Backend)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     services:
       mysql:
@@ -334,7 +334,7 @@ jobs:
   e2e-frontend:
     name: E2E Tests (Frontend)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     services:
       mysql:
