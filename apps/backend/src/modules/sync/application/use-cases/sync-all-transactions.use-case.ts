@@ -153,6 +153,7 @@ export class SyncAllTransactionsUseCase {
           }
 
           results.push({
+            syncHistoryId: target.institutionId, // エラー時は仮のID
             institutionId: target.institutionId,
             institutionName: target.institutionName,
             institutionType: target.institutionType,
@@ -162,6 +163,8 @@ export class SyncAllTransactionsUseCase {
             duplicateRecords: 0,
             errorMessage,
             duration: 0,
+            startedAt: new Date(),
+            completedAt: new Date(),
           });
         }
       });
@@ -219,6 +222,7 @@ export class SyncAllTransactionsUseCase {
       );
 
       return {
+        syncHistoryId: syncHistory.id,
         institutionId: target.institutionId,
         institutionName: target.institutionName,
         institutionType: target.institutionType,
@@ -228,6 +232,8 @@ export class SyncAllTransactionsUseCase {
         duplicateRecords,
         errorMessage: null,
         duration,
+        startedAt: syncHistory.startedAt,
+        completedAt: syncHistory.completedAt,
       };
     } catch (error) {
       let errorMessage = 'Unknown error';
@@ -246,6 +252,7 @@ export class SyncAllTransactionsUseCase {
       await this.syncHistoryRepository.update(syncHistory);
 
       return {
+        syncHistoryId: syncHistory.id,
         institutionId: target.institutionId,
         institutionName: target.institutionName,
         institutionType: target.institutionType,
@@ -255,6 +262,8 @@ export class SyncAllTransactionsUseCase {
         duplicateRecords: 0,
         errorMessage,
         duration: Date.now() - startTime,
+        startedAt: syncHistory.startedAt,
+        completedAt: syncHistory.completedAt,
       };
     }
   }

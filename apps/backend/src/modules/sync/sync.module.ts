@@ -16,7 +16,7 @@ import { CancelSyncUseCase } from './application/use-cases/cancel-sync.use-case'
 import { SyncTransactionsUseCase } from './application/use-cases/sync-transactions.use-case';
 
 // Strategies
-import { IncrementalSyncStrategy } from './application/strategies/incremental-sync.strategy';
+import { IncrementalSyncStrategy } from './domain/strategies/incremental-sync.strategy';
 
 // Jobs
 import { ScheduledSyncJob } from './application/jobs/scheduled-sync.job';

@@ -6,6 +6,7 @@
  * UseCaseからOrchestratorへの結果受け渡しに使用します。
  */
 export interface SyncResult {
+  syncHistoryId: string;
   institutionId: string;
   institutionName: string;
   institutionType: string;
@@ -15,6 +16,8 @@ export interface SyncResult {
   duplicateRecords: number;
   errorMessage: string | null;
   duration: number;
+  startedAt: Date;
+  completedAt: Date | null;
 }
 
 /**

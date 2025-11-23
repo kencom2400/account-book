@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { SyncHistory } from '../../domain/entities/sync-history.entity';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
-import { IncrementalSyncStrategy } from '../strategies/incremental-sync.strategy';
+import { IncrementalSyncStrategy } from '../../domain/strategies/incremental-sync.strategy';
 import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
 import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
 import { RefreshCreditCardDataUseCase } from '../../../credit-card/application/use-cases/refresh-credit-card-data.use-case';

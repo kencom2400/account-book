@@ -71,13 +71,13 @@ export class SyncController {
 
     // ドメインエンティティをDTOに変換
     const data: SyncHistoryDto[] = result.results.map((r) => ({
-      id: '', // TODO: SyncResultからSyncHistoryを取得するように修正が必要
+      id: r.syncHistoryId,
       institutionId: r.institutionId,
       institutionName: r.institutionName,
       institutionType: r.institutionType,
       status: r.success ? SyncStatus.COMPLETED : SyncStatus.FAILED,
-      startedAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
+      startedAt: r.startedAt.toISOString(),
+      completedAt: r.completedAt ? r.completedAt.toISOString() : null,
       totalFetched: r.totalFetched,
       newRecords: r.newRecords,
       duplicateRecords: r.duplicateRecords,
