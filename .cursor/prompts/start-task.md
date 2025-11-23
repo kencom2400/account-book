@@ -10,23 +10,7 @@
 
 ### 0. すべてのルールファイルを再読込（最優先）
 
-**必ず最初に**以下のルールファイルをすべて読み込んでください：
-
-```typescript
-// すべてのルールファイルを並列で読み込む
-await Promise.all([
-  read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
-  read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
-  read_file('.cursor/rules/01-project.md'),
-  read_file('.cursor/rules/02-code-standards.md'),
-  read_file('.cursor/rules/03-git-workflow.md'),
-  read_file('.cursor/rules/04-github-integration.md'),
-  read_file('.cursor/rules/05-ci-cd.md'),
-  read_file('.cursor/rules/templates/issue-report.md'),
-  read_file('.cursor/rules/templates/pr-description.md'),
-  read_file('.cursor/rules/learned-from-gemini-perf-review.md'),
-]);
-```
+**必ず最初に** `@inc-all-rules` を実行して、すべてのルールファイルを読み込んでください。
 
 これにより、最新のプロジェクトルールに従ってタスクを実行できます。
 
@@ -67,7 +51,7 @@ git checkout main
 git pull origin main
 
 # フィーチャーブランチを作成
-git checkout -b feature/issue-<番号>-<説明>
+git checkout -b feature/issue-<番号>-<Issueタイトルをケバブケースにした文字列>
 
 # GitHub ProjectsのステータスをIn Progressに変更
 ./scripts/github/projects/set-issue-in-progress.sh <issue番号>

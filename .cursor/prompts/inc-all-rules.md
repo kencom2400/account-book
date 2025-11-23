@@ -10,25 +10,17 @@
 
 ### 読込対象ファイル
 
-以下のファイルを順番に読み込んでください：
+以下のファイルをすべて読み込んでください：
 
-1. **`.cursor/rules/00-WORKFLOW-CHECKLIST.md`** - ワークフロー・チェックリスト（最優先ガイド）
-2. **`.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md`** - Gitワークフロー遵守チェックリスト（再発防止ガイド）
-3. **`.cursor/rules/01-project.md`** - プロジェクト全体のガイドライン
-4. **`.cursor/rules/02-code-standards.md`** - コード品質基準とテスト
-5. **`.cursor/rules/03-git-workflow.md`** - Git ワークフロー
-6. **`.cursor/rules/04-github-integration.md`** - GitHub統合
-7. **`.cursor/rules/05-ci-cd.md`** - CI/CD設定ガイドライン
-
-### テンプレート
-
-必要に応じて以下のテンプレートも参照：
-
+- **`.cursor/rules/00-WORKFLOW-CHECKLIST.md`** - ワークフロー・チェックリスト（最優先ガイド）
+- **`.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md`** - Gitワークフロー遵守チェックリスト（再発防止ガイド）
+- **`.cursor/rules/01-project.md`** - プロジェクト全体のガイドライン
+- **`.cursor/rules/02-code-standards.md`** - コード品質基準とテスト
+- **`.cursor/rules/03-git-workflow.md`** - Git ワークフロー
+- **`.cursor/rules/04-github-integration.md`** - GitHub統合
+- **`.cursor/rules/05-ci-cd.md`** - CI/CD設定ガイドライン
 - **`.cursor/rules/templates/issue-report.md`** - Issue報告テンプレート
 - **`.cursor/rules/templates/pr-description.md`** - PR説明テンプレート
-
-### 追加学習リソース
-
 - **`.cursor/rules/learned-from-gemini-perf-review.md`** - Geminiレビューからの学習内容
 
 ## 実行方法
