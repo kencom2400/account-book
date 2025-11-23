@@ -187,6 +187,94 @@ webServer: [
 
 ## GitHub Actions設定
 
+### CI実行の最適化
+
+#### paths-ignoreによる不要なCI実行の回避
+
+**目的**: ドキュメントやコメント変更など、ソースコードに影響しない変更時にCIをスキップすることで、リソースを節約し、フィードバックを高速化する。
+
+**設定例:**
+
+```yaml
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.cursor/**/*.md'
+      - '.cursorrules'
+      - '.gitignore'
+      - '.editorconfig'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.cursor/**/*.md'
+      - '.cursorrules'
+      - '.gitignore'
+      - '.editorconfig'
+```
+
+**推奨パターン:**
+
+- `**.md`: すべてのマークダウンファイル
+- `docs/**`: ドキュメントディレクトリ全体
+- `.cursor/**/*.md`: Cursor設定内のマークダウンファイル
+- 設定ファイル: `.cursorrules`, `.gitignore`, `.editorconfig`など
+
+**注意事項:**
+
+- ソースコードに影響する可能性があるファイルは含めない
+- 必要に応じてローカルで`pnpm build`と`pnpm test`を実行してから変更をpush
+
+#### timeout-minutesによる無限ループ防止
+
+**目的**: 無限ループや予期せぬ遅延によるCI停止を防止し、GitHub Actions使用時間を管理する。
+
+**設定例:**
+
+```yaml
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  e2e-backend:
+    name: E2E Tests (Backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+  e2e-frontend:
+    name: E2E Tests (Frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+```
+
+**推奨値:**
+
+- 通常のジョブ: `10分`
+- E2Eテストなど時間がかかるジョブ: `15-20分`
+- ビルドジョブ: `10-15分`
+
+**ベストプラクティス:**
+
+1. すべてのジョブに`timeout-minutes`を設定する
+2. 実際の実行時間の2-3倍を目安に設定する
+3. タイムアウト発生時はログを確認し、原因を特定する
+
 ### 環境変数の設定
 
 ```yaml
@@ -227,6 +315,8 @@ webServer: [
 - [ ] PlaywrightのwebServer設定で必要な環境変数を明示的に設定した
 - [ ] 環境変数のデフォルト値を提供した
 - [ ] `reuseExistingServer`を適切に設定した（CI: false, ローカル: true）
+- [ ] すべてのジョブに`timeout-minutes`を設定した
+- [ ] `paths-ignore`を使用して不要なCI実行を回避した
 
 ## 参考資料
 
