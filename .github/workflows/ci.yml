@@ -330,7 +330,12 @@ jobs:
           MYSQL_DATABASE: account_book_e2e
           ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
           CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
-        run: pnpm run test:e2e --filter @account-book/backend
+        run: |
+          # apps/backend/.envファイルが正しく設定されていることを確認
+          cd apps/backend
+          cat .env
+          cd ../..
+          pnpm run test:e2e --filter @account-book/backend
 
   e2e-frontend:
     name: E2E Tests (Frontend)
