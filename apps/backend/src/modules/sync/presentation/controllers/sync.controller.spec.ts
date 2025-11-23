@@ -1,118 +1,152 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SyncController } from './sync.controller';
-import { SyncTransactionsUseCase } from '../../application/use-cases/sync-transactions.use-case';
-import { ScheduledSyncJob } from '../../application/jobs/scheduled-sync.job';
-import { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
-import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
-import { SyncHistoryEntity } from '../../domain/entities/sync-history.entity';
+import { SyncAllTransactionsUseCase } from '../../application/use-cases/sync-all-transactions.use-case';
+import { GetSyncHistoryUseCase } from '../../application/use-cases/get-sync-history.use-case';
+import { GetSyncStatusUseCase } from '../../application/use-cases/get-sync-status.use-case';
+import { CancelSyncUseCase } from '../../application/use-cases/cancel-sync.use-case';
 import { SyncStatus } from '../../domain/enums/sync-status.enum';
 
 describe('SyncController', () => {
   let controller: SyncController;
-  let syncTransactionsUseCase: jest.Mocked<SyncTransactionsUseCase>;
-  let scheduledSyncJob: jest.Mocked<ScheduledSyncJob>;
-  let syncHistoryRepository: jest.Mocked<ISyncHistoryRepository>;
+  let syncAllTransactionsUseCase: jest.Mocked<SyncAllTransactionsUseCase>;
+  let getSyncHistoryUseCase: jest.Mocked<GetSyncHistoryUseCase>;
+  let getSyncStatusUseCase: jest.Mocked<GetSyncStatusUseCase>;
+  let cancelSyncUseCase: jest.Mocked<CancelSyncUseCase>;
 
   beforeEach(async () => {
-    const mockSyncTransactionsUseCase = {
+    const mockSyncAllTransactionsUseCase = {
       execute: jest.fn(),
     };
 
-    const mockScheduledSyncJob = {
-      isSyncRunning: jest.fn(),
-      executeManualSync: jest.fn(),
+    const mockGetSyncHistoryUseCase = {
+      execute: jest.fn(),
+      findById: jest.fn(),
     };
 
-    const mockSyncHistoryRepository: Partial<ISyncHistoryRepository> = {
-      findLatest: jest.fn(),
-      findAll: jest.fn(),
-      findById: jest.fn(),
-      findByDateRange: jest.fn(),
+    const mockGetSyncStatusUseCase = {
+      execute: jest.fn(),
+      getSyncSchedule: jest.fn(),
+      updateSyncSchedule: jest.fn(),
+    };
+
+    const mockCancelSyncUseCase = {
+      execute: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SyncController],
       providers: [
         {
-          provide: SyncTransactionsUseCase,
-          useValue: mockSyncTransactionsUseCase,
+          provide: SyncAllTransactionsUseCase,
+          useValue: mockSyncAllTransactionsUseCase,
         },
         {
-          provide: ScheduledSyncJob,
-          useValue: mockScheduledSyncJob,
+          provide: GetSyncHistoryUseCase,
+          useValue: mockGetSyncHistoryUseCase,
         },
         {
-          provide: SYNC_HISTORY_REPOSITORY,
-          useValue: mockSyncHistoryRepository,
+          provide: GetSyncStatusUseCase,
+          useValue: mockGetSyncStatusUseCase,
+        },
+        {
+          provide: CancelSyncUseCase,
+          useValue: mockCancelSyncUseCase,
         },
       ],
     }).compile();
 
     controller = module.get<SyncController>(SyncController);
-    syncTransactionsUseCase = module.get(SyncTransactionsUseCase);
-    scheduledSyncJob = module.get(ScheduledSyncJob);
-    syncHistoryRepository = module.get(SYNC_HISTORY_REPOSITORY);
+    syncAllTransactionsUseCase = module.get(SyncAllTransactionsUseCase);
+    getSyncHistoryUseCase = module.get(GetSyncHistoryUseCase);
+    getSyncStatusUseCase = module.get(GetSyncStatusUseCase);
+    cancelSyncUseCase = module.get(CancelSyncUseCase);
   });
 
-  describe('syncTransactions', () => {
+  describe('startSync', () => {
     it('should execute sync and return result', async () => {
       // Arrange
-      const mockSyncHistory = SyncHistoryEntity.create(2)
-        .start()
-        .complete(2, 0, 10);
+      const mockResult = {
+        results: [
+          {
+            syncHistoryId: 'sync-123',
+            institutionId: 'inst-1',
+            institutionName: 'Test Bank',
+            institutionType: 'bank' as const,
+            success: true,
+            totalFetched: 10,
+            newRecords: 10,
+            duplicateRecords: 0,
+            errorMessage: null,
+            duration: 1000,
+            startedAt: new Date(),
+            completedAt: new Date(),
+          },
+        ],
+        summary: {
+          totalInstitutions: 1,
+          successCount: 1,
+          failureCount: 0,
+          totalFetched: 10,
+          totalNew: 10,
+          totalDuplicate: 0,
+          duration: 1000,
+        },
+      };
 
-      syncTransactionsUseCase.execute.mockResolvedValue({
-        syncHistory: mockSyncHistory,
-        successCount: 2,
-        failureCount: 0,
-        newTransactionsCount: 10,
-      });
+      syncAllTransactionsUseCase.execute.mockResolvedValue(mockResult);
 
       // Act
-      const result = await controller.syncTransactions({});
+      const result = await controller.startSync({});
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.successCount).toBe(2);
-      expect(result.data.failureCount).toBe(0);
-      expect(result.data.newTransactionsCount).toBe(10);
-      expect(syncTransactionsUseCase.execute).toHaveBeenCalledWith({
+      expect(result.data.length).toBe(1);
+      expect(result.summary.successCount).toBe(1);
+      expect(syncAllTransactionsUseCase.execute).toHaveBeenCalledWith({
         forceFullSync: undefined,
+        institutionIds: undefined,
       });
     });
 
     it('should pass forceFullSync option', async () => {
       // Arrange
-      const mockSyncHistory = SyncHistoryEntity.create(2)
-        .start()
-        .complete(2, 0, 10);
+      const mockResult = {
+        results: [],
+        summary: {
+          totalInstitutions: 0,
+          successCount: 0,
+          failureCount: 0,
+          totalFetched: 0,
+          totalNew: 0,
+          totalDuplicate: 0,
+          duration: 0,
+        },
+      };
 
-      syncTransactionsUseCase.execute.mockResolvedValue({
-        syncHistory: mockSyncHistory,
-        successCount: 2,
-        failureCount: 0,
-        newTransactionsCount: 10,
-      });
+      syncAllTransactionsUseCase.execute.mockResolvedValue(mockResult);
 
       // Act
-      await controller.syncTransactions({ forceFullSync: true });
+      await controller.startSync({ forceFullSync: true });
 
       // Assert
-      expect(syncTransactionsUseCase.execute).toHaveBeenCalledWith({
+      expect(syncAllTransactionsUseCase.execute).toHaveBeenCalledWith({
         forceFullSync: true,
+        institutionIds: undefined,
       });
     });
   });
 
   describe('getSyncStatus', () => {
-    it('should return sync status with latest history', async () => {
+    it('should return sync status', async () => {
       // Arrange
-      const mockSyncHistory = SyncHistoryEntity.create(2)
-        .start()
-        .complete(2, 0, 10);
+      const mockStatus = {
+        isRunning: false,
+        currentSyncId: null,
+        startedAt: null,
+        progress: null,
+      };
 
-      scheduledSyncJob.isSyncRunning.mockReturnValue(false);
-      syncHistoryRepository.findLatest.mockResolvedValue(mockSyncHistory);
+      getSyncStatusUseCase.execute.mockResolvedValue(mockStatus);
 
       // Act
       const result = await controller.getSyncStatus();
@@ -120,90 +154,88 @@ describe('SyncController', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data.isRunning).toBe(false);
-      expect(result.data.latestSync).not.toBeNull();
-      expect(result.data.latestSync?.successCount).toBe(2);
+      expect(getSyncStatusUseCase.execute).toHaveBeenCalled();
     });
 
-    it('should return null when no sync history exists', async () => {
+    it('should return running status with progress', async () => {
       // Arrange
-      scheduledSyncJob.isSyncRunning.mockReturnValue(false);
-      syncHistoryRepository.findLatest.mockResolvedValue(null);
+      const mockStatus = {
+        isRunning: true,
+        currentSyncId: 'sync-123',
+        startedAt: new Date(),
+        progress: {
+          totalInstitutions: 5,
+          completedInstitutions: 2,
+          currentInstitution: 'Test Bank',
+          percentage: 40,
+        },
+      };
+
+      getSyncStatusUseCase.execute.mockResolvedValue(mockStatus);
 
       // Act
       const result = await controller.getSyncStatus();
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.isRunning).toBe(false);
-      expect(result.data.latestSync).toBeNull();
+      expect(result.data.isRunning).toBe(true);
+      expect(result.data.progress).toBeDefined();
+      expect(result.data.progress?.percentage).toBe(40);
     });
   });
 
   describe('getSyncHistory', () => {
-    it('should return all sync histories when no date range specified', async () => {
+    it('should return sync history list', async () => {
       // Arrange
-      const mockHistories = [
-        SyncHistoryEntity.create(2).start().complete(2, 0, 10),
-        SyncHistoryEntity.create(3).start().complete(3, 0, 15),
+      const mockHistory = [
+        {
+          id: 'sync-123',
+          institutionId: 'inst-1',
+          institutionName: 'Test Bank',
+          institutionType: 'bank' as const,
+          status: SyncStatus.SUCCESS,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          totalFetched: 10,
+          newRecords: 10,
+          duplicateRecords: 0,
+          errorMessage: null,
+          retryCount: 0,
+        },
       ];
 
-      syncHistoryRepository.findAll.mockResolvedValue(mockHistories);
+      getSyncHistoryUseCase.execute.mockResolvedValue({
+        histories: mockHistory,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
 
       // Act
       const result = await controller.getSyncHistory({});
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-      expect(syncHistoryRepository.findAll).toHaveBeenCalledWith(50);
-    });
-
-    it('should return sync histories for specified date range', async () => {
-      // Arrange
-      const startDate = '2025-01-01';
-      const endDate = '2025-01-31';
-      const mockHistories = [
-        SyncHistoryEntity.create(2).start().complete(2, 0, 10),
-      ];
-
-      syncHistoryRepository.findByDateRange.mockResolvedValue(mockHistories);
-
-      // Act
-      const result = await controller.getSyncHistory({ startDate, endDate });
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
-      expect(syncHistoryRepository.findByDateRange).toHaveBeenCalled();
+      expect(result.data.length).toBe(1);
+      expect(result.meta.total).toBe(1);
     });
   });
 
-  describe('getSyncHistoryById', () => {
-    it('should return sync history when found', async () => {
+  describe('cancelSync', () => {
+    it('should cancel sync successfully', async () => {
       // Arrange
-      const mockSyncHistory = SyncHistoryEntity.create(2)
-        .start()
-        .complete(2, 0, 10);
-
-      syncHistoryRepository.findById.mockResolvedValue(mockSyncHistory);
+      cancelSyncUseCase.execute.mockResolvedValue({
+        success: true,
+        message: 'Sync cancelled successfully',
+      });
 
       // Act
-      const result = await controller.getSyncHistoryById('sync_123');
+      const result = await controller.cancelSync('sync-123');
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.syncId).toBe(mockSyncHistory.id);
-      expect(result.data.status).toBe(SyncStatus.SUCCESS);
-    });
-
-    it('should throw NotFoundException when sync history not found', async () => {
-      // Arrange
-      syncHistoryRepository.findById.mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(
-        controller.getSyncHistoryById('nonexistent'),
-      ).rejects.toThrow('Sync history not found');
+      expect(cancelSyncUseCase.execute).toHaveBeenCalledWith('sync-123');
     });
   });
 });
