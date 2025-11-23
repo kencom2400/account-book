@@ -29,7 +29,9 @@ export const getDatabaseConfig = (
     synchronize: false,
     // マイグレーション設定
     migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-    migrationsRun: true, // 起動時にマイグレーションを自動実行
+    // 本番環境では手動でマイグレーション実行（運用リスク軽減のため）
+    // 開発・テスト環境では起動時に自動実行（開発効率向上のため）
+    migrationsRun: !isProduction,
     // 開発環境・テスト環境でクエリログを出力（エラーデバッグ用）
     logging: !isProduction || isTest,
     charset: 'utf8mb4',
