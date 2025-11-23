@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  CreateDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
 import { CategoryType } from '@account-book/types';
 
 /**
@@ -39,7 +33,7 @@ export class TransactionCategoryChangeHistoryOrmEntity {
   @Column({ type: 'enum', enum: CategoryType })
   newCategoryType!: CategoryType;
 
-  @CreateDateColumn()
+  @Column()
   changedAt!: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

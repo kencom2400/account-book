@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Transaction, CategoryType, Category } from '@account-book/types';
 import { formatCurrency } from '@account-book/utils';
 import { updateTransactionCategory } from '@/lib/api/transactions';
-import { getCategories } from '@/lib/api/categories';
+import { getCategories, CategoryNode } from '@/lib/api/categories';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -32,6 +32,10 @@ export function TransactionList({
         // ツリー構造の場合はフラット化、配列の場合はそのまま使用
         if (Array.isArray(data)) {
           setCategories(data as Category[]);
+        } else {
+          // CategoryNode[]の場合はフラット化
+          const flatCategories = flattenCategoryTree(data as CategoryNode[]);
+          setCategories(flatCategories);
         }
       } catch (err) {
         console.error('カテゴリの取得に失敗しました:', err);
@@ -39,6 +43,19 @@ export function TransactionList({
     };
     void fetchCategories();
   }, []);
+
+  // カテゴリツリーをフラットな配列に変換
+  const flattenCategoryTree = (nodes: CategoryNode[]): Category[] => {
+    const result: Category[] = [];
+    const flatten = (node: CategoryNode): void => {
+      result.push(node.category);
+      if (node.children && node.children.length > 0) {
+        node.children.forEach(flatten);
+      }
+    };
+    nodes.forEach(flatten);
+    return result;
+  };
 
   const getCategoryTypeColor = (type: CategoryType): string => {
     switch (type) {

@@ -89,6 +89,7 @@ describe('UpdateTransactionCategoryUseCase', () => {
       });
 
       expect(mockRepository.findById).toHaveBeenCalledWith('trans-001');
+      expect(mockHistoryRepository.create).toHaveBeenCalled();
       expect(mockRepository.update).toHaveBeenCalled();
       expect(result.category.id).toBe('cat-002');
       expect(result.category.name).toBe('交通費');

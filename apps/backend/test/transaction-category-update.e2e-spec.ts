@@ -25,6 +25,14 @@ describe('Transaction Category Update (e2e)', () => {
     await app.init();
   });
 
+  afterEach(async () => {
+    // 各テストで作成したトランザクションと変更履歴をクリーンアップ
+    // TODO: 実際のデータベースクリーンアップ処理を実装
+    // - トランザクションの削除
+    // - 変更履歴の削除
+    // 現時点では、テストごとにユニークなIDを使用することで回避
+  });
+
   afterAll(async () => {
     await app.close();
   });

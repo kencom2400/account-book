@@ -5,8 +5,12 @@ import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.re
 import type { ITransactionCategoryChangeHistoryRepository } from '../../domain/repositories/transaction-category-change-history.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from '../../domain/repositories/transaction-category-change-history.repository.interface';
 import { TransactionCategoryChangeHistoryEntity } from '../../domain/entities/transaction-category-change-history.entity';
+import { TransactionCategoryChangeHistoryOrmEntity } from '../../infrastructure/entities/transaction-category-change-history.orm-entity';
+import { TransactionOrmEntity } from '../../infrastructure/entities/transaction.orm-entity';
 import { CategoryType } from '@account-book/types';
 import { v4 as uuidv4 } from 'uuid';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 export interface UpdateTransactionCategoryDto {
   transactionId: string;
@@ -26,6 +30,8 @@ export class UpdateTransactionCategoryUseCase {
   private readonly logger = new Logger(UpdateTransactionCategoryUseCase.name);
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
     @Inject(TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY)
@@ -33,6 +39,7 @@ export class UpdateTransactionCategoryUseCase {
   ) {}
 
   async execute(dto: UpdateTransactionCategoryDto): Promise<TransactionEntity> {
+    // トランザクション外で取引を取得
     const transaction = await this.transactionRepository.findById(
       dto.transactionId,
     );
@@ -46,20 +53,59 @@ export class UpdateTransactionCategoryUseCase {
     const oldCategory = transaction.category;
     const updatedTransaction = transaction.updateCategory(dto.category);
 
-    // 変更履歴を記録
-    const history = new TransactionCategoryChangeHistoryEntity(
-      uuidv4(),
-      transaction.id,
-      oldCategory,
-      dto.category,
-      new Date(),
-    );
+    // データベーストランザクションを使用して、
+    // 変更履歴の作成と取引の更新をアトミックに実行
+    return await this.dataSource.transaction(async (entityManager) => {
+      // 変更履歴を記録
+      const history = new TransactionCategoryChangeHistoryEntity(
+        uuidv4(),
+        transaction.id,
+        oldCategory,
+        dto.category,
+        new Date(),
+      );
 
-    await this.historyRepository.create(history);
-    this.logger.log(
-      `カテゴリ変更履歴を記録: ${history.getChangeDescription()}`,
-    );
+      // トランザクション内で変更履歴を保存
+      const historyRepo = entityManager.getRepository(
+        TransactionCategoryChangeHistoryOrmEntity,
+      );
+      await historyRepo.save({
+        id: history.id,
+        transactionId: history.transactionId,
+        oldCategoryId: history.oldCategory.id,
+        oldCategoryName: history.oldCategory.name,
+        oldCategoryType: history.oldCategory.type,
+        newCategoryId: history.newCategory.id,
+        newCategoryName: history.newCategory.name,
+        newCategoryType: history.newCategory.type,
+        changedAt: history.changedAt,
+        changedBy: history.changedBy,
+      });
 
-    return await this.transactionRepository.update(updatedTransaction);
+      this.logger.log(
+        `カテゴリ変更履歴を記録: ${history.getChangeDescription()}`,
+      );
+
+      // 取引を更新
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      await transactionRepo.save({
+        id: updatedTransaction.id,
+        date: updatedTransaction.date,
+        amount: updatedTransaction.amount,
+        categoryId: updatedTransaction.category.id,
+        categoryName: updatedTransaction.category.name,
+        categoryType: updatedTransaction.category.type,
+        description: updatedTransaction.description,
+        institutionId: updatedTransaction.institutionId,
+        accountId: updatedTransaction.accountId,
+        status: updatedTransaction.status,
+        isReconciled: updatedTransaction.isReconciled,
+        relatedTransactionId: updatedTransaction.relatedTransactionId,
+        createdAt: updatedTransaction.createdAt,
+        updatedAt: new Date(),
+      });
+
+      return updatedTransaction;
+    });
   }
 }

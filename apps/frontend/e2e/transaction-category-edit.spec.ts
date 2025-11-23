@@ -50,15 +50,10 @@ test.describe('取引カテゴリ編集機能', () => {
       if (newOption) {
         await select.selectOption(newOption);
 
-        // 更新が完了するまで待つ
-        await page.waitForTimeout(1000);
-
-        // カテゴリが変更されたことを確認
-        const updatedCategory = await page
-          .locator('tbody tr:first-child button')
-          .first()
-          .textContent();
-        expect(updatedCategory).not.toBe(originalCategory);
+        // カテゴリが変更されたことを確認（元のカテゴリ名とは異なることを確認）
+        await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText(
+          originalCategory || ''
+        );
       }
     }
   });
