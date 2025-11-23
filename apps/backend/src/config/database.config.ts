@@ -22,9 +22,14 @@ export const getDatabaseConfig = (
     type: 'mysql',
     ...connectionOptions,
     entities: [__dirname + '/../**/*.orm-entity{.ts,.js}'],
-    // 本番環境では synchronize を無効化（マイグレーションを使用）
-    // テスト環境ではテーブル自動作成のため synchronize を有効化
-    synchronize: !isProduction,
+    // synchronize を完全に無効化（マイグレーション管理に移行）
+    // 理由: 外部キー制約を含む複雑なスキーマでは、
+    // synchronize による自動スキーマ同期で削除順序の問題が発生する
+    // （Issue #261: TypeORMマイグレーション外部キー制約のインデックス削除エラー）
+    synchronize: false,
+    // マイグレーション設定
+    migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+    migrationsRun: true, // 起動時にマイグレーションを自動実行
     // 開発環境・テスト環境でクエリログを出力（エラーデバッグ用）
     logging: !isProduction || isTest,
     charset: 'utf8mb4',
