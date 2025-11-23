@@ -222,9 +222,115 @@ if (query.latestOnly) {
 
 ## 3. アーキテクチャとモジュール設計
 
+### 3-1. データベーストランザクション管理
+
+#### ❌ 避けるべきパターン: 複数操作の非アトミック実行
+
+```typescript
+// ❌ 悪い例: 変更履歴と取引更新が別々の操作
+async execute(dto: UpdateDto): Promise<Result> {
+  await this.historyRepository.create(history);  // 1つ目の操作
+  return await this.transactionRepository.update(transaction);  // 2つ目の操作
+}
+```
+
+**問題**:
+
+- 1つ目の操作が成功しても、2つ目が失敗するとデータ不整合が発生
+- 履歴だけ記録されて、実際の更新が失敗する可能性
+- ロールバックが困難
+
+#### ✅ 正しいパターン: トランザクションでアトミックに実行
+
+```typescript
+// ✅ 良い例: データベーストランザクションで複数操作を1つに
+@Injectable()
+export class UpdateTransactionCategoryUseCase {
+  constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ITransactionRepository,
+    @Inject(HISTORY_REPOSITORY)
+    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
+  ) {}
+
+  async execute(dto: UpdateDto): Promise<Result> {
+    // トランザクション外で検証を実行
+    const transaction = await this.transactionRepository.findById(dto.id);
+    if (!transaction) {
+      throw new NotFoundException(`Transaction not found`);
+    }
+
+    // データベーストランザクションで複数操作をアトミックに実行
+    return await this.dataSource.transaction(async (entityManager) => {
+      // 変更履歴を記録
+      const historyRepo = entityManager.getRepository(HistoryOrmEntity);
+      await historyRepo.save({ ... });
+
+      // 取引を更新
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      await transactionRepo.save({ ... });
+
+      return updatedTransaction;
+    });
+  }
+}
+```
+
+**重要なポイント**:
+
+1. **複数のデータベース操作が関連する場合は必ずトランザクションを使用**
+2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
+3. **エンティティマネージャー経由でリポジトリにアクセス**
+4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+
+#### TypeORMのデコレータの適切な使用
+
+```typescript
+// ❌ 避けるべきパターン
+export class HistoryOrmEntity {
+  @CreateDateColumn() // データベースが自動設定するはず
+  changedAt!: Date;
+}
+
+// アプリケーション層で日時を設定
+const history = new History(
+  id,
+  transactionId,
+  oldCategory,
+  newCategory,
+  new Date() // ← アプリで設定している！
+);
+```
+
+**問題**: `@CreateDateColumn`はデータベースが自動的に日時を設定するためのもの。アプリケーション側で日時を設定する場合は矛盾が生じる。
+
+```typescript
+// ✅ 正しいパターン
+export class HistoryOrmEntity {
+  @Column() // 通常のカラムとして定義
+  changedAt!: Date;
+}
+
+// アプリケーション層で明示的に日時を設定
+const history = new History(
+  id,
+  transactionId,
+  oldCategory,
+  newCategory,
+  new Date() // アプリで制御
+);
+```
+
+**原則**:
+
+- **`@CreateDateColumn` / `@UpdateDateColumn`**: データベースに日時管理を任せる場合
+- **`@Column()`**: アプリケーションで日時を制御する場合
+
 ### ❌ 避けるべきパターン
 
-#### 3-1. コントローラーから他モジュールのリポジトリへの直接依存
+#### 3-2. コントローラーから他モジュールのリポジトリへの直接依存
 
 ```typescript
 // ❌ コントローラーが複数モジュールのリポジトリに依存
@@ -584,6 +690,84 @@ afterEach(() => {
 - **外部サービスのモック**: API呼び出し、データベースアクセスなど
 - **日付・時刻のモック**: `Date.now()`、`new Date()`など
 - **ランダム値のモック**: `Math.random()`など
+
+### 4-7. E2Eテストのベストプラクティス
+
+#### ✅ テストデータのクリーンアップ
+
+```typescript
+// ✅ 良い例: テスト後にデータをクリーンアップ
+describe('Transaction API (e2e)', () => {
+  let app: INestApplication;
+
+  afterEach(async () => {
+    // 各テストで作成したデータをクリーンアップ
+    await connection.manager.query('DELETE FROM transactions;');
+    await connection.manager.query('DELETE FROM categories;');
+  });
+
+  afterAll(async () => {
+    await connection.close();
+    await app.close();
+  });
+});
+```
+
+**重要なポイント**:
+
+- **テスト間の独立性を保つ**: 前のテストのデータが次のテストに影響しない
+- **`afterEach`でクリーンアップ**: 各テスト後にデータを削除
+- **`afterAll`でリソース解放**: データベース接続やアプリケーションをクローズ
+
+#### ❌ 避けるべきパターン: `waitForTimeout`の使用
+
+```typescript
+// ❌ 悪い例: 固定時間待機
+await select.selectOption(newOption);
+await page.waitForTimeout(1000); // 不安定・遅い
+const updatedCategory = await page.locator('...').textContent();
+```
+
+**問題**:
+
+- テストが不安定になる（環境によって必要な時間が異なる）
+- 不必要に遅くなる（実際には500msで完了するのに1000ms待つ）
+
+```typescript
+// ✅ 良い例: UI状態の確認で待機
+await select.selectOption(newOption);
+// カテゴリが変更されたことを確認（元のカテゴリ名とは異なる）
+await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText(
+  originalCategory || ''
+);
+```
+
+**原則**:
+
+- **UI状態の確認で待機**: `expect(...).toBeVisible()`、`expect(...).toHaveText()`など
+- **固定時間待機は最終手段**: どうしても必要な場合のみ使用
+
+### 4-8. テストでのアサーション追加
+
+#### ✅ 重要な副作用を検証する
+
+```typescript
+// ✅ 良い例: 変更履歴が作成されることを検証
+it('取引のカテゴリを正しく更新できる', async () => {
+  const result = await useCase.execute({ transactionId, category: newCategory });
+
+  expect(mockRepository.findById).toHaveBeenCalledWith(transactionId);
+  expect(mockHistoryRepository.create).toHaveBeenCalled(); // 履歴作成を検証
+  expect(mockRepository.update).toHaveBeenCalled();
+  expect(result.category).toEqual(newCategory);
+});
+```
+
+**重要なポイント**:
+
+- **重要な副作用は必ず検証**: 変更履歴の記録、通知の送信など
+- **モックの呼び出しを確認**: `toHaveBeenCalled()`, `toHaveBeenCalledWith()`
+- **ビジネスロジックを網羅**: 正常系だけでなく、重要な処理も確認
 
 #### 参考
 
