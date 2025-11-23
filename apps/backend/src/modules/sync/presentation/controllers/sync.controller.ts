@@ -163,6 +163,7 @@ export class SyncController {
       newRecords: history.newRecords,
       duplicateRecords: history.duplicateRecords,
       errorMessage: history.errorMessage,
+      retryCount: history.retryCount,
     }));
 
     return {

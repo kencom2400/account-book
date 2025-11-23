@@ -15,6 +15,7 @@ export interface SyncHistoryDto {
   newRecords: number;
   duplicateRecords: number;
   errorMessage: string | null;
+  retryCount: number;
 }
 
 /**

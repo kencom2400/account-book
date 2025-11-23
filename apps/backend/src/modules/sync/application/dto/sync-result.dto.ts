@@ -18,6 +18,7 @@ export interface SyncResult {
   newRecords: number;
   duplicateRecords: number;
   errorMessage: string | null;
+  retryCount: number; // リトライ回数
   duration: number;
   startedAt: Date;
   completedAt: Date | null;
