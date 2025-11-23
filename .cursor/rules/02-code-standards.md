@@ -1151,23 +1151,74 @@ export interface ConnectionStatusDto {
 
 **実装時の注意点**:
 
-Domain層でEnum型を使用している場合、Application層で型アサーションを使用して変換：
+Domain層でEnum型を使用している場合、Application層で**型ガード関数**を使用して安全に変換：
 
 ```typescript
+// Domain層: 共通の型定義ファイル (connection.types.ts)
+export type ConnectionStatusType = 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
+
+// 型ガード関数
+export function isPublicConnectionStatus(
+  status: string,
+): status is ConnectionStatusType {
+  return ['CONNECTED', 'DISCONNECTED', 'NEED_REAUTH'].includes(status);
+}
+
 // Domain層: Enum型
 export enum ConnectionStatus {
   CONNECTED = 'CONNECTED',
   DISCONNECTED = 'DISCONNECTED',
   NEED_REAUTH = 'NEED_REAUTH',
+  CHECKING = 'CHECKING',  // 内部状態
 }
 
-// Application層: Enum → 文字列リテラルユニオン型
+// Application層: 型ガードを使用した安全な変換
 private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+  // 型ガードで安全に型変換
+  if (!isPublicConnectionStatus(history.status)) {
+    this.logger.warn(
+      `内部ステータス '${history.status}' は公開APIでは使用できません。DISCONNECTEDとして扱います。`,
+    );
+    // 内部ステータスはDISCONNECTEDとして扱う
+    return {
+      status: 'DISCONNECTED',
+      // ...
+    };
+  }
+
   return {
-    status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
+    status: history.status, // 型ガードにより安全に代入可能
     // ...
   };
 }
+```
+
+**❌ 避けるべきパターン（型アサーションの危険性）**:
+
+```typescript
+// ❌ 型アサーション (as) は型安全性を損なう
+private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+  return {
+    status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
+    // history.statusが'CHECKING'の場合、型チェックをすり抜けてしまう
+  };
+}
+```
+
+**型アサーションのリスク**:
+
+- コンパイラはエラーを検知できない
+- ランタイムで予期しない値がクライアントに渡る可能性
+- Enumに新しい値が追加された際に気づかない
+- 永続化されたデータに内部状態が含まれる場合、検出できない
+
+**型ガードのメリット**:
+
+- 実行時に値を検証し、不正な値を検出
+- 型安全性を保ちながら、フォールバック処理が可能
+- コードの意図が明確になる
+- デバッグ時にログで問題を追跡できる
+
 ```
 
 **参考**: Issue #265 / PR #274 - Geminiレビュー指摘から学習
@@ -1177,12 +1228,14 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 ## 10. push前の必須チェック
 
 ```
+
 ╔═══════════════════════════════════════════════════════════════╗
-║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
-║                                                               ║
-║  詳細は `.cursor/rules/03-git-workflow.md` を参照            ║
+║ 🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨 ║
+║ ║
+║ 詳細は `.cursor/rules/03-git-workflow.md` を参照 ║
 ╚═══════════════════════════════════════════════════════════════╝
-```
+
+````
 
 **必須4ステップ**:
 
@@ -1191,7 +1244,7 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 2. pnpm build                      # ビルド確認 ⭐ 重要
 3. ./scripts/test/test.sh all     # ユニットテスト
 4. ./scripts/test/test-e2e.sh frontend # E2Eテスト
-```
+````
 
 **実行時間**: 約4-6分
 

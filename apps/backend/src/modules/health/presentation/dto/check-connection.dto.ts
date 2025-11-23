@@ -1,4 +1,8 @@
 import { IsOptional, IsString } from 'class-validator';
+import type {
+  ConnectionStatusType,
+  InstitutionType,
+} from '../../domain/types/connection.types';
 
 /**
  * 接続チェックリクエストDTO
@@ -15,8 +19,8 @@ export class CheckConnectionRequestDto {
 export interface ConnectionStatusDto {
   institutionId: string;
   institutionName: string;
-  institutionType: 'bank' | 'credit-card' | 'securities';
-  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
+  institutionType: InstitutionType;
+  status: ConnectionStatusType;
   checkedAt: string;
   responseTime: number;
   errorMessage?: string;
