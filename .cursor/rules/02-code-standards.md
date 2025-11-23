@@ -481,6 +481,62 @@ describe('MyService', () => {
 });
 ```
 
+#### 🎯 重要な改善点（Geminiレビュー指摘）
+
+##### 1. `jest.clearAllMocks()`の配置
+
+**✅ 推奨**: `afterEach`に配置してクリーンアップ処理をまとめる
+
+```typescript
+// ✅ 良い例: クリーンアップがまとまっている
+beforeEach(() => {
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  jest.clearAllMocks();        // モックの呼び出し履歴をクリア
+  consoleErrorSpy.mockRestore(); // spyを復元
+});
+
+// ❌ 避けるべき: beforeEachにclearAllMocksがある
+beforeEach(() => {
+  jest.clearAllMocks(); // ここにあると、セットアップとクリーンアップが分散
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+```
+
+**理由:**
+- クリーンアップ処理が一箇所にまとまり可読性向上
+- テストライフサイクルの意図が明確
+- 今回確立したベストプラクティスとの一貫性
+
+##### 2. mockImplementationで複数引数を受け取る
+
+**✅ 推奨**: `...args`を使って全引数を受け取る
+
+```typescript
+// ✅ 良い例: 全引数を受け取り、すべてをリダイレクト
+consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
+    return; // 特定のエラーのみ抑制
+  }
+  console.warn(...args); // すべての引数を渡す
+});
+
+// ❌ 避けるべき: 第一引数のみを受け取る
+consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
+  if (typeof message === 'string' && message.includes('not wrapped in act')) {
+    return;
+  }
+  console.warn(message); // 第一引数しか渡されない
+});
+```
+
+**理由:**
+- `console.error`は複数の引数を取ることがある
+- すべての引数を保持しないと情報が欠落する
+- より堅牢なエラーハンドリング
+
 #### ❌ 避けるべきパターン
 
 ```typescript
