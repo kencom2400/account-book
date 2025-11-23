@@ -1219,7 +1219,184 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 - コードの意図が明確になる
 - デバッグ時にログで問題を追跡できる
 
+````
+
+#### 型エイリアスによる型定義の一元管理
+
+**原則**: 文字列リテラルユニオン型は型エイリアスとして定義し、一元管理する
+
+**❌ 避けるべきパターン**:
+
+```typescript
+// ファイル1: check-connection.dto.ts
+export interface ConnectionStatusDto {
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // 型を直接記述
+}
+
+// ファイル2: get-connection-history.dto.ts
+export interface ConnectionHistoryDto {
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // 同じ型を重複定義
+}
+
+// ファイル3: connection-status-result.type.ts
+export interface ConnectionStatusResult {
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // 同じ型を重複定義
+}
+````
+
+**問題点**:
+
+- 型定義が分散し、変更時に複数箇所を修正する必要
+- タイポのリスク
+- 一貫性が保てない
+
+**✅ 推奨パターン**:
+
+```typescript
+// connection.types.ts（共通定義ファイル）
+export type ConnectionStatusType = 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
+export type InstitutionType = 'bank' | 'credit-card' | 'securities';
+
+// check-connection.dto.ts
+import type { ConnectionStatusType, InstitutionType } from '../../domain/types/connection.types';
+
+export interface ConnectionStatusDto {
+  status: ConnectionStatusType; // 型エイリアスを使用
+  institutionType: InstitutionType;
+}
+
+// get-connection-history.dto.ts
+import type { ConnectionStatusType, InstitutionType } from '../../domain/types/connection.types';
+
+export interface ConnectionHistoryDto {
+  status: ConnectionStatusType; // 型エイリアスを使用
+  institutionType: InstitutionType;
+}
 ```
+
+**メリット**:
+
+1. **型定義の変更が1箇所で済む**
+   - 値を追加・削除する際、1ファイルのみ修正
+   - 変更の影響範囲が明確
+
+2. **タイポの防止**
+   - 型エイリアスを使用するため、スペルミスが起きない
+
+3. **一貫性の保証**
+   - すべての箇所で同じ型定義を使用
+   - Domain層からPresentation層まで統一
+
+4. **保守性の向上**
+   - 型の意味が名前から明確
+   - リファクタリングが容易
+
+**配置場所**:
+
+- Domain層の `types/` ディレクトリ
+- 例: `modules/health/domain/types/connection.types.ts`
+
+#### 内部状態と公開状態の分離
+
+**原則**: Domain層の内部状態と、公開APIで使用する状態を明確に分離する
+
+**背景**:
+
+- Domain層では処理中の状態（`CHECKING`, `PROCESSING`等）を含む完全なEnum
+- 公開APIでは確定した状態のみを返す
+- この差分を安全に変換する必要がある
+
+**実装パターン**:
+
+```typescript
+// Domain層: 完全な状態を持つEnum
+export enum ConnectionStatus {
+  CONNECTED = 'CONNECTED',
+  DISCONNECTED = 'DISCONNECTED',
+  NEED_REAUTH = 'NEED_REAUTH',
+  CHECKING = 'CHECKING', // ⚠️ 内部状態（公開しない）
+}
+
+// 公開用の型定義（内部状態を含まない）
+export type ConnectionStatusType = 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
+
+// 型ガード関数で安全に変換
+export function isPublicConnectionStatus(
+  status: string,
+): status is ConnectionStatusType {
+  return ['CONNECTED', 'DISCONNECTED', 'NEED_REAUTH'].includes(status);
+}
+
+// Application層での使用
+private toResult(entity: SomeEntity): SomeResult {
+  if (!isPublicConnectionStatus(entity.status)) {
+    // 内部状態を適切なフォールバック値に変換
+    this.logger.warn(`内部ステータス '${entity.status}' を公開値に変換します`);
+    return { status: 'DISCONNECTED', ... };
+  }
+  return { status: entity.status, ... };
+}
+```
+
+**なぜ重要か**:
+
+1. **意図しない状態の露出を防止**
+   - 処理中の状態がクライアントに渡らない
+   - APIの安定性が向上
+
+2. **永続化データの問題を検出**
+   - 予期せぬプロセス中断で内部状態のまま保存されたデータを検出
+   - ログで追跡可能
+
+3. **将来の拡張性**
+   - 内部状態の追加が公開APIに影響しない
+   - Domain層とPresentation層の疎結合
+
+#### 既存コードへの適用（リファクタリング指針）
+
+**原則**: 新規実装時は最初から、既存コードは段階的に改善
+
+**リファクタリングの優先順位**:
+
+1. **高優先度**（すぐに対応）
+   - `as`による型アサーションを使用している箇所
+   - `string`型で本来は限定的な値しか取らないプロパティ
+   - 公開API（外部に影響）の型定義
+
+2. **中優先度**（次のタスクで対応）
+   - 内部APIの型定義
+   - 重複している型定義
+
+3. **低優先度**（機会があれば対応）
+   - 古いコードで動作が安定している箇所
+
+**リファクタリング手順**:
+
+```bash
+# 1. 型アサーション使用箇所を検索
+grep -r " as " apps/backend/src/
+
+# 2. string型で限定値を持つプロパティを検索
+grep -r ": string" apps/backend/src/modules/*/presentation/dto/
+
+# 3. 優先順位をつけて段階的に対応
+# - まず公開APIのDTO
+# - 次にDomain層の型定義
+# - 最後にApplication層の変換処理
+```
+
+**注意点**:
+
+- **一度に大量の変更をしない**
+  - 1つのモジュールずつ対応
+  - テストを確実に実行
+- **既存の動作を変えない**
+  - 型定義の厳密化は行うが、実行時の振る舞いは維持
+  - ログ追加は良いが、エラーハンドリングの変更は慎重に
+
+- **レビューを活用**
+  - Geminiのコードレビューで指摘された箇所を優先
+  - ルールファイルに学びを追加
 
 **参考**: Issue #265 / PR #274 - Geminiレビュー指摘から学習
 
@@ -1235,7 +1412,7 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 ║ 詳細は `.cursor/rules/03-git-workflow.md` を参照 ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-````
+```
 
 **必須4ステップ**:
 
@@ -1244,7 +1421,7 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 2. pnpm build                      # ビルド確認 ⭐ 重要
 3. ./scripts/test/test.sh all     # ユニットテスト
 4. ./scripts/test/test-e2e.sh frontend # E2Eテスト
-````
+```
 
 **実行時間**: 約4-6分
 
@@ -1261,12 +1438,30 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 
 ### 最優先事項
 
-1. **型安全性**: any型・型キャスト禁止
+1. **型安全性**: any型・危険な型キャスト禁止、型ガード関数を使用
 2. **データ整合性**: IDベースマッピング使用
 3. **アーキテクチャ**: 関心の分離、適切なモジュール設計
 4. **テスト**: 全ての新規実装にテストを作成
-5. **DTO設計**: リクエストはclass、レスポンスはinterface
+5. **DTO設計**: リクエストはclass、レスポンスはinterface、型エイリアスで一元管理
 6. **push前チェック**: Lint → **Build** → Unit Test → E2E Test（4ステップ必須）
+
+### 型安全性のベストプラクティス（Geminiレビューから学習）
+
+1. **型定義の厳密化**
+   - `string`ではなく文字列リテラルユニオン型を使用
+   - 型エイリアスで一元管理
+
+2. **型アサーション(`as`)を避ける**
+   - 型ガード関数で実行時検証
+   - フォールバック処理で堅牢性を確保
+
+3. **内部状態と公開状態の分離**
+   - Domain層の完全な状態と公開APIの状態を明確に分離
+   - 型ガード関数で安全に変換
+
+4. **既存コードの段階的改善**
+   - 型アサーション使用箇所を優先的にリファクタリング
+   - 公開APIから順に対応
 
 ### push前の4ステップチェック（厳守）
 
@@ -1284,6 +1479,7 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 - 本番環境で問題が発生した場合
 - チーム内でベストプラクティスが見つかった場合
 - **CIで失敗した場合、原因をルールに追加**
+- **型安全性に関する新しい学びがあった場合、必ず記録**
 
 **常にこのチェックリストを進化させ、コード品質を向上させてください。**
 
