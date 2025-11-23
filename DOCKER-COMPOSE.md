@@ -347,6 +347,106 @@ workers: process.env.CI ? 1 : undefined,
 - ローカル環境では並列実行可能（同じ環境内で複数のテストケースを実行）
 - ただし、複数の環境設定ファイルを同時に使用することは不可
 
+## 環境分離の安全性機構
+
+このプロジェクトでは、意図しない環境への接続を防ぐため、以下の多層防御を実装しています。
+
+### 【第1層】アプリケーション起動時の検証
+
+**実装場所**: `apps/backend/src/config/database-common.config.ts`
+
+**機能**:
+
+- アプリケーション起動時にNODE_ENVとMYSQL_DATABASEの整合性をチェック
+- 不一致の場合はエラーを出力してアプリケーションを停止
+- ポート不整合時は警告を表示
+- 接続先のDB情報を視覚的に表示
+
+**検証例**:
+
+```typescript
+// 正常: development環境でaccount_book_devに接続
+NODE_ENV=development MYSQL_DATABASE=account_book_dev
+→ ✅ 起動OK
+
+// エラー: development環境なのにaccount_book_e2eに接続しようとしている
+NODE_ENV=development MYSQL_DATABASE=account_book_e2e
+→ ❌ エラーで停止
+
+// 起動時の表示例:
+═════════════════════════════════════════════════
+🔍 データベース接続環境
+═════════════════════════════════════════════════
+   環境: development
+   データベース: account_book_dev
+   ホスト: localhost
+   ポート: 3306
+═════════════════════════════════════════════════
+```
+
+### 【第4層】Docker Composeでの環境変数固定
+
+**実装場所**: `docker-compose.{dev,test,e2e}.yml`
+
+**機能**:
+
+- 各環境のDB名を固定値で設定
+- .envファイルからの上書きを防止
+- コンテナ内では常に正しい環境設定を使用
+
+**設定例**:
+
+```yaml
+# docker-compose.e2e.yml
+services:
+  backend:
+    environment:
+      # 以下の値は固定（.envから上書き不可）
+      - NODE_ENV=test
+      - MYSQL_DATABASE=account_book_e2e
+      - MYSQL_USER=account_book_e2e_user
+      - MYSQL_PASSWORD=e2e_password
+```
+
+### 【スクリプト層】環境別の動作制御
+
+**実装場所**: `scripts/dev/start-database.sh`
+
+**機能**:
+
+- dev環境: 既存コンテナを再利用（開発効率優先）
+- test/e2e環境: 常にクリーンな状態から開始（冪等性確保）
+- コンテナの存在と状態を自動チェック
+
+**動作例**:
+
+```bash
+# dev環境: 既存コンテナがあれば再利用
+./start-database.sh dev
+→ ✅ 既存のコンテナが起動中です: account-book-mysql-dev
+   💡 開発環境では既存のコンテナを再利用します
+
+# e2e環境: 既存コンテナは削除して再作成
+./start-database.sh e2e
+→ ⚠️  テスト環境は冪等性確保のため、常にクリーンな状態から開始します
+   既存のコンテナを停止・削除して再作成します...
+```
+
+### 安全性のまとめ
+
+| レイヤー     | 場所              | 保護内容               | エラー時の動作 |
+| ------------ | ----------------- | ---------------------- | -------------- |
+| 第1層        | アプリケーション  | NODE_ENVとDB名の整合性 | 起動停止       |
+| 第4層        | Docker Compose    | 環境変数の固定         | 上書き不可     |
+| スクリプト層 | start-database.sh | 環境別の再作成制御     | 自動処理       |
+
+これらの多層防御により、以下のような事故を防止します：
+
+- ❌ E2E環境が起動中に`pnpm dev`を実行 → 第1層で検出・停止
+- ❌ 環境変数の設定ミス → 第1層で検出・停止
+- ❌ Docker環境での誤設定 → 第4層で防止
+- ❌ テスト環境のデータ汚染 → スクリプト層で防止（常に再作成）
+
 ```bash
 docker-compose -f docker-compose.dev.yml stop
 ```
