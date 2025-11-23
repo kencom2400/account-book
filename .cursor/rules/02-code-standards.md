@@ -494,7 +494,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();        // モックの呼び出し履歴をクリア
+  jest.clearAllMocks(); // モックの呼び出し履歴をクリア
   consoleErrorSpy.mockRestore(); // spyを復元
 });
 
@@ -506,6 +506,7 @@ beforeEach(() => {
 ```
 
 **理由:**
+
 - クリーンアップ処理が一箇所にまとまり可読性向上
 - テストライフサイクルの意図が明確
 - 今回確立したベストプラクティスとの一貫性
@@ -533,6 +534,7 @@ consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
 ```
 
 **理由:**
+
 - `console.error`は複数の引数を取ることがある
 - すべての引数を保持しないと情報が欠落する
 - より堅牢なエラーハンドリング
@@ -1110,6 +1112,65 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 | レスポンスDTO | `interface` | 型定義のみ         |
 
 **参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
+
+#### レスポンスDTOでの型の厳密化
+
+**原則**: レスポンスDTOでは、可能な限り厳密な型を使用する
+
+**❌ 避けるべきパターン**:
+
+```typescript
+export interface ConnectionStatusDto {
+  status: string; // ❌ 曖昧すぎる
+  institutionType: string; // ❌ 曖昧すぎる
+}
+```
+
+**✅ 推奨パターン**:
+
+```typescript
+export interface ConnectionStatusDto {
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // ✅ 厳密な型
+  institutionType: 'bank' | 'credit-card' | 'securities'; // ✅ 厳密な型
+}
+```
+
+**改善効果**:
+
+1. **コンパイル時の型チェック強化**
+   - 不正な値（例: `'PENDING'`, `'ERROR'`）をコンパイル時に検出
+   - タイポやミスを防止
+
+2. **モジュール内での型定義の一貫性向上**
+   - Domain層のEnum型と整合性を保証
+   - DTO層、Domain層、Application層で同じ値を使用
+
+3. **APIドキュメントの自動生成**
+   - 型定義から可能な値が明確になる
+   - OpenAPI/Swaggerで正確な型情報が提供される
+
+**実装時の注意点**:
+
+Domain層でEnum型を使用している場合、Application層で型アサーションを使用して変換：
+
+```typescript
+// Domain層: Enum型
+export enum ConnectionStatus {
+  CONNECTED = 'CONNECTED',
+  DISCONNECTED = 'DISCONNECTED',
+  NEED_REAUTH = 'NEED_REAUTH',
+}
+
+// Application層: Enum → 文字列リテラルユニオン型
+private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+  return {
+    status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
+    // ...
+  };
+}
+```
+
+**参考**: Issue #265 / PR #274 - Geminiレビュー指摘から学習
 
 ---
 
