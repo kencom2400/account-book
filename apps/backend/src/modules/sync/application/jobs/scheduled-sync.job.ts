@@ -219,7 +219,7 @@ export class ScheduledSyncJob {
   /**
    * 同期が実行中かどうか
    */
-  isRunning(): boolean {
+  isSyncRunning(): boolean {
     return this.isRunning;
   }
 

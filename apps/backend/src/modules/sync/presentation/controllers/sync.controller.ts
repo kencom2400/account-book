@@ -24,9 +24,9 @@ import {
   SyncStatusResponseDto,
   SyncHistoryResponseDto,
   CancelSyncResponseDto,
-  SyncScheduleResponseDto,
   SyncHistoryDto,
 } from '../dto/sync-response.dto';
+import type { SyncScheduleResponseDto } from '../dto/sync-response.dto';
 import { SyncStatus } from '../../domain/enums/sync-status.enum';
 
 /**

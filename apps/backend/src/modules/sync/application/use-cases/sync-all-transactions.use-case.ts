@@ -100,7 +100,7 @@ export class SyncAllTransactionsUseCase {
       );
       const targets: SyncTarget[] = [];
       for (const inst of institutions) {
-        if (inst !== null && inst.isConnected()) {
+        if (inst !== null && inst.isConnected) {
           targets.push({
             institutionId: inst.id,
             institutionName: inst.name,
