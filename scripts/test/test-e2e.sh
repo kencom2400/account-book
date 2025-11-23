@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# E2Eテスト実行スクリプト
+# E2Eテスト実行スクリプト（環境別対応）
+# 使用方法:
+#   ./test-e2e.sh [backend|frontend|all]  # デフォルトはall
+#   環境変数で環境指定: TEST_ENV=e2e ./test-e2e.sh
 
 set -e
 
@@ -20,13 +23,48 @@ else
   exit 1
 fi
 
+# テスト環境を指定（デフォルト: e2e）
+TEST_ENV="${TEST_ENV:-e2e}"
+
+# 環境に応じた設定
+case "$TEST_ENV" in
+  dev)
+    COMPOSE_FILE="docker-compose.dev.yml"
+    CONTAINER_NAME="account-book-mysql-dev"
+    BACKEND_PORT="${BACKEND_PORT_DEV:-3001}"
+    FRONTEND_PORT="${FRONTEND_PORT_DEV:-3000}"
+    ;;
+  test)
+    COMPOSE_FILE="docker-compose.test.yml"
+    CONTAINER_NAME="account-book-mysql-test"
+    BACKEND_PORT="${BACKEND_PORT_TEST:-3011}"
+    FRONTEND_PORT="${FRONTEND_PORT_TEST:-3010}"
+    ;;
+  e2e)
+    COMPOSE_FILE="docker-compose.e2e.yml"
+    CONTAINER_NAME="account-book-mysql-e2e"
+    BACKEND_PORT="${BACKEND_PORT_E2E:-3021}"
+    FRONTEND_PORT="${FRONTEND_PORT_E2E:-3020}"
+    ;;
+  *)
+    echo "❌ エラー: 不明な環境 '$TEST_ENV'"
+    echo "使用可能な環境: dev, test, e2e"
+    exit 1
+    ;;
+esac
+
+echo "ℹ️  テスト環境: $TEST_ENV"
+echo "   Backend Port: $BACKEND_PORT"
+echo "   Frontend Port: $FRONTEND_PORT"
+echo ""
+
 # MySQLコンテナの起動確認と自動起動
 echo "🔍 MySQLコンテナの起動状態を確認中..."
-MYSQL_CONTAINER=$(docker ps --filter "name=account-book-mysql" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
-if [ -z "$MYSQL_CONTAINER" ]; then
+MYSQL_RUNNING=$(docker ps --filter "name=$CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
+if [ -z "$MYSQL_RUNNING" ]; then
   echo "ℹ️  MySQLコンテナが起動していません。自動的に起動します..."
   echo ""
-  ./scripts/dev/start-database.sh
+  ./scripts/dev/start-database.sh "$TEST_ENV"
   echo ""
 fi
 echo "✅ MySQLコンテナが起動しています"
@@ -34,6 +72,11 @@ echo ""
 
 # 引数でテスト対象を指定
 TARGET=${1:-all}
+
+# 環境変数をエクスポート（テスト実行時に使用）
+export BACKEND_PORT
+export FRONTEND_PORT
+export TEST_ENV
 
 case $TARGET in
   backend)
@@ -72,5 +115,5 @@ case $TARGET in
 esac
 
 echo ""
-echo "✅ E2Eテスト完了"
+echo "✅ E2Eテスト完了（環境: $TEST_ENV）"
 
