@@ -1,6 +1,13 @@
 // E2Eテスト用の環境変数設定
 // テスト実行前に環境変数を設定する
 
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// apps/backend/.envファイルを明示的に読み込み
+const envPath = resolve(__dirname, '../.env');
+config({ path: envPath });
+
 // ENCRYPTION_KEYが設定されていない場合、テスト用のダミーキーを設定
 if (!process.env.ENCRYPTION_KEY) {
   // テスト用の32バイトのダミーキー（Base64エンコード）
@@ -26,12 +33,14 @@ if (!process.env.PORT) {
   process.env.PORT = '3001';
 }
 
-// MySQL Test Database設定
+// MySQL Test Database設定（TEST_ENV=e2eの場合は環境変数が優先される）
 if (!process.env.MYSQL_HOST) {
   process.env.MYSQL_HOST = '127.0.0.1';
 }
+// NOTE: MYSQL_PORTは環境変数が設定されている場合は上書きしない
+// TEST_ENV=e2eの場合は3326、通常のテストの場合は3316が環境変数で設定される
 if (!process.env.MYSQL_PORT) {
-  process.env.MYSQL_PORT = '3306';
+  process.env.MYSQL_PORT = '3316'; // デフォルトはテスト環境用（3316）
 }
 if (!process.env.MYSQL_USER) {
   process.env.MYSQL_USER = 'account_book_test_user';
