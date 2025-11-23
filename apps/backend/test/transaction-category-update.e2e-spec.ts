@@ -1,39 +1,42 @@
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { Test } from '@nestjs/testing';
 import { CategoryType, TransactionStatus } from '@account-book/types';
-import { TransactionModule } from '../src/modules/transaction/transaction.module';
-import { CategoryModule } from '../src/modules/category/category.module';
-import { ConfigModule } from '@nestjs/config';
+import { AppModule } from '../src/app.module';
+import { E2ETestDatabaseHelper } from './helpers/database-helper';
+import { createTestApp } from './helpers/test-setup';
 
 describe('Transaction Category Update (e2e)', () => {
   let app: INestApplication;
+  let dbHelper: E2ETestDatabaseHelper;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          envFilePath: '.env.test',
-        }),
-        TransactionModule,
-        CategoryModule,
-      ],
-    }).compile();
+    const moduleBuilder = Test.createTestingModule({
+      imports: [AppModule],
+    });
 
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp(moduleBuilder, {
+      enableValidationPipe: true,
+      enableHttpExceptionFilter: true,
+    });
+
+    // データベースヘルパーの初期化
+    dbHelper = new E2ETestDatabaseHelper(app);
+
+    // データベース接続確認
+    const isConnected: boolean = await dbHelper.checkConnection();
+    if (!isConnected) {
+      throw new Error('Database connection failed');
+    }
   });
 
   afterEach(async () => {
-    // 各テストで作成したトランザクションと変更履歴をクリーンアップ
-    // TODO: 実際のデータベースクリーンアップ処理を実装
-    // - トランザクションの削除
-    // - 変更履歴の削除
-    // 現時点では、テストごとにユニークなIDを使用することで回避
+    // 各テスト後にデータベースをクリーンアップ
+    await dbHelper.cleanDatabase();
   });
 
   afterAll(async () => {
+    await dbHelper.cleanup();
     await app.close();
   });
 
