@@ -222,9 +222,145 @@ if (query.latestOnly) {
 
 ## 3. アーキテクチャとモジュール設計
 
+### 3-1. データベーストランザクション管理
+
+#### ❌ 避けるべきパターン: 複数操作の非アトミック実行
+
+```typescript
+// ❌ 悪い例: 変更履歴と取引更新が別々の操作
+async execute(dto: UpdateDto): Promise<Result> {
+  await this.historyRepository.create(history);  // 1つ目の操作
+  return await this.transactionRepository.update(transaction);  // 2つ目の操作
+}
+```
+
+**問題**:
+
+- 1つ目の操作が成功しても、2つ目が失敗するとデータ不整合が発生
+- 履歴だけ記録されて、実際の更新が失敗する可能性
+- ロールバックが困難
+
+#### ✅ 正しいパターン: トランザクションでアトミックに実行
+
+```typescript
+// ✅ 良い例: データベーストランザクションで複数操作を1つに
+@Injectable()
+export class UpdateTransactionCategoryUseCase {
+  constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ITransactionRepository,
+    @Inject(HISTORY_REPOSITORY)
+    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
+  ) {}
+
+  async execute(dto: UpdateDto): Promise<Result> {
+    // トランザクション外で検証を実行
+    const transaction = await this.transactionRepository.findById(dto.id);
+    if (!transaction) {
+      throw new NotFoundException(`Transaction not found`);
+    }
+
+    // データベーストランザクションで複数操作をアトミックに実行
+    return await this.dataSource.transaction(async (entityManager) => {
+      // 変更履歴を記録
+      const historyRepo = entityManager.getRepository(HistoryOrmEntity);
+      await historyRepo.save({ ... });
+
+      // 取引を更新
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      await transactionRepo.save({ ... });
+
+      return updatedTransaction;
+    });
+  }
+}
+```
+
+**重要なポイント**:
+
+1. **複数のデータベース操作が関連する場合は必ずトランザクションを使用**
+2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
+3. **エンティティマネージャー経由でリポジトリにアクセス**
+4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+
+#### リポジトリパターンの活用とトランザクション管理
+
+**注意点**: トランザクション内でentityManagerを直接使用すると、リポジトリ層に集約すべきマッピングロジックがユースケース層に漏れ出てしまいます。
+
+**より良いアプローチ** (将来的な改善案):
+
+1. リポジトリメソッドがオプションで`EntityManager`を受け取れるようにする
+2. トランザクション内では、その`EntityManager`をリポジトリメソッドに渡す
+3. 永続化ロジックをリポジトリ層にカプセル化しつつ、アトミックな操作を保証
+
+```typescript
+// ✅ より良い設計 (将来的な改善案)
+export interface IRepository {
+  create(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
+  update(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
+}
+
+// ユースケースでの使用
+await this.dataSource.transaction(async (entityManager) => {
+  await this.historyRepository.create(history, entityManager);
+  return await this.transactionRepository.update(transaction, entityManager);
+});
+```
+
+**トレードオフ**:
+
+- 現状の実装（entityManager直接使用）でも原子性は保証される
+- リポジトリパターンの完全性を優先する場合は、上記の設計を検討
+- プロジェクトの段階や優先度に応じて判断する
+
+#### TypeORMのデコレータの適切な使用
+
+```typescript
+// ❌ 避けるべきパターン
+export class HistoryOrmEntity {
+  @CreateDateColumn() // データベースが自動設定するはず
+  changedAt!: Date;
+}
+
+// アプリケーション層で日時を設定
+const history = new History(
+  id,
+  transactionId,
+  oldCategory,
+  newCategory,
+  new Date() // ← アプリで設定している！
+);
+```
+
+**問題**: `@CreateDateColumn`はデータベースが自動的に日時を設定するためのもの。アプリケーション側で日時を設定する場合は矛盾が生じる。
+
+```typescript
+// ✅ 正しいパターン
+export class HistoryOrmEntity {
+  @Column() // 通常のカラムとして定義
+  changedAt!: Date;
+}
+
+// アプリケーション層で明示的に日時を設定
+const history = new History(
+  id,
+  transactionId,
+  oldCategory,
+  newCategory,
+  new Date() // アプリで制御
+);
+```
+
+**原則**:
+
+- **`@CreateDateColumn` / `@UpdateDateColumn`**: データベースに日時管理を任せる場合
+- **`@Column()`**: アプリケーションで日時を制御する場合
+
 ### ❌ 避けるべきパターン
 
-#### 3-1. コントローラーから他モジュールのリポジトリへの直接依存
+#### 3-2. コントローラーから他モジュールのリポジトリへの直接依存
 
 ```typescript
 // ❌ コントローラーが複数モジュールのリポジトリに依存
@@ -262,6 +398,67 @@ class HealthController {
   ) {}
 }
 ```
+
+---
+
+### 3-3. NestJSモジュール定義のベストプラクティス
+
+#### ❌ 避けるべきパターン: プロバイダーの重複登録
+
+```typescript
+// ❌ 悪い例: 同じプロバイダーが2回登録されている
+@Module({
+  providers: [
+    {
+      provide: TRANSACTION_REPOSITORY,
+      useClass: TransactionTypeOrmRepository,
+    },
+    TransactionTypeOrmRepository, // ← 重複！
+    {
+      provide: HISTORY_REPOSITORY,
+      useClass: HistoryRepository,
+    },
+    HistoryRepository, // ← 重複！
+    // ...
+  ],
+})
+export class TransactionModule {}
+```
+
+**問題**:
+
+- 同じクラスが2つのインスタンスとして登録される
+- DIコンテナが混乱し、予期しない動作を引き起こす可能性
+- 保守性が低下
+
+#### ✅ 正しいパターン: トークンベースの登録のみ
+
+```typescript
+// ✅ 良い例: トークンベースの登録のみ
+@Module({
+  providers: [
+    {
+      provide: TRANSACTION_REPOSITORY,
+      useClass: TransactionTypeOrmRepository,
+    },
+    {
+      provide: HISTORY_REPOSITORY,
+      useClass: HistoryRepository,
+    },
+    // Domain Services
+    TransactionDomainService,
+    // Use Cases
+    UpdateTransactionCategoryUseCase,
+  ],
+})
+export class TransactionModule {}
+```
+
+**重要なポイント**:
+
+- **トークンで提供されるクラスは、クラス名で再登録しない**
+- **依存性注入はトークン経由で行う**
+- **モジュール定義をシンプルに保つ**
 
 ---
 
@@ -585,6 +782,131 @@ afterEach(() => {
 - **日付・時刻のモック**: `Date.now()`、`new Date()`など
 - **ランダム値のモック**: `Math.random()`など
 
+### 4-7. E2Eテストのベストプラクティス
+
+#### ✅ テストデータのクリーンアップ
+
+```typescript
+// ✅ 良い例: テスト後にデータをクリーンアップ
+describe('Transaction API (e2e)', () => {
+  let app: INestApplication;
+
+  afterEach(async () => {
+    // 各テストで作成したデータをクリーンアップ
+    await connection.manager.query('DELETE FROM transactions;');
+    await connection.manager.query('DELETE FROM categories;');
+  });
+
+  afterAll(async () => {
+    await connection.close();
+    await app.close();
+  });
+});
+```
+
+**重要なポイント**:
+
+- **テスト間の独立性を保つ**: 前のテストのデータが次のテストに影響しない
+- **`afterEach`でクリーンアップ**: 各テスト後にデータを削除
+- **`afterAll`でリソース解放**: データベース接続やアプリケーションをクローズ
+
+#### ❌ 避けるべきパターン: `waitForTimeout`の使用
+
+```typescript
+// ❌ 悪い例: 固定時間待機
+await select.selectOption(newOption);
+await page.waitForTimeout(1000); // 不安定・遅い
+const updatedCategory = await page.locator('...').textContent();
+```
+
+**問題**:
+
+- テストが不安定になる（環境によって必要な時間が異なる）
+- 不必要に遅くなる（実際には500msで完了するのに1000ms待つ）
+
+```typescript
+// ✅ 良い例: UI状態の確認で待機
+await select.selectOption(newOption);
+// カテゴリが変更されたことを確認（元のカテゴリ名とは異なる）
+await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText(
+  originalCategory || ''
+);
+```
+
+**原則**:
+
+- **UI状態の確認で待機**: `expect(...).toBeVisible()`、`expect(...).toHaveText()`など
+- **固定時間待機は最終手段**: どうしても必要な場合のみ使用
+
+#### ✅ E2Eテストでのデータベース状態の検証
+
+**問題**: APIレスポンスの検証のみでは、副作用（データベースへの変更）が正しく実行されたか確認できない。
+
+```typescript
+// ❌ 不十分な例: APIレスポンスのみを検証
+it('取引のカテゴリを更新できる', async () => {
+  const response = await request(app.getHttpServer())
+    .patch(`/transactions/${id}/category`)
+    .send({ category: newCategory })
+    .expect(200);
+
+  expect(response.body.data.category.id).toBe('cat-002');
+  // データベースに履歴が記録されているかは未検証
+});
+```
+
+**✅ 推奨パターン**: APIレスポンスとデータベース状態の両方を検証
+
+```typescript
+// ✅ 良い例: データベース状態も検証
+it('取引のカテゴリを更新できる', async () => {
+  const response = await request(app.getHttpServer())
+    .patch(`/transactions/${id}/category`)
+    .send({ category: newCategory })
+    .expect(200);
+
+  // 1. APIレスポンスの検証
+  expect(response.body.data.category.id).toBe('cat-002');
+
+  // 2. データベース状態の検証
+  const history = await dataSource.query(
+    'SELECT * FROM transaction_category_change_history WHERE transactionId = ?',
+    [id]
+  );
+  expect(history).toHaveLength(1);
+  expect(history[0].oldCategoryId).toBe('cat-001');
+  expect(history[0].newCategoryId).toBe('cat-002');
+});
+```
+
+**重要なポイント**:
+
+- **副作用の検証**: 重要な副作用（履歴記録、通知送信など）は必ずデータベースで確認
+- **E2Eテストの価値最大化**: エンドツーエンドでの動作を完全に検証
+- **dbHelperの活用**: `E2ETestDatabaseHelper`やDataSourceを使用してデータベースにアクセス
+
+### 4-8. テストでのアサーション追加
+
+#### ✅ 重要な副作用を検証する
+
+```typescript
+// ✅ 良い例: 変更履歴が作成されることを検証
+it('取引のカテゴリを正しく更新できる', async () => {
+  const result = await useCase.execute({ transactionId, category: newCategory });
+
+  expect(mockRepository.findById).toHaveBeenCalledWith(transactionId);
+  expect(mockHistoryRepository.create).toHaveBeenCalled(); // 履歴作成を検証
+  expect(mockRepository.update).toHaveBeenCalled();
+  expect(result.category).toEqual(newCategory);
+});
+```
+
+**重要なポイント**:
+
+- **重要な副作用は必ず検証**: 変更履歴の記録、通知の送信など
+- **モックの呼び出しを確認**: `toHaveBeenCalled()`, `toHaveBeenCalledWith()`
+- **ビジネスロジックを網羅**: 正常系だけでなく、重要な処理も確認
+
 #### 参考
 
 - Issue #248: テスト実行時のエラー出力抑制
@@ -659,6 +981,109 @@ export default tseslint.config(
   }
 );
 ```
+
+---
+
+### 5-3. フロントエンドのエラーハンドリングとパフォーマンス
+
+#### ❌ 避けるべきパターン: ユーザーへの通知なしのエラー処理
+
+```typescript
+// ❌ 悪い例: エラーがコンソールのみに出力される
+useEffect(() => {
+  const fetchCategories = async (): Promise<void> => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('カテゴリの取得に失敗しました:', err); // ユーザーには通知されない
+    }
+  };
+  void fetchCategories();
+}, []);
+```
+
+**問題**:
+
+- ユーザーにエラーが通知されない
+- 空のドロップダウンが表示され、UXが低下
+- ユーザーは何が問題なのか分からない
+
+#### ✅ 正しいパターン: ユーザーへの明示的なエラー表示
+
+```typescript
+// ✅ 良い例: エラーをUIに表示
+useEffect(() => {
+  const fetchCategories = async (): Promise<void> => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      setError('カテゴリの取得に失敗しました。ページを再読み込みしてください。');
+      console.error('カテゴリの取得に失敗しました:', err);
+    }
+  };
+  void fetchCategories();
+}, []);
+
+// UIでエラーを表示
+{error && (
+  <div className="mb-4 text-red-600 p-3 bg-red-50 rounded-md">{error}</div>
+)}
+```
+
+**重要なポイント**:
+
+- **エラーをユーザーに通知**: エラーメッセージを視覚的に表示
+- **リカバリー方法を提示**: 「ページを再読み込みしてください」など
+- **開発者向けログは維持**: `console.error`でデバッグ情報を残す
+
+#### ❌ 避けるべきパターン: コンポーネント内でのヘルパー関数定義
+
+```typescript
+// ❌ 悪い例: コンポーネント内に定義
+export function MyComponent({ data }: Props) {
+  // この関数はレンダリングごとに再定義される
+  const flattenTree = (nodes: Node[]): Item[] => {
+    // ... 実装 ...
+  };
+
+  const flatData = flattenTree(data);
+  // ...
+}
+```
+
+**問題**:
+
+- コンポーネントが再レンダリングされるたびに関数が再定義される
+- パフォーマンスが低下
+- メモリ使用量が増加
+
+#### ✅ 正しいパターン: モジュールレベルでのヘルパー関数定義
+
+```typescript
+// ✅ 良い例: コンポーネント外に定義
+const flattenTree = (nodes: Node[]): Item[] => {
+  const result: Item[] = [];
+  const traverse = (node: Node): void => {
+    result.push(node.item);
+    node.children.forEach(traverse);
+  };
+  nodes.forEach(traverse);
+  return result;
+};
+
+export function MyComponent({ data }: Props) {
+  const flatData = flattenTree(data);
+  // ...
+}
+```
+
+**重要なポイント**:
+
+- **propsやstateに依存しない関数はコンポーネント外に**: 再定義を避ける
+- **パフォーマンス向上**: 関数の参照が一定になる
+- **可読性向上**: コンポーネントのロジックがシンプルになる
 
 ---
 
@@ -1489,3 +1914,51 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 
 - `.cursor/rules/00-WORKFLOW-CHECKLIST.md` - ワークフロー全体
 - `.cursor/rules/01-project.md` - プロジェクト概要
+
+### 6-2. サブシェルを使用したディレクトリ操作
+
+#### ❌ 避けるべきパターン: 連続的な`cd`コマンド
+
+```bash
+# ❌ 悪い例: ディレクトリ構造の変更に脆弱
+all)
+  echo "🔨 共有型定義のビルド中..."
+  cd libs/types
+  pnpm build
+  echo "🔨 共有ユーティリティのビルド中..."
+  cd ../utils  # ← 相対パスに依存
+  pnpm build
+  echo "🔨 バックエンドのビルド中..."
+  cd ../../apps/backend  # ← さらに複雑な相対パス
+  pnpm build
+  ;;
+```
+
+**問題**:
+
+- ディレクトリ構造が変更されると壊れる
+- 相対パスが複雑で可読性が低い
+- スクリプトの現在位置を追跡しにくい
+
+#### ✅ 正しいパターン: サブシェルで独立した実行
+
+```bash
+# ✅ 良い例: サブシェルで各コマンドを独立させる
+all)
+  echo "🔨 共有型定義のビルド中..."
+  (cd libs/types && pnpm build)
+  echo "🔨 共有ユーティリティのビルド中..."
+  (cd libs/utils && pnpm build)
+  echo "🔨 バックエンドのビルド中..."
+  (cd apps/backend && pnpm build)
+  ;;
+```
+
+**重要なポイント**:
+
+- **サブシェル `(...)` の活用**: 各コマンドが独立した環境で実行される
+- **プロジェクトルートを基準**: すべてのパスがルートからの相対パス
+- **堅牢性の向上**: ディレクトリ構造の変更に強い
+- **可読性の向上**: パスが明確で理解しやすい
+
+---
