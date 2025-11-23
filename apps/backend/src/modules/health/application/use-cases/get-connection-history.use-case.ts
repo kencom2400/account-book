@@ -2,6 +2,11 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IConnectionHistoryRepository } from '../../domain/repositories/connection-history.repository.interface';
 import { CONNECTION_HISTORY_REPOSITORY } from '../../domain/repositories/connection-history.repository.interface';
 import { ConnectionHistory } from '../../domain/entities/connection-history.entity';
+import type {
+  ConnectionStatusType,
+  InstitutionType,
+} from '../../domain/types/connection.types';
+import { isPublicConnectionStatus } from '../../domain/types/connection.types';
 
 export interface GetConnectionHistoryQuery {
   institutionId?: string;
@@ -15,8 +20,8 @@ export interface ConnectionHistoryResult {
   id: string;
   institutionId: string;
   institutionName: string;
-  institutionType: string;
-  status: string;
+  institutionType: InstitutionType;
+  status: ConnectionStatusType;
   checkedAt: string;
   responseTime: number;
   errorMessage?: string;
@@ -153,12 +158,31 @@ export class GetConnectionHistoryUseCase {
    * ConnectionHistoryをConnectionHistoryResultに変換
    */
   private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+    // 型ガードで安全に型変換
+    if (!isPublicConnectionStatus(history.status)) {
+      this.logger.warn(
+        `内部ステータス '${history.status}' は公開APIでは使用できません。DISCONNECTEDとして扱います。`,
+      );
+      // 内部ステータス（CHECKING等）はDISCONNECTEDとして扱う
+      return {
+        id: history.id,
+        institutionId: history.institutionId,
+        institutionName: history.institutionName,
+        institutionType: history.institutionType,
+        status: 'DISCONNECTED',
+        checkedAt: history.checkedAt.toISOString(),
+        responseTime: history.responseTime,
+        errorMessage: history.errorMessage,
+        errorCode: history.errorCode,
+      };
+    }
+
     return {
       id: history.id,
       institutionId: history.institutionId,
       institutionName: history.institutionName,
       institutionType: history.institutionType,
-      status: history.status,
+      status: history.status, // 型ガードにより安全に代入可能
       checkedAt: history.checkedAt.toISOString(),
       responseTime: history.responseTime,
       errorMessage: history.errorMessage,

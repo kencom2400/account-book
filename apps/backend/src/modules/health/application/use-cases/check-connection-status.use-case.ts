@@ -7,6 +7,7 @@ import { ConnectionHistory } from '../../domain/entities/connection-history.enti
 import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 import { ConnectionFailedEvent } from '../../domain/events/connection-failed.event';
+import { isPublicConnectionStatus } from '../../domain/types/connection.types';
 
 export interface CheckConnectionStatusCommand {
   institutionId?: string; // 指定されない場合は全金融機関をチェック
@@ -123,11 +124,29 @@ export class CheckConnectionStatusUseCase {
    * ConnectionHistoryをConnectionStatusResultに変換
    */
   private toResult(history: ConnectionHistory): ConnectionStatusResult {
+    // 型ガードで安全に型変換
+    if (!isPublicConnectionStatus(history.status)) {
+      this.logger.warn(
+        `内部ステータス '${history.status}' は公開APIでは使用できません。DISCONNECTEDとして扱います。`,
+      );
+      // 内部ステータス（CHECKING等）はDISCONNECTEDとして扱う
+      return {
+        institutionId: history.institutionId,
+        institutionName: history.institutionName,
+        institutionType: history.institutionType,
+        status: 'DISCONNECTED',
+        checkedAt: history.checkedAt.toISOString(),
+        responseTime: history.responseTime,
+        errorMessage: history.errorMessage,
+        errorCode: history.errorCode,
+      };
+    }
+
     return {
       institutionId: history.institutionId,
       institutionName: history.institutionName,
       institutionType: history.institutionType,
-      status: history.status,
+      status: history.status, // 型ガードにより安全に代入可能
       checkedAt: history.checkedAt.toISOString(),
       responseTime: history.responseTime,
       errorMessage: history.errorMessage,

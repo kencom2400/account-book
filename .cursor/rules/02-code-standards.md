@@ -494,7 +494,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();        // モックの呼び出し履歴をクリア
+  jest.clearAllMocks(); // モックの呼び出し履歴をクリア
   consoleErrorSpy.mockRestore(); // spyを復元
 });
 
@@ -506,6 +506,7 @@ beforeEach(() => {
 ```
 
 **理由:**
+
 - クリーンアップ処理が一箇所にまとまり可読性向上
 - テストライフサイクルの意図が明確
 - 今回確立したベストプラクティスとの一貫性
@@ -533,6 +534,7 @@ consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
 ```
 
 **理由:**
+
 - `console.error`は複数の引数を取ることがある
 - すべての引数を保持しないと情報が欠落する
 - より堅牢なエラーハンドリング
@@ -1111,17 +1113,129 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 
 **参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
 
+#### レスポンスDTOでの型の厳密化
+
+**原則**: レスポンスDTOでは、可能な限り厳密な型を使用する
+
+**❌ 避けるべきパターン**:
+
+```typescript
+export interface ConnectionStatusDto {
+  status: string; // ❌ 曖昧すぎる
+  institutionType: string; // ❌ 曖昧すぎる
+}
+```
+
+**✅ 推奨パターン**:
+
+```typescript
+export interface ConnectionStatusDto {
+  status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // ✅ 厳密な型
+  institutionType: 'bank' | 'credit-card' | 'securities'; // ✅ 厳密な型
+}
+```
+
+**改善効果**:
+
+1. **コンパイル時の型チェック強化**
+   - 不正な値（例: `'PENDING'`, `'ERROR'`）をコンパイル時に検出
+   - タイポやミスを防止
+
+2. **モジュール内での型定義の一貫性向上**
+   - Domain層のEnum型と整合性を保証
+   - DTO層、Domain層、Application層で同じ値を使用
+
+3. **APIドキュメントの自動生成**
+   - 型定義から可能な値が明確になる
+   - OpenAPI/Swaggerで正確な型情報が提供される
+
+**実装時の注意点**:
+
+Domain層でEnum型を使用している場合、Application層で**型ガード関数**を使用して安全に変換：
+
+```typescript
+// Domain層: 共通の型定義ファイル (connection.types.ts)
+export type ConnectionStatusType = 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH';
+
+// 型ガード関数
+export function isPublicConnectionStatus(
+  status: string,
+): status is ConnectionStatusType {
+  return ['CONNECTED', 'DISCONNECTED', 'NEED_REAUTH'].includes(status);
+}
+
+// Domain層: Enum型
+export enum ConnectionStatus {
+  CONNECTED = 'CONNECTED',
+  DISCONNECTED = 'DISCONNECTED',
+  NEED_REAUTH = 'NEED_REAUTH',
+  CHECKING = 'CHECKING',  // 内部状態
+}
+
+// Application層: 型ガードを使用した安全な変換
+private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+  // 型ガードで安全に型変換
+  if (!isPublicConnectionStatus(history.status)) {
+    this.logger.warn(
+      `内部ステータス '${history.status}' は公開APIでは使用できません。DISCONNECTEDとして扱います。`,
+    );
+    // 内部ステータスはDISCONNECTEDとして扱う
+    return {
+      status: 'DISCONNECTED',
+      // ...
+    };
+  }
+
+  return {
+    status: history.status, // 型ガードにより安全に代入可能
+    // ...
+  };
+}
+```
+
+**❌ 避けるべきパターン（型アサーションの危険性）**:
+
+```typescript
+// ❌ 型アサーション (as) は型安全性を損なう
+private toResult(history: ConnectionHistory): ConnectionHistoryResult {
+  return {
+    status: history.status as 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH',
+    // history.statusが'CHECKING'の場合、型チェックをすり抜けてしまう
+  };
+}
+```
+
+**型アサーションのリスク**:
+
+- コンパイラはエラーを検知できない
+- ランタイムで予期しない値がクライアントに渡る可能性
+- Enumに新しい値が追加された際に気づかない
+- 永続化されたデータに内部状態が含まれる場合、検出できない
+
+**型ガードのメリット**:
+
+- 実行時に値を検証し、不正な値を検出
+- 型安全性を保ちながら、フォールバック処理が可能
+- コードの意図が明確になる
+- デバッグ時にログで問題を追跡できる
+
+```
+
+**参考**: Issue #265 / PR #274 - Geminiレビュー指摘から学習
+
 ---
 
 ## 10. push前の必須チェック
 
 ```
+
 ╔═══════════════════════════════════════════════════════════════╗
-║  🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨             ║
-║                                                               ║
-║  詳細は `.cursor/rules/03-git-workflow.md` を参照            ║
+║ 🚨 CRITICAL RULE - PUSH前の4ステップチェック 🚨 ║
+║ ║
+║ 詳細は `.cursor/rules/03-git-workflow.md` を参照 ║
 ╚═══════════════════════════════════════════════════════════════╝
-```
+
+````
 
 **必須4ステップ**:
 
@@ -1130,7 +1244,7 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 2. pnpm build                      # ビルド確認 ⭐ 重要
 3. ./scripts/test/test.sh all     # ユニットテスト
 4. ./scripts/test/test-e2e.sh frontend # E2Eテスト
-```
+````
 
 **実行時間**: 約4-6分
 

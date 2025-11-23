@@ -78,6 +78,31 @@ export BACKEND_PORT
 export FRONTEND_PORT
 export TEST_ENV
 
+# MySQL環境変数を環境別に設定してエクスポート
+case "$TEST_ENV" in
+  dev)
+    export MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
+    export MYSQL_PORT="${MYSQL_PORT_DEV:-3306}"
+    export MYSQL_USER="${MYSQL_USER_DEV:-account_book_dev_user}"
+    export MYSQL_PASSWORD="${MYSQL_PASSWORD_DEV:-dev_password}"
+    export MYSQL_DATABASE="${MYSQL_DATABASE_DEV:-account_book_dev}"
+    ;;
+  test)
+    export MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
+    export MYSQL_PORT="${MYSQL_PORT_TEST:-3316}"
+    export MYSQL_USER="${MYSQL_USER_TEST:-account_book_test_user}"
+    export MYSQL_PASSWORD="${MYSQL_PASSWORD_TEST:-test_password}"
+    export MYSQL_DATABASE="${MYSQL_DATABASE_TEST:-account_book_test}"
+    ;;
+  e2e)
+    export MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
+    export MYSQL_PORT="${MYSQL_PORT_E2E:-3326}"
+    export MYSQL_USER="${MYSQL_USER_E2E:-account_book_e2e_user}"
+    export MYSQL_PASSWORD="${MYSQL_PASSWORD_E2E:-e2e_password}"
+    export MYSQL_DATABASE="${MYSQL_DATABASE_E2E:-account_book_e2e}"
+    ;;
+esac
+
 case $TARGET in
   backend)
     echo "🧪 バックエンドのE2Eテスト実行中..."

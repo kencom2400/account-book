@@ -1,4 +1,8 @@
 import { IsOptional, IsString } from 'class-validator';
+import type {
+  ConnectionStatusType,
+  InstitutionType,
+} from '../../domain/types/connection.types';
 
 /**
  * 接続チェックリクエストDTO
@@ -12,13 +16,13 @@ export class CheckConnectionRequestDto {
 /**
  * 接続状態レスポンスDTO
  */
-export class ConnectionStatusDto {
-  institutionId!: string;
-  institutionName!: string;
-  institutionType!: 'bank' | 'credit-card' | 'securities';
-  status!: string;
-  checkedAt!: string;
-  responseTime!: number;
+export interface ConnectionStatusDto {
+  institutionId: string;
+  institutionName: string;
+  institutionType: InstitutionType;
+  status: ConnectionStatusType;
+  checkedAt: string;
+  responseTime: number;
   errorMessage?: string;
   errorCode?: string;
 }
@@ -26,10 +30,10 @@ export class ConnectionStatusDto {
 /**
  * 接続チェックレスポンスDTO
  */
-export class CheckConnectionResponseDto {
-  results!: ConnectionStatusDto[];
-  totalCount!: number;
-  successCount!: number;
-  errorCount!: number;
-  checkedAt!: string;
+export interface CheckConnectionResponseDto {
+  results: ConnectionStatusDto[];
+  totalCount: number;
+  successCount: number;
+  errorCount: number;
+  checkedAt: string;
 }

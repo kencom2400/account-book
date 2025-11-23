@@ -6,6 +6,10 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import type {
+  ConnectionStatusType,
+  InstitutionType,
+} from '../../domain/types/connection.types';
 
 /**
  * 接続履歴取得リクエストDTO
@@ -37,14 +41,14 @@ export class GetConnectionHistoryQueryDto {
 /**
  * 接続履歴レスポンスDTO
  */
-export class ConnectionHistoryDto {
-  id!: string;
-  institutionId!: string;
-  institutionName!: string;
-  institutionType!: string;
-  status!: string;
-  checkedAt!: string;
-  responseTime!: number;
+export interface ConnectionHistoryDto {
+  id: string;
+  institutionId: string;
+  institutionName: string;
+  institutionType: InstitutionType;
+  status: ConnectionStatusType;
+  checkedAt: string;
+  responseTime: number;
   errorMessage?: string;
   errorCode?: string;
 }
@@ -52,7 +56,7 @@ export class ConnectionHistoryDto {
 /**
  * 接続履歴一覧レスポンスDTO
  */
-export class GetConnectionHistoryResponseDto {
-  histories!: ConnectionHistoryDto[];
-  totalCount!: number;
+export interface GetConnectionHistoryResponseDto {
+  histories: ConnectionHistoryDto[];
+  totalCount: number;
 }
