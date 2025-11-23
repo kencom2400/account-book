@@ -199,7 +199,7 @@ webServer: [
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
+    paths-ignore: &paths-ignore
       - '**.md'
       - 'docs/**'
       - '.cursor/**/*.md'
@@ -208,13 +208,7 @@ on:
       - '.editorconfig'
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.cursor/**/*.md'
-      - '.cursorrules'
-      - '.gitignore'
-      - '.editorconfig'
+    paths-ignore: *paths-ignore
 ```
 
 **推奨パターン:**
@@ -255,12 +249,12 @@ jobs:
   e2e-backend:
     name: E2E Tests (Backend)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
   e2e-frontend:
     name: E2E Tests (Frontend)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 ```
 
 **推奨値:**
