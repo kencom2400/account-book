@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { UpdateTransactionCategoryUseCase } from './update-transaction-category.use-case';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
@@ -12,6 +13,7 @@ describe('UpdateTransactionCategoryUseCase', () => {
   let useCase: UpdateTransactionCategoryUseCase;
   let mockRepository: jest.Mocked<ITransactionRepository>;
   let mockHistoryRepository: jest.Mocked<ITransactionCategoryChangeHistoryRepository>;
+  let mockDataSource: jest.Mocked<DataSource>;
 
   const mockTransaction = new TransactionEntity(
     'trans-001',
@@ -51,9 +53,26 @@ describe('UpdateTransactionCategoryUseCase', () => {
       deleteAll: jest.fn(),
     } as any;
 
+    // DataSourceのモックを作成
+    const mockEntityManager = {
+      getRepository: jest.fn().mockReturnValue({
+        save: jest.fn().mockResolvedValue({}),
+      }),
+    };
+
+    mockDataSource = {
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        return await callback(mockEntityManager);
+      }),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UpdateTransactionCategoryUseCase,
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
         {
           provide: TRANSACTION_REPOSITORY,
           useValue: mockRepository,
@@ -89,8 +108,8 @@ describe('UpdateTransactionCategoryUseCase', () => {
       });
 
       expect(mockRepository.findById).toHaveBeenCalledWith('trans-001');
-      expect(mockHistoryRepository.create).toHaveBeenCalled();
-      expect(mockRepository.update).toHaveBeenCalled();
+      // トランザクション内でデータベース操作が実行されることを確認
+      expect(mockDataSource.transaction).toHaveBeenCalled();
       expect(result.category.id).toBe('cat-002');
       expect(result.category.name).toBe('交通費');
       expect(result.category.type).toBe(CategoryType.EXPENSE);
