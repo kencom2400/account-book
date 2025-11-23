@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { NotificationCleanupService } from './notification-cleanup.service';
 import type { INotificationRepository } from '../../domain/repositories/notification.repository.interface';
 import {
@@ -10,8 +11,23 @@ import { NOTIFICATION_REPOSITORY } from '../../health.tokens';
 describe('NotificationCleanupService', () => {
   let service: NotificationCleanupService;
   let mockRepository: jest.Mocked<INotificationRepository>;
+  let mockLogger: Partial<Logger>;
 
   beforeEach(async () => {
+    // 意図的なエラーテストのLogger出力を抑制
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Loggerのモック作成
+    mockLogger = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+    };
+
     // モックリポジトリの作成
     mockRepository = {
       findAll: jest.fn(),
@@ -29,7 +45,9 @@ describe('NotificationCleanupService', () => {
           useValue: mockRepository,
         },
       ],
-    }).compile();
+    })
+      .setLogger(mockLogger as Logger)
+      .compile();
 
     service = module.get<NotificationCleanupService>(
       NotificationCleanupService,
@@ -37,7 +55,7 @@ describe('NotificationCleanupService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('executeNotificationCleanup', () => {
