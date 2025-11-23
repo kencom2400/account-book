@@ -4,6 +4,56 @@
 
 ---
 
+## 🔴 重要: ターミナルコマンド実行時の権限設定
+
+**Git操作を含むターミナルコマンドは、必ず`required_permissions: ['all']`を指定してください。**
+
+### 対象コマンド
+
+以下のコマンドは**すべて`all`権限が必要**：
+
+1. **Git操作**: `git commit`, `git push`, `git checkout`, `git branch`, `git add`, `git status`
+2. **GitHub CLI**: `gh issue view`, `gh pr create`, `gh api graphql`
+3. **プロジェクトスクリプト**: `./scripts/github/workflow/start-task.sh`
+
+### 理由
+
+- **pre-commitフック**: ESLint/Prettierが実行され、`node_modules`へのアクセスが必要
+- **証明書検証**: HTTPSでのGitHub接続に必要
+- **環境変数**: GitHubトークンなど機密情報へのアクセス
+
+### 実装例
+
+```typescript
+// ✅ 正しい
+run_terminal_cmd({
+  command: 'git commit -m "feat: 新機能実装"',
+  required_permissions: ["all"]
+})
+
+// ✅ 正しい
+run_terminal_cmd({
+  command: './scripts/github/workflow/start-task.sh',
+  required_permissions: ["all"]
+})
+
+// ❌ エラーになる
+run_terminal_cmd({
+  command: 'git commit -m "feat: 新機能実装"',
+  required_permissions: ["git_write"]  // pre-commitフックがエラー
+})
+
+// ❌ エラーになる
+run_terminal_cmd({
+  command: 'gh issue view 248',
+  required_permissions: ["network"]  // 証明書検証エラー
+})
+```
+
+**Issue #248の経験: サンドボックス環境では常にエラーが発生するため、最初から`all`権限で実行すること。**
+
+---
+
 ## 📋 目次
 
 1. [ブランチ管理](#1-ブランチ管理)
@@ -109,6 +159,31 @@ git rebase origin/main
 ║  「後でコミット」は禁止                                     ║
 ╚════════════════════════════════════════════════════════════╝
 ```
+
+### 🔴 重要: Git commit実行時の権限設定
+
+**pre-commitフックによるLint/Format実行のため、必ず`required_permissions: ['all']`を指定してください。**
+
+```typescript
+// ✅ 正しい実行方法
+run_terminal_cmd({
+  command: 'git commit -m "feat: 新機能実装"',
+  required_permissions: ["all"]
+})
+
+// ❌ サンドボックスではpre-commitフックがエラーになる
+run_terminal_cmd({
+  command: 'git commit -m "feat: 新機能実装"',
+  required_permissions: ["git_write"]  // これではpre-commitフックがエラーになる
+})
+```
+
+**理由:**
+- pre-commitフックがESLint/Prettierを実行
+- サンドボックス環境では`node_modules`へのアクセスに制限
+- `EPERM: operation not permitted`エラーが発生
+
+**Git操作（commit、push、checkout等）は常に`all`権限を使用すること。**
 
 ### 🚨 AIアシスタントへの絶対遵守ルール
 
