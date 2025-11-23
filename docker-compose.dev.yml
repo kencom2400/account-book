@@ -43,13 +43,14 @@ services:
       - /app/node_modules
       - /app/apps/backend/node_modules
     environment:
+      # 以下の環境変数は固定（.envからの上書きを防止）
       - NODE_ENV=development
       - PORT=3001
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=${MYSQL_DATABASE_DEV:-account_book_dev}
-      - MYSQL_USER=${MYSQL_USER_DEV:-account_book_user}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD_DEV:-password}
+      - MYSQL_DATABASE=account_book_dev
+      - MYSQL_USER=account_book_user
+      - MYSQL_PASSWORD=password
     env_file:
       - .env
     networks:

@@ -282,6 +282,90 @@ docker-compose -f docker-compose.dev.yml logs backend
 docker-compose -f docker-compose.dev.yml logs -f
 ```
 
+## 制約事項
+
+### 同じ環境での複数実行は不可
+
+**重要**: 同じ環境設定（例: `docker-compose.e2e.yml`）を複数回同時に起動することはできません。
+
+**理由**:
+
+- Docker Composeはコンテナ名を固定で定義している（例: `account-book-mysql-e2e`）
+- 同じコンテナ名は1つしか存在できない
+- 2回目の起動時に`Error: container name already in use`エラーが発生する
+
+**正しい使用方法**:
+
+```bash
+# ✅ 異なる環境の同時実行はOK
+docker-compose -f docker-compose.dev.yml up -d   # 開発環境
+docker-compose -f docker-compose.test.yml up -d  # テスト環境
+docker-compose -f docker-compose.e2e.yml up -d   # E2E環境
+
+# ❌ 同じ環境の複数実行は不可
+docker-compose -f docker-compose.e2e.yml up -d  # 1回目: OK
+docker-compose -f docker-compose.e2e.yml up -d  # 2回目: エラー！
+```
+
+**CI環境での動作**:
+
+- GitHub Actionsでは各jobが独立したVMで実行される
+- そのため、job間での競合は発生しない
+- 各job内では単一の環境のみを起動するため問題ない
+
+**ローカル環境での注意点**:
+
+1. **テスト実行前に環境を確認**
+
+```bash
+# 既に起動中のコンテナを確認
+docker ps | grep account-book
+
+# 必要に応じて停止
+docker-compose -f docker-compose.e2e.yml down
+```
+
+2. **自動的に既存環境を再利用**
+
+- スクリプト（`test-e2e.sh`等）は既存のコンテナが起動中かチェックする
+- 起動中の場合は再利用し、停止中の場合のみ起動する
+
+3. **複数の開発者が同じマシンを使う場合**
+
+この環境分離設計では、同じマシン上で複数の開発者が同時に作業することは想定していません。各開発者が独自のマシン（またはVM）を使用することを前提としています。
+
+### 並列テスト実行の制約
+
+**テストフレームワークのworker設定**:
+
+```typescript
+// playwright.config.ts
+workers: process.env.CI ? 1 : undefined,
+```
+
+- CI環境では`workers: 1`で順次実行
+- ローカル環境では並列実行可能（同じ環境内で複数のテストケースを実行）
+- ただし、複数の環境設定ファイルを同時に使用することは不可
+
+```bash
+docker-compose -f docker-compose.dev.yml stop
+```
+
+### 4. ログの確認
+
+問題が発生した場合はログを確認：
+
+```bash
+# すべてのサービスのログ
+docker-compose -f docker-compose.dev.yml logs
+
+# 特定のサービスのログ
+docker-compose -f docker-compose.dev.yml logs backend
+
+# リアルタイムでログを表示
+docker-compose -f docker-compose.dev.yml logs -f
+```
+
 ## 関連ドキュメント
 
 - [CI/CD設定ガイドライン](.cursor/rules/05-ci-cd.md)
