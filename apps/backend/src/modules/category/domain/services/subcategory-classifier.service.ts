@@ -3,7 +3,7 @@ import { CategoryType } from '@account-book/types';
 import { ClassificationConfidence } from '../value-objects/classification-confidence.vo';
 import { SubcategoryClassification } from '../value-objects/subcategory-classification.vo';
 import { ClassificationReason } from '../enums/classification-reason.enum';
-import { ISubcategoryRepository } from '../repositories/subcategory.repository.interface';
+import type { ISubcategoryRepository } from '../repositories/subcategory.repository.interface';
 import { MerchantMatcherService } from './merchant-matcher.service';
 import { KeywordMatcherService } from './keyword-matcher.service';
 

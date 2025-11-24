@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Merchant } from '../entities/merchant.entity';
-import { IMerchantRepository } from '../repositories/merchant.repository.interface';
+import type { IMerchantRepository } from '../repositories/merchant.repository.interface';
 
 /**
  * 店舗マッチャー Domain Service
