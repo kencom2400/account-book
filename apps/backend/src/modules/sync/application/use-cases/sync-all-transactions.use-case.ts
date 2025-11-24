@@ -26,11 +26,12 @@ import { randomUUID } from 'crypto';
 export class SyncAllTransactionsUseCase {
   private readonly logger = new Logger(SyncAllTransactionsUseCase.name);
 
-  // TODO: 将来対応 - MAX_PARALLELを.envから取得するよう設定ファイル化
+  // 環境変数で設定可能（デフォルト: 5件同時実行）
   // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
-  // 【実装方針】: NestJSのConfigServiceを使用して環境変数から読み込み
-  // 【理由】: パフォーマンスチューニングや環境に応じた柔軟な調整を可能にするため
-  private readonly MAX_PARALLEL = 5; // 最大並行同期数
+  private readonly MAX_PARALLEL = parseInt(
+    process.env.SYNC_MAX_PARALLEL || '5',
+    10,
+  );
 
   constructor(
     @Inject(SYNC_HISTORY_REPOSITORY)

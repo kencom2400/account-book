@@ -14,8 +14,15 @@ import type {
 @Injectable()
 export class ConnectionCheckerService {
   private readonly logger = new Logger(ConnectionCheckerService.name);
-  private readonly TIMEOUT_MS = 10000; // 10秒（要件より）
-  private readonly MAX_RESPONSE_TIME_MS = 5000; // 5秒（要件より）
+  // 環境変数で設定可能（デフォルト: 要件より）
+  private readonly TIMEOUT_MS = parseInt(
+    process.env.HEALTH_CHECK_TIMEOUT_MS || '10000',
+    10,
+  );
+  private readonly MAX_RESPONSE_TIME_MS = parseInt(
+    process.env.HEALTH_CHECK_MAX_RESPONSE_TIME_MS || '5000',
+    10,
+  );
 
   /**
    * 単一の金融機関への接続をチェック
@@ -109,12 +116,15 @@ export class ConnectionCheckerService {
 
   /**
    * 複数の金融機関への接続を並列チェック
-   * 最大5件同時実行（要件より）
+   * 環境変数で設定可能（デフォルト: 5件同時実行）
    */
   async checkMultipleConnections(
     institutions: IInstitutionInfo[],
   ): Promise<ConnectionCheckResult[]> {
-    const MAX_PARALLEL = 5;
+    const MAX_PARALLEL = parseInt(
+      process.env.HEALTH_CHECK_MAX_PARALLEL || '5',
+      10,
+    );
     const results: ConnectionCheckResult[] = [];
 
     // チャンク単位で処理
