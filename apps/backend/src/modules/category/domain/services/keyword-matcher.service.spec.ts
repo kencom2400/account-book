@@ -178,8 +178,8 @@ describe('KeywordMatcherService', () => {
 
     it('記号を除去してキーワードを抽出する', () => {
       const keywords = service.extractKeywords('スターバックス!@#コーヒー');
-      // 記号が削除され、スペースで区切られる
-      expect(keywords.length).toBeGreaterThan(0);
+      // 記号がスペースに置換され、スペースで区切られる
+      expect(keywords).toEqual(['スターバックス', 'コーヒー']);
     });
 
     it('空文字列の場合は空配列を返す', () => {

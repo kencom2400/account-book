@@ -12,9 +12,9 @@ describe('TextNormalizer', () => {
       expect(result).toBe('abc123');
     });
 
-    it('記号を削除する', () => {
+    it('記号をスペースに置換する', () => {
       const result = TextNormalizer.normalize('スターバックス@コーヒー!');
-      expect(result).toBe('スターバックスコーヒー');
+      expect(result).toBe('スターバックス コーヒー');
     });
 
     it('複数の空白を一つにまとめる', () => {

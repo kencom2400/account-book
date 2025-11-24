@@ -7,8 +7,9 @@ export class TextNormalizer {
    * テキストを正規化
    * - 小文字化
    * - 全角英数字を半角に変換
-   * - 記号を削除
-   * - スペースをトリム
+   * - 記号をスペースに置換（単語の区切りを維持）
+   * - 複数の空白を1つの空白にまとめる
+   * - 前後の空白をトリム
    *
    * @param text 正規化するテキスト
    * @returns 正規化されたテキスト
@@ -19,8 +20,8 @@ export class TextNormalizer {
       .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
         String.fromCharCode(s.charCodeAt(0) - 0xfee0),
       )
-      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, ' ') // 記号をスペースに置換（単語の区切りを維持）
+      .replace(/\s+/g, ' ') // 複数の空白を1つにまとめる
       .trim();
   }
 
