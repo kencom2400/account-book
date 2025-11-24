@@ -5,8 +5,33 @@
 - FR-006: 各金融機関から利用履歴を自動取得
 
 **作成日**: 2025-11-23
-**最終更新日**: 2025-11-23
-**バージョン**: 1.0
+**最終更新日**: 2025-11-24
+**バージョン**: 1.1
+
+## 📌 実装状況（2025-11-24更新）
+
+### ✅ Phase 1: 基盤機能（Issue #28, PR #278）
+
+- ✅ ドメインモデル設計
+- ✅ API設計
+- ✅ 基本的な同期フロー
+- ✅ 同期履歴の管理
+
+### ✅ Phase 2: 金融機関連携（一部完了: Issue #279, PR #285）
+
+- ✅ **クレジットカード取引取得**: `FetchCreditCardTransactionsUseCase`統合
+- ✅ **証券取引取得**: `FetchSecurityTransactionsUseCase`統合
+- ✅ **同期キャンセル処理**: AbortController導入、CancellationError実装
+- ⚠️ **銀行取引**: FR-001未実装のため未対応
+
+### 🚧 Phase 3: 運用機能強化（未実装）
+
+- 🟡 動的スケジュール更新
+- 🟡 リアルタイム進捗表示
+- 🟡 スケジュールAPI実装
+- 🟡 通知機能の実装
+
+詳細は [未実装機能リスト](./未実装機能リスト.md) を参照。
 
 ## 概要
 
@@ -228,6 +253,7 @@ export enum SyncStatus {
 - [x] バックグラウンド処理（UIブロックなし）
 - [x] 差分同期（重複チェック）による効率化
 - [x] リトライ機構（最大3回）
+- [x] AbortControllerによるキャンセル処理（Issue #279で実装）
 - [ ] データベースクエリの最適化
 - [ ] インデックスの適用
 - [ ] キャッシング戦略（同期履歴）
@@ -262,10 +288,17 @@ export enum SyncStatus {
 - **対象**: Domain Layer, Application Layer
 - **ツール**: Jest
 - **カバレッジ目標**: 90%以上（Domain層）、85%以上（Application層）
+- **実装状況**（Issue #279, PR #285）:
+  - ✅ SyncAllTransactionsUseCase: 11 tests passed
+  - ✅ FetchCreditCardTransactionsUseCase: 11 tests passed
+  - ✅ FetchSecurityTransactionsUseCase: 10 tests passed
+  - ✅ CancelSyncUseCase: 9 tests passed
+  - **合計**: 41 tests passed
 - **重点テスト項目**:
-  - 重複チェックロジック
-  - リトライ機構
-  - エラーハンドリング
+  - ✅ 重複チェックロジック
+  - ✅ リトライ機構
+  - ✅ エラーハンドリング
+  - ✅ AbortControllerによるキャンセル処理
 
 ### 統合テスト
 
