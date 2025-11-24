@@ -1,4 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
 import type {
   ISecuritiesAccountRepository,
@@ -12,6 +14,8 @@ import {
   SECURITIES_API_CLIENT,
 } from '../../securities.tokens';
 import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
+import { SecurityTransactionOrmEntity } from '../../infrastructure/entities/security-transaction.orm-entity';
+import { SecuritiesAccountOrmEntity } from '../../infrastructure/entities/securities-account.orm-entity';
 
 export interface FetchSecurityTransactionsInput {
   accountId: string;
@@ -35,6 +39,8 @@ export class FetchSecurityTransactionsUseCase {
   private readonly logger = new Logger(FetchSecurityTransactionsUseCase.name);
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @Inject(SECURITIES_ACCOUNT_REPOSITORY)
     private readonly accountRepository: ISecuritiesAccountRepository,
     @Inject(SECURITY_TRANSACTION_REPOSITORY)
@@ -122,24 +128,63 @@ export class FetchSecurityTransactionsUseCase {
         end,
       );
 
-      // 取引履歴を保存（重複チェック）
-      for (const apiTx of apiTransactions) {
-        const transactionEntity =
-          this.securitiesAPIClient.mapToTransactionEntity(accountId, apiTx);
-
-        // 既存の取引をIDで確認（APIから返されるIDを使用）
-        const existing = await this.transactionRepository.findById(
-          transactionEntity.id,
+      // データベーストランザクションを使用して、
+      // 複数の取引保存と口座更新をアトミックに実行
+      await this.dataSource.transaction(async (entityManager) => {
+        // 取引履歴を保存（重複チェック）
+        const transactionRepo = entityManager.getRepository(
+          SecurityTransactionOrmEntity,
         );
 
-        if (!existing) {
-          await this.transactionRepository.create(transactionEntity);
-        }
-      }
+        for (const apiTx of apiTransactions) {
+          const transactionEntity =
+            this.securitiesAPIClient.mapToTransactionEntity(accountId, apiTx);
 
-      // 口座の最終同期日時を更新
-      const updatedAccount = account.updateLastSyncedAt(new Date());
-      await this.accountRepository.update(updatedAccount);
+          // 既存の取引をIDで確認（APIから返されるIDを使用）
+          const existing = await transactionRepo.findOne({
+            where: { id: transactionEntity.id },
+          });
+
+          if (!existing) {
+            await transactionRepo.save({
+              id: transactionEntity.id,
+              securitiesAccountId: transactionEntity.securitiesAccountId,
+              securityCode: transactionEntity.securityCode,
+              securityName: transactionEntity.securityName,
+              transactionDate: transactionEntity.transactionDate,
+              transactionType: transactionEntity.transactionType,
+              quantity: transactionEntity.quantity,
+              price: transactionEntity.price,
+              fee: transactionEntity.fee,
+              status: transactionEntity.status,
+              createdAt: transactionEntity.createdAt,
+            });
+          }
+        }
+
+        // 口座の最終同期日時を更新
+        const accountRepo = entityManager.getRepository(
+          SecuritiesAccountOrmEntity,
+        );
+        const updatedAccount = account.updateLastSyncedAt(new Date());
+        await accountRepo.save({
+          id: updatedAccount.id,
+          securitiesCompanyName: updatedAccount.securitiesCompanyName,
+          accountNumber: updatedAccount.accountNumber,
+          accountType: updatedAccount.accountType,
+          credentialsEncrypted: updatedAccount.credentials.encrypted,
+          credentialsIv: updatedAccount.credentials.iv,
+          credentialsAuthTag: updatedAccount.credentials.authTag,
+          credentialsAlgorithm: updatedAccount.credentials.algorithm,
+          credentialsVersion: updatedAccount.credentials.version,
+          isConnected: updatedAccount.isConnected,
+          lastSyncedAt: updatedAccount.lastSyncedAt,
+          totalEvaluationAmount: updatedAccount.totalEvaluationAmount,
+          cashBalance: updatedAccount.cashBalance,
+          createdAt: updatedAccount.createdAt,
+          updatedAt: new Date(),
+        });
+      });
 
       this.logger.log(
         `Refreshed transactions from API for account ${accountId}`,
