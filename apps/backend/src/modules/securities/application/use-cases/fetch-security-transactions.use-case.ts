@@ -1,4 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
 import type {
   ISecuritiesAccountRepository,
@@ -35,6 +37,8 @@ export class FetchSecurityTransactionsUseCase {
   private readonly logger = new Logger(FetchSecurityTransactionsUseCase.name);
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @Inject(SECURITIES_ACCOUNT_REPOSITORY)
     private readonly accountRepository: ISecuritiesAccountRepository,
     @Inject(SECURITY_TRANSACTION_REPOSITORY)
@@ -122,24 +126,46 @@ export class FetchSecurityTransactionsUseCase {
         end,
       );
 
-      // 取引履歴を保存（重複チェック）
-      for (const apiTx of apiTransactions) {
-        const transactionEntity =
-          this.securitiesAPIClient.mapToTransactionEntity(accountId, apiTx);
+      // データベーストランザクションを使用して、
+      // 複数の取引保存と口座更新をアトミックに実行
+      await this.dataSource.transaction(async (entityManager) => {
+        // トランザクション内で口座を再取得して競合状態を防止
+        const accountToUpdate = await this.accountRepository.findById(
+          accountId,
+          entityManager,
+        );
+        if (!accountToUpdate) {
+          throw new NotFoundException(
+            `Account not found within transaction: ${accountId}`,
+          );
+        }
 
-        // 既存の取引をIDで確認（APIから返されるIDを使用）
-        const existing = await this.transactionRepository.findById(
-          transactionEntity.id,
+        // 取引履歴を保存（重複チェック）
+        // Promise.allで並列処理化してパフォーマンスを向上
+        await Promise.all(
+          apiTransactions.map(async (apiTx) => {
+            const transactionEntity =
+              this.securitiesAPIClient.mapToTransactionEntity(accountId, apiTx);
+
+            // 既存の取引をIDで確認（APIから返されるIDを使用）
+            const existing = await this.transactionRepository.findById(
+              transactionEntity.id,
+              entityManager,
+            );
+
+            if (!existing) {
+              await this.transactionRepository.create(
+                transactionEntity,
+                entityManager,
+              );
+            }
+          }),
         );
 
-        if (!existing) {
-          await this.transactionRepository.create(transactionEntity);
-        }
-      }
-
-      // 口座の最終同期日時を更新
-      const updatedAccount = account.updateLastSyncedAt(new Date());
-      await this.accountRepository.update(updatedAccount);
+        // 口座の最終同期日時を更新
+        const updatedAccount = accountToUpdate.updateLastSyncedAt(new Date());
+        await this.accountRepository.update(updatedAccount, entityManager);
+      });
 
       this.logger.log(
         `Refreshed transactions from API for account ${accountId}`,

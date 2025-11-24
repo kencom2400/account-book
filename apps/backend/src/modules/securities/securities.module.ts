@@ -66,9 +66,6 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
       provide: SECURITY_TRANSACTION_REPOSITORY,
       useClass: SecurityTransactionTypeOrmRepository,
     },
-    SecuritiesAccountTypeOrmRepository,
-    HoldingTypeOrmRepository,
-    SecurityTransactionTypeOrmRepository,
 
     // Adapters
     {

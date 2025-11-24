@@ -18,7 +18,6 @@ import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository.i
       provide: CATEGORY_REPOSITORY,
       useClass: CategoryTypeOrmRepository,
     },
-    CategoryTypeOrmRepository,
     CategoryRepository, // JSONリポジトリは予備として残す
     // Domain Services
     CategoryDomainService,

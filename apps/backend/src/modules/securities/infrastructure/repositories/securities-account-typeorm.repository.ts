@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { SecuritiesAccountOrmEntity } from '../entities/securities-account.orm-entity';
 import { SecuritiesAccountEntity } from '../../domain/entities/securities-account.entity';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
@@ -19,14 +19,22 @@ export class SecuritiesAccountTypeOrmRepository
     private readonly repository: Repository<SecuritiesAccountOrmEntity>,
   ) {}
 
-  async create(account: SecuritiesAccountEntity): Promise<void> {
+  async create(
+    account: SecuritiesAccountEntity,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity = this.toOrm(account);
-    await this.repository.save(ormEntity);
+    await repository.save(ormEntity);
   }
 
-  async findById(id: string): Promise<SecuritiesAccountEntity | null> {
+  async findById(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<SecuritiesAccountEntity | null> {
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity | null =
-      await this.repository.findOne({
+      await repository.findOne({
         where: { id },
       });
 
@@ -37,24 +45,40 @@ export class SecuritiesAccountTypeOrmRepository
     return this.toDomain(ormEntity);
   }
 
-  async findAll(): Promise<SecuritiesAccountEntity[]> {
-    const ormEntities: SecuritiesAccountOrmEntity[] =
-      await this.repository.find({
-        order: { createdAt: 'ASC' },
-      });
+  async findAll(manager?: EntityManager): Promise<SecuritiesAccountEntity[]> {
+    const repository = this.getRepo(manager);
+    const ormEntities: SecuritiesAccountOrmEntity[] = await repository.find({
+      order: { createdAt: 'ASC' },
+    });
 
     return ormEntities.map((entity: SecuritiesAccountOrmEntity) =>
       this.toDomain(entity),
     );
   }
 
-  async update(account: SecuritiesAccountEntity): Promise<void> {
+  async update(
+    account: SecuritiesAccountEntity,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity = this.toOrm(account);
-    await this.repository.save(ormEntity);
+    await repository.save(ormEntity);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+  async delete(id: string, manager?: EntityManager): Promise<void> {
+    const repository = this.getRepo(manager);
+    await repository.delete(id);
+  }
+
+  /**
+   * EntityManagerまたはデフォルトRepositoryを取得
+   */
+  private getRepo(
+    manager?: EntityManager,
+  ): Repository<SecuritiesAccountOrmEntity> {
+    return manager
+      ? manager.getRepository(SecuritiesAccountOrmEntity)
+      : this.repository;
   }
 
   /**

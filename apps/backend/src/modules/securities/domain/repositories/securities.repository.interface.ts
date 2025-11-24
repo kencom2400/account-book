@@ -1,3 +1,4 @@
+import { EntityManager } from 'typeorm';
 import { SecuritiesAccountEntity } from '../entities/securities-account.entity';
 import { HoldingEntity } from '../entities/holding.entity';
 import { SecurityTransactionEntity } from '../entities/security-transaction.entity';
@@ -9,27 +10,36 @@ export interface ISecuritiesAccountRepository {
   /**
    * 証券口座を作成
    */
-  create(account: SecuritiesAccountEntity): Promise<void>;
+  create(
+    account: SecuritiesAccountEntity,
+    manager?: EntityManager,
+  ): Promise<void>;
 
   /**
    * IDで証券口座を取得
    */
-  findById(id: string): Promise<SecuritiesAccountEntity | null>;
+  findById(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<SecuritiesAccountEntity | null>;
 
   /**
    * すべての証券口座を取得
    */
-  findAll(): Promise<SecuritiesAccountEntity[]>;
+  findAll(manager?: EntityManager): Promise<SecuritiesAccountEntity[]>;
 
   /**
    * 証券口座を更新
    */
-  update(account: SecuritiesAccountEntity): Promise<void>;
+  update(
+    account: SecuritiesAccountEntity,
+    manager?: EntityManager,
+  ): Promise<void>;
 
   /**
    * 証券口座を削除
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, manager?: EntityManager): Promise<void>;
 }
 
 /**
@@ -77,17 +87,26 @@ export interface ISecurityTransactionRepository {
   /**
    * 証券取引を作成
    */
-  create(transaction: SecurityTransactionEntity): Promise<void>;
+  create(
+    transaction: SecurityTransactionEntity,
+    manager?: EntityManager,
+  ): Promise<void>;
 
   /**
    * IDで証券取引を取得
    */
-  findById(id: string): Promise<SecurityTransactionEntity | null>;
+  findById(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<SecurityTransactionEntity | null>;
 
   /**
    * 証券口座IDで証券取引を取得
    */
-  findByAccountId(accountId: string): Promise<SecurityTransactionEntity[]>;
+  findByAccountId(
+    accountId: string,
+    manager?: EntityManager,
+  ): Promise<SecurityTransactionEntity[]>;
 
   /**
    * 証券口座IDと期間で証券取引を取得
@@ -96,15 +115,19 @@ export interface ISecurityTransactionRepository {
     accountId: string,
     startDate: Date,
     endDate: Date,
+    manager?: EntityManager,
   ): Promise<SecurityTransactionEntity[]>;
 
   /**
    * 証券取引を更新
    */
-  update(transaction: SecurityTransactionEntity): Promise<void>;
+  update(
+    transaction: SecurityTransactionEntity,
+    manager?: EntityManager,
+  ): Promise<void>;
 
   /**
    * 証券取引を削除
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, manager?: EntityManager): Promise<void>;
 }
