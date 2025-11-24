@@ -466,10 +466,44 @@ async execute(dto: UpdateDto): Promise<Result> {
 
   // トランザクション内でリポジトリを使用
   return await this.dataSource.transaction(async (entityManager) => {
+    // ⚠️ 重要: トランザクション内でエンティティを再取得
+    // トランザクション外で取得したデータは古い可能性があるため、
+    // 更新対象のエンティティは必ずトランザクション内で再取得する
+    const entityToUpdate = await this.repository.findById(dto.id, entityManager);
+    if (!entityToUpdate) {
+      throw new NotFoundException(`Entity not found within transaction`);
+    }
+
     await this.historyRepository.create(history, entityManager);
-    return await this.repository.update(entity, entityManager);
+    return await this.repository.update(entityToUpdate, entityManager);
   });
 }
+```
+
+**重要な注意点**:
+
+1. **競合状態（レースコンディション）の防止**
+   - トランザクション外で取得したエンティティをそのまま更新すると、古いデータで上書きしてしまう危険性がある
+   - **必ずトランザクション内でエンティティを再取得**してから更新する
+   - これにより、他のトランザクションによる変更を正しく反映できる
+
+2. **パフォーマンス最適化**
+   - 大量のデータを処理する場合は`Promise.all`で並列化
+   - トランザクション外での検証で早期リターンを活用
+
+```typescript
+// ✅ 並列処理でパフォーマンス最適化
+await this.dataSource.transaction(async (entityManager) => {
+  // 並列で複数のデータを処理
+  await Promise.all(
+    dataArray.map(async (data) => {
+      const existing = await this.repository.findById(data.id, entityManager);
+      if (!existing) {
+        await this.repository.create(data, entityManager);
+      }
+    })
+  );
+});
 ```
 
 **メリット**:
