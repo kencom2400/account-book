@@ -182,6 +182,25 @@
 ./scripts/test/test.sh frontend all  # フロントエンドのすべて
 ```
 
+### カバレッジレポートの生成
+
+```bash
+# カバレッジレポートを生成
+./scripts/test/generate-coverage-report.sh
+
+# カバレッジ履歴を更新
+./scripts/test/update-coverage-history.sh
+```
+
+**生成されるレポート:**
+
+- メインレポート: `docs/testing/coverage-report.md`
+- Backend詳細: `docs/testing/module-coverage/backend.md`
+- Frontend詳細: `docs/testing/module-coverage/frontend.md`
+- カバレッジ履歴: `docs/testing/coverage-history.md`
+
+**詳細**: [カバレッジ使用ガイド](../docs/testing/coverage-usage-guide.md)
+
 ### テストスクリプトの引数仕様
 
 #### `lint.sh`
@@ -521,6 +540,44 @@ Node.js環境をアクティベートします（他のスクリプト内で自�
 ```bash
 ./scripts/data/seed-test-data.sh
 ```
+
+### `generate-coverage-report.sh`
+
+各モジュールのテストカバレッジを収集してMarkdownレポートを生成します。
+
+**使い方:**
+
+```bash
+./scripts/test/generate-coverage-report.sh
+```
+
+**実行内容:**
+
+- Backend ユニットテストのカバレッジ収集
+- Backend E2Eテストのカバレッジ収集
+- Frontend ユニットテストのカバレッジ収集
+- Markdownレポートの生成
+- モジュール別詳細レポートの生成
+- カバレッジ履歴の初期化（初回のみ）
+
+**出力:**
+
+- `docs/testing/coverage-report.md` - メインレポート
+- `docs/testing/module-coverage/backend.md` - Backend詳細
+- `docs/testing/module-coverage/frontend.md` - Frontend詳細
+- `docs/testing/coverage-history.md` - カバレッジ履歴
+
+### `update-coverage-history.sh`
+
+既存のカバレッジデータから履歴を更新します。
+
+**使い方:**
+
+```bash
+./scripts/test/update-coverage-history.sh
+```
+
+**注意:** 先に `generate-coverage-report.sh` を実行しておく必要があります。
 
 ---
 

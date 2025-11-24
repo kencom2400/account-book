@@ -243,6 +243,42 @@ pnpm test:e2e
 
 詳細は[テスト実行ガイド](./docs/testing-guide.md)を参照してください。
 
+### テストカバレッジ
+
+プロジェクトのテストカバレッジ状況を確認できます：
+
+- **[最新のカバレッジレポート](./docs/testing/coverage-report.md)** - モジュール別カバレッジサマリー
+- **[カバレッジ履歴](./docs/testing/coverage-history.md)** - カバレッジの推移
+- **モジュール別詳細**:
+  - [Backend カバレッジ](./docs/testing/module-coverage/backend.md)
+  - [Frontend カバレッジ](./docs/testing/module-coverage/frontend.md)
+
+#### カバレッジレポートの生成
+
+```bash
+# カバレッジレポートを生成
+./scripts/test/generate-coverage-report.sh
+
+# カバレッジ履歴を更新
+./scripts/test/update-coverage-history.sh
+```
+
+#### 個別モジュールのカバレッジ確認
+
+```bash
+# Backend ユニットテスト
+cd apps/backend
+pnpm test:cov
+
+# Backend E2Eテスト
+cd apps/backend
+pnpm test:e2e:cov
+
+# Frontend ユニットテスト
+cd apps/frontend
+pnpm test -- --coverage
+```
+
 ## CI/CD
 
 このプロジェクトはGitHub Actionsを使用してCI/CDパイプラインを構築しています。

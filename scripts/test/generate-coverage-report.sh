@@ -1,0 +1,400 @@
+#!/bin/bash
+
+# カバレッジレポート生成スクリプト
+# 各モジュールのテストカバレッジを収集してMarkdownレポートを生成します
+
+set -e
+
+echo "================================"
+echo "カバレッジレポート生成開始"
+echo "================================"
+
+# プロジェクトルートに移動
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# 環境をアクティベート
+if [ -f ".nodeenv/bin/activate" ]; then
+  source .nodeenv/bin/activate
+else
+  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
+  exit 1
+fi
+
+# 出力先ディレクトリ
+OUTPUT_DIR="$PROJECT_ROOT/docs/testing"
+MODULE_DIR="$OUTPUT_DIR/module-coverage"
+REPORT_FILE="$OUTPUT_DIR/coverage-report.md"
+
+# ディレクトリ作成
+mkdir -p "$MODULE_DIR"
+
+# 現在の日時とコミットハッシュを取得
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BRANCH_NAME=$(git branch --show-current 2>/dev/null || echo "unknown")
+
+# カバレッジデータを一時的に保存する関数
+extract_coverage_data() {
+  local coverage_file=$1
+  local module_name=$2
+  
+  if [ ! -f "$coverage_file" ]; then
+    echo "0|0|0|0"
+    return
+  fi
+  
+  # coverage-summary.jsonからカバレッジデータを抽出
+  local lines=$(jq -r '.total.lines.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
+  local statements=$(jq -r '.total.statements.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
+  local functions=$(jq -r '.total.functions.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
+  local branches=$(jq -r '.total.branches.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
+  
+  # 小数点以下2桁に丸める
+  lines=$(printf "%.2f" "$lines" 2>/dev/null || echo "0.00")
+  statements=$(printf "%.2f" "$statements" 2>/dev/null || echo "0.00")
+  functions=$(printf "%.2f" "$functions" 2>/dev/null || echo "0.00")
+  branches=$(printf "%.2f" "$branches" 2>/dev/null || echo "0.00")
+  
+  echo "$lines|$statements|$functions|$branches"
+}
+
+# Backendのユニットテストカバレッジを取得
+echo "📊 Backend ユニットテストカバレッジを収集中..."
+cd "$PROJECT_ROOT/apps/backend"
+pnpm test:cov > /dev/null 2>&1 || echo "⚠ Backend unit test coverage failed"
+BACKEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage/coverage-summary.json" "backend-unit")
+
+# Backend E2Eテストカバレッジを取得
+echo "📊 Backend E2Eテストカバレッジを収集中..."
+cd "$PROJECT_ROOT/apps/backend"
+pnpm test:e2e:cov > /dev/null 2>&1 || echo "⚠ Backend e2e test coverage failed"
+BACKEND_E2E_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage-e2e/coverage-summary.json" "backend-e2e")
+
+# Frontendのユニットテストカバレッジを取得
+echo "📊 Frontend ユニットテストカバレッジを収集中..."
+cd "$PROJECT_ROOT/apps/frontend"
+pnpm test -- --coverage --silent > /dev/null 2>&1 || echo "⚠ Frontend test coverage failed"
+FRONTEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/frontend/coverage/coverage-summary.json" "frontend-unit")
+
+# データを配列に分割
+IFS='|' read -r BACKEND_UNIT_LINES BACKEND_UNIT_STMTS BACKEND_UNIT_FUNCS BACKEND_UNIT_BRANCHES <<< "$BACKEND_UNIT_DATA"
+IFS='|' read -r BACKEND_E2E_LINES BACKEND_E2E_STMTS BACKEND_E2E_FUNCS BACKEND_E2E_BRANCHES <<< "$BACKEND_E2E_DATA"
+IFS='|' read -r FRONTEND_UNIT_LINES FRONTEND_UNIT_STMTS FRONTEND_UNIT_FUNCS FRONTEND_UNIT_BRANCHES <<< "$FRONTEND_UNIT_DATA"
+
+# メインレポートを生成
+echo "📝 カバレッジレポートを生成中..."
+cat > "$REPORT_FILE" << EOF
+# テストカバレッジレポート
+
+> **最終更新**: $TIMESTAMP  
+> **コミット**: \`$COMMIT_HASH\`  
+> **ブランチ**: \`$BRANCH_NAME\`
+
+## 概要
+
+このドキュメントは、各モジュールのテストカバレッジ状況をまとめたものです。
+
+### カバレッジ目標
+
+- **プロジェクト全体**: 80%以上
+- **各モジュール**: 80%以上
+- **新規コード**: 80%以上
+
+## モジュール別カバレッジサマリー
+
+| モジュール | Lines | Statements | Functions | Branches |
+|----------|-------|------------|-----------|----------|
+| Backend (Unit) | ${BACKEND_UNIT_LINES}% | ${BACKEND_UNIT_STMTS}% | ${BACKEND_UNIT_FUNCS}% | ${BACKEND_UNIT_BRANCHES}% |
+| Backend (E2E) | ${BACKEND_E2E_LINES}% | ${BACKEND_E2E_STMTS}% | ${BACKEND_E2E_FUNCS}% | ${BACKEND_E2E_BRANCHES}% |
+| Frontend (Unit) | ${FRONTEND_UNIT_LINES}% | ${FRONTEND_UNIT_STMTS}% | ${FRONTEND_UNIT_FUNCS}% | ${FRONTEND_UNIT_BRANCHES}% |
+
+## 詳細レポート
+
+各モジュールの詳細なカバレッジレポートは以下を参照してください：
+
+- [Backend カバレッジ詳細](./module-coverage/backend.md)
+- [Frontend カバレッジ詳細](./module-coverage/frontend.md)
+
+## カバレッジ履歴
+
+カバレッジの推移については [カバレッジ履歴](./coverage-history.md) を参照してください。
+
+## カバレッジ改善のベストプラクティス
+
+### 1. 未カバーコードの特定
+
+各モジュールで生成されるHTMLレポートを確認：
+- Backend: \`apps/backend/coverage/lcov-report/index.html\`
+- Frontend: \`apps/frontend/coverage/lcov-report/index.html\`
+
+### 2. テスト追加の優先順位
+
+1. **Critical Path**: ビジネスロジックの中核部分
+2. **エッジケース**: エラーハンドリング、境界値テスト
+3. **Integration**: モジュール間の連携テスト
+
+### 3. カバレッジ向上のコツ
+
+- **小さな単位でテスト**: 1つのテストで1つの動作を検証
+- **モックの活用**: 外部依存を排除して単体テストを書きやすくする
+- **E2Eテストとのバランス**: ユニットテストでカバーできない統合部分をE2Eで補完
+
+## 使用方法
+
+### カバレッジレポートの更新
+
+\`\`\`bash
+# 最新のカバレッジレポートを生成
+./scripts/test/generate-coverage-report.sh
+
+# 履歴を更新（オプション）
+./scripts/test/update-coverage-history.sh
+\`\`\`
+
+### 個別モジュールのカバレッジ確認
+
+\`\`\`bash
+# Backend ユニットテスト
+cd apps/backend
+pnpm test:cov
+
+# Backend E2Eテスト
+cd apps/backend
+pnpm test:e2e:cov
+
+# Frontend ユニットテスト
+cd apps/frontend
+pnpm test -- --coverage
+\`\`\`
+
+## 参考資料
+
+- [Jest Coverage Documentation](https://jestjs.io/docs/configuration#collectcoverage-boolean)
+- [Codecov Configuration](../codecov.yml)
+- [テスト設計ドキュメント](./test-design.md)
+EOF
+
+# Backend詳細レポートを生成
+echo "📝 Backend詳細レポートを生成中..."
+cat > "$MODULE_DIR/backend.md" << EOF
+# Backend カバレッジ詳細
+
+> **最終更新**: $TIMESTAMP  
+> **コミット**: \`$COMMIT_HASH\`
+
+## ユニットテスト カバレッジ
+
+| メトリクス | カバレッジ |
+|----------|----------|
+| Lines | ${BACKEND_UNIT_LINES}% |
+| Statements | ${BACKEND_UNIT_STMTS}% |
+| Functions | ${BACKEND_UNIT_FUNCS}% |
+| Branches | ${BACKEND_UNIT_BRANCHES}% |
+
+### HTMLレポート
+
+詳細なカバレッジレポート（ファイル別・行別）:
+\`apps/backend/coverage/lcov-report/index.html\`
+
+### 実行方法
+
+\`\`\`bash
+cd apps/backend
+pnpm test:cov
+\`\`\`
+
+## E2Eテスト カバレッジ
+
+| メトリクス | カバレッジ |
+|----------|----------|
+| Lines | ${BACKEND_E2E_LINES}% |
+| Statements | ${BACKEND_E2E_STMTS}% |
+| Functions | ${BACKEND_E2E_FUNCS}% |
+| Branches | ${BACKEND_E2E_BRANCHES}% |
+
+### HTMLレポート
+
+詳細なカバレッジレポート（ファイル別・行別）:
+\`apps/backend/coverage-e2e/lcov-report/index.html\`
+
+### 実行方法
+
+\`\`\`bash
+cd apps/backend
+pnpm test:e2e:cov
+\`\`\`
+
+## モジュール別カバレッジ
+
+Backendは以下のモジュールで構成されています：
+
+- **Common**: 共通ユーティリティ、デコレータ、フィルタ
+- **Institution**: 金融機関管理
+- **Transaction**: 取引データ管理
+- **Category**: カテゴリ管理
+- **Sync**: データ同期
+- **Chart**: チャートデータ生成
+- **Health**: ヘルスチェック
+
+詳細なモジュール別カバレッジは \`apps/backend/coverage/lcov-report/index.html\` を参照してください。
+
+## カバレッジ向上のヒント
+
+### ユニットテストで重点的にカバーすべき部分
+
+1. **Use Cases**: ビジネスロジックの中核
+2. **Services**: ドメインロジック
+3. **Validators**: バリデーションロジック
+4. **Handlers**: イベントハンドラ
+
+### E2Eテストで重点的にカバーすべき部分
+
+1. **API Endpoints**: エンドポイント全体の動作
+2. **Integration**: モジュール間連携
+3. **Error Handling**: エラーケース
+4. **Authentication**: 認証・認可
+
+## 参考資料
+
+- [NestJS Testing](https://docs.nestjs.com/fundamentals/testing)
+- [Jest Configuration](../../apps/backend/package.json)
+EOF
+
+# Frontend詳細レポートを生成
+echo "📝 Frontend詳細レポートを生成中..."
+cat > "$MODULE_DIR/frontend.md" << EOF
+# Frontend カバレッジ詳細
+
+> **最終更新**: $TIMESTAMP  
+> **コミット**: \`$COMMIT_HASH\`
+
+## ユニットテスト カバレッジ
+
+| メトリクス | カバレッジ |
+|----------|----------|
+| Lines | ${FRONTEND_UNIT_LINES}% |
+| Statements | ${FRONTEND_UNIT_STMTS}% |
+| Functions | ${FRONTEND_UNIT_FUNCS}% |
+| Branches | ${FRONTEND_UNIT_BRANCHES}% |
+
+### HTMLレポート
+
+詳細なカバレッジレポート（ファイル別・行別）:
+\`apps/frontend/coverage/lcov-report/index.html\`
+
+### 実行方法
+
+\`\`\`bash
+cd apps/frontend
+pnpm test -- --coverage
+\`\`\`
+
+## コンポーネント別カバレッジ
+
+Frontendは以下のコンポーネントで構成されています：
+
+- **Pages**: Next.jsページコンポーネント
+- **Components**: 再利用可能なUIコンポーネント
+- **Hooks**: カスタムReactフック
+- **Utils**: ユーティリティ関数
+- **API Client**: APIクライアント
+
+詳細なコンポーネント別カバレッジは \`apps/frontend/coverage/lcov-report/index.html\` を参照してください。
+
+## E2Eテスト
+
+E2Eテストは Playwright で実行されます。
+
+### 実行方法
+
+\`\`\`bash
+cd apps/frontend
+pnpm test:e2e
+\`\`\`
+
+### E2Eテストレポート
+
+\`\`\`bash
+# レポートを表示
+pnpm test:e2e:report
+\`\`\`
+
+## カバレッジ向上のヒント
+
+### ユニットテストで重点的にカバーすべき部分
+
+1. **Custom Hooks**: ビジネスロジックを含むフック
+2. **Utility Functions**: 共通ユーティリティ
+3. **API Client**: API呼び出しロジック
+4. **State Management**: Zustand store
+
+### E2Eテストで重点的にカバーすべき部分
+
+1. **User Flows**: ユーザージャーニー全体
+2. **Form Submission**: フォーム送信とバリデーション
+3. **Navigation**: ページ遷移
+4. **Error Handling**: エラー表示
+
+## 参考資料
+
+- [Next.js Testing](https://nextjs.org/docs/testing)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Playwright](https://playwright.dev/)
+- [Jest Configuration](../../apps/frontend/jest.config.js)
+EOF
+
+# カバレッジ履歴ファイルを初期化（存在しない場合）
+HISTORY_FILE="$OUTPUT_DIR/coverage-history.md"
+if [ ! -f "$HISTORY_FILE" ]; then
+  echo "📝 カバレッジ履歴ファイルを初期化中..."
+  cat > "$HISTORY_FILE" << EOF
+# カバレッジ履歴
+
+このドキュメントは、カバレッジの推移を記録します。
+
+## 履歴
+
+| 日時 | コミット | Backend (Unit) | Backend (E2E) | Frontend (Unit) |
+|-----|---------|---------------|--------------|----------------|
+| $TIMESTAMP | \`$COMMIT_HASH\` | Lines: ${BACKEND_UNIT_LINES}%, Stmts: ${BACKEND_UNIT_STMTS}%, Funcs: ${BACKEND_UNIT_FUNCS}%, Branches: ${BACKEND_UNIT_BRANCHES}% | Lines: ${BACKEND_E2E_LINES}%, Stmts: ${BACKEND_E2E_STMTS}%, Funcs: ${BACKEND_E2E_FUNCS}%, Branches: ${BACKEND_E2E_BRANCHES}% | Lines: ${FRONTEND_UNIT_LINES}%, Stmts: ${FRONTEND_UNIT_STMTS}%, Funcs: ${FRONTEND_UNIT_FUNCS}%, Branches: ${FRONTEND_UNIT_BRANCHES}% |
+
+## 使用方法
+
+カバレッジ履歴を更新するには：
+
+\`\`\`bash
+./scripts/test/update-coverage-history.sh
+\`\`\`
+
+## 目標
+
+- **全モジュール**: 80%以上を維持
+- **トレンド**: 継続的な改善
+
+## 改善アクション
+
+カバレッジが低下した場合は、以下を確認：
+
+1. 新規追加コードにテストが含まれているか
+2. リファクタリング時にテストが削除されていないか
+3. カバレッジ低下の原因となるコミットを特定
+
+EOF
+fi
+
+echo ""
+echo "✅ カバレッジレポート生成完了"
+echo ""
+echo "📊 生成されたレポート:"
+echo "  - メインレポート: $REPORT_FILE"
+echo "  - Backend詳細: $MODULE_DIR/backend.md"
+echo "  - Frontend詳細: $MODULE_DIR/frontend.md"
+echo "  - カバレッジ履歴: $HISTORY_FILE"
+echo ""
+echo "📂 HTMLレポート:"
+echo "  - Backend Unit: apps/backend/coverage/lcov-report/index.html"
+echo "  - Backend E2E: apps/backend/coverage-e2e/lcov-report/index.html"
+echo "  - Frontend Unit: apps/frontend/coverage/lcov-report/index.html"
+
