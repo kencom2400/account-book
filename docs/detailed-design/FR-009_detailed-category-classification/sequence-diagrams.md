@@ -137,6 +137,13 @@ sequenceDiagram
     Note over TxSvc: subcategory_id: "food_cafe"<br/>classification_confidence: 0.98<br/>merchant_id: "merchant_002"
 ```
 
+**パフォーマンス考慮事項**:
+
+- `aliases`カラムはJSON型のため、`LIKE`検索はインデックスが効きません
+- MySQL 8.0以降では`JSON_CONTAINS`や`JSON_SEARCH`の使用を推奨
+- または`aliases`テーブルを別テーブルに正規化することも有効
+- 実装時は店舗マスタをインメモリキャッシュに保持してクエリ回数を削減
+
 ---
 
 ## 詳細費目自動分類フロー（キーワードマッチング）
@@ -189,6 +196,14 @@ sequenceDiagram
     TxSvc->>TxSvc: 取引データにサブカテゴリを設定
     Note over TxSvc: subcategory_id: "transport_train_bus"<br/>classification_confidence: 0.80<br/>merchant_id: null
 ```
+
+**パフォーマンス考慮事項**:
+
+- 現状の総当たり的なキーワードマッチングは、サブカテゴリ・キーワード数が増加すると性能低下の可能性
+- 将来の改善案:
+  - **転置インデックス**: キーワードからサブカテゴリIDを直接引けるインデックスを事前構築
+  - **全文検索エンジン**: ElasticsearchやMeilisearchの活用
+  - **機械学習モデル**: テキスト分類モデルの導入
 
 ---
 

@@ -23,43 +23,59 @@ stateDiagram-v2
 
     Unclassified --> Classifying: 自動分類開始
     Classifying --> AutoClassified_High: 高信頼度(90%以上)
-    Classifying --> AutoClassified_Medium: 中信頼度(70-89%)
-    Classifying --> AutoClassified_Low: 低信頼度(70%未満)
+    Classifying --> AutoClassified_Medium: 中信頼度(70%以上90%未満)
+    Classifying --> AutoClassified_Low: 低信頼度(50%以上70%未満)
     Classifying --> Unclassified: 分類失敗
 
-    AutoClassified_High --> ManuallyApproved: ユーザー承認
-    AutoClassified_Medium --> ManuallyApproved: ユーザー承認
+    AutoClassified_High --> Confirmed: ユーザー承認
+    AutoClassified_Medium --> Confirmed: ユーザー承認
     AutoClassified_Low --> ManuallyReviewed: ユーザー確認
 
-    ManuallyReviewed --> ManuallyEdited: 費目変更
-    ManuallyEdited --> ManuallyApproved: 保存
+    ManuallyReviewed --> ManuallyEditing: 費目変更開始
+    ManuallyEditing --> Confirmed: 費目選択・保存
 
-    Unclassified --> ManuallyClassifying: 手動分類開始
-    ManuallyClassifying --> ManuallyEdited: 費目選択
+    Unclassified --> ManuallyEditing: 手動分類開始
 
     AutoClassified_High --> ManuallyEditing: 費目変更開始
     AutoClassified_Medium --> ManuallyEditing: 費目変更開始
     AutoClassified_Low --> ManuallyEditing: 費目変更開始
-    ManuallyEditing --> ManuallyEdited: 費目選択
 
-    ManuallyApproved --> [*]: 確定
-    ManuallyEdited --> [*]: 確定
+    Confirmed --> [*]: 確定
 
     note right of AutoClassified_High
         店舗マスタ一致
-        信頼度: 90-100%
+        信頼度: 90%以上
     end note
 
     note right of AutoClassified_Medium
         キーワード一致
-        信頼度: 70-89%
+        信頼度: 70%以上90%未満
     end note
 
     note right of AutoClassified_Low
         金額推測・デフォルト
-        信頼度: 50-69%
+        信頼度: 50%以上70%未満
+    end note
+
+    note right of ManuallyEditing
+        一時状態
+        UIで費目選択中
+    end note
+
+    note right of Confirmed
+        最終状態
+        手動/自動問わず確定済み
     end note
 ```
+
+**状態の説明**:
+
+- `Unclassified`: 未分類（初期状態）
+- `Classifying`: 分類処理中（一時状態）
+- `AutoClassified_*`: 自動分類完了（信頼度別）
+- `ManuallyReviewed`: ユーザーが確認中（一時状態）
+- `ManuallyEditing`: ユーザーが編集中（一時状態）
+- `Confirmed`: 確定済み（最終状態）- 手動/自動問わず確定されたすべての取引
 
 ### サブカテゴリのライフサイクル
 
@@ -158,46 +174,48 @@ stateDiagram-v2
 
 ### 状態定義
 
-| 状態                  | 説明                       | confidence | reason                    |
-| --------------------- | -------------------------- | ---------- | ------------------------- |
-| Unclassified          | 未分類                     | null       | null                      |
-| AutoClassified_High   | 自動分類（高信頼度）       | 0.90-1.00  | MERCHANT_MATCH            |
-| AutoClassified_Medium | 自動分類（中信頼度）       | 0.70-0.89  | KEYWORD_MATCH             |
-| AutoClassified_Low    | 自動分類（低信頼度）       | 0.50-0.69  | AMOUNT_INFERENCE, DEFAULT |
-| ManuallyClassifying   | 手動分類中（一時状態）     | -          | -                         |
-| ManuallyReviewed      | ユーザー確認済み（未承認） | -          | -                         |
-| ManuallyEdited        | ユーザーが手動編集         | 1.00       | MANUAL                    |
-| ManuallyApproved      | ユーザーが自動分類を承認   | 1.00       | 元のreasonを保持          |
+| 状態                  | 説明                             | confidence       | reason                    |
+| --------------------- | -------------------------------- | ---------------- | ------------------------- |
+| Unclassified          | 未分類                           | null             | null                      |
+| Classifying           | 分類処理中（一時状態）           | -                | -                         |
+| AutoClassified_High   | 自動分類（高信頼度）             | 0.90以上         | MERCHANT_MATCH            |
+| AutoClassified_Medium | 自動分類（中信頼度）             | 0.70以上0.90未満 | KEYWORD_MATCH             |
+| AutoClassified_Low    | 自動分類（低信頼度）             | 0.50以上0.70未満 | AMOUNT_INFERENCE, DEFAULT |
+| ManuallyReviewed      | ユーザー確認中（一時状態）       | -                | -                         |
+| ManuallyEditing       | ユーザーが費目編集中（一時状態） | -                | -                         |
+| Confirmed             | 確定済み（最終状態）             | 0.50-1.00        | MANUAL または元のreason   |
 
 ### 状態遷移ルール
 
-#### 自動分類 → 手動編集
+#### 自動分類 → 手動編集 → 確定
 
 ```typescript
-// Before
+// Before (AutoClassified_High)
 transaction.subcategoryId = 'food_cafe';
 transaction.classificationConfidence = 0.98;
 transaction.classificationReason = 'MERCHANT_MATCH';
 
-// User edits
+// User starts editing → ManuallyEditing (一時状態)
+
+// User selects and saves → Confirmed
 transaction.subcategoryId = 'food_dining_out'; // 変更
 transaction.classificationConfidence = 1.0; // 手動確定
 transaction.classificationReason = 'MANUAL'; // 理由更新
-transaction.manuallyEditedAt = new Date(); // 編集日時記録
+transaction.confirmedAt = new Date(); // 確定日時記録
 ```
 
-#### 自動分類 → 承認
+#### 自動分類 → 承認 → 確定
 
 ```typescript
-// Before
+// Before (AutoClassified_High)
 transaction.subcategoryId = 'food_cafe';
 transaction.classificationConfidence = 0.98;
 transaction.classificationReason = 'MERCHANT_MATCH';
 
-// User approves
+// User approves → Confirmed
 transaction.classificationConfidence = 1.0; // 信頼度を100%に
 transaction.classificationReason = 'MERCHANT_MATCH'; // 理由は保持
-transaction.approvedAt = new Date(); // 承認日時記録
+transaction.confirmedAt = new Date(); // 確定日時記録
 ```
 
 ### データベース表現
@@ -217,12 +235,17 @@ CREATE TABLE transactions (
     'MANUAL'
   ),
   merchant_id VARCHAR(50), -- 店舗マスタID（該当する場合）
-  manually_edited_at TIMESTAMP NULL, -- 手動編集日時
-  approved_at TIMESTAMP NULL, -- 承認日時
+  confirmed_at TIMESTAMP NULL, -- 確定日時（手動/自動問わず）
   FOREIGN KEY (subcategory_id) REFERENCES subcategories(id),
   FOREIGN KEY (merchant_id) REFERENCES merchants(id)
 );
 ```
+
+**カラムの説明**:
+
+- `classification_confidence`: 分類信頼度（0.00-1.00）、確定後は1.00
+- `classification_reason`: 分類理由、手動編集の場合は'MANUAL'
+- `confirmed_at`: 確定日時、NULL = 未確定、NOT NULL = 確定済み
 
 ---
 
