@@ -1,3 +1,5 @@
+import { TextNormalizer } from '../utils/text-normalizer.util';
+
 /**
  * 店舗マスタ Domain Entity
  * 自動分類で使用する店舗情報を表すドメインエンティティ
@@ -34,25 +36,15 @@ export class Merchant {
    * @returns true: 一致する
    */
   public matchesDescription(description: string): boolean {
-    const normalizedDescription = this.normalizeText(description);
-
     // 店舗名との一致チェック
-    if (normalizedDescription.includes(this.normalizeText(this.name))) {
+    if (TextNormalizer.includes(description, this.name)) {
       return true;
     }
 
     // 別名との一致チェック
     return this.aliases.some((alias) =>
-      normalizedDescription.includes(this.normalizeText(alias)),
+      TextNormalizer.includes(description, alias),
     );
-  }
-
-  /**
-   * テキストの正規化
-   * 大文字小文字を統一し、スペースを削除
-   */
-  private normalizeText(text: string): string {
-    return text.toLowerCase().replace(/\s+/g, '');
   }
 
   /**

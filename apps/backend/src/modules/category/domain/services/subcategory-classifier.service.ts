@@ -1,9 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { CategoryType } from '@account-book/types';
 import { ClassificationConfidence } from '../value-objects/classification-confidence.vo';
 import { SubcategoryClassification } from '../value-objects/subcategory-classification.vo';
 import { ClassificationReason } from '../enums/classification-reason.enum';
 import { ISubcategoryRepository } from '../repositories/subcategory.repository.interface';
-import { IMerchantRepository } from '../repositories/merchant.repository.interface';
 import { MerchantMatcherService } from './merchant-matcher.service';
 import { KeywordMatcherService } from './keyword-matcher.service';
 
@@ -11,17 +11,13 @@ import { KeywordMatcherService } from './keyword-matcher.service';
  * サブカテゴリ分類器 Domain Service
  * 取引データのサブカテゴリ自動分類を統括
  */
+@Injectable()
 export class SubcategoryClassifierService {
-  private readonly merchantMatcher: MerchantMatcherService;
-  private readonly keywordMatcher: KeywordMatcherService;
-
   constructor(
     private readonly subcategoryRepository: ISubcategoryRepository,
-    merchantRepository: IMerchantRepository,
-  ) {
-    this.merchantMatcher = new MerchantMatcherService(merchantRepository);
-    this.keywordMatcher = new KeywordMatcherService();
-  }
+    private readonly merchantMatcher: MerchantMatcherService,
+    private readonly keywordMatcher: KeywordMatcherService,
+  ) {}
 
   /**
    * 取引をサブカテゴリに分類
@@ -65,10 +61,12 @@ export class SubcategoryClassifierService {
       subcategories,
     );
     if (keywordMatch) {
-      // キーワードマッチの信頼度は中程度（0.70-0.85）
-      const confidence = new ClassificationConfidence(0.8);
+      // キーワードマッチのスコアを信頼度として利用
+      // スコアが低い場合は最低限の信頼度（0.7）を保証
+      const confidenceValue = Math.max(keywordMatch.score, 0.7);
+      const confidence = new ClassificationConfidence(confidenceValue);
       return new SubcategoryClassification(
-        keywordMatch.id,
+        keywordMatch.subcategory.id,
         confidence,
         ClassificationReason.KEYWORD_MATCH,
       );
@@ -85,6 +83,14 @@ export class SubcategoryClassifierService {
     // 5. デフォルト（その他）
     const defaultSubcategory =
       await this.subcategoryRepository.findDefault(mainCategory);
+
+    // デフォルトが見つからない場合はエラー
+    if (!defaultSubcategory) {
+      throw new Error(
+        `Default subcategory not found for category: ${mainCategory}`,
+      );
+    }
+
     const defaultConfidence = new ClassificationConfidence(0.5);
     return new SubcategoryClassification(
       defaultSubcategory.id,

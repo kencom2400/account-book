@@ -37,9 +37,9 @@ export interface ISubcategoryRepository {
    * デフォルトサブカテゴリを取得
    * カテゴリタイプごとのデフォルト費目（例: "その他支出"）
    * @param categoryType カテゴリタイプ
-   * @returns サブカテゴリ
+   * @returns サブカテゴリ | null
    */
-  findDefault(categoryType: CategoryType): Promise<Subcategory>;
+  findDefault(categoryType: CategoryType): Promise<Subcategory | null>;
 
   /**
    * サブカテゴリを保存

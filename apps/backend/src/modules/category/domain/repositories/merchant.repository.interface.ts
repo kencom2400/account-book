@@ -42,6 +42,15 @@ export interface IMerchantRepository {
   search(query: string): Promise<Merchant[]>;
 
   /**
+   * 取引説明から店舗を検索
+   * 店舗名または別名に部分一致する最初の店舗を返す
+   * パフォーマンスを考慮し、Infrastructure層でDB検索を実施
+   * @param description 取引説明
+   * @returns 店舗 | null
+   */
+  searchByDescription(description: string): Promise<Merchant | null>;
+
+  /**
    * 店舗を保存
    * @param merchant 店舗
    * @returns 保存された店舗

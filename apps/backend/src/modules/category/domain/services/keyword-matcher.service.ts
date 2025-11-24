@@ -1,10 +1,21 @@
+import { Injectable } from '@nestjs/common';
 import { CategoryType } from '@account-book/types';
 import { Subcategory } from '../entities/subcategory.entity';
+import { TextNormalizer } from '../utils/text-normalizer.util';
+
+/**
+ * キーワードマッチングの結果
+ */
+export interface KeywordMatchResult {
+  subcategory: Subcategory;
+  score: number;
+}
 
 /**
  * キーワードマッチャー Domain Service
  * キーワードによるサブカテゴリマッチングを担当
  */
+@Injectable()
 export class KeywordMatcherService {
   // カテゴリ別キーワードマップ
   // 実際の実装ではデータベースや設定ファイルから読み込む
@@ -53,17 +64,19 @@ export class KeywordMatcherService {
 
   /**
    * キーワードマッチングでサブカテゴリを取得
+   * マッチングスコアも併せて返す
+   *
    * @param text 取引説明
    * @param category カテゴリタイプ
    * @param subcategories 候補となるサブカテゴリ一覧
-   * @returns マッチしたサブカテゴリ | null
+   * @returns マッチしたサブカテゴリとスコア | null
    */
   public match(
     text: string,
     category: CategoryType,
     subcategories: Subcategory[],
-  ): Subcategory | null {
-    const normalizedText = this.normalizeText(text);
+  ): KeywordMatchResult | null {
+    const normalizedText = TextNormalizer.normalize(text);
     const categoryKeywords = this.keywordMap.get(category);
 
     if (!categoryKeywords) {
@@ -71,7 +84,7 @@ export class KeywordMatcherService {
     }
 
     // 各サブカテゴリのキーワードとマッチングスコアを計算
-    let bestMatch: { subcategory: Subcategory; score: number } | null = null;
+    let bestMatch: KeywordMatchResult | null = null;
 
     for (const subcategory of subcategories) {
       const keywords = categoryKeywords.get(subcategory.id);
@@ -85,17 +98,24 @@ export class KeywordMatcherService {
       }
     }
 
-    return bestMatch?.subcategory || null;
+    return bestMatch;
   }
 
   /**
    * テキストからキーワードを抽出
+   *
+   * NOTE: 現在はスペースで分割する簡易実装
+   * 日本語の取引明細（単語がスペースで区切られていない）には
+   * 有効ではないため、将来的に形態素解析ライブラリ（kuromoji.js等）の
+   * 導入を検討する必要がある
+   *
    * @param text テキスト
    * @returns キーワード配列
    */
   public extractKeywords(text: string): string[] {
-    const normalized = this.normalizeText(text);
+    const normalized = TextNormalizer.normalize(text);
     // 簡易的な実装：スペースで分割
+    // TODO: 形態素解析の導入（kuromoji.js等）
     return normalized.split(/\s+/).filter((word) => word.length > 0);
   }
 
@@ -109,7 +129,7 @@ export class KeywordMatcherService {
     let matchCount = 0;
 
     for (const keyword of keywords) {
-      const normalizedKeyword = this.normalizeText(keyword);
+      const normalizedKeyword = TextNormalizer.normalize(keyword);
       if (text.includes(normalizedKeyword)) {
         matchCount++;
       }
@@ -117,19 +137,5 @@ export class KeywordMatcherService {
 
     // マッチ率をスコアとして返す
     return matchCount > 0 ? matchCount / keywords.length : 0;
-  }
-
-  /**
-   * テキストの正規化
-   * 小文字化、全角→半角変換、記号削除
-   */
-  private normalizeText(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
-        String.fromCharCode(s.charCodeAt(0) - 0xfee0),
-      )
-      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
-      .trim();
   }
 }
