@@ -16,6 +16,11 @@ describe('NotificationCleanupService', () => {
   let consoleWarnSpy: jest.SpyInstance;
   let consoleLogSpy: jest.SpyInstance;
 
+  // 型推論を使用してサービスの戻り値の型を取得
+  type CleanupResult = Awaited<
+    ReturnType<NotificationCleanupService['manualCleanup']>
+  >;
+
   beforeEach(async () => {
     // 意図的なエラーテストのLogger出力を抑制
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -191,8 +196,7 @@ describe('NotificationCleanupService', () => {
       mockRepository.deleteMany.mockResolvedValue();
 
       // Act
-      const result: { deletedCount: number; totalCount: number } =
-        await service.manualCleanup();
+      const result: CleanupResult = await service.manualCleanup();
 
       // Assert
       expect(result.deletedCount).toBe(1);
@@ -218,8 +222,7 @@ describe('NotificationCleanupService', () => {
       mockRepository.findAll.mockResolvedValue(notifications);
 
       // Act
-      const result: { deletedCount: number; totalCount: number } =
-        await service.manualCleanup();
+      const result: CleanupResult = await service.manualCleanup();
 
       // Assert
       expect(result.deletedCount).toBe(0);

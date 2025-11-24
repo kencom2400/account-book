@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ConnectionStatus } from '../../domain/value-objects/connection-status.enum';
 import { ConnectionCheckResult } from '../../domain/value-objects/connection-check-result.vo';
 import { isHttpError } from '../../../../common/errors/http-error.interface';
@@ -14,8 +15,25 @@ import type {
 @Injectable()
 export class ConnectionCheckerService {
   private readonly logger = new Logger(ConnectionCheckerService.name);
-  private readonly TIMEOUT_MS = 10000; // 10秒（要件より）
-  private readonly MAX_RESPONSE_TIME_MS = 5000; // 5秒（要件より）
+  // ConfigServiceで環境変数を管理（デフォルト: 要件より）
+  private readonly TIMEOUT_MS: number;
+  private readonly MAX_RESPONSE_TIME_MS: number;
+  private readonly MAX_PARALLEL: number;
+
+  constructor(private readonly configService: ConfigService) {
+    this.TIMEOUT_MS = this.configService.get<number>(
+      'HEALTH_CHECK_TIMEOUT_MS',
+      10000,
+    );
+    this.MAX_RESPONSE_TIME_MS = this.configService.get<number>(
+      'HEALTH_CHECK_MAX_RESPONSE_TIME_MS',
+      5000,
+    );
+    this.MAX_PARALLEL = this.configService.get<number>(
+      'HEALTH_CHECK_MAX_PARALLEL',
+      5,
+    );
+  }
 
   /**
    * 単一の金融機関への接続をチェック
@@ -109,17 +127,16 @@ export class ConnectionCheckerService {
 
   /**
    * 複数の金融機関への接続を並列チェック
-   * 最大5件同時実行（要件より）
+   * ConfigServiceで環境変数を管理（デフォルト: 5件同時実行）
    */
   async checkMultipleConnections(
     institutions: IInstitutionInfo[],
   ): Promise<ConnectionCheckResult[]> {
-    const MAX_PARALLEL = 5;
     const results: ConnectionCheckResult[] = [];
 
     // チャンク単位で処理
-    for (let i = 0; i < institutions.length; i += MAX_PARALLEL) {
-      const chunk = institutions.slice(i, i + MAX_PARALLEL);
+    for (let i = 0; i < institutions.length; i += this.MAX_PARALLEL) {
+      const chunk = institutions.slice(i, i + this.MAX_PARALLEL);
       const chunkResults = await Promise.all(
         chunk.map((inst) =>
           this.checkConnection(inst.id, inst.type, inst.apiClient),

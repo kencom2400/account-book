@@ -81,7 +81,7 @@ export class SyncController {
       newRecords: r.newRecords,
       duplicateRecords: r.duplicateRecords,
       errorMessage: r.errorMessage,
-      retryCount: 0, // TODO: SyncResultにretryCountを追加
+      retryCount: r.retryCount,
     }));
 
     return {
