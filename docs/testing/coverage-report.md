@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-11-24 17:24:04  
-> **コミット**: `44f2308`  
-> **ブランチ**: `feature/issue-284-coverage-documentation`
+> **最終更新**: 2025-11-24 23:05:13  
+> **コミット**: `5329d9e`  
+> **ブランチ**: `feature/issue-290-domain-layer-implementation`
 
 ## 概要
 
@@ -16,11 +16,11 @@
 
 ## モジュール別カバレッジサマリー
 
-| モジュール      | Lines | Statements | Functions | Branches |
-| --------------- | ----- | ---------- | --------- | -------- |
-| Backend (Unit)  | 0%    | 0%         | 0%        | 0%       |
-| Backend (E2E)   | 0%    | 0%         | 0%        | 0%       |
-| Frontend (Unit) | 0%    | 0%         | 0%        | 0%       |
+| モジュール | Lines | Statements | Functions | Branches |
+|----------|-------|------------|-----------|----------|
+| Backend (Unit) | 0% | 0% | 0% | 0% |
+| Backend (E2E) | 0% | 0% | 0% | 0% |
+| Frontend (Unit) | 0% | 0% | 0% | 0% |
 
 ## 詳細レポート
 
@@ -38,7 +38,6 @@
 ### 1. 未カバーコードの特定
 
 各モジュールで生成されるHTMLレポートを確認：
-
 - Backend: `apps/backend/coverage/lcov-report/index.html`
 - Frontend: `apps/frontend/coverage/lcov-report/index.html`
 
@@ -65,8 +64,6 @@
 # 履歴を更新（オプション）
 ./scripts/test/update-coverage-history.sh
 ```
-
-詳細な使用方法については [カバレッジ使用ガイド](./coverage-usage-guide.md) を参照してください。
 
 ### 個別モジュールのカバレッジ確認
 

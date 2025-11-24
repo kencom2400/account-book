@@ -20,7 +20,7 @@ export class TextNormalizer {
         String.fromCharCode(s.charCodeAt(0) - 0xfee0),
       )
       .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
-      .replace(/\s+/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 

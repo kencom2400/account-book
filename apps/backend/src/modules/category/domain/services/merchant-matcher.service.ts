@@ -17,8 +17,8 @@ export class MerchantMatcherService {
    * @param description 取引説明
    * @returns マッチした店舗 | null
    */
-  public async match(description: string): Promise<Merchant | null> {
+  public match(description: string): Promise<Merchant | null> {
     // リポジトリ層でDB検索を実施（パフォーマンス最適化）
-    return await this.merchantRepository.searchByDescription(description);
+    return this.merchantRepository.searchByDescription(description);
   }
 }

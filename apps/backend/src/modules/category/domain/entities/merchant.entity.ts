@@ -1,4 +1,5 @@
 import { TextNormalizer } from '../utils/text-normalizer.util';
+import { ClassificationConfidence } from '../value-objects/classification-confidence.vo';
 
 /**
  * 店舗マスタ Domain Entity
@@ -10,23 +11,10 @@ export class Merchant {
     public readonly name: string,
     public readonly aliases: string[],
     public readonly defaultSubcategoryId: string,
-    public readonly confidence: number,
+    public readonly confidence: ClassificationConfidence,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
-  ) {
-    this.validateConfidence(confidence);
-  }
-
-  /**
-   * 信頼度のバリデーション
-   */
-  private validateConfidence(confidence: number): void {
-    if (confidence < 0 || confidence > 1) {
-      throw new Error(
-        `Merchant confidence must be between 0.00 and 1.00, got ${confidence}`,
-      );
-    }
-  }
+  ) {}
 
   /**
    * 取引説明が店舗に一致するかチェック
@@ -57,7 +45,7 @@ export class Merchant {
   /**
    * 信頼度を取得
    */
-  public getConfidence(): number {
+  public getConfidence(): ClassificationConfidence {
     return this.confidence;
   }
 
@@ -70,7 +58,7 @@ export class Merchant {
       name: this.name,
       aliases: this.aliases,
       defaultSubcategoryId: this.defaultSubcategoryId,
-      confidence: this.confidence,
+      confidence: this.confidence.getValue(),
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

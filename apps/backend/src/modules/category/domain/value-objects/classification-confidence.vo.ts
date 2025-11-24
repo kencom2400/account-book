@@ -8,6 +8,9 @@
  * - 低信頼度: 0.00 - 0.69 (70%未満)
  */
 export class ClassificationConfidence {
+  private static readonly HIGH_THRESHOLD = 0.9;
+  private static readonly MEDIUM_THRESHOLD = 0.7;
+
   private readonly value: number;
 
   constructor(value: number) {
@@ -40,7 +43,7 @@ export class ClassificationConfidence {
    * @returns true: 高信頼度
    */
   public isHigh(): boolean {
-    return this.value >= 0.9;
+    return this.value >= ClassificationConfidence.HIGH_THRESHOLD;
   }
 
   /**
@@ -48,7 +51,10 @@ export class ClassificationConfidence {
    * @returns true: 中信頼度
    */
   public isMedium(): boolean {
-    return this.value >= 0.7 && this.value < 0.9;
+    return (
+      this.value >= ClassificationConfidence.MEDIUM_THRESHOLD &&
+      this.value < ClassificationConfidence.HIGH_THRESHOLD
+    );
   }
 
   /**
@@ -56,7 +62,7 @@ export class ClassificationConfidence {
    * @returns true: 低信頼度
    */
   public isLow(): boolean {
-    return this.value < 0.7;
+    return this.value < ClassificationConfidence.MEDIUM_THRESHOLD;
   }
 
   /**
@@ -92,5 +98,19 @@ export class ClassificationConfidence {
    */
   public equals(other: ClassificationConfidence): boolean {
     return this.value === other.value;
+  }
+
+  /**
+   * 高信頼度の閾値を取得
+   */
+  public static getHighThreshold(): number {
+    return ClassificationConfidence.HIGH_THRESHOLD;
+  }
+
+  /**
+   * 中信頼度の閾値を取得
+   */
+  public static getMediumThreshold(): number {
+    return ClassificationConfidence.MEDIUM_THRESHOLD;
   }
 }

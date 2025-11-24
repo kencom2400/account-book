@@ -13,6 +13,10 @@ import { KeywordMatcherService } from './keyword-matcher.service';
  */
 @Injectable()
 export class SubcategoryClassifierService {
+  // 信頼度の最小値
+  private static readonly MINIMUM_KEYWORD_MATCH_CONFIDENCE = 0.7;
+  private static readonly DEFAULT_CLASSIFICATION_CONFIDENCE = 0.5;
+
   constructor(
     private readonly subcategoryRepository: ISubcategoryRepository,
     private readonly merchantMatcher: MerchantMatcherService,
@@ -43,7 +47,7 @@ export class SubcategoryClassifierService {
     // 1. 店舗マスタ照合
     const merchant = await this.merchantMatcher.match(description);
     if (merchant) {
-      const confidence = new ClassificationConfidence(merchant.getConfidence());
+      const confidence = merchant.getConfidence();
       return new SubcategoryClassification(
         merchant.getDefaultSubcategoryId(),
         confidence,
@@ -63,7 +67,10 @@ export class SubcategoryClassifierService {
     if (keywordMatch) {
       // キーワードマッチのスコアを信頼度として利用
       // スコアが低い場合は最低限の信頼度（0.7）を保証
-      const confidenceValue = Math.max(keywordMatch.score, 0.7);
+      const confidenceValue = Math.max(
+        keywordMatch.score,
+        SubcategoryClassifierService.MINIMUM_KEYWORD_MATCH_CONFIDENCE,
+      );
       const confidence = new ClassificationConfidence(confidenceValue);
       return new SubcategoryClassification(
         keywordMatch.subcategory.id,
@@ -91,7 +98,9 @@ export class SubcategoryClassifierService {
       );
     }
 
-    const defaultConfidence = new ClassificationConfidence(0.5);
+    const defaultConfidence = new ClassificationConfidence(
+      SubcategoryClassifierService.DEFAULT_CLASSIFICATION_CONFIDENCE,
+    );
     return new SubcategoryClassification(
       defaultSubcategory.id,
       defaultConfidence,
