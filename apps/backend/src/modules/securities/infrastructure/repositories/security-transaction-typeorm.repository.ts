@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, EntityManager } from 'typeorm';
 import { SecurityTransactionOrmEntity } from '../entities/security-transaction.orm-entity';
 import { SecurityTransactionEntity } from '../../domain/entities/security-transaction.entity';
 import { ISecurityTransactionRepository } from '../../domain/repositories/securities.repository.interface';
@@ -18,14 +18,26 @@ export class SecurityTransactionTypeOrmRepository
     private readonly repository: Repository<SecurityTransactionOrmEntity>,
   ) {}
 
-  async create(transaction: SecurityTransactionEntity): Promise<void> {
+  async create(
+    transaction: SecurityTransactionEntity,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
     const ormEntity: SecurityTransactionOrmEntity = this.toOrm(transaction);
-    await this.repository.save(ormEntity);
+    await repository.save(ormEntity);
   }
 
-  async findById(id: string): Promise<SecurityTransactionEntity | null> {
+  async findById(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<SecurityTransactionEntity | null> {
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
     const ormEntity: SecurityTransactionOrmEntity | null =
-      await this.repository.findOne({
+      await repository.findOne({
         where: { id },
       });
 
@@ -38,12 +50,15 @@ export class SecurityTransactionTypeOrmRepository
 
   async findByAccountId(
     accountId: string,
+    manager?: EntityManager,
   ): Promise<SecurityTransactionEntity[]> {
-    const ormEntities: SecurityTransactionOrmEntity[] =
-      await this.repository.find({
-        where: { securitiesAccountId: accountId },
-        order: { transactionDate: 'DESC' },
-      });
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
+    const ormEntities: SecurityTransactionOrmEntity[] = await repository.find({
+      where: { securitiesAccountId: accountId },
+      order: { transactionDate: 'DESC' },
+    });
 
     return ormEntities.map((entity: SecurityTransactionOrmEntity) =>
       this.toDomain(entity),
@@ -54,28 +69,40 @@ export class SecurityTransactionTypeOrmRepository
     accountId: string,
     startDate: Date,
     endDate: Date,
+    manager?: EntityManager,
   ): Promise<SecurityTransactionEntity[]> {
-    const ormEntities: SecurityTransactionOrmEntity[] =
-      await this.repository.find({
-        where: {
-          securitiesAccountId: accountId,
-          transactionDate: Between(startDate, endDate),
-        },
-        order: { transactionDate: 'DESC' },
-      });
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
+    const ormEntities: SecurityTransactionOrmEntity[] = await repository.find({
+      where: {
+        securitiesAccountId: accountId,
+        transactionDate: Between(startDate, endDate),
+      },
+      order: { transactionDate: 'DESC' },
+    });
 
     return ormEntities.map((entity: SecurityTransactionOrmEntity) =>
       this.toDomain(entity),
     );
   }
 
-  async update(transaction: SecurityTransactionEntity): Promise<void> {
+  async update(
+    transaction: SecurityTransactionEntity,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
     const ormEntity: SecurityTransactionOrmEntity = this.toOrm(transaction);
-    await this.repository.save(ormEntity);
+    await repository.save(ormEntity);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+  async delete(id: string, manager?: EntityManager): Promise<void> {
+    const repository: Repository<SecurityTransactionOrmEntity> = manager
+      ? manager.getRepository(SecurityTransactionOrmEntity)
+      : this.repository;
+    await repository.delete(id);
   }
 
   /**

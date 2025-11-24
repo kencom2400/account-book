@@ -14,8 +14,6 @@ import {
   SECURITIES_API_CLIENT,
 } from '../../securities.tokens';
 import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
-import { SecurityTransactionOrmEntity } from '../../infrastructure/entities/security-transaction.orm-entity';
-import { SecuritiesAccountOrmEntity } from '../../infrastructure/entities/securities-account.orm-entity';
 
 export interface FetchSecurityTransactionsInput {
   accountId: string;
@@ -132,58 +130,27 @@ export class FetchSecurityTransactionsUseCase {
       // 複数の取引保存と口座更新をアトミックに実行
       await this.dataSource.transaction(async (entityManager) => {
         // 取引履歴を保存（重複チェック）
-        const transactionRepo = entityManager.getRepository(
-          SecurityTransactionOrmEntity,
-        );
-
         for (const apiTx of apiTransactions) {
           const transactionEntity =
             this.securitiesAPIClient.mapToTransactionEntity(accountId, apiTx);
 
           // 既存の取引をIDで確認（APIから返されるIDを使用）
-          const existing = await transactionRepo.findOne({
-            where: { id: transactionEntity.id },
-          });
+          const existing = await this.transactionRepository.findById(
+            transactionEntity.id,
+            entityManager,
+          );
 
           if (!existing) {
-            await transactionRepo.save({
-              id: transactionEntity.id,
-              securitiesAccountId: transactionEntity.securitiesAccountId,
-              securityCode: transactionEntity.securityCode,
-              securityName: transactionEntity.securityName,
-              transactionDate: transactionEntity.transactionDate,
-              transactionType: transactionEntity.transactionType,
-              quantity: transactionEntity.quantity,
-              price: transactionEntity.price,
-              fee: transactionEntity.fee,
-              status: transactionEntity.status,
-              createdAt: transactionEntity.createdAt,
-            });
+            await this.transactionRepository.create(
+              transactionEntity,
+              entityManager,
+            );
           }
         }
 
         // 口座の最終同期日時を更新
-        const accountRepo = entityManager.getRepository(
-          SecuritiesAccountOrmEntity,
-        );
         const updatedAccount = account.updateLastSyncedAt(new Date());
-        await accountRepo.save({
-          id: updatedAccount.id,
-          securitiesCompanyName: updatedAccount.securitiesCompanyName,
-          accountNumber: updatedAccount.accountNumber,
-          accountType: updatedAccount.accountType,
-          credentialsEncrypted: updatedAccount.credentials.encrypted,
-          credentialsIv: updatedAccount.credentials.iv,
-          credentialsAuthTag: updatedAccount.credentials.authTag,
-          credentialsAlgorithm: updatedAccount.credentials.algorithm,
-          credentialsVersion: updatedAccount.credentials.version,
-          isConnected: updatedAccount.isConnected,
-          lastSyncedAt: updatedAccount.lastSyncedAt,
-          totalEvaluationAmount: updatedAccount.totalEvaluationAmount,
-          cashBalance: updatedAccount.cashBalance,
-          createdAt: updatedAccount.createdAt,
-          updatedAt: new Date(),
-        });
+        await this.accountRepository.update(updatedAccount, entityManager);
       });
 
       this.logger.log(
