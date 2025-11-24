@@ -1168,6 +1168,201 @@ it('取引のカテゴリを正しく更新できる', async () => {
 - PR #273: Geminiレビュー対応
 - Gemini指摘: モッククリーンアップの統一
 
+### 4-9. テストでの例外検証のベストプラクティス
+
+#### ✅ 効率的な例外アサーション
+
+Jestの`toThrow`マッチャーは、例外のインスタンスを渡すことで、型とメッセージの両方を一度に検証できます。
+
+❌ **悪い例**: 冗長な二重アサーション
+
+```typescript
+// ❌ useCase.executeが2回呼び出される（非効率）
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(NotFoundException);
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  `Credit card not found with ID: ${creditCardId}`
+);
+```
+
+**問題点**:
+
+- `useCase.execute`が2回実行される（非効率、副作用の可能性）
+- 型チェックとメッセージチェックが分離している
+- テストの意図が不明確
+
+✅ **良い例**: 例外インスタンスで一度に検証
+
+```typescript
+// ✅ 一度の呼び出しで型とメッセージの両方を検証
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  new NotFoundException(`Credit card not found with ID: ${creditCardId}`)
+);
+```
+
+**改善点**:
+
+- **効率的**: 1回の実行で完全な検証
+- **簡潔**: コードが読みやすい
+- **明確**: テストの意図が一目瞭然
+- **型安全**: 例外の型とメッセージを同時に検証
+
+#### ✅ 適用例
+
+```typescript
+// AccountService
+it('should throw NotFoundException when account does not exist', async () => {
+  mockRepository.findById.mockResolvedValue(null);
+
+  await expect(service.getAccount(accountId)).rejects.toThrow(
+    new NotFoundException(`Account not found: ${accountId}`)
+  );
+});
+
+// UserService
+it('should throw BadRequestException for invalid email', async () => {
+  const invalidEmail = 'invalid-email';
+
+  await expect(service.createUser({ email: invalidEmail })).rejects.toThrow(
+    new BadRequestException(`Invalid email format: ${invalidEmail}`)
+  );
+});
+```
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **学習元**: fetch-credit-card-transactions.use-case.spec.ts, fetch-security-transactions.use-case.spec.ts
+
+---
+
+### 4-10. エラーハンドリングでのステータス保護
+
+#### 🔴 クリティカル: 特定のエラーによるステータス上書き防止
+
+非同期処理でキャンセルやタイムアウトなどの特定のエラーが発生した場合、外側のcatchブロックで意図しないステータスに上書きされる問題に注意が必要です。
+
+❌ **悪い例**: キャンセルエラーがFAILEDに上書きされる
+
+```typescript
+try {
+  // RUNNING状態に更新
+  syncHistory = syncHistory.markAsRunning();
+  await this.syncHistoryRepository.update(syncHistory);
+
+  try {
+    // 同期処理（キャンセル可能）
+    await this.fetchTransactions(abortSignal);
+  } catch (error) {
+    // ここでエラーをログに出力して再スロー
+    this.logger.error('取引取得エラー', error);
+    throw error;
+  }
+
+  // COMPLETED状態に更新
+  syncHistory = syncHistory.markAsCompleted();
+  await this.syncHistoryRepository.update(syncHistory);
+} catch (error) {
+  // ❌ キャンセルエラーもFAILEDに上書きされてしまう
+  syncHistory = syncHistory.markAsFailed(error.message);
+  await this.syncHistoryRepository.update(syncHistory);
+}
+```
+
+**問題点**:
+
+- キャンセルエラーが発生すると、CANCELLEDではなくFAILEDステータスに上書きされる
+- ユーザーの意図的なキャンセル操作が「失敗」として記録される
+- ステータスの整合性が失われる
+
+✅ **良い例**: キャンセルエラーを判定して早期return
+
+```typescript
+try {
+  // RUNNING状態に更新
+  syncHistory = syncHistory.markAsRunning();
+  await this.syncHistoryRepository.update(syncHistory);
+
+  try {
+    // 同期処理（キャンセル可能）
+    await this.fetchTransactions(abortSignal);
+  } catch (error) {
+    // ✅ キャンセルエラーの場合は、CANCELLEDステータスを設定して早期return
+    if (error instanceof Error && error.message === 'Transaction fetch was cancelled') {
+      this.logger.log('同期キャンセル');
+      syncHistory = syncHistory.markAsCancelled();
+      await this.syncHistoryRepository.update(syncHistory);
+
+      return {
+        success: false,
+        status: syncHistory.status, // CANCELLEDステータスを保持
+        errorMessage: 'Sync cancelled',
+      };
+    }
+
+    // その他のエラーは再スロー
+    this.logger.error('取引取得エラー', error);
+    throw error;
+  }
+
+  // COMPLETED状態に更新
+  syncHistory = syncHistory.markAsCompleted();
+  await this.syncHistoryRepository.update(syncHistory);
+} catch (error) {
+  // ✅ ここに到達するのは予期しないエラーのみ
+  syncHistory = syncHistory.markAsFailed(error.message);
+  await this.syncHistoryRepository.update(syncHistory);
+}
+```
+
+**改善点**:
+
+- **キャンセルエラーを明示的に判定**: 特定のエラーメッセージで判別
+- **適切なステータス設定**: CANCELLEDステータスを保持
+- **早期return**: 外側のcatchブロックに到達しない
+- **意図の明確化**: コメントで処理の意図を明示
+
+#### ✅ 適用すべきシナリオ
+
+1. **AbortController によるキャンセル処理**
+   - ユーザーの明示的なキャンセル操作
+   - タイムアウトによる自動キャンセル
+
+2. **ステータス遷移が重要な処理**
+   - ワークフロー管理（PENDING → RUNNING → COMPLETED/FAILED/CANCELLED）
+   - ジョブステータス管理
+
+3. **複数のエラー状態を持つ処理**
+   - バッチ処理（成功/失敗/スキップ/キャンセル）
+   - トランザクション処理
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: 特定のエラークラスで判定
+if (error instanceof CancellationError) {
+  // キャンセル処理
+  return handleCancellation();
+}
+
+// パターン2: エラーメッセージで判定
+if (error instanceof Error && error.message.includes('cancelled')) {
+  // キャンセル処理
+  return handleCancellation();
+}
+
+// パターン3: カスタムプロパティで判定
+if (error instanceof Error && 'isCancelled' in error && error.isCancelled) {
+  // キャンセル処理
+  return handleCancellation();
+}
+```
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **修正箇所**: sync-all-transactions.use-case.ts
+- **学習元**: 同期キャンセル処理のAbortController導入
+
 ---
 
 ## 5. ESLint設定のベストプラクティス
