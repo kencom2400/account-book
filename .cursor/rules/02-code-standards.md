@@ -960,6 +960,256 @@ public extractKeywords(text: string): string[] {
 2. **将来の改善方針をコメントで残す**
 3. **段階的な機能向上を可能にする**
 
+### 3-3. Value Objectとドメインモデルの一貫性
+
+#### ❌ 避けるべきパターン: プリミティブな型をドメインエンティティで使用
+
+```typescript
+// ❌ 悪い例: プリミティブ型
+export class Merchant {
+  constructor(
+    public readonly id: string,
+    public readonly name: string,
+    public readonly confidence: number, // プリミティブ型
+  ) {
+    // バリデーションをエンティティで実装
+    if (confidence < 0 || confidence > 1) {
+      throw new Error('Invalid confidence');
+    }
+  }
+
+  public getConfidence(): number {
+    return this.confidence;
+  }
+}
+```
+
+**問題**:
+- ドメインモデルの一貫性がない（他では`ClassificationConfidence` VOを使用）
+- バリデーションロジックが分散
+- 信頼度に関するロジックが集約されていない
+
+**✅ 正しいパターン: Value Objectの活用**
+
+```typescript
+// ✅ 良い例: Value Objectを使用
+export class Merchant {
+  constructor(
+    public readonly id: string,
+    public readonly name: string,
+    public readonly confidence: ClassificationConfidence, // Value Object
+  ) {
+    // バリデーションはVOが担当
+  }
+
+  public getConfidence(): ClassificationConfidence {
+    return this.confidence;
+  }
+
+  public toJSON(): MerchantJSONResponse {
+    return {
+      id: this.id,
+      name: this.name,
+      confidence: this.confidence.getValue(), // VOから値を取得
+    };
+  }
+}
+```
+
+**重要なポイント**:
+1. **ドメインモデル全体で一貫した型を使用**
+2. **バリデーションロジックはVOに集約**
+3. **JSONシリアライズ時はgetValue()で数値に変換**
+
+### 3-4. マジックナンバーの排除
+
+#### ❌ 避けるべきパターン: 閾値のハードコード
+
+```typescript
+// ❌ 悪い例: マジックナンバー
+export class ClassificationConfidence {
+  public isHigh(): boolean {
+    return this.value >= 0.9; // 意図が不明確
+  }
+
+  public isMedium(): boolean {
+    return this.value >= 0.7 && this.value < 0.9; // 変更時の影響が大きい
+  }
+}
+
+// ❌ 悪い例: サービス内のマジックナンバー
+export class SubcategoryClassifierService {
+  async classify(description: string): Promise<SubcategoryClassification> {
+    if (keywordMatch) {
+      const confidenceValue = Math.max(keywordMatch.score, 0.7); // 意図不明
+      // ...
+    }
+    const defaultConfidence = new ClassificationConfidence(0.5); // 変更困難
+  }
+}
+```
+
+**問題**:
+- 数値の意図が不明確
+- 変更時に複数箇所の修正が必要
+- テストでの検証が困難
+
+**✅ 正しいパターン: 名前付き定数の使用**
+
+```typescript
+// ✅ 良い例: Value Objectで定数化
+export class ClassificationConfidence {
+  private static readonly HIGH_THRESHOLD = 0.9;
+  private static readonly MEDIUM_THRESHOLD = 0.7;
+
+  public isHigh(): boolean {
+    return this.value >= ClassificationConfidence.HIGH_THRESHOLD;
+  }
+
+  public isMedium(): boolean {
+    return (
+      this.value >= ClassificationConfidence.MEDIUM_THRESHOLD &&
+      this.value < ClassificationConfidence.HIGH_THRESHOLD
+    );
+  }
+
+  // 閾値を外部から取得可能に
+  public static getHighThreshold(): number {
+    return ClassificationConfidence.HIGH_THRESHOLD;
+  }
+}
+
+// ✅ 良い例: サービスで定数化
+@Injectable()
+export class SubcategoryClassifierService {
+  private static readonly MINIMUM_KEYWORD_MATCH_CONFIDENCE = 0.7;
+  private static readonly DEFAULT_CLASSIFICATION_CONFIDENCE = 0.5;
+
+  async classify(description: string): Promise<SubcategoryClassification> {
+    if (keywordMatch) {
+      const confidenceValue = Math.max(
+        keywordMatch.score,
+        SubcategoryClassifierService.MINIMUM_KEYWORD_MATCH_CONFIDENCE,
+      );
+      // ...
+    }
+    const defaultConfidence = new ClassificationConfidence(
+      SubcategoryClassifierService.DEFAULT_CLASSIFICATION_CONFIDENCE,
+    );
+  }
+}
+```
+
+**重要なポイント**:
+1. **意味のある名前で定数を定義**
+2. **変更時の影響範囲を最小化**
+3. **テストでの検証が容易**
+4. **コードの可読性と保守性が向上**
+
+### 3-5. 冗長なasync/awaitの回避
+
+#### ❌ 避けるべきパターン: awaitして即return
+
+```typescript
+// ❌ 悪い例: 冗長なasync/await
+export class MerchantMatcherService {
+  public async match(description: string): Promise<Merchant | null> {
+    return await this.merchantRepository.searchByDescription(description);
+  }
+}
+```
+
+**問題**:
+- 不要なPromiseラッピング
+- 微妙なパフォーマンスオーバーヘッド
+- コードが冗長
+
+**✅ 正しいパターン: Promiseを直接返す**
+
+```typescript
+// ✅ 良い例: Promiseを直接返す
+export class MerchantMatcherService {
+  public match(description: string): Promise<Merchant | null> {
+    return this.merchantRepository.searchByDescription(description);
+  }
+}
+```
+
+**例外: エラーハンドリングや追加処理が必要な場合**
+
+```typescript
+// ✅ async/awaitが必要なケース
+export class MerchantMatcherService {
+  public async match(description: string): Promise<Merchant | null> {
+    try {
+      const merchant = await this.merchantRepository.searchByDescription(description);
+      // 追加の処理やログ出力
+      this.logger.debug(`Matched merchant: ${merchant?.name}`);
+      return merchant;
+    } catch (error) {
+      this.logger.error('Merchant matching failed', error);
+      throw new MerchantMatchingException(error);
+    }
+  }
+}
+```
+
+**重要なポイント**:
+1. **単純なPromise転送ではasync/awaitを省略**
+2. **エラーハンドリングや追加処理がある場合は使用**
+3. **パフォーマンスとコードのシンプルさのバランス**
+
+### 3-6. テキスト正規化の注意点
+
+#### ❌ 避けるべきパターン: 過度な空白削除
+
+```typescript
+// ❌ 悪い例: すべての空白を削除
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+    .replace(/\s+/g, '') // すべての空白を削除
+    .trim();
+}
+
+// 結果: extractKeywords()が機能しない
+public extractKeywords(text: string): string[] {
+  const normalized = this.normalizeText(text);
+  // スペースが存在しないため分割できない
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**問題**:
+- キーワード抽出が機能しない
+- 単語の区切りが失われる
+
+**✅ 正しいパターン: 空白を一つにまとめる**
+
+```typescript
+// ✅ 良い例: 複数の空白を一つにまとめる
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+    .replace(/\s+/g, ' ') // 複数空白を一つにまとめる
+    .trim();
+}
+
+// 結果: extractKeywords()が正常に動作
+public extractKeywords(text: string): string[] {
+  const normalized = this.normalizeText(text);
+  // スペースで正しく分割できる
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**重要なポイント**:
+1. **正規化の目的を明確にする**
+2. **後続の処理への影響を考慮**
+3. **汎用的なユーティリティは慎重に設計**
+
 ---
 
 ## 4. テスト実装ガイドライン
