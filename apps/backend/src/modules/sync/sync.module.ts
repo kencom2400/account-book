@@ -9,10 +9,14 @@ import { SyncHistoryOrmEntity } from './infrastructure/entities/sync-history.orm
 import { SyncController } from './presentation/controllers/sync.controller';
 
 // Use Cases
+import { SyncAllTransactionsUseCase } from './application/use-cases/sync-all-transactions.use-case';
+import { GetSyncHistoryUseCase } from './application/use-cases/get-sync-history.use-case';
+import { GetSyncStatusUseCase } from './application/use-cases/get-sync-status.use-case';
+import { CancelSyncUseCase } from './application/use-cases/cancel-sync.use-case';
 import { SyncTransactionsUseCase } from './application/use-cases/sync-transactions.use-case';
 
 // Strategies
-import { IncrementalSyncStrategy } from './application/strategies/incremental-sync.strategy';
+import { IncrementalSyncStrategy } from './domain/strategies/incremental-sync.strategy';
 
 // Jobs
 import { ScheduledSyncJob } from './application/jobs/scheduled-sync.job';
@@ -26,6 +30,7 @@ import { SYNC_HISTORY_REPOSITORY } from './sync.tokens';
 // Import other modules
 import { CreditCardModule } from '../credit-card/credit-card.module';
 import { SecuritiesModule } from '../securities/securities.module';
+import { InstitutionModule } from '../institution/institution.module';
 
 @Module({
   imports: [
@@ -33,11 +38,16 @@ import { SecuritiesModule } from '../securities/securities.module';
     ScheduleModule.forRoot(), // スケジューリング機能を有効化
     CreditCardModule,
     SecuritiesModule,
+    InstitutionModule, // Institution リポジトリを使用するため追加
   ],
   controllers: [SyncController],
   providers: [
     // Use Cases
-    SyncTransactionsUseCase,
+    SyncAllTransactionsUseCase,
+    GetSyncHistoryUseCase,
+    GetSyncStatusUseCase,
+    CancelSyncUseCase,
+    SyncTransactionsUseCase, // 既存のUseCase（後方互換性のため保持）
 
     // Strategies
     IncrementalSyncStrategy,
@@ -51,6 +61,14 @@ import { SecuritiesModule } from '../securities/securities.module';
       useClass: SyncHistoryTypeOrmRepository,
     },
   ],
-  exports: [SyncTransactionsUseCase, ScheduledSyncJob, SYNC_HISTORY_REPOSITORY],
+  exports: [
+    SyncAllTransactionsUseCase,
+    GetSyncHistoryUseCase,
+    GetSyncStatusUseCase,
+    CancelSyncUseCase,
+    SyncTransactionsUseCase,
+    ScheduledSyncJob,
+    SYNC_HISTORY_REPOSITORY,
+  ],
 })
 export class SyncModule {}

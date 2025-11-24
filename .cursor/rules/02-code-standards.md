@@ -1962,3 +1962,386 @@ all)
 - **可読性の向上**: パスが明確で理解しやすい
 
 ---
+
+## 7. 未実装機能の明示（Issue #28から学習）
+
+### 7-1. 大規模機能実装時のTODOコメント規約
+
+大規模な機能実装（特にFEATURE票）では、初期実装時に全機能を実装せず、段階的に進めることが推奨されます。その際、未実装箇所を明確に文書化する必要があります。
+
+#### 原則
+
+1. **未実装箇所には必ずTODOコメントを記載**
+2. **未実装機能リストドキュメントを作成**
+3. **レビュー時に未実装箇所を明示**
+4. **将来の実装方針を記載**
+
+#### TODOコメントの書き方
+
+```typescript
+// ❌ 悪い例: 不明確なTODO
+// TODO: 実装予定
+
+// ✅ 良い例: 明確な説明と実装方針
+// TODO: 金融機関APIからの実際のデータ取得を実装
+// 【依存】: FR-001, FR-002, FR-003の実装が必要
+// 【実装方針】: institutionTypeに応じて適切なUseCaseを呼び出す
+// 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+```
+
+### 7-2. 未実装機能リストドキュメント
+
+大規模機能実装時は、詳細設計書ディレクトリに`未実装機能リスト.md`を作成します。
+
+**ファイルパス例**:
+
+```
+docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
+```
+
+**必須記載項目**:
+
+- 優先度（Critical / High / Medium / Low）
+- 未実装の理由（依存関係、技術的制約等）
+- 実装方針（コード例を含む）
+- 対応予定（Phase 1/2/3等）
+- 関連Issue/PR
+
+### 7-3. PR説明での未実装箇所の明示
+
+PR作成時、未実装箇所を明確に記載します。
+
+```markdown
+## ✅ 実装完了
+
+- ドメインモデル設計
+- API設計
+- 基本的な同期フロー
+
+## ⚠️ 未実装（別Issue/PRで対応予定）
+
+### Critical
+
+- [ ] 金融機関APIからの実際のデータ取得（FR-001~003に依存）
+
+### High
+
+- [ ] 同期キャンセル処理（AbortController実装）
+
+### Medium
+
+- [ ] 動的スケジュール更新
+- [ ] リアルタイム進捗表示
+```
+
+### 7-4. モック実装のガイドライン
+
+未実装機能をモックで代替する際のルール:
+
+```typescript
+// ✅ 良い例: 明確なモック実装
+private async syncOne(target: SyncTarget): Promise<SyncResult> {
+  // TODO: 実際の金融機関APIからデータ取得を実装
+  // 現在はモックデータで代替
+  // 【実装時期】: FR-001~003完了後
+  // 【依存機能】:
+  //   - FetchBankTransactionsUseCase
+  //   - FetchCreditCardTransactionsUseCase
+  //   - FetchSecurityTransactionsUseCase
+
+  // モックデータ（本番環境では使用されないことを保証）
+  const mockData = {
+    totalFetched: 10,
+    newRecords: 10,
+    duplicateRecords: 0,
+  };
+
+  this.logger.warn(
+    `⚠️ モックデータを使用しています: ${target.institutionName}`
+  );
+
+  return mockData;
+}
+```
+
+### 7-5. レビュー観点
+
+コードレビュー時、以下を確認:
+
+- [ ] 未実装箇所に明確なTODOコメントがあるか
+- [ ] 未実装機能リストドキュメントが存在するか
+- [ ] モック実装が本番環境で問題を起こさないか
+- [ ] 将来の実装方針が明確か
+- [ ] 依存関係が文書化されているか
+
+### 7-6. 実装フェーズの分割例（Issue #28）
+
+**Phase 1: 基盤機能**（現在のPR）
+
+- ✅ ドメインモデル
+- ✅ API設計
+- ✅ 基本フロー
+
+**Phase 2: 金融機関連携**（別Issue）
+
+- 🔴 FR-001~003実装
+- 🟠 実データ取得
+- 🟠 キャンセル処理
+
+**Phase 3: 運用機能**（別Issue）
+
+- 🟡 動的スケジュール
+- 🟡 進捗表示
+- 🟡 通知機能
+
+---
+
+## 8. ログとコード品質のベストプラクティス（Geminiレビューから学習）
+
+### 8-1. ログメッセージのガイドライン
+
+#### 原則: ASCII文字のみを使用
+
+**理由**:
+
+- ログ解析システムで絵文字が文字化けする可能性
+- パースエラーを引き起こす可能性
+- 国際化（i18n）への対応
+
+#### ❌ 避けるべきパターン
+
+\`\`\`typescript
+// ❌ 悪い例: 絵文字を使用
+this.logger.warn('⚠️ 前回の同期がまだ実行中です。');
+\`\`\`
+
+#### ✅ 正しいパターン
+
+\`\`\`typescript
+// ✅ 良い例: ASCII文字のみ
+this.logger.warn('[SKIP] 前回の同期がまだ実行中です。今回の実行をスキップします。');
+\`\`\`
+
+### 8-2. 非推奨メソッドの安全な廃止
+
+#### 原則: null返却ではなくエラーをスロー
+
+#### ❌ 避けるべきパターン
+
+\`\`\`typescript
+// ❌ 悪い例: nullを返す（型契約を破る）
+return null as unknown as Result; // 型安全性を破る
+\`\`\`
+
+#### ✅ 正しいパターン
+
+\`\`\`typescript
+// ✅ 良い例: エラーをスローする
+throw new Error('OldUseCase is deprecated. Please use NewUseCase.');
+\`\`\`
+
+### 8-3. ハードコード値の扱い（将来対応）
+
+パフォーマンスチューニングや環境依存の値はハードコードせず、設定ファイル（`.env`）から読み込むよう検討します。
+
+- Issue #28では基盤機能の確立を優先
+- Phase 2/3で設定ファイル化を検討
+
+### 8-4. ステータス変換ロジックの責務分離（将来対応）
+
+ドメインロジックをControllerに含めず、Domainエンティティから直接ステータスを返すよう検討します。
+
+- Issue #28では基盤機能の確立を優先
+- Phase 2/3で設計改善を検討
+
+---
+
+## 9. Cron式の検証とバリデーション（Geminiレビューから学習）
+
+### 9-1. 基本的なCron式のフィールド数
+
+**NestJSの`@nestjs/schedule`では、6フィールドのcron式をサポート:**
+
+```
+秒 分 時 日 月 曜日
+```
+
+### 9-2. 正規表現によるバリデーション
+
+#### ❌ 誤った正規表現（5フィールド）
+
+```typescript
+// ❌ 悪い例: 「分」フィールドが抜けている
+/^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([0-2]?\d|3[01])) (\*|([0]?\d|1[0-2])) (\*|([0-6]))$/;
+```
+
+#### ✅ 正しい正規表現（6フィールド）
+
+```typescript
+// ✅ 良い例: すべてのフィールドを検証
+/^(\*|([0-5]?\d)) (\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([0-2]?\d|3[01])) (\*|([0]?\d|1[0-2])) (\*|([0-6]))$/;
+```
+
+### 9-3. より堅牢なバリデーション
+
+**基本的な正規表現の制限**:
+
+- `*/5`、`1-10`、`1,5,10`などの高度なcron構文をサポートしていない
+- フィールドの値の妥当性（例: 月の31日）を完全に検証できない
+
+**推奨**:
+
+- より堅牢な検証が必要な場合は、`cron-validator`や`cron-parser`などのライブラリの導入を検討
+- ただし、Issue #28の基盤機能では基本的な正規表現で十分
+
+### 9-4. エラーメッセージの改善
+
+#### ❌ 汎用的すぎるメッセージ
+
+```typescript
+// ❌ 悪い例
+@Matches(/^...$/,{ message: 'Invalid cron expression' })
+```
+
+#### ✅ 具体的なメッセージ
+
+```typescript
+// ✅ 良い例: フォーマットを明示
+@Matches(/^...$/, {
+  message:
+    'Invalid cron expression. Expected format: "second minute hour day month weekday" (6 fields)',
+})
+```
+
+### 9-5. Cron式の例
+
+```typescript
+// ✅ 正しい6フィールドcron式の例
+'0 0 4 * * *'; // 毎日午前4時0分0秒
+'0 30 9 * * 1-5'; // 平日の午前9時30分0秒
+'*/10 * * * * *'; // 10秒ごと（高度な構文 - 正規表現では検証不可）
+```
+
+**参照**: Issue #28 Geminiレビュー（第4弾）
+
+---
+
+## 10. Application層における型の一貫性（Geminiレビューから学習）
+
+### 10-1. インライン型定義の回避
+
+#### 原則: 定義済み型を再利用
+
+**理由**:
+
+- 型の変更が1箇所で済む
+- 追従漏れを防ぐ
+- コードの可読性が向上
+
+#### ❌ 避けるべきパターン
+
+```typescript
+// ❌ 悪い例: インライン型定義
+private notifyErrors(result: {
+  results: Array<{ success: boolean; errorMessage: string | null }>;
+  summary: { failureCount: number };
+}): void {
+  // ...
+}
+```
+
+#### ✅ 正しいパターン
+
+```typescript
+// ✅ 良い例: 定義済み型を使用
+import { SyncAllTransactionsResult } from '../dto/sync-result.dto';
+
+private notifyErrors(result: SyncAllTransactionsResult): void {
+  // ...
+}
+```
+
+### 10-2. 配列操作での型ガードの活用
+
+#### 原則: filter+型ガードで型安全性を向上
+
+#### ❌ 従来のパターン
+
+```typescript
+// ⚠️ 改善の余地: forループでpush
+const targets: SyncTarget[] = [];
+for (const inst of institutions) {
+  if (inst !== null && inst.isConnected) {
+    targets.push({
+      /* ... */
+    });
+  }
+}
+return targets;
+```
+
+#### ✅ 型ガードを使用したパターン
+
+```typescript
+// ✅ 良い例: 型ガードで型安全性を確保
+return institutions
+  .filter((inst): inst is NonNullable<typeof inst> => inst !== null && inst.isConnected)
+  .map((inst) => ({
+    institutionId: inst.id,
+    institutionName: inst.name,
+    institutionType: inst.type as 'bank' | 'credit-card' | 'securities',
+    lastSyncDate: inst.lastSyncedAt,
+  }));
+```
+
+**改善点**:
+
+- 型ガードによる明示的な型の絞り込み
+- より宣言的で読みやすいコード
+- TypeScriptの型推論が効きやすい
+
+### 10-3. ステータスフィールドの明示的な管理
+
+#### 原則: boolean推測ではなく、Enumステータスを使用
+
+#### ❌ 避けるべきパターン
+
+```typescript
+// ❌ 悪い例: booleanから推測
+interface SyncResult {
+  success: boolean;
+  // statusフィールドがない
+}
+
+// コントローラー層でステータスを推測
+status: result.success ? SyncStatus.COMPLETED : SyncStatus.FAILED;
+```
+
+**問題点**:
+
+- キャンセル、部分成功などの複雑な状態を表現できない
+- ステータス判定ロジックがController層に漏れる
+- 将来の拡張性が低い
+
+#### ✅ 正しいパターン
+
+```typescript
+// ✅ 良い例: 明示的なstatusフィールド
+interface SyncResult {
+  status: SyncStatus; // pending/running/completed/failed/cancelled
+  success: boolean; // 後方互換性のために残す
+}
+
+// コントローラー層ではstatusをそのまま使用
+status: result.status;
+```
+
+**改善点**:
+
+- ステータスがDomain層で管理される
+- Controller層の責務が明確
+- 将来的なステータス追加に柔軟
+
+**参照**: Issue #28 Geminiレビュー（第4弾）
+
+---

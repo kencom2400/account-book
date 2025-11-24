@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
-import { SyncHistoryEntity } from '../../domain/entities/sync-history.entity';
+import { SyncHistory } from '../../domain/entities/sync-history.entity';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
-import { IncrementalSyncStrategy } from '../strategies/incremental-sync.strategy';
+import { IncrementalSyncStrategy } from '../../domain/strategies/incremental-sync.strategy';
 import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
 import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
 import { RefreshCreditCardDataUseCase } from '../../../credit-card/application/use-cases/refresh-credit-card-data.use-case';
@@ -23,7 +23,7 @@ export interface SyncTransactionsInput {
  */
 export interface SyncTransactionsOutput {
   /** 同期履歴 */
-  syncHistory: SyncHistoryEntity;
+  syncHistory: SyncHistory;
   /** 成功した金融機関数 */
   successCount: number;
   /** 失敗した金融機関数 */
@@ -55,143 +55,18 @@ export class SyncTransactionsUseCase {
   /**
    * 同期を実行
    */
-  async execute(
-    input: SyncTransactionsInput = {},
-  ): Promise<SyncTransactionsOutput> {
+  execute(_input: SyncTransactionsInput = {}): Promise<SyncTransactionsOutput> {
     this.logger.log('Starting transaction sync...');
 
-    // 接続済みの金融機関を取得
-    const creditCards = await this.creditCardRepository.findAll();
-    const securitiesAccounts = await this.securitiesAccountRepository.findAll();
-
-    const connectedCreditCards = creditCards.filter((card) => card.isConnected);
-    const connectedSecurities = securitiesAccounts.filter(
-      (account) => account.isConnected,
+    // このUseCaseは古い実装であり、非推奨です
+    // 新しいSyncAllTransactionsUseCaseの使用を推奨します
+    this.logger.error(
+      'sync-transactions.use-case.ts は非推奨です。SyncAllTransactionsUseCaseを使用してください。',
     );
 
-    const totalInstitutions =
-      connectedCreditCards.length + connectedSecurities.length;
-
-    if (totalInstitutions === 0) {
-      this.logger.warn('No connected institutions found. Skipping sync.');
-      const emptySyncHistory = SyncHistoryEntity.create(0)
-        .start()
-        .complete(0, 0, 0);
-      await this.syncHistoryRepository.create(emptySyncHistory);
-      return {
-        syncHistory: emptySyncHistory,
-        successCount: 0,
-        failureCount: 0,
-        newTransactionsCount: 0,
-      };
-    }
-
-    // 同期履歴を作成
-    let syncHistory = SyncHistoryEntity.create(totalInstitutions);
-    syncHistory = await this.syncHistoryRepository.create(syncHistory);
-
-    // 同期開始
-    syncHistory = syncHistory.start();
-    syncHistory = await this.syncHistoryRepository.update(syncHistory);
-
-    let successCount = 0;
-    let failureCount = 0;
-    let totalNewTransactions = 0;
-
-    // クレジットカードの同期
-    for (const creditCard of connectedCreditCards) {
-      try {
-        this.logger.log(`Syncing credit card: ${creditCard.id}`);
-
-        const result = await this.refreshCreditCardDataUseCase.execute(
-          creditCard.id,
-        );
-
-        if (result.transactions && result.transactions.length > 0) {
-          // 前回同期日時以降の新規取引をカウント
-          // forceFullSync=true の場合は全トランザクションを新規とみなす
-          const lastSyncedAt =
-            input.forceFullSync || !creditCard.lastSyncedAt
-              ? null
-              : creditCard.lastSyncedAt;
-          const newTransactions = lastSyncedAt
-            ? result.transactions.filter(
-                (tx) => new Date(tx.transactionDate) > lastSyncedAt,
-              )
-            : result.transactions;
-
-          totalNewTransactions += newTransactions.length;
-        }
-
-        successCount++;
-        this.logger.log(`Credit card sync completed: ${creditCard.id}`);
-      } catch (error) {
-        failureCount++;
-        this.logger.error(
-          `Credit card sync failed: ${creditCard.id} - ${error instanceof Error ? error.message : 'Unknown error'}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-      }
-    }
-
-    // 証券口座の同期
-    for (const account of connectedSecurities) {
-      try {
-        this.logger.log(`Syncing securities account: ${account.id}`);
-
-        const startDate = input.forceFullSync
-          ? undefined
-          : account.lastSyncedAt || undefined;
-
-        const transactions =
-          await this.fetchSecurityTransactionsUseCase.execute({
-            accountId: account.id,
-            forceRefresh: true,
-            startDate,
-          });
-
-        // 前回同期日時以降の新規取引をカウント
-        // forceFullSync=true の場合は全トランザクションを新規とみなす
-        const lastSyncedAt =
-          input.forceFullSync || !account.lastSyncedAt
-            ? null
-            : account.lastSyncedAt;
-        const newTransactions = lastSyncedAt
-          ? transactions.filter(
-              (tx) => new Date(tx.transactionDate) > lastSyncedAt,
-            )
-          : transactions;
-
-        totalNewTransactions += newTransactions.length;
-
-        successCount++;
-        this.logger.log(`Securities account sync completed: ${account.id}`);
-      } catch (error) {
-        failureCount++;
-        this.logger.error(
-          `Securities account sync failed: ${account.id} - ${error instanceof Error ? error.message : 'Unknown error'}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-      }
-    }
-
-    // 同期完了
-    syncHistory = syncHistory.complete(
-      successCount,
-      failureCount,
-      totalNewTransactions,
+    // このUseCaseは非推奨であるため、エラーをスローします。
+    throw new Error(
+      'SyncTransactionsUseCase is deprecated. Please use SyncAllTransactionsUseCase.',
     );
-    syncHistory = await this.syncHistoryRepository.update(syncHistory);
-
-    this.logger.log(
-      `Transaction sync completed: ${successCount} success, ${failureCount} failed, ${totalNewTransactions} new transactions`,
-    );
-
-    return {
-      syncHistory,
-      successCount,
-      failureCount,
-      newTransactionsCount: totalNewTransactions,
-    };
   }
 }
