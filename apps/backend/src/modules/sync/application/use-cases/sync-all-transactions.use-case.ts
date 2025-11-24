@@ -14,10 +14,7 @@ import { SyncStatus } from '../../domain/enums/sync-status.enum';
 import { randomUUID } from 'crypto';
 import { FetchCreditCardTransactionsUseCase } from '../../../credit-card/application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchSecurityTransactionsUseCase } from '../../../securities/application/use-cases/fetch-security-transactions.use-case';
-import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
-import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
-import { CREDIT_CARD_REPOSITORY } from '../../../credit-card/credit-card.tokens';
-import { SECURITIES_ACCOUNT_REPOSITORY } from '../../../securities/securities.tokens';
+import { CancellationError } from '../../../../common/errors';
 
 /**
  * 全金融機関の取引同期ユースケース
@@ -45,10 +42,6 @@ export class SyncAllTransactionsUseCase {
     private readonly syncHistoryRepository: ISyncHistoryRepository,
     @Inject(INSTITUTION_REPOSITORY)
     private readonly institutionRepository: IInstitutionRepository,
-    @Inject(CREDIT_CARD_REPOSITORY)
-    private readonly creditCardRepository: ICreditCardRepository,
-    @Inject(SECURITIES_ACCOUNT_REPOSITORY)
-    private readonly securitiesAccountRepository: ISecuritiesAccountRepository,
     private readonly configService: ConfigService,
     private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
     private readonly fetchSecurityTransactionsUseCase: FetchSecurityTransactionsUseCase,
@@ -131,7 +124,7 @@ export class SyncAllTransactionsUseCase {
         .map((inst) => ({
           institutionId: inst.id,
           institutionName: inst.name,
-          institutionType: this.convertInstitutionType(inst.type),
+          institutionType: inst.type,
           lastSyncDate: inst.lastSyncedAt,
         }));
     }
@@ -141,23 +134,10 @@ export class SyncAllTransactionsUseCase {
     return institutions.map((inst) => ({
       institutionId: inst.id,
       institutionName: inst.name,
-      institutionType: this.convertInstitutionType(inst.type),
+      institutionType: inst.type,
       lastSyncDate: inst.lastSyncedAt,
     }));
   }
-
-  /**
-   * InstitutionTypeをSyncTarget型に変換
-   */
-  private convertInstitutionType(
-    type: string,
-  ): 'bank' | 'credit-card' | 'securities' {
-    if (type === 'credit_card') {
-      return 'credit-card';
-    }
-    return type as 'bank' | 'credit-card' | 'securities';
-  }
-
   /**
    * 金融機関を並行同期
    */
@@ -312,10 +292,7 @@ export class SyncAllTransactionsUseCase {
         }
       } catch (error) {
         // キャンセルエラーの場合は、CANCELLEDステータスを設定して処理を終了
-        if (
-          error instanceof Error &&
-          error.message === 'Transaction fetch was cancelled'
-        ) {
+        if (error instanceof CancellationError) {
           this.logger.log(`同期キャンセル: ${target.institutionName}`);
           syncHistory = syncHistory.markAsCancelled();
           await this.syncHistoryRepository.update(syncHistory);

@@ -1,6 +1,6 @@
 export enum InstitutionType {
   BANK = 'bank',
-  CREDIT_CARD = 'credit_card',
+  CREDIT_CARD = 'credit-card',
   SECURITIES = 'securities',
 }
 

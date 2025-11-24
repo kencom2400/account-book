@@ -19,6 +19,7 @@ import {
   CREDIT_CARD_API_CLIENT,
 } from '../../credit-card.tokens';
 import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
+import { CancellationError } from '../../../../common/errors';
 
 export interface FetchCreditCardTransactionsInput {
   creditCardId: string;
@@ -52,7 +53,7 @@ export class FetchCreditCardTransactionsUseCase {
   ): Promise<CreditCardTransactionEntity[]> {
     // キャンセルチェック
     if (input.abortSignal?.aborted) {
-      throw new Error('Transaction fetch was cancelled');
+      throw new CancellationError('Transaction fetch was cancelled');
     }
 
     // 1. クレジットカードが存在するか確認
@@ -68,7 +69,7 @@ export class FetchCreditCardTransactionsUseCase {
 
     // キャンセルチェック
     if (input.abortSignal?.aborted) {
-      throw new Error('Transaction fetch was cancelled');
+      throw new CancellationError('Transaction fetch was cancelled');
     }
 
     // 2. 日付範囲の設定（デフォルトは当月）

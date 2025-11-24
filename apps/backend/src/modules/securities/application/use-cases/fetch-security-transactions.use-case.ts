@@ -14,6 +14,7 @@ import {
   SECURITIES_API_CLIENT,
 } from '../../securities.tokens';
 import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
+import { CancellationError } from '../../../../common/errors';
 
 export interface FetchSecurityTransactionsInput {
   accountId: string;
@@ -55,7 +56,7 @@ export class FetchSecurityTransactionsUseCase {
   ): Promise<SecurityTransactionEntity[]> {
     // キャンセルチェック
     if (input.abortSignal?.aborted) {
-      throw new Error('Transaction fetch was cancelled');
+      throw new CancellationError('Transaction fetch was cancelled');
     }
 
     // 1. 証券口座の存在確認
@@ -68,7 +69,7 @@ export class FetchSecurityTransactionsUseCase {
 
     // キャンセルチェック
     if (input.abortSignal?.aborted) {
-      throw new Error('Transaction fetch was cancelled');
+      throw new CancellationError('Transaction fetch was cancelled');
     }
 
     // 2. 強制リフレッシュの場合はAPIから取得
