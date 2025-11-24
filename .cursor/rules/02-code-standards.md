@@ -2599,7 +2599,250 @@ grep -r ": string" apps/backend/src/modules/*/presentation/dto/
 
 ---
 
-## 11. まとめ
+## 11. シェルスクリプトのベストプラクティス（Issue #286から学習）
+
+### 11-1. マジックナンバーの管理
+
+#### 原則: 共通設定ファイルで一元管理
+
+複数のスクリプトで使用される定数値は、共通設定ファイルで定義して再利用します。
+
+**❌ 悪い例: マジックナンバーが分散**
+
+```bash
+# scripts/script1.sh
+gh project item-list 1 --limit 9999  # マジックナンバー
+
+# scripts/script2.sh
+gh issue list --limit 9999  # 同じ値が複数箇所に
+
+# scripts/script3.sh
+gh pr list --limit 9999  # メンテナンスが煩雑
+```
+
+**問題点:**
+
+- 値を変更する際に複数ファイルを修正する必要がある
+- 修正漏れのリスクがある
+- 設定の意図が不明確
+
+**✅ 良い例: 共通設定ファイルで一元管理**
+
+```bash
+# scripts/github/workflow/config.sh
+export GH_API_LIMIT=9999  # GitHub API limit設定
+
+# scripts/script1.sh
+source "${SCRIPT_DIR}/../workflow/config.sh"
+gh project item-list 1 --limit "$GH_API_LIMIT"
+
+# scripts/script2.sh
+source "${SCRIPT_DIR}/../workflow/config.sh"
+gh issue list --limit "$GH_API_LIMIT"
+```
+
+**改善点:**
+
+- 設定変更が1箇所で完結
+- 設定の意図がコメントで明確
+- デフォルト値の設定も可能
+
+**設定ファイルのベストプラクティス:**
+
+```bash
+#!/bin/bash
+
+# GitHub Projects設定ファイル
+
+# リポジトリ情報
+export REPO_OWNER="kencom2400"
+export REPO_NAME="account-book"
+
+# GitHub API設定
+export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
+
+# プロジェクト情報
+export PROJECT_NUMBER=1
+export PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
+```
+
+**スクリプトでの使用例:**
+
+```bash
+#!/bin/bash
+
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# デフォルト値の設定（設定ファイルで定義されていない場合）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+# 使用
+gh project item-list "$PROJECT_NUMBER" --limit "$GH_API_LIMIT"
+```
+
+**参考:** Issue #286 / PR #288 - Geminiレビュー指摘より
+
+---
+
+### 11-2. コードの重複排除と関数化
+
+#### 原則: 繰り返し処理は関数に切り出す
+
+同じ処理が複数箇所で繰り返される場合は、関数に切り出してDRYにします。
+
+**❌ 悪い例: コードの重複**
+
+```bash
+# 1回目: アイテム情報を取得
+ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
+  jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
+
+if [ -z "$ITEM_INFO" ]; then
+  # Issueを追加
+  gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
+
+  # 2回目: 同じ処理を繰り返す
+  ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
+    jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
+fi
+```
+
+**問題点:**
+
+- 同じコマンドが2回記述されている
+- メンテナンス性が低い
+- 変更時に複数箇所を修正する必要がある
+
+**✅ 良い例: 関数に切り出す**
+
+```bash
+# アイテム情報を取得する関数
+get_item_info() {
+  gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
+    jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}'
+}
+
+# 使用例
+ITEM_INFO=$(get_item_info)
+
+if [ -z "$ITEM_INFO" ]; then
+  # Issueを追加
+  gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
+
+  # 関数を再利用
+  ITEM_INFO=$(get_item_info)
+fi
+```
+
+**改善点:**
+
+- コードが簡潔になる
+- 変更が1箇所で完結
+- 可読性が向上
+
+**参考:** Issue #286 / PR #288 - Geminiレビュー指摘より
+
+---
+
+### 11-3. 固定時間待機の回避（リトライ処理）
+
+#### 原則: APIの反映待ちには固定時間ではなくリトライ処理を使用
+
+外部APIの反映を待つ際、固定時間の`sleep`は不安定です。リトライ処理を使用します。
+
+**❌ 悪い例: 固定時間待機**
+
+```bash
+# Issueをプロジェクトに追加
+gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
+
+# 固定時間待機
+sleep 3
+
+# 再度取得
+ITEM_INFO=$(get_item_info)
+```
+
+**問題点:**
+
+- APIの反映が3秒以上かかる場合に失敗する
+- 無駄な待機時間が発生する可能性
+- 環境によって必要な時間が異なる
+
+**✅ 良い例: リトライ処理**
+
+```bash
+# Issueをプロジェクトに追加
+gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
+
+echo "✅ Issue #${ISSUE_NUMBER} をプロジェクトに追加しました"
+echo "⏳ GitHub APIの反映を待機し、再度アイテム情報を取得します..."
+
+# API反映を待つためリトライ処理を追加
+for i in {1..5}; do
+  ITEM_INFO=$(get_item_info)
+  if [ -n "$ITEM_INFO" ]; then
+    break
+  fi
+  if [ "$i" -lt 5 ]; then
+    echo "  リトライ ($i/5)..."
+    sleep 3
+  fi
+done
+
+if [ -z "$ITEM_INFO" ]; then
+  echo "❌ エラー: Issueの追加後もアイテム情報を取得できませんでした"
+  exit 1
+fi
+```
+
+**改善点:**
+
+- 最大5回リトライ（最大15秒待機）
+- 成功したら即座に次の処理に進む
+- 環境の違いやAPIの遅延に対応できる
+- 進捗状況をユーザーに通知
+
+**リトライ処理のベストプラクティス:**
+
+```bash
+# 設定
+MAX_RETRIES=5
+RETRY_INTERVAL=3
+
+# リトライループ
+for i in $(seq 1 $MAX_RETRIES); do
+  RESULT=$(some_command)
+
+  # 成功判定
+  if [ -n "$RESULT" ]; then
+    echo "✅ 成功"
+    break
+  fi
+
+  # 最終試行でなければ待機
+  if [ "$i" -lt $MAX_RETRIES ]; then
+    echo "  リトライ ($i/$MAX_RETRIES)..."
+    sleep $RETRY_INTERVAL
+  fi
+done
+
+# 最終的な成功判定
+if [ -z "$RESULT" ]; then
+  echo "❌ エラー: $MAX_RETRIES 回のリトライ後も失敗しました"
+  exit 1
+fi
+```
+
+**参考:** Issue #286 / PR #288 - Geminiレビュー指摘より
+
+---
+
+## 12. まとめ
 
 ### 最優先事項
 
