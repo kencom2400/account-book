@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
+import { SyncAllTransactionsUseCase } from './sync-all-transactions.use-case';
 
 /**
  * 同期キャンセル結果
@@ -27,6 +28,7 @@ export class CancelSyncUseCase {
   constructor(
     @Inject(SYNC_HISTORY_REPOSITORY)
     private readonly syncHistoryRepository: ISyncHistoryRepository,
+    private readonly syncAllTransactionsUseCase: SyncAllTransactionsUseCase,
   ) {}
 
   /**
@@ -60,11 +62,14 @@ export class CancelSyncUseCase {
     const cancelledSync = syncHistory.markAsCancelled();
     await this.syncHistoryRepository.update(cancelledSync);
 
-    // TODO: 実際の同期処理を停止する処理を実装。詳細は未実装機能リストを参照。
-    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
-    // 【実装方針】: AbortControllerを導入し、進行中の非同期処理を中断
-    // 【依存】: SyncAllTransactionsUseCaseでAbortController対応が必要
-    // 現在はステータスを更新するのみ
+    // AbortControllerを使用して実際の同期処理を停止
+    const cancelled = this.syncAllTransactionsUseCase.cancelSync(syncId);
+
+    if (!cancelled) {
+      this.logger.warn(
+        `実行中の同期処理が見つかりませんでしたが、ステータスはCANCELLEDに更新されました: ${syncId}`,
+      );
+    }
 
     this.logger.log(`同期キャンセル完了: ${syncId}`);
 

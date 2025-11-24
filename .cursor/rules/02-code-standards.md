@@ -1168,6 +1168,491 @@ it('取引のカテゴリを正しく更新できる', async () => {
 - PR #273: Geminiレビュー対応
 - Gemini指摘: モッククリーンアップの統一
 
+### 4-9. テストでの例外検証のベストプラクティス
+
+#### ✅ 効率的な例外アサーション
+
+Jestの`toThrow`マッチャーは、例外のインスタンスを渡すことで、型とメッセージの両方を一度に検証できます。
+
+❌ **悪い例**: 冗長な二重アサーション
+
+```typescript
+// ❌ useCase.executeが2回呼び出される（非効率）
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(NotFoundException);
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  `Credit card not found with ID: ${creditCardId}`
+);
+```
+
+**問題点**:
+
+- `useCase.execute`が2回実行される（非効率、副作用の可能性）
+- 型チェックとメッセージチェックが分離している
+- テストの意図が不明確
+
+✅ **良い例**: 例外インスタンスで一度に検証
+
+```typescript
+// ✅ 一度の呼び出しで型とメッセージの両方を検証
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  new NotFoundException(`Credit card not found with ID: ${creditCardId}`)
+);
+```
+
+**改善点**:
+
+- **効率的**: 1回の実行で完全な検証
+- **簡潔**: コードが読みやすい
+- **明確**: テストの意図が一目瞭然
+- **型安全**: 例外の型とメッセージを同時に検証
+
+#### ✅ 適用例
+
+```typescript
+// AccountService
+it('should throw NotFoundException when account does not exist', async () => {
+  mockRepository.findById.mockResolvedValue(null);
+
+  await expect(service.getAccount(accountId)).rejects.toThrow(
+    new NotFoundException(`Account not found: ${accountId}`)
+  );
+});
+
+// UserService
+it('should throw BadRequestException for invalid email', async () => {
+  const invalidEmail = 'invalid-email';
+
+  await expect(service.createUser({ email: invalidEmail })).rejects.toThrow(
+    new BadRequestException(`Invalid email format: ${invalidEmail}`)
+  );
+});
+```
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **学習元**: fetch-credit-card-transactions.use-case.spec.ts, fetch-security-transactions.use-case.spec.ts
+
+---
+
+### 4-10. エラーハンドリングでのステータス保護
+
+#### 🔴 クリティカル: 特定のエラーによるステータス上書き防止
+
+非同期処理でキャンセルやタイムアウトなどの特定のエラーが発生した場合、外側のcatchブロックで意図しないステータスに上書きされる問題に注意が必要です。
+
+❌ **悪い例**: キャンセルエラーがFAILEDに上書きされる
+
+```typescript
+try {
+  // RUNNING状態に更新
+  syncHistory = syncHistory.markAsRunning();
+  await this.syncHistoryRepository.update(syncHistory);
+
+  try {
+    // 同期処理（キャンセル可能）
+    await this.fetchTransactions(abortSignal);
+  } catch (error) {
+    // ここでエラーをログに出力して再スロー
+    this.logger.error('取引取得エラー', error);
+    throw error;
+  }
+
+  // COMPLETED状態に更新
+  syncHistory = syncHistory.markAsCompleted();
+  await this.syncHistoryRepository.update(syncHistory);
+} catch (error) {
+  // ❌ キャンセルエラーもFAILEDに上書きされてしまう
+  syncHistory = syncHistory.markAsFailed(error.message);
+  await this.syncHistoryRepository.update(syncHistory);
+}
+```
+
+**問題点**:
+
+- キャンセルエラーが発生すると、CANCELLEDではなくFAILEDステータスに上書きされる
+- ユーザーの意図的なキャンセル操作が「失敗」として記録される
+- ステータスの整合性が失われる
+
+✅ **良い例**: キャンセルエラーを判定して早期return
+
+```typescript
+try {
+  // RUNNING状態に更新
+  syncHistory = syncHistory.markAsRunning();
+  await this.syncHistoryRepository.update(syncHistory);
+
+  try {
+    // 同期処理（キャンセル可能）
+    await this.fetchTransactions(abortSignal);
+  } catch (error) {
+    // ✅ キャンセルエラーの場合は、CANCELLEDステータスを設定して早期return
+    if (error instanceof Error && error.message === 'Transaction fetch was cancelled') {
+      this.logger.log('同期キャンセル');
+      syncHistory = syncHistory.markAsCancelled();
+      await this.syncHistoryRepository.update(syncHistory);
+
+      return {
+        success: false,
+        status: syncHistory.status, // CANCELLEDステータスを保持
+        errorMessage: 'Sync cancelled',
+      };
+    }
+
+    // その他のエラーは再スロー
+    this.logger.error('取引取得エラー', error);
+    throw error;
+  }
+
+  // COMPLETED状態に更新
+  syncHistory = syncHistory.markAsCompleted();
+  await this.syncHistoryRepository.update(syncHistory);
+} catch (error) {
+  // ✅ ここに到達するのは予期しないエラーのみ
+  syncHistory = syncHistory.markAsFailed(error.message);
+  await this.syncHistoryRepository.update(syncHistory);
+}
+```
+
+**改善点**:
+
+- **キャンセルエラーを明示的に判定**: 特定のエラーメッセージで判別
+- **適切なステータス設定**: CANCELLEDステータスを保持
+- **早期return**: 外側のcatchブロックに到達しない
+- **意図の明確化**: コメントで処理の意図を明示
+
+#### ✅ 適用すべきシナリオ
+
+1. **AbortController によるキャンセル処理**
+   - ユーザーの明示的なキャンセル操作
+   - タイムアウトによる自動キャンセル
+
+2. **ステータス遷移が重要な処理**
+   - ワークフロー管理（PENDING → RUNNING → COMPLETED/FAILED/CANCELLED）
+   - ジョブステータス管理
+
+3. **複数のエラー状態を持つ処理**
+   - バッチ処理（成功/失敗/スキップ/キャンセル）
+   - トランザクション処理
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: 特定のエラークラスで判定
+if (error instanceof CancellationError) {
+  // キャンセル処理
+  return handleCancellation();
+}
+
+// パターン2: エラーメッセージで判定
+if (error instanceof Error && error.message.includes('cancelled')) {
+  // キャンセル処理
+  return handleCancellation();
+}
+
+// パターン3: カスタムプロパティで判定
+if (error instanceof Error && 'isCancelled' in error && error.isCancelled) {
+  // キャンセル処理
+  return handleCancellation();
+}
+```
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **修正箇所**: sync-all-transactions.use-case.ts
+- **学習元**: 同期キャンセル処理のAbortController導入
+
+---
+
+### 4-11. カスタムエラークラスによる型安全なエラーハンドリング
+
+#### 🔴 推奨: エラーメッセージの文字列依存を排除
+
+エラーメッセージの文字列に依存してエラー判定を行うと、メッセージ変更時にロジックが壊れる脆弱な実装となります。
+
+❌ **悪い例**: エラーメッセージの文字列依存（脆弱）
+
+```typescript
+// ❌ エラーメッセージの文字列に依存
+try {
+  await fetchData();
+} catch (error) {
+  if (error instanceof Error && error.message === 'Transaction fetch was cancelled') {
+    // キャンセル処理
+  }
+}
+```
+
+**問題点**:
+
+- エラーメッセージが変更されるとロジックが壊れる
+- 文字列の完全一致が必要で脆弱
+- 意図が不明確（どのような種類のエラーなのか）
+
+✅ **良い例**: カスタムエラークラスで型安全に判定
+
+```typescript
+// ✅ カスタムエラークラスを定義
+export class CancellationError extends Error {
+  constructor(message: string = 'Operation was cancelled') {
+    super(message);
+    this.name = 'CancellationError';
+    Error.captureStackTrace?.(this, CancellationError);
+  }
+}
+
+// エラーのスロー
+if (abortSignal?.aborted) {
+  throw new CancellationError('Transaction fetch was cancelled');
+}
+
+// エラーの判定（型安全）
+try {
+  await fetchData();
+} catch (error) {
+  if (error instanceof CancellationError) {
+    // キャンセル処理
+    return handleCancellation();
+  }
+  // その他のエラー処理
+  throw error;
+}
+```
+
+**改善点**:
+
+- **型安全**: `instanceof` で型チェック
+- **保守性**: エラーメッセージ変更に強い
+- **明確性**: エラーの種類が一目瞭然
+- **拡張性**: カスタムプロパティを追加可能
+
+#### ✅ カスタムエラークラスの設計パターン
+
+```typescript
+// 基本パターン
+export class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field: string
+  ) {
+    super(message);
+    this.name = 'ValidationError';
+    Error.captureStackTrace?.(this, ValidationError);
+  }
+}
+
+// 使用例
+try {
+  if (!email.includes('@')) {
+    throw new ValidationError('Invalid email format', 'email');
+  }
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log(`Validation failed for field: ${error.field}`);
+  }
+}
+```
+
+#### ✅ 適用すべきシナリオ
+
+1. **ユーザー操作によるキャンセル**
+   - AbortControllerによる中断
+   - タイムアウト
+
+2. **ビジネスルール違反**
+   - バリデーションエラー
+   - 権限エラー
+
+3. **リトライ可能なエラー**
+   - ネットワークエラー
+   - 一時的なサービス障害
+
+#### ✅ 共通エラークラスの配置
+
+```
+src/
+  common/
+    errors/
+      index.ts              # エクスポート
+      cancellation.error.ts # キャンセルエラー
+      validation.error.ts   # バリデーションエラー
+      network.error.ts      # ネットワークエラー
+```
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **実装**: src/common/errors/cancellation.error.ts
+- **適用箇所**: fetch-credit-card-transactions.use-case.ts, fetch-security-transactions.use-case.ts, sync-all-transactions.use-case.ts
+
+---
+
+### 4-12. 不要な依存関係の削除
+
+#### 🟡 推奨: 使用していない依存関係は削除する
+
+コンストラクタで注入されているが実際には使用されていない依存関係は、コードの複雑性を増し、メンテナンスコストを高めます。
+
+❌ **悪い例**: 未使用の依存関係を保持
+
+```typescript
+@Injectable()
+export class SyncAllTransactionsUseCase {
+  constructor(
+    @Inject(SYNC_HISTORY_REPOSITORY)
+    private readonly syncHistoryRepository: ISyncHistoryRepository,
+    @Inject(INSTITUTION_REPOSITORY)
+    private readonly institutionRepository: IInstitutionRepository,
+    // ❌ 以下は使用していないが注入されている
+    @Inject(CREDIT_CARD_REPOSITORY)
+    private readonly creditCardRepository: ICreditCardRepository,
+    @Inject(SECURITIES_ACCOUNT_REPOSITORY)
+    private readonly securitiesAccountRepository: ISecuritiesAccountRepository,
+    // 実際に使用するのはこれら
+    private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+    private readonly fetchSecurityTransactionsUseCase: FetchSecurityTransactionsUseCase
+  ) {}
+}
+```
+
+**問題点**:
+
+- 不要な依存関係がコードを複雑にする
+- テスト時に不要なモックを作成する必要がある
+- 意図が不明確（なぜ注入されているのか）
+
+✅ **良い例**: 使用する依存関係のみを注入
+
+```typescript
+@Injectable()
+export class SyncAllTransactionsUseCase {
+  constructor(
+    @Inject(SYNC_HISTORY_REPOSITORY)
+    private readonly syncHistoryRepository: ISyncHistoryRepository,
+    @Inject(INSTITUTION_REPOSITORY)
+    private readonly institutionRepository: IInstitutionRepository,
+    private readonly configService: ConfigService,
+    // ✅ 実際に使用する依存関係のみ
+    private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+    private readonly fetchSecurityTransactionsUseCase: FetchSecurityTransactionsUseCase
+  ) {}
+}
+```
+
+**改善点**:
+
+- **シンプル**: 必要な依存関係のみ
+- **テスト容易性**: モック作成が簡単
+- **明確性**: 意図が明確
+
+#### ✅ 依存関係の見直しチェックリスト
+
+1. **使用状況の確認**
+   - `this.xxxRepository` で検索
+   - 実際に使用されているか確認
+
+2. **委譲の確認**
+   - 子UseCaseに機能が委譲されていないか
+   - 直接アクセスが必要か
+
+3. **テストの簡素化**
+   - 不要なモックを削除
+   - テストが簡潔になるか
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **削除した依存関係**: ICreditCardRepository, ISecuritiesAccountRepository
+- **理由**: FetchXxxUseCaseに機能を委譲済み
+
+---
+
+### 4-13. Enum値とリテラル型の一貫性
+
+#### 🟡 推奨: Enum値と使用箇所の型を統一する
+
+Enum値と実際の使用箇所で異なる文字列リテラルを使用すると、変換関数が必要になり、コードが複雑になります。
+
+❌ **悪い例**: Enum値と使用箇所の不一致
+
+```typescript
+// libs/types/src/institution.types.ts
+export enum InstitutionType {
+  BANK = 'bank',
+  CREDIT_CARD = 'credit_card', // ❌ アンダースコア
+  SECURITIES = 'securities',
+}
+
+// 実際の使用箇所
+interface SyncTarget {
+  institutionType: 'bank' | 'credit-card' | 'securities'; // ❌ ハイフン
+}
+
+// ❌ 変換関数が必要になる
+function convertInstitutionType(type: InstitutionType): 'bank' | 'credit-card' | 'securities' {
+  if (type === InstitutionType.CREDIT_CARD) {
+    return 'credit-card';
+  }
+  return type as 'bank' | 'credit-card' | 'securities';
+}
+```
+
+**問題点**:
+
+- 変換関数が必要で複雑
+- 型の不一致がバグの原因
+- 保守性が低い
+
+✅ **良い例**: Enum値と使用箇所を統一
+
+```typescript
+// libs/types/src/institution.types.ts
+export enum InstitutionType {
+  BANK = 'bank',
+  CREDIT_CARD = 'credit-card', // ✅ ハイフンで統一
+  SECURITIES = 'securities',
+}
+
+// 実際の使用箇所
+interface SyncTarget {
+  institutionType: InstitutionType; // ✅ 直接使用可能
+}
+
+// ✅ 変換関数は不要
+const target: SyncTarget = {
+  institutionType: institution.type, // そのまま使用
+};
+```
+
+**改善点**:
+
+- **シンプル**: 変換関数が不要
+- **型安全**: 型の一貫性が保たれる
+- **保守性**: 変更箇所が1箇所のみ
+
+#### ✅ 統一のガイドライン
+
+1. **命名規則の統一**
+   - ケバブケース（`credit-card`）
+   - スネークケース（`credit_card`）
+   - キャメルケース（`creditCard`）
+
+2. **プロジェクト全体で統一**
+   - API仕様書
+   - データベーススキーマ
+   - フロントエンド・バックエンド
+
+3. **既存コードとの整合性**
+   - 既存の命名規則に従う
+   - 一括変更が可能な場合は統一
+
+#### 参考
+
+- **PR #285**: Geminiレビュー指摘（Issue #279）
+- **変更内容**: `'credit_card'` → `'credit-card'`
+- **削除**: convertInstitutionType() 変換関数
+
 ---
 
 ## 5. ESLint設定のベストプラクティス

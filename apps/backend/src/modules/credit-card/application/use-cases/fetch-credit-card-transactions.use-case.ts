@@ -19,12 +19,14 @@ import {
   CREDIT_CARD_API_CLIENT,
 } from '../../credit-card.tokens';
 import { CRYPTO_SERVICE } from '../../../institution/institution.tokens';
+import { CancellationError } from '../../../../common/errors';
 
 export interface FetchCreditCardTransactionsInput {
   creditCardId: string;
   startDate?: Date;
   endDate?: Date;
   forceRefresh?: boolean; // APIから強制的に再取得
+  abortSignal?: AbortSignal; // キャンセル用シグナル
 }
 
 /**
@@ -49,6 +51,11 @@ export class FetchCreditCardTransactionsUseCase {
   async execute(
     input: FetchCreditCardTransactionsInput,
   ): Promise<CreditCardTransactionEntity[]> {
+    // キャンセルチェック
+    if (input.abortSignal?.aborted) {
+      throw new CancellationError('Transaction fetch was cancelled');
+    }
+
     // 1. クレジットカードが存在するか確認
     const creditCard = await this.creditCardRepository.findById(
       input.creditCardId,
@@ -58,6 +65,11 @@ export class FetchCreditCardTransactionsUseCase {
       throw new NotFoundException(
         `Credit card not found with ID: ${input.creditCardId}`,
       );
+    }
+
+    // キャンセルチェック
+    if (input.abortSignal?.aborted) {
+      throw new CancellationError('Transaction fetch was cancelled');
     }
 
     // 2. 日付範囲の設定（デフォルトは当月）
