@@ -183,7 +183,7 @@ stateDiagram-v2
 | AutoClassified_Low    | 自動分類（低信頼度）             | 0.50以上0.70未満 | AMOUNT_INFERENCE, DEFAULT |
 | ManuallyReviewed      | ユーザー確認中（一時状態）       | -                | -                         |
 | ManuallyEditing       | ユーザーが費目編集中（一時状態） | -                | -                         |
-| Confirmed             | 確定済み（最終状態）             | 0.50-1.00        | MANUAL または元のreason   |
+| Confirmed             | 確定済み（最終状態）             | 1.00             | MANUAL または元のreason   |
 
 ### 状態遷移ルール
 
