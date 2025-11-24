@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { ISyncHistoryRepository } from '../../domain/repositories/sync-history.repository.interface';
 import type { IInstitutionRepository } from '../../../institution/domain/repositories/institution.repository.interface';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
@@ -26,19 +27,19 @@ import { randomUUID } from 'crypto';
 export class SyncAllTransactionsUseCase {
   private readonly logger = new Logger(SyncAllTransactionsUseCase.name);
 
-  // 環境変数で設定可能（デフォルト: 5件同時実行）
+  // ConfigServiceで環境変数を管理（デフォルト: 5件同時実行）
   // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
-  private readonly MAX_PARALLEL = parseInt(
-    process.env.SYNC_MAX_PARALLEL || '5',
-    10,
-  );
+  private readonly MAX_PARALLEL: number;
 
   constructor(
     @Inject(SYNC_HISTORY_REPOSITORY)
     private readonly syncHistoryRepository: ISyncHistoryRepository,
     @Inject(INSTITUTION_REPOSITORY)
     private readonly institutionRepository: IInstitutionRepository,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.MAX_PARALLEL = this.configService.get<number>('SYNC_MAX_PARALLEL', 5);
+  }
 
   /**
    * 全金融機関の取引を同期
