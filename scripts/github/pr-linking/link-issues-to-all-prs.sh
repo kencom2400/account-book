@@ -16,7 +16,7 @@ echo ""
 
 # 1. プロジェクト内のすべてのIssueを取得
 echo "📝 プロジェクト内のすべてのIssueを取得中..."
-PROJECT_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 200 | \
+PROJECT_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
   jq -r '.items[].content.number' | sort -n)
 
 if [ -z "$PROJECT_ISSUES" ]; then
@@ -29,7 +29,7 @@ echo ""
 
 # 2. すべてのPRを取得
 echo "📋 すべてのPRを取得中..."
-ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit 200 --json number,title,state,headRefName,body)
+ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit 9999 --json number,title,state,headRefName,body)
 echo "✅ PR数: $(echo "$ALL_PRS" | jq '. | length') 個"
 echo ""
 

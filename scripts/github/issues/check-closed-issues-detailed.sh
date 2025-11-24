@@ -217,7 +217,7 @@ while IFS='|' read -r issue_num issue_title; do
             # GitHub環境構築と全Issue詳細化
             echo ""
             echo "🔍 具体的な確認:"
-            total_issues=$(gh issue list --repo "$REPO" --limit 200 --state all | wc -l)
+            total_issues=$(gh issue list --repo "$REPO" --limit 9999 --state all | wc -l)
             echo "  ✅ 総Issue数: $total_issues"
             
             if [ "$total_issues" -gt 90 ]; then

@@ -12,7 +12,7 @@ echo ""
 
 # 全Issue（Open + Closed）を取得
 echo "📊 全Issueを取得中..."
-ALL_ISSUES=$(gh issue list --repo "$REPO" --state all --limit 200 --json number,title,state)
+ALL_ISSUES=$(gh issue list --repo "$REPO" --state all --limit 9999 --json number,title,state)
 TOTAL_COUNT=$(echo "$ALL_ISSUES" | jq '. | length')
 
 echo "  取得完了: $TOTAL_COUNT 個のIssue"

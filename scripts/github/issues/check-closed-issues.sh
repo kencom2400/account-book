@@ -186,7 +186,7 @@ echo "  - マイルストーン作成"
 echo ""
 
 # GitHubのIssue数を確認（簡易チェック）
-ISSUE_COUNT=$(gh issue list --repo "$REPO" --limit 200 --state all | wc -l)
+ISSUE_COUNT=$(gh issue list --repo "$REPO" --limit 9999 --state all | wc -l)
 if [ "$ISSUE_COUNT" -gt 90 ]; then
     echo "  ✅ Issueが大量に作成されている（$ISSUE_COUNT 個以上）"
     echo "  📋 判定: 完了"

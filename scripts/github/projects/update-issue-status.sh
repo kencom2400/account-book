@@ -37,13 +37,39 @@ fi
 
 echo "   プロジェクトID: $PROJECT_ID"
 
-# アイテムIDとステータスを取得
-ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 200 | \
+# アイテムIDとステータスを取得（limitを大きくしてすべてのアイテムを取得）
+ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
   jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
 
 if [ -z "$ITEM_INFO" ]; then
-  echo "❌ エラー: Issue #${ISSUE_NUMBER} がプロジェクトに見つかりませんでした"
-  exit 1
+  echo "⚠️  Issue #${ISSUE_NUMBER} がプロジェクトに見つかりませんでした"
+  echo "📌 プロジェクトに自動追加します..."
+  
+  # IssueのURLを取得
+  ISSUE_URL=$(gh issue view "$ISSUE_NUMBER" --json url --jq '.url')
+  
+  if [ -z "$ISSUE_URL" ]; then
+    echo "❌ エラー: Issue #${ISSUE_NUMBER} が存在しません"
+    exit 1
+  fi
+  
+  # Issueをプロジェクトに追加
+  gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
+  
+  echo "✅ Issue #${ISSUE_NUMBER} をプロジェクトに追加しました"
+  echo "⏳ GitHub APIの反映を待機中..."
+  sleep 3
+  echo ""
+  echo "🔍 再度アイテム情報を取得中..."
+  
+  # 再度アイテム情報を取得
+  ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
+    jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
+  
+  if [ -z "$ITEM_INFO" ]; then
+    echo "❌ エラー: Issueの追加後もアイテム情報を取得できませんでした"
+    exit 1
+  fi
 fi
 
 ITEM_ID=$(echo "$ITEM_INFO" | jq -r '.id')
