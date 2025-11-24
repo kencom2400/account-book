@@ -1,0 +1,99 @@
+/**
+ * 店舗マスタ Domain Entity
+ * 自動分類で使用する店舗情報を表すドメインエンティティ
+ */
+export class Merchant {
+  constructor(
+    public readonly id: string,
+    public readonly name: string,
+    public readonly aliases: string[],
+    public readonly defaultSubcategoryId: string,
+    public readonly confidence: number,
+    public readonly createdAt: Date,
+    public readonly updatedAt: Date,
+  ) {
+    this.validateConfidence(confidence);
+  }
+
+  /**
+   * 信頼度のバリデーション
+   */
+  private validateConfidence(confidence: number): void {
+    if (confidence < 0 || confidence > 1) {
+      throw new Error(
+        `Merchant confidence must be between 0.00 and 1.00, got ${confidence}`,
+      );
+    }
+  }
+
+  /**
+   * 取引説明が店舗に一致するかチェック
+   * 店舗名または別名のいずれかに一致すればtrue
+   *
+   * @param description 取引説明
+   * @returns true: 一致する
+   */
+  public matchesDescription(description: string): boolean {
+    const normalizedDescription = this.normalizeText(description);
+
+    // 店舗名との一致チェック
+    if (normalizedDescription.includes(this.normalizeText(this.name))) {
+      return true;
+    }
+
+    // 別名との一致チェック
+    return this.aliases.some((alias) =>
+      normalizedDescription.includes(this.normalizeText(alias)),
+    );
+  }
+
+  /**
+   * テキストの正規化
+   * 大文字小文字を統一し、スペースを削除
+   */
+  private normalizeText(text: string): string {
+    return text.toLowerCase().replace(/\s+/g, '');
+  }
+
+  /**
+   * デフォルトサブカテゴリIDを取得
+   */
+  public getDefaultSubcategoryId(): string {
+    return this.defaultSubcategoryId;
+  }
+
+  /**
+   * 信頼度を取得
+   */
+  public getConfidence(): number {
+    return this.confidence;
+  }
+
+  /**
+   * JSONレスポンス形式に変換
+   */
+  public toJSON(): MerchantJSONResponse {
+    return {
+      id: this.id,
+      name: this.name,
+      aliases: this.aliases,
+      defaultSubcategoryId: this.defaultSubcategoryId,
+      confidence: this.confidence,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+    };
+  }
+}
+
+/**
+ * 店舗マスタ JSON レスポンス型
+ */
+export interface MerchantJSONResponse {
+  id: string;
+  name: string;
+  aliases: string[];
+  defaultSubcategoryId: string;
+  confidence: number;
+  createdAt: string;
+  updatedAt: string;
+}
