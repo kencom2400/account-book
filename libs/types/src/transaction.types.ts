@@ -1,10 +1,4 @@
-export enum CategoryType {
-  INCOME = 'income',
-  EXPENSE = 'expense',
-  TRANSFER = 'transfer',
-  REPAYMENT = 'repayment',
-  INVESTMENT = 'investment',
-}
+import { CategoryType } from './enums/category-type.enum';
 
 export interface Transaction {
   id: string;
