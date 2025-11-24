@@ -414,33 +414,79 @@ export class UpdateTransactionCategoryUseCase {
 
 #### リポジトリパターンの活用とトランザクション管理
 
-**注意点**: トランザクション内でentityManagerを直接使用すると、リポジトリ層に集約すべきマッピングロジックがユースケース層に漏れ出てしまいます。
+**注意点**: トランザクション内でentityManagerを直接使用すると、リポジトリ層に集約すべきマッピングロジックがユースケース層に漏れ出してしまいます。
 
-**より良いアプローチ** (将来的な改善案):
+**✅ 推奨アプローチ**:
 
 1. リポジトリメソッドがオプションで`EntityManager`を受け取れるようにする
 2. トランザクション内では、その`EntityManager`をリポジトリメソッドに渡す
 3. 永続化ロジックをリポジトリ層にカプセル化しつつ、アトミックな操作を保証
 
 ```typescript
-// ✅ より良い設計 (将来的な改善案)
+// ✅ より良い設計
 export interface IRepository {
   create(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
   update(entity: Entity, entityManager?: EntityManager): Promise<Entity>;
+  findById(id: string, entityManager?: EntityManager): Promise<Entity | null>;
+}
+
+// リポジトリ実装
+@Injectable()
+export class TypeOrmRepository implements IRepository {
+  constructor(
+    @InjectRepository(OrmEntity)
+    private readonly repository: Repository<OrmEntity>,
+  ) {}
+
+  async create(entity: Entity, manager?: EntityManager): Promise<Entity> {
+    const repository = manager ? manager.getRepository(OrmEntity) : this.repository;
+    const ormEntity = this.toOrm(entity);
+    await repository.save(ormEntity);
+    return entity;
+  }
+
+  async findById(id: string, manager?: EntityManager): Promise<Entity | null> {
+    const repository = manager ? manager.getRepository(OrmEntity) : this.repository;
+    const ormEntity = await repository.findOne({ where: { id } });
+    return ormEntity ? this.toDomain(ormEntity) : null;
+  }
+
+  // ドメインエンティティとORMエンティティのマッピングはリポジトリ内に集約
+  private toOrm(domain: Entity): OrmEntity { /* ... */ }
+  private toDomain(orm: OrmEntity): Entity { /* ... */ }
 }
 
 // ユースケースでの使用
-await this.dataSource.transaction(async (entityManager) => {
-  await this.historyRepository.create(history, entityManager);
-  return await this.transactionRepository.update(transaction, entityManager);
-});
+async execute(dto: UpdateDto): Promise<Result> {
+  // トランザクション外で検証
+  const entity = await this.repository.findById(dto.id);
+  if (!entity) {
+    throw new NotFoundException(`Entity not found`);
+  }
+
+  // トランザクション内でリポジトリを使用
+  return await this.dataSource.transaction(async (entityManager) => {
+    await this.historyRepository.create(history, entityManager);
+    return await this.repository.update(entity, entityManager);
+  });
+}
 ```
+
+**メリット**:
+
+- ✅ UseCase層がインフラストラクチャ層の実装詳細から切り離される
+- ✅ ドメインエンティティとORMエンティティのマッピングがリポジトリに集約
+- ✅ コードの重複を削減
+- ✅ クリーンアーキテクチャの依存関係ルールを遵守
+- ✅ テストの容易性が向上（リポジトリをモックしやすい）
 
 **トレードオフ**:
 
 - 現状の実装（entityManager直接使用）でも原子性は保証される
-- リポジトリパターンの完全性を優先する場合は、上記の設計を検討
+- リポジトリパターンの完全性を優先する場合は、上記の設計を採用
 - プロジェクトの段階や優先度に応じて判断する
+
+**参考**: PR #283 Geminiレビュー指摘
 
 #### TypeORMのデコレータの適切な使用
 
