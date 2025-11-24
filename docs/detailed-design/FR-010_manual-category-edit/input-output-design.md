@@ -234,16 +234,16 @@ export enum TransactionStatus {
 
 ```sql
 CREATE TABLE transaction_category_change_history (
-  id VARCHAR(255) PRIMARY KEY,
-  transactionId VARCHAR(255) NOT NULL,
-  oldCategoryId VARCHAR(255) NOT NULL,
+  id VARCHAR(36) PRIMARY KEY,
+  transactionId VARCHAR(36) NOT NULL,
+  oldCategoryId VARCHAR(36) NOT NULL,
   oldCategoryName VARCHAR(100) NOT NULL,
   oldCategoryType ENUM('INCOME', 'EXPENSE', 'TRANSFER', 'REPAYMENT', 'INVESTMENT') NOT NULL,
-  newCategoryId VARCHAR(255) NOT NULL,
+  newCategoryId VARCHAR(36) NOT NULL,
   newCategoryName VARCHAR(100) NOT NULL,
   newCategoryType ENUM('INCOME', 'EXPENSE', 'TRANSFER', 'REPAYMENT', 'INVESTMENT') NOT NULL,
   changedAt DATETIME NOT NULL,
-  changedBy VARCHAR(255) NULL,
+  changedBy VARCHAR(36) NULL,
   INDEX idx_transaction (transactionId),
   INDEX idx_transaction_changed (transactionId, changedAt)
 );
@@ -258,7 +258,7 @@ CREATE TABLE transaction_category_change_history (
 
 ```sql
 -- カテゴリ関連フィールド
-categoryId VARCHAR(255) NOT NULL,
+categoryId VARCHAR(36) NOT NULL,
 categoryName VARCHAR(100) NOT NULL,
 categoryType ENUM('INCOME', 'EXPENSE', 'TRANSFER', 'REPAYMENT', 'INVESTMENT') NOT NULL,
 updatedAt DATETIME NOT NULL

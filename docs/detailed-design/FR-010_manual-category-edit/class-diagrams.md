@@ -97,8 +97,10 @@ classDiagram
 - **責務**: 取引データの管理、カテゴリ更新ロジック
 - **主要メソッド**:
   - `updateCategory(newCategory)`: カテゴリを更新して新しいインスタンスを返す
-  - `toJSON()`: JSON形式への変換
+  - `toJSON()`: JSON形式への変換（戻り値は`TransactionJSONResponse`型）
 - **不変性**: Entityは基本的に不変で、更新時は新しいインスタンスを生成
+
+**注記**: `TransactionJSONResponse`は、APIレスポンス用のプレーンオブジェクト型です。`date`、`createdAt`、`updatedAt`がISO8601文字列に変換されます。
 
 #### TransactionCategoryChangeHistoryEntity
 
@@ -285,7 +287,6 @@ classDiagram
     class UpdateTransactionCategoryRequestDto {
         <<class>>
         +CategoryRequestDto category
-        +validate() boolean
     }
 
     class CategoryRequestDto {
@@ -332,12 +333,9 @@ classDiagram
 
 #### UpdateTransactionCategoryRequestDto
 
-- **責務**: リクエストデータの受け取りとバリデーション
-- **バリデーション**:
-  - `category`は必須
-  - `category.id`は文字列で必須
-  - `category.name`は文字列で必須
-  - `category.type`はCategoryType enumで必須
+- **責務**: リクエストデータの受け取り
+- **バリデーション**: NestJSの`ValidationPipe`によって自動的にバリデーションが実行されます
+- **デコレータ**: `class-validator`のデコレータ（`@IsObject`、`@ValidateNested`等）で宣言的にバリデーションルールを定義
 
 #### TransactionResponseDto
 
@@ -429,7 +427,7 @@ graph TD
     A[Presentation Layer] -->|依存| B[Application Layer]
     B -->|依存| C[Domain Layer]
     A -->|依存| C
-    D[Infrastructure Layer] -->|実装| C
+    D[Infrastructure Layer] ..|>|実装| C
 
     style A fill:#e1f5ff
     style B fill:#fff4e1

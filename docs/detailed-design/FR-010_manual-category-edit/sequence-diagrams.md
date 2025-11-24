@@ -74,7 +74,7 @@ sequenceDiagram
     HisRepo->>DB: INSERT INTO<br/>transaction_category_change_history
 
     UC->>TxRepo: entityManager.save(transaction)
-    TxRepo->>DB: UPDATE transactions<br/>SET category*
+    TxRepo->>DB: UPDATE transactions<br/>SET categoryId, categoryName, categoryType, updatedAt
 
     UC->>DB: COMMIT
     Note over UC,DB: DBトランザクション完了
@@ -202,8 +202,7 @@ sequenceDiagram
     UC->>DB: UPDATE transaction
     DB--xUC: DatabaseError<br/>(例: デッドロック)
 
-    UC->>DB: ROLLBACK
-    Note over UC,DB: トランザクション自動ロールバック
+    Note over UC,DB: TypeORMが自動的にロールバック
 
     UC->>UC: エラーログ出力
     UC-->>API: throw InternalServerErrorException
