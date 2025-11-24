@@ -514,6 +514,54 @@ await this.dataSource.transaction(async (entityManager) => {
 - ✅ クリーンアーキテクチャの依存関係ルールを遵守
 - ✅ テストの容易性が向上（リポジトリをモックしやすい）
 
+**リポジトリ実装のベストプラクティス**:
+
+3. **ヘルパーメソッドでコード重複を削減**
+
+```typescript
+// ✅ リポジトリ実装でDRY原則を徹底
+@Injectable()
+export class TypeOrmRepository implements IRepository {
+  constructor(
+    @InjectRepository(OrmEntity)
+    private readonly repository: Repository<OrmEntity>
+  ) {}
+
+  // ヘルパーメソッドでEntityManagerの処理を一元化
+  private getRepo(manager?: EntityManager): Repository<OrmEntity> {
+    return manager ? manager.getRepository(OrmEntity) : this.repository;
+  }
+
+  async create(entity: Entity, manager?: EntityManager): Promise<Entity> {
+    const repository = this.getRepo(manager);
+    const ormEntity = this.toOrm(entity);
+    await repository.save(ormEntity);
+    return entity;
+  }
+
+  async findById(id: string, manager?: EntityManager): Promise<Entity | null> {
+    const repository = this.getRepo(manager);
+    const ormEntity = await repository.findOne({ where: { id } });
+    return ormEntity ? this.toDomain(ormEntity) : null;
+  }
+
+  async update(entity: Entity, manager?: EntityManager): Promise<Entity> {
+    const repository = this.getRepo(manager);
+    const ormEntity = this.toOrm(entity);
+    await repository.save(ormEntity);
+    return entity;
+  }
+
+  // 他のメソッドも同様にgetRepo()を使用
+}
+```
+
+**メリット**:
+
+- EntityManager取得ロジックが一箇所に集約される
+- 各メソッドがシンプルになり可読性が向上
+- 変更が必要な場合、一箇所を修正するだけで済む
+
 **トレードオフ**:
 
 - 現状の実装（entityManager直接使用）でも原子性は保証される
