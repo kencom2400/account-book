@@ -1,4 +1,4 @@
-import { CategoryType } from './transaction.types';
+import { CategoryType } from './enums/category-type.enum';
 
 export interface MonthlyReport {
   year: number;

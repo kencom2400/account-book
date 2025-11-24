@@ -715,6 +715,501 @@ export class TransactionModule {}
 - **依存性注入はトークン経由で行う**
 - **モジュール定義をシンプルに保つ**
 
+### 3-2. Domain層の設計原則とパフォーマンス考慮
+
+#### ❌ 避けるべきパターン1: Domain ServiceでfindAll()してメモリフィルタリング
+
+```typescript
+// ❌ 悪い例: 全件取得してメモリ上でフィルタリング
+@Injectable()
+export class MerchantMatcherService {
+  async match(description: string): Promise<Merchant | null> {
+    const merchants = await this.merchantRepository.findAll();
+    
+    for (const merchant of merchants) {
+      if (merchant.matchesDescription(description)) {
+        return merchant;
+      }
+    }
+    return null;
+  }
+}
+```
+
+**問題**:
+- データ量の増加に伴いパフォーマンスが著しく低下
+- 不要なデータをメモリに読み込む
+- データベースの検索機能を活用できていない
+
+**✅ 正しいパターン: リポジトリに検索責務を委譲**
+
+```typescript
+// ✅ 良い例: リポジトリ層で効率的な検索を実施
+export interface IMerchantRepository {
+  searchByDescription(description: string): Promise<Merchant | null>;
+}
+
+@Injectable()
+export class MerchantMatcherService {
+  async match(description: string): Promise<Merchant | null> {
+    // リポジトリ層でDB検索を実施（パフォーマンス最適化）
+    return await this.merchantRepository.searchByDescription(description);
+  }
+}
+
+// Infrastructure層での実装例
+@Injectable()
+export class MerchantTypeOrmRepository implements IMerchantRepository {
+  async searchByDescription(description: string): Promise<Merchant | null> {
+    // DBレベルでLIKE検索やJSON検索を実施
+    const result = await this.repository
+      .createQueryBuilder('merchant')
+      .where('merchant.name LIKE :desc', { desc: `%${description}%` })
+      .orWhere('JSON_SEARCH(merchant.aliases, "one", :desc) IS NOT NULL', { desc: `%${description}%` })
+      .getOne();
+    
+    return result ? this.toDomain(result) : null;
+  }
+}
+```
+
+**重要なポイント**:
+1. **Domain Serviceはビジネスロジックの調整に専念**
+2. **データアクセスの最適化はリポジトリに委譲**
+3. **パフォーマンス要件を考慮したリポジトリメソッド設計**
+
+#### ❌ 避けるべきパターン2: コンストラクタ内でのサービスインスタンス化
+
+```typescript
+// ❌ 悪い例: コンストラクタ内で直接new
+export class SubcategoryClassifierService {
+  private readonly merchantMatcher: MerchantMatcherService;
+  private readonly keywordMatcher: KeywordMatcherService;
+
+  constructor(
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    merchantRepository: IMerchantRepository,
+  ) {
+    this.merchantMatcher = new MerchantMatcherService(merchantRepository);
+    this.keywordMatcher = new KeywordMatcherService();
+  }
+}
+```
+
+**問題**:
+- 依存性逆転の原則(DIP)に反する
+- テストが困難（モック化できない）
+- クラス間の結合度が高い
+
+**✅ 正しいパターン: コンストラクタ注入**
+
+```typescript
+// ✅ 良い例: すべての依存をコンストラクタ注入
+@Injectable()
+export class SubcategoryClassifierService {
+  constructor(
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    private readonly merchantMatcher: MerchantMatcherService,
+    private readonly keywordMatcher: KeywordMatcherService,
+  ) {}
+}
+```
+
+**重要なポイント**:
+1. **すべての依存はコンストラクタ経由で注入**
+2. **@Injectable()デコレータでNestJSのDIコンテナに登録**
+3. **テストしやすい設計**
+
+#### ❌ 避けるべきパターン3: テキスト正規化ロジックの重複
+
+```typescript
+// ❌ 悪い例: 各クラスで異なる正規化ロジック
+class MerchantEntity {
+  private normalizeText(text: string): string {
+    return text.toLowerCase().replace(/\s+/g, '');
+  }
+}
+
+class KeywordMatcherService {
+  private normalizeText(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+      )
+      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+      .trim();
+  }
+}
+```
+
+**問題**:
+- ロジックの一貫性がない
+- マッチング結果に予期せぬ差異が発生
+- 保守性が低い
+
+**✅ 正しいパターン: 共通ユーティリティの使用**
+
+```typescript
+// ✅ 良い例: 統一された正規化ユーティリティ
+export class TextNormalizer {
+  static normalize(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+      )
+      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  static includes(haystack: string, needle: string): boolean {
+    return this.normalize(haystack).includes(this.normalize(needle));
+  }
+}
+
+// 各クラスで統一使用
+class MerchantEntity {
+  matchesDescription(description: string): boolean {
+    return TextNormalizer.includes(description, this.name);
+  }
+}
+```
+
+**重要なポイント**:
+1. **アプリケーション全体で統一されたロジック**
+2. **一貫性のある処理結果**
+3. **保守性・テスト容易性の向上**
+
+#### ✅ Repository Interfaceの安全な設計
+
+```typescript
+// ❌ 避けるべき: null安全性がない
+export interface ISubcategoryRepository {
+  findDefault(categoryType: CategoryType): Promise<Subcategory>;
+}
+
+// ✅ 推奨: null安全性を考慮
+export interface ISubcategoryRepository {
+  findDefault(categoryType: CategoryType): Promise<Subcategory | null>;
+}
+
+// 呼び出し側で安全にハンドリング
+const defaultSubcategory = await this.repository.findDefault(mainCategory);
+if (!defaultSubcategory) {
+  throw new Error(`Default subcategory not found for category: ${mainCategory}`);
+}
+```
+
+**重要なポイント**:
+1. **データが見つからない可能性を型で表現**
+2. **呼び出し側で適切なエラーハンドリング**
+3. **null安全性の向上**
+
+#### ✅ スコアベースの信頼度設計
+
+```typescript
+// ❌ 避けるべき: 信頼度をハードコード
+const keywordMatch = this.keywordMatcher.match(description, category, subcategories);
+if (keywordMatch) {
+  const confidence = new ClassificationConfidence(0.8); // 固定値
+  return new SubcategoryClassification(...);
+}
+
+// ✅ 推奨: 実際のマッチングスコアを活用
+export interface KeywordMatchResult {
+  subcategory: Subcategory;
+  score: number;
+}
+
+const keywordMatch = this.keywordMatcher.match(description, category, subcategories);
+if (keywordMatch) {
+  // スコアを信頼度として利用（最低保証あり）
+  const confidenceValue = Math.max(keywordMatch.score, 0.7);
+  const confidence = new ClassificationConfidence(confidenceValue);
+  return new SubcategoryClassification(...);
+}
+```
+
+**重要なポイント**:
+1. **計算されたスコアを活用**
+2. **信頼度の動的な調整**
+3. **より精度の高い分類**
+
+#### 📝 日本語テキスト処理の将来対応
+
+```typescript
+/**
+ * テキストからキーワードを抽出
+ *
+ * NOTE: 現在はスペースで分割する簡易実装
+ * 日本語の取引明細（単語がスペースで区切られていない）には
+ * 有効ではないため、将来的に形態素解析ライブラリ（kuromoji.js等）の
+ * 導入を検討する必要がある
+ */
+public extractKeywords(text: string): string[] {
+  const normalized = TextNormalizer.normalize(text);
+  // TODO: 形態素解析の導入（kuromoji.js等）
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**重要なポイント**:
+1. **現在の実装の制約を明示**
+2. **将来の改善方針をコメントで残す**
+3. **段階的な機能向上を可能にする**
+
+### 3-3. Value Objectとドメインモデルの一貫性
+
+#### ❌ 避けるべきパターン: プリミティブな型をドメインエンティティで使用
+
+```typescript
+// ❌ 悪い例: プリミティブ型
+export class Merchant {
+  constructor(
+    public readonly id: string,
+    public readonly name: string,
+    public readonly confidence: number, // プリミティブ型
+  ) {
+    // バリデーションをエンティティで実装
+    if (confidence < 0 || confidence > 1) {
+      throw new Error('Invalid confidence');
+    }
+  }
+
+  public getConfidence(): number {
+    return this.confidence;
+  }
+}
+```
+
+**問題**:
+- ドメインモデルの一貫性がない（他では`ClassificationConfidence` VOを使用）
+- バリデーションロジックが分散
+- 信頼度に関するロジックが集約されていない
+
+**✅ 正しいパターン: Value Objectの活用**
+
+```typescript
+// ✅ 良い例: Value Objectを使用
+export class Merchant {
+  constructor(
+    public readonly id: string,
+    public readonly name: string,
+    public readonly confidence: ClassificationConfidence, // Value Object
+  ) {
+    // バリデーションはVOが担当
+  }
+
+  public getConfidence(): ClassificationConfidence {
+    return this.confidence;
+  }
+
+  public toJSON(): MerchantJSONResponse {
+    return {
+      id: this.id,
+      name: this.name,
+      confidence: this.confidence.getValue(), // VOから値を取得
+    };
+  }
+}
+```
+
+**重要なポイント**:
+1. **ドメインモデル全体で一貫した型を使用**
+2. **バリデーションロジックはVOに集約**
+3. **JSONシリアライズ時はgetValue()で数値に変換**
+
+### 3-4. マジックナンバーの排除
+
+#### ❌ 避けるべきパターン: 閾値のハードコード
+
+```typescript
+// ❌ 悪い例: マジックナンバー
+export class ClassificationConfidence {
+  public isHigh(): boolean {
+    return this.value >= 0.9; // 意図が不明確
+  }
+
+  public isMedium(): boolean {
+    return this.value >= 0.7 && this.value < 0.9; // 変更時の影響が大きい
+  }
+}
+
+// ❌ 悪い例: サービス内のマジックナンバー
+export class SubcategoryClassifierService {
+  async classify(description: string): Promise<SubcategoryClassification> {
+    if (keywordMatch) {
+      const confidenceValue = Math.max(keywordMatch.score, 0.7); // 意図不明
+      // ...
+    }
+    const defaultConfidence = new ClassificationConfidence(0.5); // 変更困難
+  }
+}
+```
+
+**問題**:
+- 数値の意図が不明確
+- 変更時に複数箇所の修正が必要
+- テストでの検証が困難
+
+**✅ 正しいパターン: 名前付き定数の使用**
+
+```typescript
+// ✅ 良い例: Value Objectで定数化
+export class ClassificationConfidence {
+  private static readonly HIGH_THRESHOLD = 0.9;
+  private static readonly MEDIUM_THRESHOLD = 0.7;
+
+  public isHigh(): boolean {
+    return this.value >= ClassificationConfidence.HIGH_THRESHOLD;
+  }
+
+  public isMedium(): boolean {
+    return (
+      this.value >= ClassificationConfidence.MEDIUM_THRESHOLD &&
+      this.value < ClassificationConfidence.HIGH_THRESHOLD
+    );
+  }
+
+  // 閾値を外部から取得可能に
+  public static getHighThreshold(): number {
+    return ClassificationConfidence.HIGH_THRESHOLD;
+  }
+}
+
+// ✅ 良い例: サービスで定数化
+@Injectable()
+export class SubcategoryClassifierService {
+  private static readonly MINIMUM_KEYWORD_MATCH_CONFIDENCE = 0.7;
+  private static readonly DEFAULT_CLASSIFICATION_CONFIDENCE = 0.5;
+
+  async classify(description: string): Promise<SubcategoryClassification> {
+    if (keywordMatch) {
+      const confidenceValue = Math.max(
+        keywordMatch.score,
+        SubcategoryClassifierService.MINIMUM_KEYWORD_MATCH_CONFIDENCE,
+      );
+      // ...
+    }
+    const defaultConfidence = new ClassificationConfidence(
+      SubcategoryClassifierService.DEFAULT_CLASSIFICATION_CONFIDENCE,
+    );
+  }
+}
+```
+
+**重要なポイント**:
+1. **意味のある名前で定数を定義**
+2. **変更時の影響範囲を最小化**
+3. **テストでの検証が容易**
+4. **コードの可読性と保守性が向上**
+
+### 3-5. 冗長なasync/awaitの回避
+
+#### ❌ 避けるべきパターン: awaitして即return
+
+```typescript
+// ❌ 悪い例: 冗長なasync/await
+export class MerchantMatcherService {
+  public async match(description: string): Promise<Merchant | null> {
+    return await this.merchantRepository.searchByDescription(description);
+  }
+}
+```
+
+**問題**:
+- 不要なPromiseラッピング
+- 微妙なパフォーマンスオーバーヘッド
+- コードが冗長
+
+**✅ 正しいパターン: Promiseを直接返す**
+
+```typescript
+// ✅ 良い例: Promiseを直接返す
+export class MerchantMatcherService {
+  public match(description: string): Promise<Merchant | null> {
+    return this.merchantRepository.searchByDescription(description);
+  }
+}
+```
+
+**例外: エラーハンドリングや追加処理が必要な場合**
+
+```typescript
+// ✅ async/awaitが必要なケース
+export class MerchantMatcherService {
+  public async match(description: string): Promise<Merchant | null> {
+    try {
+      const merchant = await this.merchantRepository.searchByDescription(description);
+      // 追加の処理やログ出力
+      this.logger.debug(`Matched merchant: ${merchant?.name}`);
+      return merchant;
+    } catch (error) {
+      this.logger.error('Merchant matching failed', error);
+      throw new MerchantMatchingException(error);
+    }
+  }
+}
+```
+
+**重要なポイント**:
+1. **単純なPromise転送ではasync/awaitを省略**
+2. **エラーハンドリングや追加処理がある場合は使用**
+3. **パフォーマンスとコードのシンプルさのバランス**
+
+### 3-6. テキスト正規化の注意点
+
+#### ❌ 避けるべきパターン: 過度な空白削除
+
+```typescript
+// ❌ 悪い例: すべての空白を削除
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+    .replace(/\s+/g, '') // すべての空白を削除
+    .trim();
+}
+
+// 結果: extractKeywords()が機能しない
+public extractKeywords(text: string): string[] {
+  const normalized = this.normalizeText(text);
+  // スペースが存在しないため分割できない
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**問題**:
+- キーワード抽出が機能しない
+- 単語の区切りが失われる
+
+**✅ 正しいパターン: 空白を一つにまとめる**
+
+```typescript
+// ✅ 良い例: 複数の空白を一つにまとめる
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+    .replace(/\s+/g, ' ') // 複数空白を一つにまとめる
+    .trim();
+}
+
+// 結果: extractKeywords()が正常に動作
+public extractKeywords(text: string): string[] {
+  const normalized = this.normalizeText(text);
+  // スペースで正しく分割できる
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**重要なポイント**:
+1. **正規化の目的を明確にする**
+2. **後続の処理への影響を考慮**
+3. **汎用的なユーティリティは慎重に設計**
+
 ---
 
 ## 4. テスト実装ガイドライン
@@ -3358,5 +3853,107 @@ status: result.status;
 - 将来的なステータス追加に柔軟
 
 **参照**: Issue #28 Geminiレビュー（第4弾）
+
+---
+
+## 3-7. テキスト正規化の注意点
+
+### 原則: 記号処理は後続処理への影響を考慮する
+
+テキスト正規化（特に記号の処理）は、後続のキーワード抽出やマッチング処理に大きな影響を与えます。
+
+#### ❌ 避けるべきパターン: 記号を削除する
+
+```typescript
+// ❌ 悪い例: 記号を単純に削除
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '') // 記号を削除
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 問題が発生する例
+normalize('スターバックス@コーヒー'); // => 'スターバックスコーヒー' （単語が結合してしまう）
+extractKeywords('スターバックス@コーヒー'); // => ['スターバックスコーヒー'] （1つの単語として誤認識）
+```
+
+**問題点**:
+
+- 記号を削除すると、前後の単語が結合してしまう
+- キーワード抽出が正しく動作しない（スペース区切りに依存している場合）
+- マッチング精度が低下する
+
+#### ✅ 正しいパターン: 記号をスペースに置換する
+
+```typescript
+// ✅ 良い例: 記号をスペースに置換
+static normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+      String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+    )
+    .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, ' ') // 記号をスペースに置換（単語の区切りを維持）
+    .replace(/\s+/g, ' ') // 複数の空白を1つにまとめる
+    .trim();
+}
+
+// 正しく動作する例
+normalize('スターバックス@コーヒー'); // => 'スターバックス コーヒー' （単語が分離される）
+extractKeywords('スターバックス@コーヒー'); // => ['スターバックス', 'コーヒー'] （正しく2つの単語に分割）
+```
+
+**改善点**:
+
+- 記号をスペースに置換することで、単語の区切りを維持
+- キーワード抽出が正しく動作
+- マッチング精度が向上
+
+### 補足: 正規化の目的と後続処理の関係
+
+正規化は単独で完結するのではなく、後続の処理（キーワード抽出、マッチング等）との連携を考慮して設計する必要があります。
+
+- **キーワード抽出**がスペース区切りに依存する場合 → 記号はスペースに置換
+- **完全一致マッチング**を行う場合 → 記号は削除しても問題ない
+- **日本語の形態素解析**を行う場合 → 記号の処理方法を形態素解析エンジンの仕様に合わせる
+
+**参照**: Issue #290 Geminiレビュー（第3弾）
+
+---
+
+## 3-9. 将来のパフォーマンス最適化の検討事項
+
+以下の項目は、現在のアーキテクチャでは大規模な変更となるため、将来的な最適化課題として記録します。
+
+### KeywordMatcherService: キーワードマップの事前正規化
+
+**現状**: `calculateMatchScore`メソッド内で毎回`TextNormalizer.normalize(keyword)`を呼び出している
+
+**改善案**: コンストラクタで`keywordMap`を事前に正規化し、実行時には正規化済みのマップを使用する
+
+**効果**: `match`メソッドの実行速度向上
+
+**制約**: 現在のキーワードは日本語のみで、正規化しても変わらないため、効果は限定的
+
+### SubcategoryClassifierService: サブカテゴリの全件取得を避ける
+
+**現状**: キーワードマッチング前に`subcategoryRepository.findByCategory(mainCategory)`で全サブカテゴリを取得している
+
+**改善案**: 
+1. `KeywordMatcherService.match`メソッドを修正し、`subcategoryId`のみを返すようにする
+2. `SubcategoryClassifierService`側で、`findById()`で必要なサブカテゴリ1件のみを取得する
+
+**効果**: 不要なDBアクセスを削減し、パフォーマンスを大幅に改善
+
+**制約**: 
+- `KeywordMatcherService`と`SubcategoryClassifierService`のインターフェースが大きく変わる
+- すでに書かれた全てのテストコードの修正が必要
+- 将来的にキーワードをDBから取得する場合は、さらなる設計変更が必要
+
+**判断**: Phase 2のスコープを超えるため、Phase 7（統合・最適化フェーズ）で再検討する
+
+**参照**: Issue #290 Geminiレビュー（第3弾）
 
 ---

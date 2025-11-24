@@ -1,0 +1,118 @@
+# GitHub Issueステータス変更スクリプトの不具合修正
+title: "[bug] GitHub Issueのステータス変更が失敗する"
+labels:
+  - bug
+  - infrastructure
+  - priority: high
+  - size: M
+
+body: |
+  ## 概要
+  `scripts/github/projects/set-issue-in-progress.sh` などのステータス変更スクリプトが機能しなくなり、Issueのステータスを変更できない状態です。
+
+  ## 現象
+  ### 発生している問題
+  以下のコマンドを実行してもステータス変更が失敗する：
+  ```bash
+  scripts/github/projects/set-issue-in-progress.sh 284
+  ```
+
+  ### 期待される動作
+  - Issue #284のステータスが「🚧 In Progress」に変更される
+  - コマンドが正常に完了し、成功メッセージが表示される
+
+  ### 実際の動作
+  - ステータス変更が失敗する（詳細なエラーメッセージは要調査）
+
+  ## 再現手順
+  1. フィーチャーブランチでIssue作業を開始
+  2. `scripts/github/projects/set-issue-in-progress.sh <issue番号>` を実行
+  3. ステータス変更が失敗
+
+  ## 発生環境
+  - OS: macOS
+  - 発生頻度: 常に
+  - 影響を受けるスクリプト:
+    - `scripts/github/projects/set-issue-in-progress.sh`
+    - `scripts/github/projects/update-issue-status.sh`（内部で呼ばれている）
+    - その他のステータス変更スクリプト
+
+  ## 原因調査
+  ### 推定される原因
+  1. **GitHub API仕様変更**: GitHub Projects V2のAPIが変更され、既存のコマンドが動作しなくなった可能性
+  2. **gh CLIバージョン不整合**: `gh` コマンドのバージョンアップにより、`project item-edit` コマンドの動作が変わった可能性
+  3. **プロジェクトID/フィールドIDの変更**: GitHub Projects V2のID体系が変更された可能性
+  4. **権限・認証の問題**: GitHub PAT（Personal Access Token）の権限が不足している可能性
+
+  ### 影響範囲
+  - すべてのGitHub Issueステータス変更操作が影響を受ける
+  - ワークフロー全体に支障をきたす重大な問題
+
+  ## 修正方針
+  ### 調査タスク
+  1. **エラーの詳細確認**
+     - スクリプトを実行して具体的なエラーメッセージを取得
+     - `--debug` フラグなどでverboseモードで実行
+  
+  2. **gh CLIバージョン確認**
+     ```bash
+     gh --version
+     ```
+  
+  3. **GitHub Projects V2 API動作確認**
+     - `gh project list` が正常に動作するか
+     - `gh project item-list` が正常に動作するか
+     - `gh project field-list` が正常に動作するか
+  
+  4. **代替手段の調査**
+     - GraphQL APIを直接使用する方法
+     - 最新のgh CLIドキュメントを参照
+
+  ### 修正内容
+  調査結果に基づいて以下のいずれかを実施：
+  1. **スクリプト修正**: API変更に合わせてコマンドを更新
+  2. **gh CLIアップデート**: 最新バージョンへのアップデート手順を追加
+  3. **GraphQL API移行**: より安定したGraphQL APIベースの実装に移行
+  4. **エラーハンドリング強化**: デバッグしやすいエラーメッセージの追加
+
+  ## 作業チェックリスト
+  - [ ] エラーメッセージの詳細取得とログ保存
+  - [ ] gh CLIバージョン確認
+  - [ ] GitHub Projects V2 API動作確認
+  - [ ] 原因の特定
+  - [ ] 修正コードの実装
+  - [ ] 全ステータス変更スクリプトでテスト
+    - [ ] `set-issue-in-progress.sh`
+    - [ ] `set-issue-todo.sh`
+    - [ ] `set-issue-done.sh`
+    - [ ] `update-issue-status.sh`
+  - [ ] 既存Issueでの動作確認
+  - [ ] README/ドキュメント更新
+
+  ## 受入基準
+  - [ ] ステータス変更スクリプトが正常に動作する
+  - [ ] 具体的なエラーメッセージが表示される（エラー時）
+  - [ ] すべてのステータス（To Do, In Progress, Done, Backlog）への変更が可能
+  - [ ] 既存機能に影響がない
+  - [ ] ドキュメントが更新されている
+
+  ## 優先度の理由
+  このバグはIssue管理ワークフロー全体に影響を与える重大な問題です。
+  - ステータス変更ができないと、プロジェクト管理が困難になる
+  - 開発フローの中断を引き起こす
+  - 他の作業がブロックされる可能性がある
+
+  ## 見積もり工数
+  - 調査: 0.5日
+  - 修正: 0.5〜1日
+  - テスト: 0.5日
+  合計: 1.5〜2日
+
+  ## 関連Issue・PR
+  - 関連する Issue: #284（この問題が最初に発覚したIssue）
+
+  ## 備考
+  - 緊急性が高いため、優先的に対応する必要がある
+  - 修正後は全スクリプトの動作確認を実施すること
+  - 同様の問題が他のGitHub連携スクリプトで発生していないか確認すること
+
