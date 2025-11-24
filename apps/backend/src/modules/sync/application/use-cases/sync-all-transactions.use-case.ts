@@ -12,6 +12,12 @@ import {
 import { SyncHistory } from '../../domain/entities/sync-history.entity';
 import { SyncStatus } from '../../domain/enums/sync-status.enum';
 import { randomUUID } from 'crypto';
+import { FetchCreditCardTransactionsUseCase } from '../../../credit-card/application/use-cases/fetch-credit-card-transactions.use-case';
+import { FetchSecurityTransactionsUseCase } from '../../../securities/application/use-cases/fetch-security-transactions.use-case';
+import type { ICreditCardRepository } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
+import type { ISecuritiesAccountRepository } from '../../../securities/domain/repositories/securities.repository.interface';
+import { CREDIT_CARD_REPOSITORY } from '../../../credit-card/credit-card.tokens';
+import { SECURITIES_ACCOUNT_REPOSITORY } from '../../../securities/securities.tokens';
 
 /**
  * 全金融機関の取引同期ユースケース
@@ -36,7 +42,13 @@ export class SyncAllTransactionsUseCase {
     private readonly syncHistoryRepository: ISyncHistoryRepository,
     @Inject(INSTITUTION_REPOSITORY)
     private readonly institutionRepository: IInstitutionRepository,
+    @Inject(CREDIT_CARD_REPOSITORY)
+    private readonly creditCardRepository: ICreditCardRepository,
+    @Inject(SECURITIES_ACCOUNT_REPOSITORY)
+    private readonly securitiesAccountRepository: ISecuritiesAccountRepository,
     private readonly configService: ConfigService,
+    private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+    private readonly fetchSecurityTransactionsUseCase: FetchSecurityTransactionsUseCase,
   ) {
     this.MAX_PARALLEL = this.configService.get<number>('SYNC_MAX_PARALLEL', 5);
   }
@@ -213,17 +225,77 @@ export class SyncAllTransactionsUseCase {
       syncHistory = syncHistory.markAsRunning();
       syncHistory = await this.syncHistoryRepository.update(syncHistory);
 
-      // TODO: 実際の金融機関APIから取引を取得する処理を実装。詳細は未実装機能リストを参照。
-      // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
-      // 【依存】: FR-001（銀行連携）、FR-002（カード連携）、FR-003（証券連携）
-      // 【実装方針】: institutionTypeに応じて適切なUseCaseを呼び出す
-      //   - FetchBankTransactionsUseCase
-      //   - FetchCreditCardTransactionsUseCase
-      //   - FetchSecurityTransactionsUseCase
-      // 現在はモックデータとして処理
-      const totalFetched = 0;
-      const newRecords = 0;
-      const duplicateRecords = 0;
+      // 金融機関APIから取引を取得
+      let totalFetched = 0;
+      let newRecords = 0;
+      let duplicateRecords = 0;
+
+      try {
+        switch (target.institutionType) {
+          case 'credit-card': {
+            // クレジットカード取引を取得
+            const transactions =
+              await this.fetchCreditCardTransactionsUseCase.execute({
+                creditCardId: target.institutionId,
+                forceRefresh: _forceFullSync,
+              });
+            totalFetched = transactions.length;
+            // NOTE: 新規/重複の判定はFetchCreditCardTransactionsUseCaseで実施済み
+            newRecords = transactions.length;
+            duplicateRecords = 0;
+            this.logger.log(`クレジットカード取引取得完了: ${totalFetched}件`);
+            break;
+          }
+
+          case 'securities': {
+            // 証券取引を取得
+            const transactions =
+              await this.fetchSecurityTransactionsUseCase.execute({
+                accountId: target.institutionId,
+                forceRefresh: _forceFullSync,
+              });
+            totalFetched = transactions.length;
+            // NOTE: 新規/重複の判定はFetchSecurityTransactionsUseCaseで実施済み
+            newRecords = transactions.length;
+            duplicateRecords = 0;
+            this.logger.log(`証券取引取得完了: ${totalFetched}件`);
+            break;
+          }
+
+          case 'bank': {
+            // NOTE: 銀行取引の取得は未実装
+            // 【技術的理由】: FetchBankTransactionsUseCaseが未実装のため、実装不可
+            // 【実装に必要なコンポーネント】:
+            //   1. FetchBankTransactionsUseCase (modules/bank/application/use-cases/)
+            //   2. IBankRepository (modules/bank/domain/repositories/)
+            //   3. IBankAPIClient (modules/bank/infrastructure/adapters/)
+            //   4. BankModule (modules/bank/bank.module.ts)
+            // 【実装予定】: FR-001（銀行口座連携）完了後
+            // 【参照】: docs/detailed-design/FR-001_bank-integration/ (未作成)
+            this.logger.warn(
+              `銀行取引の取得は未実装です: ${target.institutionName}`,
+            );
+            totalFetched = 0;
+            newRecords = 0;
+            duplicateRecords = 0;
+            break;
+          }
+
+          default: {
+            const unknownType: string = target.institutionType;
+            this.logger.warn(`未対応の金融機関タイプ: ${unknownType}`);
+            totalFetched = 0;
+            newRecords = 0;
+            duplicateRecords = 0;
+          }
+        }
+      } catch (error) {
+        this.logger.error(
+          `取引取得エラー: ${target.institutionName}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+        throw error;
+      }
 
       // COMPLETED状態に更新
       syncHistory = syncHistory.markAsCompleted(
