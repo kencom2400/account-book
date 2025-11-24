@@ -112,10 +112,7 @@ describe('FetchSecurityTransactionsUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute({ accountId })).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(useCase.execute({ accountId })).rejects.toThrow(
-        `Securities account not found: ${accountId}`,
+        new NotFoundException(`Securities account not found: ${accountId}`),
       );
     });
 

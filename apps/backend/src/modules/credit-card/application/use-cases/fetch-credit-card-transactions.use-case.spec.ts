@@ -105,10 +105,7 @@ describe('FetchCreditCardTransactionsUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute({ creditCardId })).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(useCase.execute({ creditCardId })).rejects.toThrow(
-        `Credit card not found with ID: ${creditCardId}`,
+        new NotFoundException(`Credit card not found with ID: ${creditCardId}`),
       );
     });
 

@@ -311,6 +311,34 @@ export class SyncAllTransactionsUseCase {
           }
         }
       } catch (error) {
+        // キャンセルエラーの場合は、CANCELLEDステータスを設定して処理を終了
+        if (
+          error instanceof Error &&
+          error.message === 'Transaction fetch was cancelled'
+        ) {
+          this.logger.log(`同期キャンセル: ${target.institutionName}`);
+          syncHistory = syncHistory.markAsCancelled();
+          await this.syncHistoryRepository.update(syncHistory);
+
+          return {
+            syncHistoryId: syncHistory.id,
+            institutionId: target.institutionId,
+            institutionName: target.institutionName,
+            institutionType: target.institutionType,
+            status: syncHistory.status,
+            success: false,
+            totalFetched: 0,
+            newRecords: 0,
+            duplicateRecords: 0,
+            errorMessage: 'Sync cancelled',
+            retryCount: syncHistory.retryCount,
+            duration: Date.now() - startTime,
+            startedAt: syncHistory.startedAt,
+            completedAt: syncHistory.completedAt,
+          };
+        }
+
+        // その他のエラーはそのまま再スロー
         this.logger.error(
           `取引取得エラー: ${target.institutionName}`,
           error instanceof Error ? error.stack : String(error),
