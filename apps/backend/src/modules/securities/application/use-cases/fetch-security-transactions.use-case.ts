@@ -20,6 +20,7 @@ export interface FetchSecurityTransactionsInput {
   startDate?: Date;
   endDate?: Date;
   forceRefresh?: boolean; // 強制的にAPIから最新データを取得
+  abortSignal?: AbortSignal; // キャンセル用シグナル
 }
 
 interface DecryptedCredentials {
@@ -52,12 +53,22 @@ export class FetchSecurityTransactionsUseCase {
   async execute(
     input: FetchSecurityTransactionsInput,
   ): Promise<SecurityTransactionEntity[]> {
+    // キャンセルチェック
+    if (input.abortSignal?.aborted) {
+      throw new Error('Transaction fetch was cancelled');
+    }
+
     // 1. 証券口座の存在確認
     const account = await this.accountRepository.findById(input.accountId);
     if (!account) {
       throw new NotFoundException(
         `Securities account not found: ${input.accountId}`,
       );
+    }
+
+    // キャンセルチェック
+    if (input.abortSignal?.aborted) {
+      throw new Error('Transaction fetch was cancelled');
     }
 
     // 2. 強制リフレッシュの場合はAPIから取得

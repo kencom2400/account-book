@@ -37,6 +37,9 @@ export class SyncAllTransactionsUseCase {
   // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
   private readonly MAX_PARALLEL: number;
 
+  // AbortController管理（同期ID => AbortController）
+  private readonly syncAbortControllers = new Map<string, AbortController>();
+
   constructor(
     @Inject(SYNC_HISTORY_REPOSITORY)
     private readonly syncHistoryRepository: ISyncHistoryRepository,
@@ -220,6 +223,10 @@ export class SyncAllTransactionsUseCase {
     );
     syncHistory = await this.syncHistoryRepository.create(syncHistory);
 
+    // AbortControllerを作成して管理
+    const abortController = new AbortController();
+    this.syncAbortControllers.set(syncHistory.id, abortController);
+
     try {
       // RUNNING状態に更新
       syncHistory = syncHistory.markAsRunning();
@@ -238,6 +245,7 @@ export class SyncAllTransactionsUseCase {
               await this.fetchCreditCardTransactionsUseCase.execute({
                 creditCardId: target.institutionId,
                 forceRefresh: _forceFullSync,
+                abortSignal: abortController.signal,
               });
             totalFetched = transactions.length;
             // NOTE: 新規/重複の判定はFetchCreditCardTransactionsUseCaseで実施済み
@@ -253,6 +261,7 @@ export class SyncAllTransactionsUseCase {
               await this.fetchSecurityTransactionsUseCase.execute({
                 accountId: target.institutionId,
                 forceRefresh: _forceFullSync,
+                abortSignal: abortController.signal,
               });
             totalFetched = transactions.length;
             // NOTE: 新規/重複の判定はFetchSecurityTransactionsUseCaseで実施済み
@@ -358,6 +367,9 @@ export class SyncAllTransactionsUseCase {
         startedAt: syncHistory.startedAt,
         completedAt: syncHistory.completedAt,
       };
+    } finally {
+      // AbortControllerをクリーンアップ
+      this.syncAbortControllers.delete(syncHistory.id);
     }
   }
 
@@ -377,5 +389,25 @@ export class SyncAllTransactionsUseCase {
       totalDuplicate: results.reduce((sum, r) => sum + r.duplicateRecords, 0),
       duration,
     };
+  }
+
+  /**
+   * 実行中の同期をキャンセル
+   *
+   * @param syncId - 同期履歴ID
+   * @returns キャンセル成功の可否
+   */
+  cancelSync(syncId: string): boolean {
+    const abortController = this.syncAbortControllers.get(syncId);
+    if (!abortController) {
+      this.logger.warn(
+        `同期ID ${syncId} に対応するAbortControllerが見つかりません`,
+      );
+      return false;
+    }
+
+    this.logger.log(`同期をキャンセルします: ${syncId}`);
+    abortController.abort();
+    return true;
   }
 }
