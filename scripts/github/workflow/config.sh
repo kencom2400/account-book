@@ -11,6 +11,9 @@ export REPO_NAME="account-book"
 export PROJECT_NUMBER=1
 export PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
 
+# GitHub API設定
+export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
+
 # ステータスフィールドID
 export STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"
 

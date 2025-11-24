@@ -24,6 +24,21 @@ STATUS=$2
 PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
 OWNER="${OWNER:-kencom2400}"
 
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+# アイテム情報を取得する関数
+get_item_info() {
+  gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
+    jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}'
+}
+
 echo "🔍 Issue #${ISSUE_NUMBER} の情報を取得中..."
 
 # プロジェクトIDを取得（プロジェクト番号でフィルタリング）
@@ -37,9 +52,8 @@ fi
 
 echo "   プロジェクトID: $PROJECT_ID"
 
-# アイテムIDとステータスを取得（limitを大きくしてすべてのアイテムを取得）
-ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
-  jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
+# アイテムIDとステータスを取得
+ITEM_INFO=$(get_item_info)
 
 if [ -z "$ITEM_INFO" ]; then
   echo "⚠️  Issue #${ISSUE_NUMBER} がプロジェクトに見つかりませんでした"
@@ -57,14 +71,19 @@ if [ -z "$ITEM_INFO" ]; then
   gh project item-add "$PROJECT_NUMBER" --owner "$OWNER" --url "$ISSUE_URL"
   
   echo "✅ Issue #${ISSUE_NUMBER} をプロジェクトに追加しました"
-  echo "⏳ GitHub APIの反映を待機中..."
-  sleep 3
-  echo ""
-  echo "🔍 再度アイテム情報を取得中..."
+  echo "⏳ GitHub APIの反映を待機し、再度アイテム情報を取得します..."
   
-  # 再度アイテム情報を取得
-  ITEM_INFO=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 9999 | \
-    jq --arg num "$ISSUE_NUMBER" '.items[] | select(.content.number == ($num | tonumber)) | {id: .id, title: .title, status: .status}')
+  # API反映を待つためリトライ処理を追加
+  for i in {1..5}; do
+    ITEM_INFO=$(get_item_info)
+    if [ -n "$ITEM_INFO" ]; then
+      break
+    fi
+    if [ "$i" -lt 5 ]; then
+      echo "  リトライ ($i/5)..."
+      sleep 3
+    fi
+  done
   
   if [ -z "$ITEM_INFO" ]; then
     echo "❌ エラー: Issueの追加後もアイテム情報を取得できませんでした"
