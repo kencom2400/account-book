@@ -33,9 +33,9 @@ fi
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
 
-# リトライ処理の設定
-MAX_RETRIES=5
-RETRY_INTERVAL=3
+# リトライ処理の設定（設定ファイルで定義されていない場合のデフォルト値）
+MAX_RETRIES="${MAX_RETRIES:-5}"
+RETRY_INTERVAL="${RETRY_INTERVAL:-3}"
 
 # アイテム情報を取得する関数
 get_item_info() {

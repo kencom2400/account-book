@@ -2660,6 +2660,14 @@ export REPO_NAME="account-book"
 
 # GitHub API設定
 export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
+export MIN_ISSUE_COUNT_FOR_COMPLETION=90  # Issue完了確認の最小閾値
+
+# リトライ処理の設定
+export MAX_RETRIES=5  # API反映待機のリトライ最大回数
+export RETRY_INTERVAL=3  # リトライ間隔（秒）
+
+# API Rate Limit対策
+export API_RATE_LIMIT_WAIT=1  # API rate limit対策の基本待機時間（秒）
 
 # プロジェクト情報
 export PROJECT_NUMBER=1
@@ -2679,10 +2687,34 @@ fi
 
 # デフォルト値の設定（設定ファイルで定義されていない場合）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+MAX_RETRIES="${MAX_RETRIES:-5}"
+RETRY_INTERVAL="${RETRY_INTERVAL:-3}"
+API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
 
-# 使用
+# 使用例1: API Limit
 gh project item-list "$PROJECT_NUMBER" --limit "$GH_API_LIMIT"
+
+# 使用例2: リトライ処理
+for ((i=1; i<=MAX_RETRIES; i++)); do
+  ITEM_INFO=$(get_item_info)
+  if [ -n "$ITEM_INFO" ]; then
+    break
+  fi
+  if [ "$i" -lt "$MAX_RETRIES" ]; then
+    sleep "$RETRY_INTERVAL"
+  fi
+done
+
+# 使用例3: API Rate Limit対策
+sleep "$API_RATE_LIMIT_WAIT"
 ```
+
+**重要なポイント:**
+
+- **すべての定数値を変数化**: 回数、時間、閾値などハードコードされた値を排除
+- **デフォルト値の設定**: `${VAR:-default}` パターンで設定ファイル未定義時のフォールバック
+- **意味のある変数名**: 用途が明確な名前を使用
+- **コメントで説明**: 各変数の用途を明記
 
 **参考:** Issue #286 / PR #288 - Geminiレビュー指摘より
 

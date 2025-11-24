@@ -9,6 +9,9 @@ fi
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
 
+# API Rate Limit対策の待機時間（設定ファイルで定義されていない場合のデフォルト値）
+API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
+
 
 # すべてのPRとプロジェクト内のIssueを紐づけるスクリプト
 # PR側に関連Issueを追記する
@@ -147,7 +150,7 @@ Related to$ISSUES_TO_ADD"
   echo ""
   
   # API rate limit対策
-  sleep 2
+  sleep "$API_RATE_LIMIT_WAIT"
 done
 
 # 結果サマリー

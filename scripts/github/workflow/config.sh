@@ -15,6 +15,13 @@ export PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
 export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
 export MIN_ISSUE_COUNT_FOR_COMPLETION=90  # Issue完了確認の最小閾値
 
+# リトライ処理の設定
+export MAX_RETRIES=5  # API反映待機のリトライ最大回数
+export RETRY_INTERVAL=3  # リトライ間隔（秒）
+
+# API Rate Limit対策
+export API_RATE_LIMIT_WAIT=1  # API rate limit対策の基本待機時間（秒）
+
 # ステータスフィールドID
 export STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"
 
