@@ -25,7 +25,6 @@ import {
       provide: INSTITUTION_REPOSITORY,
       useClass: InstitutionTypeOrmRepository,
     },
-    InstitutionTypeOrmRepository,
     // Services
     {
       provide: CRYPTO_SERVICE,

@@ -52,7 +52,6 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
       provide: CREDIT_CARD_REPOSITORY,
       useClass: CreditCardTypeOrmRepository,
     },
-    CreditCardTypeOrmRepository,
     FileSystemCreditCardRepository, // JSONリポジトリは予備として残す
     {
       provide: CREDIT_CARD_TRANSACTION_REPOSITORY,
