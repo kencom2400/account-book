@@ -230,7 +230,7 @@ while IFS='|' read -r issue_num issue_title; do
             total_issues=$(gh issue list --repo "$REPO" --limit "$GH_API_LIMIT" --state all | wc -l)
             echo "  ✅ 総Issue数: $total_issues"
             
-            if [ "$total_issues" -gt 90 ]; then
+            if [ "$total_issues" -gt "$MIN_ISSUE_COUNT_FOR_COMPLETION" ]; then
                 COMPLETED_LIST+=("$issue_num")
                 echo "  📋 判定: ✅ 完了"
             else

@@ -2815,7 +2815,7 @@ MAX_RETRIES=5
 RETRY_INTERVAL=3
 
 # リトライループ
-for i in $(seq 1 $MAX_RETRIES); do
+for ((i=1; i<=MAX_RETRIES; i++)); do
   RESULT=$(some_command)
 
   # 成功判定

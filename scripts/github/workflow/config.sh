@@ -13,6 +13,7 @@ export PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
 
 # GitHub API設定
 export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
+export MIN_ISSUE_COUNT_FOR_COMPLETION=90  # Issue完了確認の最小閾値
 
 # ステータスフィールドID
 export STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"

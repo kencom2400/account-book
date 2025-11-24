@@ -197,7 +197,7 @@ echo ""
 
 # GitHubのIssue数を確認（簡易チェック）
 ISSUE_COUNT=$(gh issue list --repo "$REPO" --limit "$GH_API_LIMIT" --state all | wc -l)
-if [ "$ISSUE_COUNT" -gt 90 ]; then
+if [ "$ISSUE_COUNT" -gt "$MIN_ISSUE_COUNT_FOR_COMPLETION" ]; then
     echo "  ✅ Issueが大量に作成されている（$ISSUE_COUNT 個以上）"
     echo "  📋 判定: 完了"
 else

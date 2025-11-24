@@ -33,6 +33,10 @@ fi
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
 
+# リトライ処理の設定
+MAX_RETRIES=5
+RETRY_INTERVAL=3
+
 # アイテム情報を取得する関数
 get_item_info() {
   gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
@@ -74,14 +78,14 @@ if [ -z "$ITEM_INFO" ]; then
   echo "⏳ GitHub APIの反映を待機し、再度アイテム情報を取得します..."
   
   # API反映を待つためリトライ処理を追加
-  for i in {1..5}; do
+  for ((i=1; i<=MAX_RETRIES; i++)); do
     ITEM_INFO=$(get_item_info)
     if [ -n "$ITEM_INFO" ]; then
       break
     fi
-    if [ "$i" -lt 5 ]; then
-      echo "  リトライ ($i/5)..."
-      sleep 3
+    if [ "$i" -lt "$MAX_RETRIES" ]; then
+      echo "  リトライ ($i/$MAX_RETRIES)..."
+      sleep "$RETRY_INTERVAL"
     fi
   done
   
