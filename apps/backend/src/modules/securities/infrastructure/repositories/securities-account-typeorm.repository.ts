@@ -23,9 +23,7 @@ export class SecuritiesAccountTypeOrmRepository
     account: SecuritiesAccountEntity,
     manager?: EntityManager,
   ): Promise<void> {
-    const repository: Repository<SecuritiesAccountOrmEntity> = manager
-      ? manager.getRepository(SecuritiesAccountOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity = this.toOrm(account);
     await repository.save(ormEntity);
   }
@@ -34,9 +32,7 @@ export class SecuritiesAccountTypeOrmRepository
     id: string,
     manager?: EntityManager,
   ): Promise<SecuritiesAccountEntity | null> {
-    const repository: Repository<SecuritiesAccountOrmEntity> = manager
-      ? manager.getRepository(SecuritiesAccountOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity | null =
       await repository.findOne({
         where: { id },
@@ -50,9 +46,7 @@ export class SecuritiesAccountTypeOrmRepository
   }
 
   async findAll(manager?: EntityManager): Promise<SecuritiesAccountEntity[]> {
-    const repository: Repository<SecuritiesAccountOrmEntity> = manager
-      ? manager.getRepository(SecuritiesAccountOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntities: SecuritiesAccountOrmEntity[] = await repository.find({
       order: { createdAt: 'ASC' },
     });
@@ -66,18 +60,25 @@ export class SecuritiesAccountTypeOrmRepository
     account: SecuritiesAccountEntity,
     manager?: EntityManager,
   ): Promise<void> {
-    const repository: Repository<SecuritiesAccountOrmEntity> = manager
-      ? manager.getRepository(SecuritiesAccountOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecuritiesAccountOrmEntity = this.toOrm(account);
     await repository.save(ormEntity);
   }
 
   async delete(id: string, manager?: EntityManager): Promise<void> {
-    const repository: Repository<SecuritiesAccountOrmEntity> = manager
+    const repository = this.getRepo(manager);
+    await repository.delete(id);
+  }
+
+  /**
+   * EntityManagerまたはデフォルトRepositoryを取得
+   */
+  private getRepo(
+    manager?: EntityManager,
+  ): Repository<SecuritiesAccountOrmEntity> {
+    return manager
       ? manager.getRepository(SecuritiesAccountOrmEntity)
       : this.repository;
-    await repository.delete(id);
   }
 
   /**

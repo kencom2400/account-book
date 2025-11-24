@@ -22,9 +22,7 @@ export class SecurityTransactionTypeOrmRepository
     transaction: SecurityTransactionEntity,
     manager?: EntityManager,
   ): Promise<void> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
-      ? manager.getRepository(SecurityTransactionOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecurityTransactionOrmEntity = this.toOrm(transaction);
     await repository.save(ormEntity);
   }
@@ -33,9 +31,7 @@ export class SecurityTransactionTypeOrmRepository
     id: string,
     manager?: EntityManager,
   ): Promise<SecurityTransactionEntity | null> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
-      ? manager.getRepository(SecurityTransactionOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecurityTransactionOrmEntity | null =
       await repository.findOne({
         where: { id },
@@ -52,9 +48,7 @@ export class SecurityTransactionTypeOrmRepository
     accountId: string,
     manager?: EntityManager,
   ): Promise<SecurityTransactionEntity[]> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
-      ? manager.getRepository(SecurityTransactionOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntities: SecurityTransactionOrmEntity[] = await repository.find({
       where: { securitiesAccountId: accountId },
       order: { transactionDate: 'DESC' },
@@ -71,9 +65,7 @@ export class SecurityTransactionTypeOrmRepository
     endDate: Date,
     manager?: EntityManager,
   ): Promise<SecurityTransactionEntity[]> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
-      ? manager.getRepository(SecurityTransactionOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntities: SecurityTransactionOrmEntity[] = await repository.find({
       where: {
         securitiesAccountId: accountId,
@@ -91,18 +83,25 @@ export class SecurityTransactionTypeOrmRepository
     transaction: SecurityTransactionEntity,
     manager?: EntityManager,
   ): Promise<void> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
-      ? manager.getRepository(SecurityTransactionOrmEntity)
-      : this.repository;
+    const repository = this.getRepo(manager);
     const ormEntity: SecurityTransactionOrmEntity = this.toOrm(transaction);
     await repository.save(ormEntity);
   }
 
   async delete(id: string, manager?: EntityManager): Promise<void> {
-    const repository: Repository<SecurityTransactionOrmEntity> = manager
+    const repository = this.getRepo(manager);
+    await repository.delete(id);
+  }
+
+  /**
+   * EntityManagerまたはデフォルトRepositoryを取得
+   */
+  private getRepo(
+    manager?: EntityManager,
+  ): Repository<SecurityTransactionOrmEntity> {
+    return manager
       ? manager.getRepository(SecurityTransactionOrmEntity)
       : this.repository;
-    await repository.delete(id);
   }
 
   /**
