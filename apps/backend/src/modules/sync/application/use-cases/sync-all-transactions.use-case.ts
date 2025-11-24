@@ -131,7 +131,7 @@ export class SyncAllTransactionsUseCase {
         .map((inst) => ({
           institutionId: inst.id,
           institutionName: inst.name,
-          institutionType: inst.type as 'bank' | 'credit-card' | 'securities',
+          institutionType: this.convertInstitutionType(inst.type),
           lastSyncDate: inst.lastSyncedAt,
         }));
     }
@@ -141,9 +141,21 @@ export class SyncAllTransactionsUseCase {
     return institutions.map((inst) => ({
       institutionId: inst.id,
       institutionName: inst.name,
-      institutionType: inst.type as 'bank' | 'credit-card' | 'securities',
+      institutionType: this.convertInstitutionType(inst.type),
       lastSyncDate: inst.lastSyncedAt,
     }));
+  }
+
+  /**
+   * InstitutionTypeをSyncTarget型に変換
+   */
+  private convertInstitutionType(
+    type: string,
+  ): 'bank' | 'credit-card' | 'securities' {
+    if (type === 'credit_card') {
+      return 'credit-card';
+    }
+    return type as 'bank' | 'credit-card' | 'securities';
   }
 
   /**

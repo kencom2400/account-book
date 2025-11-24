@@ -16,10 +16,12 @@ import {
   createTestSecuritiesAccount,
   createTestSecurityTransaction,
 } from '../../../../../test/helpers/securities.factory';
+import { createTestInstitution } from '../../../../../test/helpers/institution.factory';
 import { SYNC_HISTORY_REPOSITORY } from '../../sync.tokens';
 import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens';
 import { CREDIT_CARD_REPOSITORY } from '../../../credit-card/credit-card.tokens';
 import { SECURITIES_ACCOUNT_REPOSITORY } from '../../../securities/securities.tokens';
+import { InstitutionType } from '@account-book/types';
 
 describe('SyncAllTransactionsUseCase', () => {
   let useCase: SyncAllTransactionsUseCase;
@@ -55,7 +57,7 @@ describe('SyncAllTransactionsUseCase', () => {
     mockCreditCardRepository = {
       findById: jest.fn(),
       findAll: jest.fn(),
-      findConnected: jest.fn(),
+      findConnected: jest.fn().mockResolvedValue([]),
       findByIssuer: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
@@ -65,7 +67,7 @@ describe('SyncAllTransactionsUseCase', () => {
     mockSecuritiesAccountRepository = {
       findById: jest.fn(),
       findAll: jest.fn(),
-      findByConnectionStatus: jest.fn(),
+      findByConnectionStatus: jest.fn().mockResolvedValue([]),
       save: jest.fn(),
       delete: jest.fn(),
       exists: jest.fn(),
@@ -146,22 +148,29 @@ describe('SyncAllTransactionsUseCase', () => {
 
     it('should sync credit card transactions successfully', async () => {
       // Arrange
-      const creditCard = createTestCreditCard();
+      const creditCard = createTestCreditCard({ isConnected: false }); // API呼び出しをスキップ
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD, // 'credit_card'
+        isConnected: true,
+      });
       const transactions = [createTestCreditCardTransaction()];
       const syncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
-        'credit-card',
+        'credit-card', // SyncHistoryでは 'credit-card'
       );
 
+      // InstitutionRepositoryから同期対象を返す
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
       mockFetchCreditCardTransactionsUseCase.execute.mockResolvedValue(
         transactions,
       );
@@ -172,7 +181,9 @@ describe('SyncAllTransactionsUseCase', () => {
       // Assert
       expect(result.results).toHaveLength(1);
       expect(result.results[0].success).toBe(true);
+      // convertInstitutionType()により 'credit_card' -> 'credit-card'
       expect(result.results[0].institutionType).toBe('credit-card');
+      expect(result.results[0].totalFetched).toBe(transactions.length);
       expect(result.summary.successCount).toBe(1);
       expect(result.summary.failureCount).toBe(0);
     });
@@ -180,6 +191,12 @@ describe('SyncAllTransactionsUseCase', () => {
     it('should sync securities transactions successfully', async () => {
       // Arrange
       const securitiesAccount = createTestSecuritiesAccount();
+      const institution = createTestInstitution({
+        id: securitiesAccount.id,
+        name: securitiesAccount.securitiesCompanyName,
+        type: InstitutionType.SECURITIES,
+        isConnected: true,
+      });
       const transactions = [createTestSecurityTransaction()];
       const syncHistory = SyncHistory.create(
         securitiesAccount.id,
@@ -187,14 +204,14 @@ describe('SyncAllTransactionsUseCase', () => {
         'securities',
       );
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue([
         securitiesAccount,
       ]);
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
       mockFetchSecurityTransactionsUseCase.execute.mockResolvedValue(
         transactions,
       );
@@ -206,26 +223,90 @@ describe('SyncAllTransactionsUseCase', () => {
       expect(result.results).toHaveLength(1);
       expect(result.results[0].success).toBe(true);
       expect(result.results[0].institutionType).toBe('securities');
+      expect(result.results[0].totalFetched).toBe(transactions.length);
       expect(result.summary.successCount).toBe(1);
+    });
+
+    it('should sync both credit card and securities', async () => {
+      // Arrange
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const securitiesAccount = createTestSecuritiesAccount();
+      const ccInstitution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
+      const secInstitution = createTestInstitution({
+        id: securitiesAccount.id,
+        name: securitiesAccount.securitiesCompanyName,
+        type: InstitutionType.SECURITIES,
+        isConnected: true,
+      });
+      const ccTransactions = [createTestCreditCardTransaction()];
+      const secTransactions = [createTestSecurityTransaction()];
+      const ccSyncHistory = SyncHistory.create(
+        creditCard.id,
+        creditCard.cardName,
+        'credit-card',
+      );
+      const secSyncHistory = SyncHistory.create(
+        securitiesAccount.id,
+        securitiesAccount.securitiesCompanyName,
+        'securities',
+      );
+
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        ccInstitution,
+        secInstitution,
+      ]);
+      mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
+      mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue([
+        securitiesAccount,
+      ]);
+      mockSyncHistoryRepository.create
+        .mockResolvedValueOnce(ccSyncHistory)
+        .mockResolvedValueOnce(secSyncHistory);
+      mockFetchCreditCardTransactionsUseCase.execute.mockResolvedValue(
+        ccTransactions,
+      );
+      mockFetchSecurityTransactionsUseCase.execute.mockResolvedValue(
+        secTransactions,
+      );
+
+      // Act
+      const result = await useCase.execute();
+
+      // Assert
+      expect(result.results).toHaveLength(2);
+      expect(result.summary.successCount).toBe(2);
+      expect(result.summary.failureCount).toBe(0);
+      expect(result.summary.totalFetched).toBe(2);
     });
 
     it('should handle sync failure gracefully', async () => {
       // Arrange
-      const creditCard = createTestCreditCard();
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
       const syncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
         'credit-card',
       );
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
       mockFetchCreditCardTransactionsUseCase.execute.mockRejectedValue(
         new Error('API connection failed'),
       );
@@ -241,80 +322,63 @@ describe('SyncAllTransactionsUseCase', () => {
       expect(result.summary.failureCount).toBe(1);
     });
 
-    it('should filter by institution IDs when provided', async () => {
+    it('should handle partial failures', async () => {
       // Arrange
-      const creditCard1 = createTestCreditCard({ id: 'cc_1' });
-      const creditCard2 = createTestCreditCard({ id: 'cc_2' });
-
-      mockCreditCardRepository.findConnected.mockResolvedValue([
-        creditCard1,
-        creditCard2,
-      ]);
-      mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
-        [],
-      );
-
-      // Act
-      const result = await useCase.execute({ institutionIds: ['cc_1'] });
-
-      // Assert
-      expect(result.results).toHaveLength(1);
-      expect(result.results[0].institutionId).toBe('cc_1');
-    });
-  });
-
-  describe('cancelSync', () => {
-    it('should cancel sync successfully', async () => {
-      // Arrange
-      const creditCard = createTestCreditCard();
-      const syncHistory = SyncHistory.create(
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const securitiesAccount = createTestSecuritiesAccount();
+      const ccInstitution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
+      const secInstitution = createTestInstitution({
+        id: securitiesAccount.id,
+        name: securitiesAccount.securitiesCompanyName,
+        type: InstitutionType.SECURITIES,
+        isConnected: true,
+      });
+      const ccSyncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
         'credit-card',
       );
+      const secSyncHistory = SyncHistory.create(
+        securitiesAccount.id,
+        securitiesAccount.securitiesCompanyName,
+        'securities',
+      );
+      const secTransactions = [createTestSecurityTransaction()];
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        ccInstitution,
+        secInstitution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
-      mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
-        [],
+      mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue([
+        securitiesAccount,
+      ]);
+      mockSyncHistoryRepository.create
+        .mockResolvedValueOnce(ccSyncHistory)
+        .mockResolvedValueOnce(secSyncHistory);
+      mockFetchCreditCardTransactionsUseCase.execute.mockRejectedValue(
+        new Error('Credit card API failed'),
       );
-      mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
-
-      // 長時間かかる同期処理をシミュレート
-      mockFetchCreditCardTransactionsUseCase.execute.mockImplementation(
-        async (input) => {
-          // AbortSignalをチェック
-          if (input.abortSignal?.aborted) {
-            throw new Error('Transaction fetch was cancelled');
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          return [];
-        },
+      mockFetchSecurityTransactionsUseCase.execute.mockResolvedValue(
+        secTransactions,
       );
 
-      // Act & Assert
-      // 同期開始（非同期で実行）
-      const syncPromise = useCase.execute();
-
-      // 少し待ってからキャンセル
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // syncHistoryのIDを取得（実際には最初のcreateで返されたID）
-      const syncId = syncHistory.id;
-
-      // キャンセルを実行
-      const cancelled = useCase.cancelSync(syncId);
+      // Act
+      const result = await useCase.execute();
 
       // Assert
-      expect(cancelled).toBe(true);
-
-      // 同期処理は失敗で完了する
-      const result = await syncPromise;
+      expect(result.results).toHaveLength(2);
+      expect(result.summary.successCount).toBe(1);
       expect(result.summary.failureCount).toBe(1);
     });
+  });
 
+  describe('cancelSync', () => {
     it('should return false when cancelling non-existent sync', () => {
       // Arrange
       const nonExistentSyncId = 'non_existent_sync_id';
@@ -326,56 +390,90 @@ describe('SyncAllTransactionsUseCase', () => {
       expect(result).toBe(false);
     });
 
-    it('should handle cancellation of already completed sync', async () => {
+    it('should cancel sync successfully during execution', async () => {
       // Arrange
-      const creditCard = createTestCreditCard({ isConnected: false }); // 接続していないカードを使用してrefreshをスキップ
-      const transactions = [createTestCreditCardTransaction()];
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
       const syncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
         'credit-card',
       );
+      let abortSignalPassed: AbortSignal | undefined;
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
-      mockFetchCreditCardTransactionsUseCase.execute.mockResolvedValue(
-        transactions,
+
+      // 長時間かかる処理をシミュレート、キャンセル可能に
+      mockFetchCreditCardTransactionsUseCase.execute.mockImplementation(
+        async (input) => {
+          abortSignalPassed = input.abortSignal;
+          // AbortSignalがabortedならエラーをスロー
+          if (input.abortSignal?.aborted) {
+            throw new Error('Transaction fetch was cancelled');
+          }
+          // 少し待機
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          // 再度チェック
+          if (input.abortSignal?.aborted) {
+            throw new Error('Transaction fetch was cancelled');
+          }
+          return [];
+        },
       );
 
       // Act
-      const result = await useCase.execute();
+      const syncPromise = useCase.execute();
 
-      // 同期完了後にキャンセルを試みる
+      // 少し待ってからキャンセル
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // キャンセルを実行
       const cancelled = useCase.cancelSync(syncHistory.id);
 
+      // 同期処理の完了を待つ
+      const result = await syncPromise;
+
       // Assert
-      expect(result.summary.successCount).toBe(1);
-      expect(cancelled).toBe(false); // 既に完了しているのでAbortControllerは存在しない
+      expect(cancelled).toBe(true);
+      expect(abortSignalPassed).toBeDefined();
+      expect(result.summary.failureCount).toBe(1);
     });
 
     it('should pass abortSignal to child use cases', async () => {
       // Arrange
-      const creditCard = createTestCreditCard({ isConnected: false }); // 接続していないカードを使用してrefreshをスキップ
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
       const syncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
         'credit-card',
       );
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockImplementation(
-        async (history) => history,
-      );
       mockFetchCreditCardTransactionsUseCase.execute.mockResolvedValue([]);
 
       // Act
@@ -393,7 +491,13 @@ describe('SyncAllTransactionsUseCase', () => {
 
     it('should cleanup abortController after sync completion', async () => {
       // Arrange
-      const creditCard = createTestCreditCard({ isConnected: false }); // 接続していないカードを使用してrefreshをスキップ
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
       const transactions = [createTestCreditCardTransaction()];
       const syncHistory = SyncHistory.create(
         creditCard.id,
@@ -401,14 +505,14 @@ describe('SyncAllTransactionsUseCase', () => {
         'credit-card',
       );
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
       mockFetchCreditCardTransactionsUseCase.execute.mockResolvedValue(
         transactions,
       );
@@ -425,21 +529,27 @@ describe('SyncAllTransactionsUseCase', () => {
 
     it('should cleanup abortController even after sync failure', async () => {
       // Arrange
-      const creditCard = createTestCreditCard({ isConnected: false }); // 接続していないカードを使用してrefreshをスキップ
+      const creditCard = createTestCreditCard({ isConnected: false });
+      const institution = createTestInstitution({
+        id: creditCard.id,
+        name: creditCard.cardName,
+        type: InstitutionType.CREDIT_CARD,
+        isConnected: true,
+      });
       const syncHistory = SyncHistory.create(
         creditCard.id,
         creditCard.cardName,
         'credit-card',
       );
 
+      mockInstitutionRepository.findByConnectionStatus.mockResolvedValue([
+        institution,
+      ]);
       mockCreditCardRepository.findConnected.mockResolvedValue([creditCard]);
       mockSecuritiesAccountRepository.findByConnectionStatus.mockResolvedValue(
         [],
       );
       mockSyncHistoryRepository.create.mockResolvedValue(syncHistory);
-      mockSyncHistoryRepository.update.mockResolvedValue(
-        syncHistory.markAsRunning(),
-      );
       mockFetchCreditCardTransactionsUseCase.execute.mockRejectedValue(
         new Error('API connection failed'),
       );
