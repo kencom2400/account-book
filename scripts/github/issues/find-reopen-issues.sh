@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+
 # 「未実装」「Reopen」などのキーワードを含むIssueコメントを検索
 
 REPO="kencom2400/account-book"
@@ -12,7 +22,7 @@ echo ""
 
 # 全Issue（Open + Closed）を取得
 echo "📊 全Issueを取得中..."
-ALL_ISSUES=$(gh issue list --repo "$REPO" --state all --limit 200 --json number,title,state)
+ALL_ISSUES=$(gh issue list --repo "$REPO" --state all --limit "$GH_API_LIMIT" --json number,title,state)
 TOTAL_COUNT=$(echo "$ALL_ISSUES" | jq '. | length')
 
 echo "  取得完了: $TOTAL_COUNT 個のIssue"
@@ -111,4 +121,3 @@ fi
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-

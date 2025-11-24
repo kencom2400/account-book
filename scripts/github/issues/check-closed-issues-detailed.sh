@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+
 # CloseされたIssueの完了状況詳細確認スクリプト
 
 REPO="kencom2400/account-book"
@@ -217,10 +227,10 @@ while IFS='|' read -r issue_num issue_title; do
             # GitHub環境構築と全Issue詳細化
             echo ""
             echo "🔍 具体的な確認:"
-            total_issues=$(gh issue list --repo "$REPO" --limit 200 --state all | wc -l)
+            total_issues=$(gh issue list --repo "$REPO" --limit "$GH_API_LIMIT" --state all | wc -l)
             echo "  ✅ 総Issue数: $total_issues"
             
-            if [ "$total_issues" -gt 90 ]; then
+            if [ "$total_issues" -gt "$MIN_ISSUE_COUNT_FOR_COMPLETION" ]; then
                 COMPLETED_LIST+=("$issue_num")
                 echo "  📋 判定: ✅ 完了"
             else
@@ -273,4 +283,3 @@ if [ ${#REOPEN_LIST[@]} -gt 0 ]; then
     done
     echo ""
 fi
-

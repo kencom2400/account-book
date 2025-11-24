@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+
 # CloseされたIssueの完了状況確認スクリプト
 
 REPO="kencom2400/account-book"
@@ -186,8 +196,8 @@ echo "  - マイルストーン作成"
 echo ""
 
 # GitHubのIssue数を確認（簡易チェック）
-ISSUE_COUNT=$(gh issue list --repo "$REPO" --limit 200 --state all | wc -l)
-if [ "$ISSUE_COUNT" -gt 90 ]; then
+ISSUE_COUNT=$(gh issue list --repo "$REPO" --limit "$GH_API_LIMIT" --state all | wc -l)
+if [ "$ISSUE_COUNT" -gt "$MIN_ISSUE_COUNT_FOR_COMPLETION" ]; then
     echo "  ✅ Issueが大量に作成されている（$ISSUE_COUNT 個以上）"
     echo "  📋 判定: 完了"
 else
@@ -216,4 +226,3 @@ fi
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-

@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
+GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+
+# API Rate Limit対策の待機時間（設定ファイルで定義されていない場合のデフォルト値）
+API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
+
+
 # PRとToDo Issueを紐づけるスクリプト
 # PR側に関連Issueを追記する
 
@@ -16,7 +29,7 @@ echo ""
 
 # 1. ToDo状態のIssueを取得
 echo "📝 ToDo状態のIssueを取得中..."
-TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit 200 | \
+TODO_ISSUES=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json --limit "$GH_API_LIMIT" | \
   jq -r '.items[] | select(.status == "📝 To Do") | .content.number')
 
 if [ -z "$TODO_ISSUES" ]; then
@@ -29,7 +42,7 @@ echo ""
 
 # 2. すべてのPRを取得（Open + Merged + Closed）
 echo "📋 すべてのPRを取得中..."
-ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit 200 --json number,title,state,headRefName,body)
+ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit "$GH_API_LIMIT" --json number,title,state,headRefName,body)
 echo "✅ PR数: $(echo "$ALL_PRS" | jq '. | length') 個"
 echo ""
 
@@ -115,7 +128,7 @@ Related to #${issue_num}"
     fi
     
     # API rate limit対策
-    sleep 1
+    sleep "$API_RATE_LIMIT_WAIT"
   done
   
   echo ""
@@ -133,4 +146,3 @@ echo "ℹ️  既に参照済み: $TOTAL_SKIPPED 個"
 echo "❌ PR未発見: $TOTAL_NOT_FOUND 個"
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-
