@@ -715,6 +715,251 @@ export class TransactionModule {}
 - **依存性注入はトークン経由で行う**
 - **モジュール定義をシンプルに保つ**
 
+### 3-2. Domain層の設計原則とパフォーマンス考慮
+
+#### ❌ 避けるべきパターン1: Domain ServiceでfindAll()してメモリフィルタリング
+
+```typescript
+// ❌ 悪い例: 全件取得してメモリ上でフィルタリング
+@Injectable()
+export class MerchantMatcherService {
+  async match(description: string): Promise<Merchant | null> {
+    const merchants = await this.merchantRepository.findAll();
+    
+    for (const merchant of merchants) {
+      if (merchant.matchesDescription(description)) {
+        return merchant;
+      }
+    }
+    return null;
+  }
+}
+```
+
+**問題**:
+- データ量の増加に伴いパフォーマンスが著しく低下
+- 不要なデータをメモリに読み込む
+- データベースの検索機能を活用できていない
+
+**✅ 正しいパターン: リポジトリに検索責務を委譲**
+
+```typescript
+// ✅ 良い例: リポジトリ層で効率的な検索を実施
+export interface IMerchantRepository {
+  searchByDescription(description: string): Promise<Merchant | null>;
+}
+
+@Injectable()
+export class MerchantMatcherService {
+  async match(description: string): Promise<Merchant | null> {
+    // リポジトリ層でDB検索を実施（パフォーマンス最適化）
+    return await this.merchantRepository.searchByDescription(description);
+  }
+}
+
+// Infrastructure層での実装例
+@Injectable()
+export class MerchantTypeOrmRepository implements IMerchantRepository {
+  async searchByDescription(description: string): Promise<Merchant | null> {
+    // DBレベルでLIKE検索やJSON検索を実施
+    const result = await this.repository
+      .createQueryBuilder('merchant')
+      .where('merchant.name LIKE :desc', { desc: `%${description}%` })
+      .orWhere('JSON_SEARCH(merchant.aliases, "one", :desc) IS NOT NULL', { desc: `%${description}%` })
+      .getOne();
+    
+    return result ? this.toDomain(result) : null;
+  }
+}
+```
+
+**重要なポイント**:
+1. **Domain Serviceはビジネスロジックの調整に専念**
+2. **データアクセスの最適化はリポジトリに委譲**
+3. **パフォーマンス要件を考慮したリポジトリメソッド設計**
+
+#### ❌ 避けるべきパターン2: コンストラクタ内でのサービスインスタンス化
+
+```typescript
+// ❌ 悪い例: コンストラクタ内で直接new
+export class SubcategoryClassifierService {
+  private readonly merchantMatcher: MerchantMatcherService;
+  private readonly keywordMatcher: KeywordMatcherService;
+
+  constructor(
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    merchantRepository: IMerchantRepository,
+  ) {
+    this.merchantMatcher = new MerchantMatcherService(merchantRepository);
+    this.keywordMatcher = new KeywordMatcherService();
+  }
+}
+```
+
+**問題**:
+- 依存性逆転の原則(DIP)に反する
+- テストが困難（モック化できない）
+- クラス間の結合度が高い
+
+**✅ 正しいパターン: コンストラクタ注入**
+
+```typescript
+// ✅ 良い例: すべての依存をコンストラクタ注入
+@Injectable()
+export class SubcategoryClassifierService {
+  constructor(
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    private readonly merchantMatcher: MerchantMatcherService,
+    private readonly keywordMatcher: KeywordMatcherService,
+  ) {}
+}
+```
+
+**重要なポイント**:
+1. **すべての依存はコンストラクタ経由で注入**
+2. **@Injectable()デコレータでNestJSのDIコンテナに登録**
+3. **テストしやすい設計**
+
+#### ❌ 避けるべきパターン3: テキスト正規化ロジックの重複
+
+```typescript
+// ❌ 悪い例: 各クラスで異なる正規化ロジック
+class MerchantEntity {
+  private normalizeText(text: string): string {
+    return text.toLowerCase().replace(/\s+/g, '');
+  }
+}
+
+class KeywordMatcherService {
+  private normalizeText(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+      )
+      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+      .trim();
+  }
+}
+```
+
+**問題**:
+- ロジックの一貫性がない
+- マッチング結果に予期せぬ差異が発生
+- 保守性が低い
+
+**✅ 正しいパターン: 共通ユーティリティの使用**
+
+```typescript
+// ✅ 良い例: 統一された正規化ユーティリティ
+export class TextNormalizer {
+  static normalize(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+      )
+      .replace(/[^\w\sぁ-んァ-ヶー一-龯]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  static includes(haystack: string, needle: string): boolean {
+    return this.normalize(haystack).includes(this.normalize(needle));
+  }
+}
+
+// 各クラスで統一使用
+class MerchantEntity {
+  matchesDescription(description: string): boolean {
+    return TextNormalizer.includes(description, this.name);
+  }
+}
+```
+
+**重要なポイント**:
+1. **アプリケーション全体で統一されたロジック**
+2. **一貫性のある処理結果**
+3. **保守性・テスト容易性の向上**
+
+#### ✅ Repository Interfaceの安全な設計
+
+```typescript
+// ❌ 避けるべき: null安全性がない
+export interface ISubcategoryRepository {
+  findDefault(categoryType: CategoryType): Promise<Subcategory>;
+}
+
+// ✅ 推奨: null安全性を考慮
+export interface ISubcategoryRepository {
+  findDefault(categoryType: CategoryType): Promise<Subcategory | null>;
+}
+
+// 呼び出し側で安全にハンドリング
+const defaultSubcategory = await this.repository.findDefault(mainCategory);
+if (!defaultSubcategory) {
+  throw new Error(`Default subcategory not found for category: ${mainCategory}`);
+}
+```
+
+**重要なポイント**:
+1. **データが見つからない可能性を型で表現**
+2. **呼び出し側で適切なエラーハンドリング**
+3. **null安全性の向上**
+
+#### ✅ スコアベースの信頼度設計
+
+```typescript
+// ❌ 避けるべき: 信頼度をハードコード
+const keywordMatch = this.keywordMatcher.match(description, category, subcategories);
+if (keywordMatch) {
+  const confidence = new ClassificationConfidence(0.8); // 固定値
+  return new SubcategoryClassification(...);
+}
+
+// ✅ 推奨: 実際のマッチングスコアを活用
+export interface KeywordMatchResult {
+  subcategory: Subcategory;
+  score: number;
+}
+
+const keywordMatch = this.keywordMatcher.match(description, category, subcategories);
+if (keywordMatch) {
+  // スコアを信頼度として利用（最低保証あり）
+  const confidenceValue = Math.max(keywordMatch.score, 0.7);
+  const confidence = new ClassificationConfidence(confidenceValue);
+  return new SubcategoryClassification(...);
+}
+```
+
+**重要なポイント**:
+1. **計算されたスコアを活用**
+2. **信頼度の動的な調整**
+3. **より精度の高い分類**
+
+#### 📝 日本語テキスト処理の将来対応
+
+```typescript
+/**
+ * テキストからキーワードを抽出
+ *
+ * NOTE: 現在はスペースで分割する簡易実装
+ * 日本語の取引明細（単語がスペースで区切られていない）には
+ * 有効ではないため、将来的に形態素解析ライブラリ（kuromoji.js等）の
+ * 導入を検討する必要がある
+ */
+public extractKeywords(text: string): string[] {
+  const normalized = TextNormalizer.normalize(text);
+  // TODO: 形態素解析の導入（kuromoji.js等）
+  return normalized.split(/\s+/).filter((word) => word.length > 0);
+}
+```
+
+**重要なポイント**:
+1. **現在の実装の制約を明示**
+2. **将来の改善方針をコメントで残す**
+3. **段階的な機能向上を可能にする**
+
 ---
 
 ## 4. テスト実装ガイドライン
