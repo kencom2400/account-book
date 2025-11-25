@@ -10,6 +10,7 @@ import { SubcategoryTypeOrmRepository } from './infrastructure/repositories/subc
 import { MerchantTypeOrmRepository } from './infrastructure/repositories/merchant-typeorm.repository';
 import { CategoryDomainService } from './domain/services/category-domain.service';
 import { SubcategoryClassifierService } from './domain/services/subcategory-classifier.service';
+import { SubcategoryTreeBuilderService } from './domain/services/subcategory-tree-builder.service';
 import { MerchantMatcherService } from './domain/services/merchant-matcher.service';
 import { KeywordMatcherService } from './domain/services/keyword-matcher.service';
 import { InitializeCategoriesUseCase } from './application/use-cases/initialize-categories.use-case';
@@ -55,6 +56,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from '../transaction/infras
     // Domain Services
     CategoryDomainService,
     SubcategoryClassifierService,
+    SubcategoryTreeBuilderService,
     MerchantMatcherService,
     KeywordMatcherService,
     // Use Cases

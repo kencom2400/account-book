@@ -1,8 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CategoryType } from '@account-book/types';
 import { SubcategoryClassifierService } from '../../domain/services/subcategory-classifier.service';
-import type { ISubcategoryRepository } from '../../domain/repositories/subcategory.repository.interface';
-import { SUB_CATEGORY_REPOSITORY } from '../../domain/repositories/subcategory.repository.interface';
 import { ClassificationReason } from '../../domain/enums/classification-reason.enum';
 
 export interface ClassifySubcategoryDto {
@@ -29,8 +27,6 @@ export interface ClassifySubcategoryResult {
 export class ClassifySubcategoryUseCase {
   constructor(
     private readonly classifierService: SubcategoryClassifierService,
-    @Inject(SUB_CATEGORY_REPOSITORY)
-    private readonly subcategoryRepository: ISubcategoryRepository,
   ) {}
 
   /**

@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GetSubcategoriesByCategoryUseCase } from './get-subcategories-by-category.use-case';
 import { SUB_CATEGORY_REPOSITORY } from '../../domain/repositories/subcategory.repository.interface';
 import type { ISubcategoryRepository } from '../../domain/repositories/subcategory.repository.interface';
+import { SubcategoryTreeBuilderService } from '../../domain/services/subcategory-tree-builder.service';
 import { Subcategory } from '../../domain/entities/subcategory.entity';
 import { CategoryType } from '@account-book/types';
 
 describe('GetSubcategoriesByCategoryUseCase', () => {
   let useCase: GetSubcategoriesByCategoryUseCase;
   let mockSubcategoryRepository: jest.Mocked<ISubcategoryRepository>;
+  let mockTreeBuilderService: jest.Mocked<SubcategoryTreeBuilderService>;
 
   const baseDate = new Date('2025-11-24T10:00:00.000Z');
 
@@ -28,6 +30,12 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
             delete: jest.fn(),
           },
         },
+        {
+          provide: SubcategoryTreeBuilderService,
+          useValue: {
+            buildTree: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -35,6 +43,7 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
       GetSubcategoriesByCategoryUseCase,
     );
     mockSubcategoryRepository = module.get(SUB_CATEGORY_REPOSITORY);
+    mockTreeBuilderService = module.get(SubcategoryTreeBuilderService);
   });
 
   afterEach(() => {
@@ -89,6 +98,49 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
       ];
 
       mockSubcategoryRepository.findByCategory.mockResolvedValue(subcategories);
+      mockTreeBuilderService.buildTree.mockReturnValue([
+        {
+          id: 'expense-food',
+          categoryType: CategoryType.EXPENSE,
+          name: '食費',
+          parentId: null,
+          displayOrder: 1,
+          icon: '🍽️',
+          color: '#FF5722',
+          isDefault: false,
+          isActive: true,
+          createdAt: baseDate.toISOString(),
+          updatedAt: baseDate.toISOString(),
+          children: [
+            {
+              id: 'food_cafe',
+              categoryType: CategoryType.EXPENSE,
+              name: 'カフェ・喫茶店',
+              parentId: 'expense-food',
+              displayOrder: 1,
+              icon: '☕',
+              color: '#FF6B6B',
+              isDefault: false,
+              isActive: true,
+              createdAt: baseDate.toISOString(),
+              updatedAt: baseDate.toISOString(),
+            },
+            {
+              id: 'food_restaurant',
+              categoryType: CategoryType.EXPENSE,
+              name: 'レストラン',
+              parentId: 'expense-food',
+              displayOrder: 2,
+              icon: '🍽️',
+              color: '#FF6B6B',
+              isDefault: false,
+              isActive: true,
+              createdAt: baseDate.toISOString(),
+              updatedAt: baseDate.toISOString(),
+            },
+          ],
+        },
+      ]);
 
       // Act
       const result = await useCase.execute(categoryType);
@@ -105,6 +157,9 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
         CategoryType.EXPENSE,
       );
       expect(mockSubcategoryRepository.findByCategory).toHaveBeenCalledTimes(1);
+      expect(mockTreeBuilderService.buildTree).toHaveBeenCalledWith(
+        subcategories,
+      );
     });
 
     it('should return empty array when no subcategories exist for category', async () => {
@@ -112,6 +167,7 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
       const categoryType = CategoryType.INCOME;
 
       mockSubcategoryRepository.findByCategory.mockResolvedValue([]);
+      mockTreeBuilderService.buildTree.mockReturnValue([]);
 
       // Act
       const result = await useCase.execute(categoryType);
@@ -142,6 +198,21 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
       ];
 
       mockSubcategoryRepository.findByCategory.mockResolvedValue(subcategories);
+      mockTreeBuilderService.buildTree.mockReturnValue([
+        {
+          id: 'income-salary',
+          categoryType: CategoryType.INCOME,
+          name: '給与所得',
+          parentId: null,
+          displayOrder: 1,
+          icon: '💰',
+          color: '#4CAF50',
+          isDefault: false,
+          isActive: true,
+          createdAt: baseDate.toISOString(),
+          updatedAt: baseDate.toISOString(),
+        },
+      ]);
 
       // Act
       const result = await useCase.execute(categoryType);
@@ -199,6 +270,49 @@ describe('GetSubcategoriesByCategoryUseCase', () => {
       ];
 
       mockSubcategoryRepository.findByCategory.mockResolvedValue(subcategories);
+      mockTreeBuilderService.buildTree.mockReturnValue([
+        {
+          id: 'expense-food',
+          categoryType: CategoryType.EXPENSE,
+          name: '食費',
+          parentId: null,
+          displayOrder: 1,
+          icon: '🍽️',
+          color: '#FF5722',
+          isDefault: false,
+          isActive: true,
+          createdAt: baseDate.toISOString(),
+          updatedAt: baseDate.toISOString(),
+          children: [
+            {
+              id: 'food_cafe',
+              categoryType: CategoryType.EXPENSE,
+              name: 'カフェ・喫茶店',
+              parentId: 'expense-food',
+              displayOrder: 1,
+              icon: '☕',
+              color: '#FF6B6B',
+              isDefault: false,
+              isActive: true,
+              createdAt: baseDate.toISOString(),
+              updatedAt: baseDate.toISOString(),
+            },
+            {
+              id: 'food_restaurant',
+              categoryType: CategoryType.EXPENSE,
+              name: 'レストラン',
+              parentId: 'expense-food',
+              displayOrder: 2,
+              icon: '🍽️',
+              color: '#FF6B6B',
+              isDefault: false,
+              isActive: true,
+              createdAt: baseDate.toISOString(),
+              updatedAt: baseDate.toISOString(),
+            },
+          ],
+        },
+      ]);
 
       // Act
       const result = await useCase.execute(categoryType);

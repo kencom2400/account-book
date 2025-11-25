@@ -114,6 +114,20 @@ describe('UpdateTransactionSubcategoryUseCase', () => {
     });
 
     // DataSourceのモックを作成
+    const mockSubcategoryFindOne = jest.fn().mockResolvedValue({
+      id: 'food_cafe',
+      categoryType: CategoryType.EXPENSE,
+      name: 'カフェ・喫茶店',
+      parentId: 'expense-food',
+      displayOrder: 1,
+      icon: '☕',
+      color: '#FF6B6B',
+      isDefault: false,
+      isActive: true,
+      createdAt: baseDate,
+      updatedAt: baseDate,
+    });
+
     const mockEntityManager = {
       getRepository: jest.fn((entity) => {
         if (entity.name === 'TransactionCategoryChangeHistoryOrmEntity') {
@@ -123,6 +137,11 @@ describe('UpdateTransactionSubcategoryUseCase', () => {
           return {
             findOne: mockTransactionFindOne,
             save: mockTransactionSave,
+          };
+        }
+        if (entity.name === 'SubcategoryOrmEntity') {
+          return {
+            findOne: mockSubcategoryFindOne,
           };
         }
         return { save: jest.fn() };

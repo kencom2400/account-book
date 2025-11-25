@@ -6,11 +6,10 @@ import type { ITransactionRepository } from '../../../transaction/domain/reposit
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
 import type { ISubcategoryRepository } from '../../domain/repositories/subcategory.repository.interface';
 import { SUB_CATEGORY_REPOSITORY } from '../../domain/repositories/subcategory.repository.interface';
-import type { ITransactionCategoryChangeHistoryRepository } from '../../../transaction/domain/repositories/transaction-category-change-history.repository.interface';
-import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from '../../../transaction/domain/repositories/transaction-category-change-history.repository.interface';
 import { TransactionCategoryChangeHistoryEntity } from '../../../transaction/domain/entities/transaction-category-change-history.entity';
 import { TransactionCategoryChangeHistoryOrmEntity } from '../../../transaction/infrastructure/entities/transaction-category-change-history.orm-entity';
 import { TransactionOrmEntity } from '../../../transaction/infrastructure/entities/transaction.orm-entity';
+import { SubcategoryOrmEntity } from '../../infrastructure/entities/subcategory.orm-entity';
 import { ClassificationReason } from '../../domain/enums/classification-reason.enum';
 
 export interface UpdateTransactionSubcategoryDto {
@@ -45,8 +44,6 @@ export class UpdateTransactionSubcategoryUseCase {
     private readonly transactionRepository: ITransactionRepository,
     @Inject(SUB_CATEGORY_REPOSITORY)
     private readonly subcategoryRepository: ISubcategoryRepository,
-    @Inject(TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY)
-    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
   ) {}
 
   /**
@@ -101,8 +98,18 @@ export class UpdateTransactionSubcategoryUseCase {
       // 変更履歴を記録（サブカテゴリ変更の場合）
       if (oldSubcategoryId !== dto.subcategoryId) {
         // 古いサブカテゴリを取得（履歴記録用）
-        const oldSubcategory = oldSubcategoryId
-          ? await this.subcategoryRepository.findById(oldSubcategoryId)
+        // トランザクション内でentityManagerを使用して取得（トランザクションの一貫性を保証）
+        const subcategoryRepo =
+          entityManager.getRepository(SubcategoryOrmEntity);
+        const oldSubcategoryOrm = oldSubcategoryId
+          ? await subcategoryRepo.findOne({ where: { id: oldSubcategoryId } })
+          : null;
+        const oldSubcategory = oldSubcategoryOrm
+          ? {
+              id: oldSubcategoryOrm.id,
+              name: oldSubcategoryOrm.name,
+              categoryType: oldSubcategoryOrm.categoryType,
+            }
           : null;
 
         const history = new TransactionCategoryChangeHistoryEntity(
