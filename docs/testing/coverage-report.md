@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-11-24 23:05:13  
-> **コミット**: `5329d9e`  
-> **ブランチ**: `feature/issue-290-domain-layer-implementation`
+> **最終更新**: 2025-11-25 22:02:42  
+> **コミット**: `d8f710b`  
+> **ブランチ**: `fix/issue-299-coverage-report-script`
 
 ## 概要
 
@@ -16,11 +16,11 @@
 
 ## モジュール別カバレッジサマリー
 
-| モジュール | Lines | Statements | Functions | Branches |
-|----------|-------|------------|-----------|----------|
-| Backend (Unit) | 0% | 0% | 0% | 0% |
-| Backend (E2E) | 0% | 0% | 0% | 0% |
-| Frontend (Unit) | 0% | 0% | 0% | 0% |
+| モジュール      | Lines  | Statements | Functions | Branches |
+| --------------- | ------ | ---------- | --------- | -------- |
+| Backend (Unit)  | 35.89% | 35.89%     | 32.00%    | 33.02%   |
+| Backend (E2E)   | 1.23%  | 1.23%      | 0.98%     | 2.00%    |
+| Frontend (Unit) | 47.92% | 47.92%     | 46.23%    | 46.61%   |
 
 ## 詳細レポート
 
@@ -38,6 +38,7 @@
 ### 1. 未カバーコードの特定
 
 各モジュールで生成されるHTMLレポートを確認：
+
 - Backend: `apps/backend/coverage/lcov-report/index.html`
 - Frontend: `apps/frontend/coverage/lcov-report/index.html`
 
