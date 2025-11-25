@@ -6,4 +6,5 @@ export * from './api/error-response';
 export * from './user.types';
 export * from './report.types';
 export * from './sync.types';
+export * from './subcategory.types';
 export * from './enums/category-type.enum';
