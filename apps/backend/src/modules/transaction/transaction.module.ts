@@ -45,6 +45,10 @@ import { CategoryModule } from '../category/category.module';
     CalculateMonthlySummaryUseCase,
     ClassifyTransactionUseCase,
   ],
-  exports: [TRANSACTION_REPOSITORY, TransactionDomainService],
+  exports: [
+    TRANSACTION_REPOSITORY,
+    TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY,
+    TransactionDomainService,
+  ],
 })
 export class TransactionModule {}

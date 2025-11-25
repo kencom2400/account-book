@@ -64,3 +64,5 @@ export interface IMerchantRepository {
    */
   delete(id: string): Promise<void>;
 }
+
+export const MERCHANT_REPOSITORY = Symbol('IMerchantRepository');

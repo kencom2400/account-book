@@ -74,6 +74,62 @@ export class TransactionOrmEntity {
   @JoinColumn({ name: 'related_transaction_id' })
   relatedTransaction!: TransactionOrmEntity | null;
 
+  // FR-009: サブカテゴリ関連フィールド
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    name: 'subcategory_id',
+  })
+  subcategoryId!: string | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    nullable: true,
+    name: 'classification_confidence',
+    comment: '分類信頼度（0.00-1.00）',
+  })
+  classificationConfidence!: number | null;
+
+  @Column({
+    type: 'enum',
+    enum: [
+      'MERCHANT_MATCH',
+      'KEYWORD_MATCH',
+      'AMOUNT_INFERENCE',
+      'RECURRING_PATTERN',
+      'DEFAULT',
+      'MANUAL',
+    ],
+    nullable: true,
+    name: 'classification_reason',
+  })
+  classificationReason!:
+    | 'MERCHANT_MATCH'
+    | 'KEYWORD_MATCH'
+    | 'AMOUNT_INFERENCE'
+    | 'RECURRING_PATTERN'
+    | 'DEFAULT'
+    | 'MANUAL'
+    | null;
+
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    name: 'merchant_id',
+  })
+  merchantId!: string | null;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+    name: 'confirmed_at',
+  })
+  confirmedAt!: Date | null;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 
