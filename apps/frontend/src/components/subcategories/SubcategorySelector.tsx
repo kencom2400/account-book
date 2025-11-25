@@ -24,7 +24,7 @@ export function SubcategorySelector({
   onSelect,
   disabled = false,
 }: SubcategorySelectorProps): React.JSX.Element {
-  const { subcategories, isLoading, fetchSubcategories } = useSubcategoryStore();
+  const { isLoading, fetchSubcategories, buildTree } = useSubcategoryStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
@@ -33,34 +33,38 @@ export function SubcategorySelector({
     void fetchSubcategories(categoryType);
   }, [categoryType, fetchSubcategories]);
 
-  // 階層構造を構築
+  // 階層構造を構築（ストアのbuildTreeを使用）
   const tree = useMemo(() => {
-    const filtered = subcategories.filter(
-      (sub) => sub.categoryType === categoryType && sub.isActive
-    );
+    // ストアから階層構造を取得
+    const fullTree = buildTree(categoryType);
 
     // 検索クエリでフィルタリング
-    const filteredBySearch = searchQuery
-      ? filtered.filter((sub) => sub.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      : filtered;
+    if (!searchQuery) {
+      return fullTree;
+    }
 
-    // 親カテゴリ（parentIdがnull）を取得
-    const rootCategories = filteredBySearch.filter((sub) => sub.parentId === null);
+    const searchLower = searchQuery.toLowerCase();
 
-    // 階層構造を構築
-    const buildChildren = (parentId: string | null): Subcategory[] => {
-      const children = filteredBySearch.filter((sub) => sub.parentId === parentId);
-      return children.map((child) => ({
-        ...child,
-        children: buildChildren(child.id),
-      }));
+    // 検索にマッチするノードとその親ノードを含める
+    const filterTree = (nodes: Subcategory[]): Subcategory[] => {
+      const result: Subcategory[] = [];
+      for (const node of nodes) {
+        const matchesSearch = node.name.toLowerCase().includes(searchLower);
+        const filteredChildren = node.children ? filterTree(node.children) : [];
+
+        // ノード自体がマッチするか、子がマッチする場合は含める
+        if (matchesSearch || filteredChildren.length > 0) {
+          result.push({
+            ...node,
+            children: filteredChildren.length > 0 ? filteredChildren : node.children,
+          });
+        }
+      }
+      return result;
     };
 
-    return rootCategories.map((root) => ({
-      ...root,
-      children: buildChildren(root.id),
-    }));
-  }, [subcategories, categoryType, searchQuery]);
+    return filterTree(fullTree);
+  }, [buildTree, categoryType, searchQuery]);
 
   // ノードの展開/折りたたみ
   const toggleNode = (nodeId: string): void => {

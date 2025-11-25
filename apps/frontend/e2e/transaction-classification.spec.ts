@@ -51,33 +51,45 @@ test.describe('取引分類（サブカテゴリ）機能', () => {
   });
 
   test('カテゴリフィルターが機能する', async ({ page }) => {
+    // ページが読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
+
     // カテゴリフィルターを選択
     await page.getByLabel('カテゴリ').selectOption('EXPENSE');
 
-    // フィルターが適用されることを確認（取引一覧が更新される）
-    await page.waitForTimeout(500); // フィルター適用の待機
+    // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
+    await expect(
+      page.getByRole('table').or(page.getByText('該当する取引がありません'))
+    ).toBeVisible();
   });
 
   test('信頼度フィルターが機能する', async ({ page }) => {
+    // ページが読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
+
     // 信頼度フィルターを選択
     await page.getByLabel('信頼度').selectOption('LOW');
 
-    // フィルターが適用されることを確認
-    await page.waitForTimeout(500); // フィルター適用の待機
+    // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
+    await expect(
+      page.getByRole('table').or(page.getByText('該当する取引がありません'))
+    ).toBeVisible();
   });
 
   test('未分類のみフィルターが機能する', async ({ page }) => {
     // ページが読み込まれるまで待機
     await page.waitForLoadState('networkidle');
 
-    // 未分類のみチェックボックスを探す（存在する場合のみ）
-    const checkbox = page.getByLabel('unclassified-only');
+    // 未分類のみチェックボックスを探す（getByRoleを使用）
+    const checkbox = page.getByRole('checkbox', { name: '未分類のみ' });
     const isVisible = await checkbox.isVisible().catch(() => false);
 
     if (isVisible) {
       await checkbox.check();
-      // フィルターが適用されることを確認
-      await page.waitForTimeout(500); // フィルター適用の待機
+      // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
+      await expect(
+        page.getByRole('table').or(page.getByText('該当する取引がありません'))
+      ).toBeVisible();
     } else {
       // チェックボックスが見つからない場合は、フィルターセクションが表示されていることを確認
       await expect(page.getByText('未分類のみ')).toBeVisible();

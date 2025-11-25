@@ -1349,7 +1349,7 @@ afterAll(async () => {
 
 **参考**:
 
-- Jest公式: https://jestjs.io/docs/configuration#forceexit-boolean
+- Jest公式: <https://jestjs.io/docs/configuration#forceexit-boolean>
 - PR #251 Gemini Code Assistレビュー指摘
 
 #### 新機能実装時
@@ -2581,7 +2581,265 @@ import { getClassificationReasonText } from '@/utils/classification.utils';
 - 一箇所で管理・修正が可能
 - ユーザーフレンドリーな表示を統一
 
-### 7-4. コールバック関数の型定義
+### 7-4. データ構造の最適化（Mapの活用）
+
+**原則**: 頻繁に参照されるデータは、配列の`find`や`filter`ではなく、`Map`を使ったO(1)参照に最適化する。
+
+#### ❌ 悪い例: O(n)の線形検索
+
+```typescript
+// ❌ 悪い例: 配列のfindでO(n)検索
+interface SubcategoryStore {
+  subcategories: Subcategory[];
+  getSubcategoryById: (id: string) => Subcategory | undefined;
+}
+
+export const useSubcategoryStore = create<SubcategoryStore>((set, get) => ({
+  subcategories: [],
+  getSubcategoryById: (id: string) => {
+    // O(n)の線形検索
+    return get().subcategories.find((sub) => sub.id === id);
+  },
+}));
+
+// コンポーネント内で各取引のレンダリング時に呼び出される
+// 取引がT個、サブカテゴリがS個ある場合、計算量はO(T*S)
+```
+
+**問題点**:
+
+- 各レンダリング時に配列全体を走査（O(n)）
+- 取引数が多い場合、パフォーマンスのボトルネックになる
+- 計算量がO(T\*S)となり、スケーラビリティが低い
+
+#### ✅ 良い例: Mapを使ったO(1)参照
+
+```typescript
+// ✅ 良い例: Mapを使ったO(1)参照
+interface SubcategoryStore {
+  subcategories: Subcategory[];
+  subcategoryMap: Map<string, Subcategory>; // IDをキーとするMap
+  getSubcategoryById: (id: string) => Subcategory | undefined;
+}
+
+export const useSubcategoryStore = create<SubcategoryStore>((set, get) => ({
+  subcategories: [],
+  subcategoryMap: new Map<string, Subcategory>(),
+  fetchSubcategories: async (categoryType?: CategoryType) => {
+    const data = await subcategoryApi.getByCategory(categoryType);
+    // IDをキーとするMapを作成（O(1)参照用）
+    const map = new Map<string, Subcategory>();
+    for (const subcategory of data) {
+      map.set(subcategory.id, subcategory);
+    }
+    set({ subcategories: data, subcategoryMap: map });
+  },
+  getSubcategoryById: (id: string) => {
+    // O(1)の参照
+    return get().subcategoryMap.get(id);
+  },
+}));
+```
+
+**利点**:
+
+- O(1)の参照により、パフォーマンスが大幅に改善
+- 計算量がO(T)に削減（T: 取引数）
+- スケーラビリティが向上
+
+### 7-5. 階層構造構築の最適化
+
+**原則**: 階層構造を構築する際は、親IDをキーとするMapを作成してからツリーを構築することで、計算量を削減する。
+
+#### ❌ 悪い例: 再帰的なfilter呼び出し
+
+```typescript
+// ❌ 悪い例: 再帰的にfilterを呼び出す
+const buildTree = (allSubcategories: Subcategory[]): Subcategory[] => {
+  const rootCategories = allSubcategories.filter((sub) => sub.parentId === null);
+
+  const buildChildren = (parentId: string | null): Subcategory[] => {
+    // 毎回配列全体を走査（O(n)）
+    const children = allSubcategories.filter((sub) => sub.parentId === parentId);
+    return children.map((child) => ({
+      ...child,
+      children: buildChildren(child.id), // 再帰的にfilterを呼び出し
+    }));
+  };
+
+  return rootCategories.map((root) => ({
+    ...root,
+    children: buildChildren(root.id),
+  }));
+};
+```
+
+**問題点**:
+
+- 再帰的に`filter`を呼び出すため、計算量がO(n²)になる可能性
+- サブカテゴリ数が多い場合に非効率
+
+#### ✅ 良い例: Mapを使った効率的な構築
+
+```typescript
+// ✅ 良い例: 親IDをキーとするMapを作成
+const buildTree = (allSubcategories: Subcategory[]): Subcategory[] => {
+  // 親IDをキーとする子のMapを作成（O(n)）
+  const childrenMap = new Map<string | null, Subcategory[]>();
+  for (const sub of allSubcategories) {
+    const parentId = sub.parentId;
+    if (!childrenMap.has(parentId)) {
+      childrenMap.set(parentId, []);
+    }
+    childrenMap.get(parentId)!.push(sub);
+  }
+
+  // 親カテゴリ（parentIdがnull）を取得
+  const rootCategories = childrenMap.get(null) || [];
+
+  // 階層構造を構築（Mapを使用してO(1)参照）
+  const buildChildren = (parentId: string | null): Subcategory[] => {
+    const children = childrenMap.get(parentId) || [];
+    return children.map((child) => ({
+      ...child,
+      children: buildChildren(child.id),
+    }));
+  };
+
+  return rootCategories.map((root) => ({
+    ...root,
+    children: buildChildren(root.id),
+  }));
+};
+```
+
+**利点**:
+
+- 計算量がO(n)に削減
+- Mapを使ったO(1)参照により、パフォーマンスが向上
+- サブカテゴリ数が多い場合でも効率的
+
+### 7-6. ロジックの一元化（ストアへの集約）
+
+**原則**: 複数のコンポーネントで使用されるロジックは、状態管理ストアに一元化する。
+
+#### ❌ 悪い例: ロジックの重複
+
+```typescript
+// ❌ 悪い例: コンポーネント内とストア内の両方に階層構造構築ロジックが存在
+// SubcategorySelector.tsx
+const tree = useMemo(() => {
+  const filtered = subcategories.filter(...);
+  const buildChildren = (parentId: string | null) => {
+    const children = filtered.filter((sub) => sub.parentId === parentId);
+    // ...
+  };
+  // ...
+}, [subcategories, categoryType, searchQuery]);
+
+// subcategory.store.ts
+buildTree: (categoryType?: CategoryType) => {
+  const buildChildren = (parentId: string | null) => {
+    const children = allSubcategories.filter((sub) => sub.parentId === parentId);
+    // ...
+  };
+  // ...
+}
+```
+
+**問題点**:
+
+- ロジックが重複している
+- 将来的な変更時に片方を修正し忘れる可能性
+- 不整合の原因となる
+
+#### ✅ 良い例: ストアに一元化
+
+```typescript
+// ✅ 良い例: ストアのbuildTreeを使用
+// SubcategorySelector.tsx
+const { buildTree } = useSubcategoryStore();
+
+const tree = useMemo(() => {
+  // ストアから階層構造を取得
+  const fullTree = buildTree(categoryType);
+  // 検索クエリでフィルタリング（必要に応じて）
+  if (!searchQuery) {
+    return fullTree;
+  }
+  // ...
+}, [buildTree, categoryType, searchQuery]);
+```
+
+**利点**:
+
+- ロジックの一元化により、保守性が向上
+- 修正時に1箇所のみ更新すればよい
+- 関心の分離が促進される
+
+### 7-7. E2Eテストの信頼性向上
+
+**原則**: E2Eテストでは、固定時間の待機（`waitForTimeout`）を避け、UIの状態変化を待つ適切な方法を使用する。
+
+#### ❌ 悪い例: waitForTimeoutの使用
+
+```typescript
+// ❌ 悪い例: 固定時間での待機
+test('フィルターが機能する', async ({ page }) => {
+  await page.getByLabel('カテゴリ').selectOption('EXPENSE');
+  await page.waitForTimeout(500); // 固定時間での待機
+  // アサーション
+});
+```
+
+**問題点**:
+
+- テストの実行環境によって成功したり失敗したりする（flaky test）
+- 実際のUI更新を待たずにアサーションを実行する可能性
+- テストの信頼性が低い
+
+#### ✅ 良い例: 適切な待機方法
+
+```typescript
+// ✅ 良い例: UIの状態変化を待つ
+test('フィルターが機能する', async ({ page }) => {
+  // ページが読み込まれるまで待機
+  await page.waitForLoadState('networkidle');
+
+  // フィルターを選択
+  await page.getByLabel('カテゴリ').selectOption('EXPENSE');
+
+  // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
+  await expect(
+    page.getByRole('table').or(page.getByText('該当する取引がありません'))
+  ).toBeVisible();
+});
+```
+
+**利点**:
+
+- 実際のUI更新を待ってからアサーションを実行
+- テストの信頼性が向上
+- 環境に依存しない安定したテスト
+
+#### ✅ 良い例: getByRoleを使用したセレクタ
+
+```typescript
+// ❌ 悪い例: idをgetByLabelで探す
+const checkbox = page.getByLabel('unclassified-only'); // idはgetByLabelの対象ではない
+
+// ✅ 良い例: ロールとアクセシブルネームで要素を特定
+const checkbox = page.getByRole('checkbox', { name: '未分類のみ' });
+```
+
+**利点**:
+
+- より堅牢で意図が明確なテスト
+- アクセシビリティの観点からも適切
+
+**参考**: PR #303 - Gemini Code Assistレビュー指摘
+
+### 7-8. コールバック関数の型定義
 
 **非同期処理に対応したコールバック型**:
 
