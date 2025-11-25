@@ -411,6 +411,9 @@ export class UpdateTransactionCategoryUseCase {
 2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
 3. **エンティティマネージャー経由でリポジトリにアクセス**
 4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+5. **トランザクション内でのデータ取得は必ずentityManagerを使用**
+   - トランザクションに紐付いていないリポジトリを使用すると、ダーティリードなどの競合状態が発生する可能性
+   - トランザクションの一貫性を保証するため、トランザクション内でのデータ取得は`entityManager.getRepository()`を使用
 
 #### リポジトリパターンの活用とトランザクション管理
 
@@ -517,6 +520,67 @@ await this.dataSource.transaction(async (entityManager) => {
 **リポジトリ実装のベストプラクティス**:
 
 3. **ヘルパーメソッドでコード重複を削減**
+
+#### ❌ 避けるべきパターン: コードの重複
+
+```typescript
+// ❌ 悪い例: 同じロジックが複数のUseCaseに重複
+export class GetSubcategoriesUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（50行以上）
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 同じ階層構造構築ロジック（50行以上）← 重複！
+  }
+}
+```
+
+**問題**:
+
+- 同じロジックが複数箇所に存在すると、メンテナンス性が低下
+- バグ修正や機能追加時に複数箇所を修正する必要がある
+- 将来のバグの原因となり得る
+
+#### ✅ 正しいパターン: 共通サービスに抽出
+
+```typescript
+// ✅ 良い例: 共通のDomain Serviceに抽出
+@Injectable()
+export class SubcategoryTreeBuilderService {
+  buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（1箇所に集約）
+  }
+}
+
+export class GetSubcategoriesUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(): Promise<Result> {
+    const subcategories = await this.repository.findAll();
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(categoryType: CategoryType): Promise<Result> {
+    const subcategories = await this.repository.findByCategory(categoryType);
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+```
+
+**重要なポイント**:
+
+- **同じロジックが2箇所以上に存在する場合は、共通サービスに抽出する**
+- **Domain Service層に共通ロジックを配置**（Onion Architectureの原則に従う）
+- **コードの重複はメンテナンス性の低下に繋がるため、積極的にリファクタリングする**
 
 ```typescript
 // ✅ リポジトリ実装でDRY原則を徹底
