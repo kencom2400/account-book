@@ -79,8 +79,8 @@ extract_coverage_data() {
     local covered_branches=$(echo "$coverage_data" | jq -r '.covered_branches // 0')
     
     # パーセンテージを計算（ゼロ除算を回避）
-    lines=$(awk "BEGIN {if ($total_statements > 0) print ($covered_statements / $total_statements) * 100; else print 0}")
     statements=$(awk "BEGIN {if ($total_statements > 0) print ($covered_statements / $total_statements) * 100; else print 0}")
+    lines=$statements
     functions=$(awk "BEGIN {if ($total_functions > 0) print ($covered_functions / $total_functions) * 100; else print 0}")
     branches=$(awk "BEGIN {if ($total_branches > 0) print ($covered_branches / $total_branches) * 100; else print 0}")
   else
