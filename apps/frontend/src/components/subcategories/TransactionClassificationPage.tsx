@@ -7,6 +7,7 @@ import { updateTransactionSubcategory } from '@/lib/api/transactions';
 import { subcategoryApi } from '@/lib/api/subcategories';
 import { SubcategorySelector } from './SubcategorySelector';
 import { ClassificationBadge } from './ClassificationBadge';
+import { TransactionDetailModal } from './TransactionDetailModal';
 import { formatCurrency } from '@account-book/utils';
 import { useSubcategoryStore } from '@/stores/subcategory.store';
 
@@ -19,6 +20,7 @@ export function TransactionClassificationPage(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+  const [detailModalTransaction, setDetailModalTransaction] = useState<Transaction | null>(null);
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
   const [filterCategoryType, setFilterCategoryType] = useState<CategoryType | 'ALL'>('ALL');
   const [filterConfidence, setFilterConfidence] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>(
@@ -372,36 +374,46 @@ export function TransactionClassificationPage(): React.JSX.Element {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                          {isSelected ? (
-                            <div className="flex flex-col gap-2">
-                              <SubcategorySelector
-                                categoryType={tx.category.type}
-                                selectedSubcategoryId={tx.subcategoryId ?? undefined}
-                                onSelect={(subcategoryId) => {
-                                  void handleSubcategoryChange(tx.id, subcategoryId);
-                                }}
-                                disabled={isUpdating}
-                              />
-                              <button
-                                onClick={() => setSelectedTransactionId(null)}
-                                className="text-xs text-gray-500 hover:text-gray-700"
-                              >
-                                キャンセル
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setSelectedTransactionId(tx.id)}
-                              disabled={isUpdating}
-                              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                                isUpdating
-                                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                              }`}
-                            >
-                              {isUpdating ? '更新中...' : '変更'}
-                            </button>
-                          )}
+                          <div className="flex gap-2 justify-center">
+                            {isSelected ? (
+                              <div className="flex flex-col gap-2">
+                                <SubcategorySelector
+                                  categoryType={tx.category.type}
+                                  selectedSubcategoryId={tx.subcategoryId ?? undefined}
+                                  onSelect={(subcategoryId) => {
+                                    void handleSubcategoryChange(tx.id, subcategoryId);
+                                  }}
+                                  disabled={isUpdating}
+                                />
+                                <button
+                                  onClick={() => setSelectedTransactionId(null)}
+                                  className="text-xs text-gray-500 hover:text-gray-700"
+                                >
+                                  キャンセル
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setSelectedTransactionId(tx.id)}
+                                  disabled={isUpdating}
+                                  className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                                    isUpdating
+                                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                      : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                  }`}
+                                >
+                                  {isUpdating ? '更新中...' : '変更'}
+                                </button>
+                                <button
+                                  onClick={() => setDetailModalTransaction(tx)}
+                                  className="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                                >
+                                  詳細
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -442,6 +454,17 @@ export function TransactionClassificationPage(): React.JSX.Element {
             </p>
           </div>
         </div>
+
+        {/* 取引詳細モーダル */}
+        <TransactionDetailModal
+          isOpen={detailModalTransaction !== null}
+          transaction={detailModalTransaction}
+          onClose={() => setDetailModalTransaction(null)}
+          onUpdate={(updated) => {
+            setTransactions((prev) => prev.map((tx) => (tx.id === updated.id ? updated : tx)));
+            setDetailModalTransaction(updated);
+          }}
+        />
       </div>
     </div>
   );
