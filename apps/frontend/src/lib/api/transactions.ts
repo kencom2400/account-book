@@ -53,20 +53,16 @@ export interface MonthlySummary {
 /**
  * 取引を作成
  */
-export async function createTransaction(
-  data: CreateTransactionRequest,
-): Promise<Transaction> {
+export async function createTransaction(data: CreateTransactionRequest): Promise<Transaction> {
   return await apiClient.post<Transaction>('/transactions', data);
 }
 
 /**
  * 取引一覧を取得
  */
-export async function getTransactions(
-  params?: GetTransactionsParams,
-): Promise<Transaction[]> {
+export async function getTransactions(params?: GetTransactionsParams): Promise<Transaction[]> {
   const searchParams = new URLSearchParams();
-  
+
   if (params) {
     if (params.institutionId) searchParams.append('institutionId', params.institutionId);
     if (params.accountId) searchParams.append('accountId', params.accountId);
@@ -83,13 +79,8 @@ export async function getTransactions(
 /**
  * 月次サマリーを取得
  */
-export async function getMonthlySummary(
-  year: number,
-  month: number,
-): Promise<MonthlySummary> {
-  return await apiClient.get<MonthlySummary>(
-    `/transactions/summary/monthly/${year}/${month}`,
-  );
+export async function getMonthlySummary(year: number, month: number): Promise<MonthlySummary> {
+  return await apiClient.get<MonthlySummary>(`/transactions/summary/monthly/${year}/${month}`);
 }
 
 /**
@@ -101,11 +92,22 @@ export async function updateTransactionCategory(
     id: string;
     name: string;
     type: CategoryType;
-  },
+  }
 ): Promise<Transaction> {
-  return await apiClient.patch<Transaction>(
-    `/transactions/${transactionId}/category`,
-    { category },
-  );
+  return await apiClient.patch<Transaction>(`/transactions/${transactionId}/category`, {
+    category,
+  });
 }
 
+/**
+ * 取引のサブカテゴリを更新
+ * FR-009: 詳細費目分類機能
+ */
+export async function updateTransactionSubcategory(
+  transactionId: string,
+  subcategoryId: string
+): Promise<Transaction> {
+  return await apiClient.patch<Transaction>(`/transactions/${transactionId}/subcategory`, {
+    subcategoryId,
+  });
+}

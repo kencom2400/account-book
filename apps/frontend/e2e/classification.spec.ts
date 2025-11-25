@@ -5,24 +5,20 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('カテゴリ自動分類機能', () => {
   test.beforeEach(async ({ page }) => {
-    // 分類ページに移動
-    await page.goto('/classification');
+    // カテゴリ自動分類ページに移動
+    await page.goto('/category-classifier');
   });
 
   test('ページが正しく表示される', async ({ page }) => {
     // タイトルの確認
-    await expect(
-      page.getByRole('heading', { name: 'カテゴリ自動分類（FR-008）' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'カテゴリ自動分類（FR-008）' })).toBeVisible();
 
     // 入力フォームの確認
     await expect(page.getByLabel('金額')).toBeVisible();
     await expect(page.getByLabel('説明')).toBeVisible();
 
     // ボタンの確認
-    await expect(
-      page.getByRole('button', { name: 'カテゴリを自動分類' }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'カテゴリを自動分類' })).toBeVisible();
   });
 
   test('収入取引を正しく分類できる', async ({ page }) => {
@@ -108,9 +104,7 @@ test.describe('カテゴリ自動分類機能', () => {
     await page.getByRole('button', { name: 'カテゴリを自動分類' }).click();
 
     // エラーメッセージが表示される
-    await expect(
-      page.getByText('金額と説明を入力してください'),
-    ).toBeVisible();
+    await expect(page.getByText('金額と説明を入力してください')).toBeVisible();
   });
 
   test('分類理由が表示される', async ({ page }) => {
@@ -131,9 +125,6 @@ test.describe('カテゴリ自動分類機能', () => {
   test('使用例が表示される', async ({ page }) => {
     // 使用例セクションが表示される
     await expect(page.getByText('使用例')).toBeVisible();
-    await expect(
-      page.getByText('金額: -1500, 説明: "スターバックス" → 支出'),
-    ).toBeVisible();
+    await expect(page.getByText('金額: -1500, 説明: "スターバックス" → 支出')).toBeVisible();
   });
 });
-

@@ -1,4 +1,5 @@
 import { CategoryType } from './enums/category-type.enum';
+import { ClassificationReason } from './subcategory.types';
 
 export interface Transaction {
   id: string;
@@ -11,6 +12,13 @@ export interface Transaction {
   status: TransactionStatus;
   isReconciled: boolean;
   relatedTransactionId?: string;
+  // FR-009: サブカテゴリ関連フィールド
+  subcategoryId?: string | null;
+  classificationConfidence?: number | null;
+  classificationReason?: ClassificationReason | null;
+  merchantId?: string | null;
+  merchantName?: string | null;
+  confirmedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
