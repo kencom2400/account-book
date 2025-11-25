@@ -48,10 +48,7 @@ extract_coverage_data() {
   
   # coverage-summary.jsonが存在する場合はそれを優先使用
   if [ -f "$summary_file" ]; then
-    lines=$(jq -r '.total.lines.pct // 0' "$summary_file" 2>/dev/null || echo "0")
-    statements=$(jq -r '.total.statements.pct // 0' "$summary_file" 2>/dev/null || echo "0")
-    functions=$(jq -r '.total.functions.pct // 0' "$summary_file" 2>/dev/null || echo "0")
-    branches=$(jq -r '.total.branches.pct // 0' "$summary_file" 2>/dev/null || echo "0")
+    read -r lines statements functions branches <<< "$(jq -r '[.total.lines.pct // 0, .total.statements.pct // 0, .total.functions.pct // 0, .total.branches.pct // 0] | @tsv' "$summary_file" 2>/dev/null || echo $'0\t0\t0\t0')"
   elif [ -f "$final_file" ]; then
     # coverage-final.jsonから集計
     local coverage_data=$(jq '[
