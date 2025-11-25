@@ -36,11 +36,11 @@ export function SubcategorySelector({
   // 階層構造を構築（ストアのbuildTreeを使用）
   const tree = useMemo(() => {
     // ストアから階層構造を取得
-    const fullTree = buildTree(categoryType);
+    const fullTree = buildTree ? buildTree(categoryType) : [];
 
     // 検索クエリでフィルタリング
     if (!searchQuery) {
-      return fullTree;
+      return fullTree || [];
     }
 
     const searchLower = searchQuery.toLowerCase();
@@ -63,7 +63,7 @@ export function SubcategorySelector({
       return result;
     };
 
-    return filterTree(fullTree);
+    return filterTree(fullTree || []);
   }, [buildTree, categoryType, searchQuery]);
 
   // ノードの展開/折りたたみ

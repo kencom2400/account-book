@@ -58,9 +58,11 @@ test.describe('取引分類（サブカテゴリ）機能', () => {
     await page.getByLabel('カテゴリ').selectOption('EXPENSE');
 
     // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
-    await expect(
-      page.getByRole('table').or(page.getByText('該当する取引がありません'))
-    ).toBeVisible();
+    const table = page.getByRole('table');
+    const noDataMessage = page.getByText('該当する取引がありません');
+    const tableVisible = await table.isVisible().catch(() => false);
+    const messageVisible = await noDataMessage.isVisible().catch(() => false);
+    expect(tableVisible || messageVisible).toBe(true);
   });
 
   test('信頼度フィルターが機能する', async ({ page }) => {
@@ -71,9 +73,11 @@ test.describe('取引分類（サブカテゴリ）機能', () => {
     await page.getByLabel('信頼度').selectOption('LOW');
 
     // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
-    await expect(
-      page.getByRole('table').or(page.getByText('該当する取引がありません'))
-    ).toBeVisible();
+    const table = page.getByRole('table');
+    const noDataMessage = page.getByText('該当する取引がありません');
+    const tableVisible = await table.isVisible().catch(() => false);
+    const messageVisible = await noDataMessage.isVisible().catch(() => false);
+    expect(tableVisible || messageVisible).toBe(true);
   });
 
   test('未分類のみフィルターが機能する', async ({ page }) => {
@@ -87,9 +91,11 @@ test.describe('取引分類（サブカテゴリ）機能', () => {
     if (isVisible) {
       await checkbox.check();
       // フィルターが適用されることを確認（テーブルが表示されるか、メッセージが表示される）
-      await expect(
-        page.getByRole('table').or(page.getByText('該当する取引がありません'))
-      ).toBeVisible();
+      const table = page.getByRole('table');
+      const noDataMessage = page.getByText('該当する取引がありません');
+      const tableVisible = await table.isVisible().catch(() => false);
+      const messageVisible = await noDataMessage.isVisible().catch(() => false);
+      expect(tableVisible || messageVisible).toBe(true);
     } else {
       // チェックボックスが見つからない場合は、フィルターセクションが表示されていることを確認
       await expect(page.getByText('未分類のみ')).toBeVisible();
