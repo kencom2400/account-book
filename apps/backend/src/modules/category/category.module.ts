@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoryController } from './presentation/controllers/category.controller';
 import { CategoryRepository } from './infrastructure/repositories/category.repository';
@@ -34,7 +34,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from '../transaction/infras
       TransactionOrmEntity,
       TransactionCategoryChangeHistoryOrmEntity,
     ]),
-    TransactionModule,
+    forwardRef(() => TransactionModule),
   ],
   controllers: [CategoryController],
   providers: [
