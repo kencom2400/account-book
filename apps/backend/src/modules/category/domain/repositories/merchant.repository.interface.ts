@@ -13,12 +13,6 @@ export interface IMerchantRepository {
   findById(id: string): Promise<Merchant | null>;
 
   /**
-   * 全店舗を取得
-   * @returns 店舗配列
-   */
-  findAll(): Promise<Merchant[]>;
-
-  /**
    * 店舗名で検索
    * @param name 店舗名
    * @returns 店舗 | null
