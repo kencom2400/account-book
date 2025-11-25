@@ -15,6 +15,10 @@ export default tseslint.config(
             "dist/",
             "node_modules/",
             ".env*.local",
+            "coverage/",
+            "test-results/",
+            "playwright-report/",
+            ".storybook/",
         ],
     },
 
