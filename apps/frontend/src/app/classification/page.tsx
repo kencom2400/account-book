@@ -1,11 +1,12 @@
-import CategoryClassifier from '@/components/CategoryClassifier';
+'use client';
 
+import React from 'react';
+import { TransactionClassificationPage } from '@/components/subcategories/TransactionClassificationPage';
+
+/**
+ * 取引分類ページ
+ * FR-009: 詳細費目分類機能
+ */
 export default function ClassificationPage(): React.JSX.Element {
-  return (
-    <main className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto max-w-2xl">
-        <CategoryClassifier />
-      </div>
-    </main>
-  );
+  return <TransactionClassificationPage />;
 }
