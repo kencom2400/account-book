@@ -372,34 +372,64 @@ async execute(dto: UpdateDto): Promise<Result> {
 ```typescript
 // ✅ 良い例: データベーストランザクションで複数操作を1つに
 @Injectable()
-export class UpdateTransactionCategoryUseCase {
+export class UpdateTransactionSubcategoryUseCase {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
-    @Inject(HISTORY_REPOSITORY)
-    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
+    @Inject(SUB_CATEGORY_REPOSITORY)
+    private readonly subcategoryRepository: ISubcategoryRepository,
   ) {}
 
   async execute(dto: UpdateDto): Promise<Result> {
-    // トランザクション外で検証を実行
-    const transaction = await this.transactionRepository.findById(dto.id);
+    // トランザクション外でエンティティの存在確認を並列実行
+    const [transaction, subcategory] = await Promise.all([
+      this.transactionRepository.findById(dto.transactionId),
+      this.subcategoryRepository.findById(dto.subcategoryId),
+    ]);
+
+    // 存在確認
     if (!transaction) {
-      throw new NotFoundException(`Transaction not found`);
+      throw new NotFoundException(
+        `Transaction not found with ID: ${dto.transactionId}`,
+      );
+    }
+    if (!subcategory) {
+      throw new NotFoundException(
+        `Subcategory not found with ID: ${dto.subcategoryId}`,
+      );
+    }
+
+    // データ整合性の検証（カテゴリタイプの一致）
+    if (transaction.category.type !== subcategory.categoryType) {
+      throw new BadRequestException(
+        `Subcategory with type ${subcategory.categoryType} cannot be assigned to a transaction with type ${transaction.category.type}.`,
+      );
     }
 
     // データベーストランザクションで複数操作をアトミックに実行
     return await this.dataSource.transaction(async (entityManager) => {
+      // トランザクション内で取引を再取得（競合状態の防止）
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      const transactionOrm = await transactionRepo.findOne({
+        where: { id: dto.transactionId },
+      });
+
+      if (!transactionOrm) {
+        throw new NotFoundException(
+          `Transaction not found with ID: ${dto.transactionId} within transaction`,
+        );
+      }
+
       // 変更履歴を記録
       const historyRepo = entityManager.getRepository(HistoryOrmEntity);
       await historyRepo.save({ ... });
 
       // 取引を更新
-      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
       await transactionRepo.save({ ... });
 
-      return updatedTransaction;
+      return result;
     });
   }
 }
@@ -414,6 +444,12 @@ export class UpdateTransactionCategoryUseCase {
 5. **トランザクション内でのデータ取得は必ずentityManagerを使用**
    - トランザクションに紐付いていないリポジトリを使用すると、ダーティリードなどの競合状態が発生する可能性
    - トランザクションの一貫性を保証するため、トランザクション内でのデータ取得は`entityManager.getRepository()`を使用
+6. **トランザクション外での並列取得を活用**
+   - 複数のエンティティを取得する場合は`Promise.all`を使用して並列化することでパフォーマンスを改善
+   - ただし、トランザクション内での更新対象エンティティは必ず再取得する
+7. **データ整合性の検証**
+   - エンティティ間の関連性（例：カテゴリタイプの一致）を検証し、不整合の場合は`BadRequestException`をスロー
+   - 検証はトランザクション外で実行し、早期にエラーを返すことでパフォーマンスを向上
 
 #### リポジトリパターンの活用とトランザクション管理
 

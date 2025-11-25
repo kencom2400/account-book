@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -55,25 +61,28 @@ export class UpdateTransactionSubcategoryUseCase {
   async execute(
     dto: UpdateTransactionSubcategoryDto,
   ): Promise<UpdateTransactionSubcategoryResult> {
-    // トランザクション外で取引を取得
-    const transaction = await this.transactionRepository.findById(
-      dto.transactionId,
-    );
+    // トランザクション外でエンティティの存在確認を並列実行
+    const [transaction, subcategory] = await Promise.all([
+      this.transactionRepository.findById(dto.transactionId),
+      this.subcategoryRepository.findById(dto.subcategoryId),
+    ]);
 
+    // 存在確認
     if (!transaction) {
       throw new NotFoundException(
         `Transaction not found with ID: ${dto.transactionId}`,
       );
     }
-
-    // トランザクション外でサブカテゴリを取得
-    const subcategory = await this.subcategoryRepository.findById(
-      dto.subcategoryId,
-    );
-
     if (!subcategory) {
       throw new NotFoundException(
         `Subcategory not found with ID: ${dto.subcategoryId}`,
+      );
+    }
+
+    // カテゴリタイプの検証
+    if (transaction.category.type !== subcategory.categoryType) {
+      throw new BadRequestException(
+        `Subcategory with type ${subcategory.categoryType} cannot be assigned to a transaction with type ${transaction.category.type}.`,
       );
     }
 

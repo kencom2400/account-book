@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { UpdateTransactionSubcategoryUseCase } from './update-transaction-subcategory.use-case';
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
@@ -238,13 +238,17 @@ describe('UpdateTransactionSubcategoryUseCase', () => {
       };
 
       mockTransactionRepository.findById.mockResolvedValue(null);
+      mockSubcategoryRepository.findById.mockResolvedValue(mockSubcategory);
 
       // Act & Assert
       await expect(useCase.execute(dto)).rejects.toThrow(NotFoundException);
       expect(mockTransactionRepository.findById).toHaveBeenCalledWith(
         'trans-999',
       );
-      expect(mockSubcategoryRepository.findById).not.toHaveBeenCalled();
+      // Promise.allで並列実行されるため、subcategoryも取得される
+      expect(mockSubcategoryRepository.findById).toHaveBeenCalledWith(
+        'food_restaurant',
+      );
     });
 
     it('should throw NotFoundException when subcategory not found', async () => {
@@ -352,6 +356,40 @@ describe('UpdateTransactionSubcategoryUseCase', () => {
           oldCategoryId: 'cat-001',
           newCategoryId: 'food_restaurant',
         }),
+      );
+    });
+
+    it('should throw BadRequestException when category types do not match', async () => {
+      // Arrange
+      const dto = {
+        transactionId: 'trans-001',
+        subcategoryId: 'income-salary',
+      };
+
+      const incomeSubcategory = new Subcategory(
+        'income-salary',
+        CategoryType.INCOME,
+        '給与所得',
+        null,
+        1,
+        '💰',
+        '#4CAF50',
+        false,
+        true,
+        baseDate,
+        baseDate,
+      );
+
+      mockTransactionRepository.findById.mockResolvedValue(mockTransaction);
+      mockSubcategoryRepository.findById.mockResolvedValue(incomeSubcategory);
+
+      // Act & Assert
+      await expect(useCase.execute(dto)).rejects.toThrow(BadRequestException);
+      expect(mockTransactionRepository.findById).toHaveBeenCalledWith(
+        'trans-001',
+      );
+      expect(mockSubcategoryRepository.findById).toHaveBeenCalledWith(
+        'income-salary',
       );
     });
   });
