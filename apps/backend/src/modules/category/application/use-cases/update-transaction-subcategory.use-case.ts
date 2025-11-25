@@ -89,6 +89,10 @@ export class UpdateTransactionSubcategoryUseCase {
     // データベーストランザクションを使用して、
     // 変更履歴の作成と取引の更新をアトミックに実行
     return await this.dataSource.transaction(async (entityManager) => {
+      // トランザクション開始時に一度だけDateオブジェクトを生成
+      // これにより、changedAt、confirmedAt、updatedAtの間に意図しない時間のずれが生じるのを防ぐ
+      const now = new Date();
+
       // トランザクション内で取引を再取得（競合状態の防止）
       const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
       const transactionOrm = await transactionRepo.findOne({
@@ -134,7 +138,7 @@ export class UpdateTransactionSubcategoryUseCase {
             name: subcategory.name,
             type: subcategory.categoryType,
           },
-          new Date(),
+          now,
         );
 
         // トランザクション内で変更履歴を保存
@@ -161,14 +165,13 @@ export class UpdateTransactionSubcategoryUseCase {
 
       // 取引を更新
       // 手動分類時は必ずconfidence = 1.0, reason = MANUAL
-      const confirmedAt = new Date();
       await transactionRepo.save({
         ...transactionOrm,
         subcategoryId: dto.subcategoryId,
         classificationConfidence: 1.0,
         classificationReason: ClassificationReason.MANUAL,
-        confirmedAt: confirmedAt,
-        updatedAt: new Date(),
+        confirmedAt: now,
+        updatedAt: now,
       });
 
       return {
@@ -176,7 +179,7 @@ export class UpdateTransactionSubcategoryUseCase {
         subcategoryId: dto.subcategoryId,
         confidence: 1.0,
         reason: ClassificationReason.MANUAL,
-        confirmedAt: confirmedAt,
+        confirmedAt: now,
       };
     });
   }

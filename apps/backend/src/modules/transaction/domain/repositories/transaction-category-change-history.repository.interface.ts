@@ -25,5 +25,6 @@ export interface ITransactionCategoryChangeHistoryRepository {
   deleteAll(): Promise<void>;
 }
 
-export const TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY =
-  'TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY';
+export const TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY = Symbol(
+  'ITransactionCategoryChangeHistoryRepository',
+);

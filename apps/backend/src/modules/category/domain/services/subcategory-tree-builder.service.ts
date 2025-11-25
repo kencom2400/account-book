@@ -43,20 +43,29 @@ export class SubcategoryTreeBuilderService {
     const buildSubTree = (items: Subcategory[]): SubcategoryTreeItem[] => {
       return items
         .sort((a, b) => a.displayOrder - b.displayOrder)
-        .map((item) => ({
-          id: item.id,
-          categoryType: item.categoryType,
-          name: item.name,
-          parentId: item.parentId,
-          displayOrder: item.displayOrder,
-          icon: item.icon,
-          color: item.color,
-          isDefault: item.isDefault,
-          isActive: item.isActive,
-          createdAt: item.createdAt.toISOString(),
-          updatedAt: item.updatedAt.toISOString(),
-          children: buildSubTree(childrenMap.get(item.id) || []),
-        }));
+        .map((item) => {
+          const children = buildSubTree(childrenMap.get(item.id) || []);
+          const treeItem: SubcategoryTreeItem = {
+            id: item.id,
+            categoryType: item.categoryType,
+            name: item.name,
+            parentId: item.parentId,
+            displayOrder: item.displayOrder,
+            icon: item.icon,
+            color: item.color,
+            isDefault: item.isDefault,
+            isActive: item.isActive,
+            createdAt: item.createdAt.toISOString(),
+            updatedAt: item.updatedAt.toISOString(),
+          };
+
+          // 子要素が存在する場合のみchildrenプロパティを追加
+          if (children.length > 0) {
+            treeItem.children = children;
+          }
+
+          return treeItem;
+        });
     };
 
     return buildSubTree(childrenMap.get(null) || []);
