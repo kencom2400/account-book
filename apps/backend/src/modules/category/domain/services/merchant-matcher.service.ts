@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Merchant } from '../entities/merchant.entity';
 import type { IMerchantRepository } from '../repositories/merchant.repository.interface';
+import { MERCHANT_REPOSITORY } from '../repositories/merchant.repository.interface';
 
 /**
  * 店舗マッチャー Domain Service
@@ -8,7 +9,10 @@ import type { IMerchantRepository } from '../repositories/merchant.repository.in
  */
 @Injectable()
 export class MerchantMatcherService {
-  constructor(private readonly merchantRepository: IMerchantRepository) {}
+  constructor(
+    @Inject(MERCHANT_REPOSITORY)
+    private readonly merchantRepository: IMerchantRepository,
+  ) {}
 
   /**
    * 取引説明から店舗をマッチング

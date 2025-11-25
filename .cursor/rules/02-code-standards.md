@@ -372,34 +372,64 @@ async execute(dto: UpdateDto): Promise<Result> {
 ```typescript
 // ✅ 良い例: データベーストランザクションで複数操作を1つに
 @Injectable()
-export class UpdateTransactionCategoryUseCase {
+export class UpdateTransactionSubcategoryUseCase {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
-    @Inject(HISTORY_REPOSITORY)
-    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
+    @Inject(SUB_CATEGORY_REPOSITORY)
+    private readonly subcategoryRepository: ISubcategoryRepository,
   ) {}
 
   async execute(dto: UpdateDto): Promise<Result> {
-    // トランザクション外で検証を実行
-    const transaction = await this.transactionRepository.findById(dto.id);
+    // トランザクション外でエンティティの存在確認を並列実行
+    const [transaction, subcategory] = await Promise.all([
+      this.transactionRepository.findById(dto.transactionId),
+      this.subcategoryRepository.findById(dto.subcategoryId),
+    ]);
+
+    // 存在確認
     if (!transaction) {
-      throw new NotFoundException(`Transaction not found`);
+      throw new NotFoundException(
+        `Transaction not found with ID: ${dto.transactionId}`,
+      );
+    }
+    if (!subcategory) {
+      throw new NotFoundException(
+        `Subcategory not found with ID: ${dto.subcategoryId}`,
+      );
+    }
+
+    // データ整合性の検証（カテゴリタイプの一致）
+    if (transaction.category.type !== subcategory.categoryType) {
+      throw new BadRequestException(
+        `Subcategory with type ${subcategory.categoryType} cannot be assigned to a transaction with type ${transaction.category.type}.`,
+      );
     }
 
     // データベーストランザクションで複数操作をアトミックに実行
     return await this.dataSource.transaction(async (entityManager) => {
+      // トランザクション内で取引を再取得（競合状態の防止）
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      const transactionOrm = await transactionRepo.findOne({
+        where: { id: dto.transactionId },
+      });
+
+      if (!transactionOrm) {
+        throw new NotFoundException(
+          `Transaction not found with ID: ${dto.transactionId} within transaction`,
+        );
+      }
+
       // 変更履歴を記録
       const historyRepo = entityManager.getRepository(HistoryOrmEntity);
       await historyRepo.save({ ... });
 
       // 取引を更新
-      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
       await transactionRepo.save({ ... });
 
-      return updatedTransaction;
+      return result;
     });
   }
 }
@@ -411,6 +441,21 @@ export class UpdateTransactionCategoryUseCase {
 2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
 3. **エンティティマネージャー経由でリポジトリにアクセス**
 4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+5. **トランザクション内でのデータ取得は必ずentityManagerを使用**
+   - トランザクションに紐付いていないリポジトリを使用すると、ダーティリードなどの競合状態が発生する可能性
+   - トランザクションの一貫性を保証するため、トランザクション内でのデータ取得は`entityManager.getRepository()`を使用
+6. **トランザクション外での並列取得を活用**
+   - 複数のエンティティを取得する場合は`Promise.all`を使用して並列化することでパフォーマンスを改善
+   - ただし、トランザクション内での更新対象エンティティは必ず再取得する
+7. **データ整合性の検証**
+   - エンティティ間の関連性（例：カテゴリタイプの一致）を検証し、不整合の場合は`BadRequestException`をスロー
+   - 検証はトランザクション外で実行し、早期にエラーを返すことでパフォーマンスを向上
+8. **トランザクション内でのタイムスタンプ管理**
+   - トランザクション内で複数のタイムスタンプが必要な場合、トランザクション開始時に一度だけ`Date`オブジェクトを生成し、それを使い回す
+   - これにより、`changedAt`、`confirmedAt`、`updatedAt`などの間に意図しない時間のずれが生じるのを防ぐ
+9. **トランザクション内でのタイムスタンプ管理**
+   - トランザクション内で複数のタイムスタンプが必要な場合、トランザクション開始時に一度だけ`Date`オブジェクトを生成し、それを使い回す
+   - これにより、`changedAt`、`confirmedAt`、`updatedAt`などの間に意図しない時間のずれが生じるのを防ぐ
 
 #### リポジトリパターンの活用とトランザクション管理
 
@@ -517,6 +562,71 @@ await this.dataSource.transaction(async (entityManager) => {
 **リポジトリ実装のベストプラクティス**:
 
 3. **ヘルパーメソッドでコード重複を削減**
+
+#### ❌ 避けるべきパターン: コードの重複
+
+```typescript
+// ❌ 悪い例: 同じロジックが複数のUseCaseに重複
+export class GetSubcategoriesUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（50行以上）
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 同じ階層構造構築ロジック（50行以上）← 重複！
+  }
+}
+```
+
+**問題**:
+
+- 同じロジックが複数箇所に存在すると、メンテナンス性が低下
+- バグ修正や機能追加時に複数箇所を修正する必要がある
+- 将来のバグの原因となり得る
+
+#### ✅ 正しいパターン: 共通サービスに抽出
+
+```typescript
+// ✅ 良い例: 共通のDomain Serviceに抽出
+@Injectable()
+export class SubcategoryTreeBuilderService {
+  buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（1箇所に集約）
+  }
+}
+
+export class GetSubcategoriesUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(): Promise<Result> {
+    const subcategories = await this.repository.findAll();
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(categoryType: CategoryType): Promise<Result> {
+    const subcategories = await this.repository.findByCategory(categoryType);
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+```
+
+**重要なポイント**:
+
+- **同じロジックが2箇所以上に存在する場合は、共通サービスに抽出する**
+- **Domain Service層に共通ロジックを配置**（Onion Architectureの原則に従う）
+- **コードの重複はメンテナンス性の低下に繋がるため、積極的にリファクタリングする**
+- **APIレスポンスの最適化**
+  - 空の配列やオプショナルなプロパティは、値が存在する場合にのみレスポンスに含める
+  - これにより、レスポンスのペイロードサイズを削減し、クリーンなAPIレスポンスになる
+  - 例：子要素を持たないノード（葉ノード）に対して空の`children`配列を含めない
 
 ```typescript
 // ✅ リポジトリ実装でDRY原則を徹底
@@ -714,6 +824,13 @@ export class TransactionModule {}
 - **トークンで提供されるクラスは、クラス名で再登録しない**
 - **依存性注入はトークン経由で行う**
 - **モジュール定義をシンプルに保つ**
+- **未使用の依存関係は削除する**
+  - インジェクトされているが使用されていない依存関係は、コードの理解を妨げる可能性があるため削除する
+  - 特に、`entityManager`から直接リポジトリを取得している場合は、不要なインジェクションを削除する
+- **DIトークンはSymbolを使用する**
+  - 将来的な名前の衝突を避け、一貫性を保つために、すべてのDIトークンは`Symbol`を使用する
+  - 文字列リテラルではなく、`Symbol('InterfaceName')`の形式で定義する
+  - 例：`export const REPOSITORY_TOKEN = Symbol('IRepository');`
 
 ### 3-2. Domain層の設計原則とパフォーマンス考慮
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransactionController } from './presentation/controllers/transaction.controller';
 import { TransactionTypeOrmRepository } from './infrastructure/repositories/transaction-typeorm.repository';
@@ -22,7 +22,7 @@ import { CategoryModule } from '../category/category.module';
       TransactionOrmEntity,
       TransactionCategoryChangeHistoryOrmEntity,
     ]),
-    CategoryModule,
+    forwardRef(() => CategoryModule),
   ],
   controllers: [TransactionController],
   providers: [
@@ -45,6 +45,10 @@ import { CategoryModule } from '../category/category.module';
     CalculateMonthlySummaryUseCase,
     ClassifyTransactionUseCase,
   ],
-  exports: [TRANSACTION_REPOSITORY, TransactionDomainService],
+  exports: [
+    TRANSACTION_REPOSITORY,
+    TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY,
+    TransactionDomainService,
+  ],
 })
 export class TransactionModule {}
