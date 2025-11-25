@@ -135,24 +135,24 @@ export function TransactionClassificationPage(): React.JSX.Element {
 
       const result = await subcategoryApi.batchClassify({ transactions: requests });
 
-      // 分類結果を反映
-      const updatedTransactions = [...transactions];
-      for (const classificationResult of result.results) {
-        if (classificationResult.success && classificationResult.subcategoryId) {
-          const txIndex = updatedTransactions.findIndex(
-            (tx) => tx.id === classificationResult.transactionId
-          );
-          if (txIndex !== -1) {
-            updatedTransactions[txIndex] = {
-              ...updatedTransactions[txIndex],
+      // 分類結果を反映（イミュータブルな更新）
+      const resultMap = new Map(
+        result.results.filter((r) => r.success && r.subcategoryId).map((r) => [r.transactionId, r])
+      );
+      setTransactions((prev) =>
+        prev.map((tx) => {
+          const classificationResult = resultMap.get(tx.id);
+          if (classificationResult) {
+            return {
+              ...tx,
               subcategoryId: classificationResult.subcategoryId,
               classificationConfidence: classificationResult.confidence ?? null,
               classificationReason: classificationResult.reason ?? null,
             };
           }
-        }
-      }
-      setTransactions(updatedTransactions);
+          return tx;
+        })
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : '一括分類に失敗しました');
     } finally {
@@ -178,6 +178,19 @@ export function TransactionClassificationPage(): React.JSX.Element {
       day: '2-digit',
     });
   };
+
+  // 統計情報のメモ化
+  const stats = useMemo(() => {
+    return {
+      unclassifiedCount: transactions.filter((tx) => !tx.subcategoryId).length,
+      lowConfidenceCount: transactions.filter(
+        (tx) =>
+          tx.classificationConfidence !== undefined &&
+          tx.classificationConfidence !== null &&
+          tx.classificationConfidence < 0.7
+      ).length,
+    };
+  }, [transactions]);
 
   if (loading && transactions.length === 0) {
     return (
@@ -436,22 +449,11 @@ export function TransactionClassificationPage(): React.JSX.Element {
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <p className="text-sm text-gray-600">未分類</p>
-            <p className="text-2xl font-bold text-orange-600">
-              {transactions.filter((tx) => !tx.subcategoryId).length}
-            </p>
+            <p className="text-2xl font-bold text-orange-600">{stats.unclassifiedCount}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <p className="text-sm text-gray-600">低信頼度</p>
-            <p className="text-2xl font-bold text-yellow-600">
-              {
-                transactions.filter(
-                  (tx) =>
-                    tx.classificationConfidence !== undefined &&
-                    tx.classificationConfidence !== null &&
-                    tx.classificationConfidence < 0.7
-                ).length
-              }
-            </p>
+            <p className="text-2xl font-bold text-yellow-600">{stats.lowConfidenceCount}</p>
           </div>
         </div>
 

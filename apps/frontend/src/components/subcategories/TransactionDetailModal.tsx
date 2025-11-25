@@ -7,6 +7,7 @@ import { SubcategorySelector } from './SubcategorySelector';
 import { ClassificationBadge } from './ClassificationBadge';
 import { useSubcategoryStore } from '@/stores/subcategory.store';
 import { formatCurrency } from '@account-book/utils';
+import { getClassificationReasonText } from '@/utils/classification.utils';
 
 /**
  * 取引詳細モーダルのProps
@@ -232,9 +233,14 @@ export function TransactionDetailModal({
                       <ClassificationBadge
                         confidence={transaction.classificationConfidence}
                         reason={transaction.classificationReason}
+                        merchantName={transaction.merchantName ?? undefined}
                       />
                       <p className="text-xs text-gray-500">
-                        分類理由: {transaction.classificationReason}
+                        分類理由:{' '}
+                        {getClassificationReasonText(
+                          transaction.classificationReason,
+                          transaction.merchantName
+                        )}
                       </p>
                     </div>
                   </div>

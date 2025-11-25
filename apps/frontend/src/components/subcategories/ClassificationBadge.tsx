@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ClassificationReason } from '@account-book/types';
+import { getClassificationReasonText } from '@/utils/classification.utils';
 
 /**
  * 分類信頼度バッジのProps
@@ -56,34 +57,17 @@ export function ClassificationBadge({
     }
   };
 
-  // 分類理由の表示テキスト
-  const getReasonText = (): string => {
-    switch (reason) {
-      case ClassificationReason.MERCHANT_MATCH:
-        return merchantName ? `店舗マスタ一致: ${merchantName}` : '店舗マスタ一致';
-      case ClassificationReason.KEYWORD_MATCH:
-        return 'キーワード一致';
-      case ClassificationReason.AMOUNT_INFERENCE:
-        return '金額推測';
-      case ClassificationReason.RECURRING_PATTERN:
-        return '定期性判定';
-      case ClassificationReason.DEFAULT:
-        return 'デフォルト';
-      default:
-        return '不明';
-    }
-  };
-
   const style = getConfidenceStyle();
+  const reasonText = getClassificationReasonText(reason, merchantName);
 
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${style.bgColor} ${style.textColor}`}
-      title={getReasonText()}
+      title={reasonText}
     >
       <span className="font-semibold">{confidencePercent}%</span>
       <span className="text-xs opacity-75">({style.label})</span>
-      <span className="ml-1 text-xs opacity-60" title={getReasonText()}>
+      <span className="ml-1 text-xs opacity-60" title={reasonText}>
         ℹ️
       </span>
     </div>

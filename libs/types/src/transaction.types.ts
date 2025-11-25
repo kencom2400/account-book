@@ -17,6 +17,7 @@ export interface Transaction {
   classificationConfidence?: number | null;
   classificationReason?: ClassificationReason | null;
   merchantId?: string | null;
+  merchantName?: string | null;
   confirmedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
