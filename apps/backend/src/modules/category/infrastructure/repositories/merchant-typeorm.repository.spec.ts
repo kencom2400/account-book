@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder, Like } from 'typeorm';
 import { MerchantTypeOrmRepository } from './merchant-typeorm.repository';
 import { MerchantOrmEntity } from '../entities/merchant.orm-entity';
 import { Merchant } from '../../domain/entities/merchant.entity';
@@ -169,7 +169,9 @@ describe('MerchantTypeOrmRepository', () => {
 
       const result = await repository.search('テスト');
 
-      expect(ormRepository.find).toHaveBeenCalled();
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: { name: Like('%テスト%') },
+      });
       expect(result).toHaveLength(1);
       expect(result[0]).toBeInstanceOf(Merchant);
     });

@@ -20,11 +20,7 @@ export async function seedCategoryData(dataSource: DataSource): Promise<void> {
     });
 
     if (!existing) {
-      const entity = subcategoryRepository.create({
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      const entity = subcategoryRepository.create(data);
       await subcategoryRepository.save(entity);
       console.log(`  ✓ Created subcategory: ${data.name} (${data.id})`);
     } else {
@@ -40,11 +36,7 @@ export async function seedCategoryData(dataSource: DataSource): Promise<void> {
     });
 
     if (!existing) {
-      const entity = merchantRepository.create({
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      const entity = merchantRepository.create(data);
       await merchantRepository.save(entity);
       console.log(`  ✓ Created merchant: ${data.name} (${data.id})`);
     } else {

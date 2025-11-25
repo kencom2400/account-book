@@ -2,7 +2,9 @@ import {
   MigrationInterface,
   QueryRunner,
   Table,
+  TableColumn,
   TableForeignKey,
+  TableIndex,
 } from 'typeorm';
 
 /**
@@ -160,21 +162,46 @@ export class AddSubcategoriesAndMerchantsTables1732400000000
     );
 
     // transactionsテーブルへのカラム追加
-    await queryRunner.query(`
-      ALTER TABLE transactions
-      ADD COLUMN subcategory_id VARCHAR(50) NULL,
-      ADD COLUMN classification_confidence DECIMAL(3,2) NULL COMMENT '分類信頼度（0.00-1.00）',
-      ADD COLUMN classification_reason ENUM(
-        'MERCHANT_MATCH',
-        'KEYWORD_MATCH',
-        'AMOUNT_INFERENCE',
-        'RECURRING_PATTERN',
-        'DEFAULT',
-        'MANUAL'
-      ) NULL,
-      ADD COLUMN merchant_id VARCHAR(50) NULL,
-      ADD COLUMN confirmed_at TIMESTAMP NULL
-    `);
+    await queryRunner.addColumns('transactions', [
+      new TableColumn({
+        name: 'subcategory_id',
+        type: 'varchar',
+        length: '50',
+        isNullable: true,
+      }),
+      new TableColumn({
+        name: 'classification_confidence',
+        type: 'decimal',
+        precision: 3,
+        scale: 2,
+        isNullable: true,
+        comment: '分類信頼度（0.00-1.00）',
+      }),
+      new TableColumn({
+        name: 'classification_reason',
+        type: 'enum',
+        enum: [
+          'MERCHANT_MATCH',
+          'KEYWORD_MATCH',
+          'AMOUNT_INFERENCE',
+          'RECURRING_PATTERN',
+          'DEFAULT',
+          'MANUAL',
+        ],
+        isNullable: true,
+      }),
+      new TableColumn({
+        name: 'merchant_id',
+        type: 'varchar',
+        length: '50',
+        isNullable: true,
+      }),
+      new TableColumn({
+        name: 'confirmed_at',
+        type: 'timestamp',
+        isNullable: true,
+      }),
+    ]);
 
     // transactionsテーブルの外部キー制約追加
     await queryRunner.createForeignKey(
@@ -200,22 +227,29 @@ export class AddSubcategoriesAndMerchantsTables1732400000000
     );
 
     // transactionsテーブルのインデックス追加
-    await queryRunner.query(`
-      CREATE INDEX IDX_transactions_subcategory_id ON transactions(subcategory_id)
-    `);
+    await queryRunner.createIndex(
+      'transactions',
+      new TableIndex({
+        name: 'IDX_transactions_subcategory_id',
+        columnNames: ['subcategory_id'],
+      }),
+    );
 
-    await queryRunner.query(`
-      CREATE INDEX IDX_transactions_merchant_id ON transactions(merchant_id)
-    `);
+    await queryRunner.createIndex(
+      'transactions',
+      new TableIndex({
+        name: 'IDX_transactions_merchant_id',
+        columnNames: ['merchant_id'],
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // transactionsテーブルのインデックス削除
-    await queryRunner.query(
-      `DROP INDEX IDX_transactions_merchant_id ON transactions`,
-    );
-    await queryRunner.query(
-      `DROP INDEX IDX_transactions_subcategory_id ON transactions`,
+    await queryRunner.dropIndex('transactions', 'IDX_transactions_merchant_id');
+    await queryRunner.dropIndex(
+      'transactions',
+      'IDX_transactions_subcategory_id',
     );
 
     // transactionsテーブルの外部キー削除
@@ -237,14 +271,13 @@ export class AddSubcategoriesAndMerchantsTables1732400000000
     }
 
     // transactionsテーブルのカラム削除
-    await queryRunner.query(`
-      ALTER TABLE transactions
-      DROP COLUMN confirmed_at,
-      DROP COLUMN merchant_id,
-      DROP COLUMN classification_reason,
-      DROP COLUMN classification_confidence,
-      DROP COLUMN subcategory_id
-    `);
+    await queryRunner.dropColumns('transactions', [
+      'confirmed_at',
+      'merchant_id',
+      'classification_reason',
+      'classification_confidence',
+      'subcategory_id',
+    ]);
 
     // 店舗マスタテーブルの外部キー削除
     const merchantsTable = await queryRunner.getTable('merchants');

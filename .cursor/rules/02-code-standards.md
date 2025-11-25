@@ -3957,3 +3957,160 @@ extractKeywords('スターバックス@コーヒー'); // => ['スターバッ�
 **参照**: Issue #290 Geminiレビュー（第3弾）
 
 ---
+
+## 3-10. TypeORMマイグレーションのベストプラクティス
+
+**原則**: マイグレーションではTypeORM APIを優先使用し、生SQLは最小限にする
+
+### ❌ 避けるべきパターン（生SQL）
+
+```typescript
+// ❌ 生SQLでカラム追加
+await queryRunner.query(`
+  ALTER TABLE transactions
+  ADD COLUMN subcategory_id VARCHAR(50) NULL
+`);
+
+// ❌ 生SQLでインデックス作成
+await queryRunner.query(`
+  CREATE INDEX IDX_transactions_subcategory_id ON transactions(subcategory_id)
+`);
+
+// ❌ 生SQLでインデックス削除
+await queryRunner.query(
+  `DROP INDEX IDX_transactions_merchant_id ON transactions`,
+);
+```
+
+### ✅ 推奨パターン（TypeORM API）
+
+```typescript
+import {
+  MigrationInterface,
+  QueryRunner,
+  TableColumn,
+  TableIndex,
+} from 'typeorm';
+
+// ✅ TypeORM APIでカラム追加
+await queryRunner.addColumns('transactions', [
+  new TableColumn({
+    name: 'subcategory_id',
+    type: 'varchar',
+    length: '50',
+    isNullable: true,
+  }),
+]);
+
+// ✅ TypeORM APIでインデックス作成
+await queryRunner.createIndex(
+  'transactions',
+  new TableIndex({
+    name: 'IDX_transactions_subcategory_id',
+    columnNames: ['subcategory_id'],
+  }),
+);
+
+// ✅ TypeORM APIでインデックス削除
+await queryRunner.dropIndex('transactions', 'IDX_transactions_merchant_id');
+
+// ✅ TypeORM APIでカラム削除
+await queryRunner.dropColumns('transactions', ['subcategory_id']);
+```
+
+### メリット
+
+1. **データベース非依存性**: MySQL/PostgreSQL等のDB差異を吸収
+2. **可読性・保守性**: 宣言的で分かりやすい
+3. **一貫性**: 他のTypeORM APIと使い方が統一
+4. **型安全性**: TypeScriptの型チェックが有効
+
+**学習元**: PR #301 Geminiレビュー指摘事項（Migration実装）
+
+---
+
+## 3-11. テストのアサーション具体性
+
+**原則**: テストは具体的なパラメータまで検証する
+
+### ❌ 弱いアサーション
+
+```typescript
+// ❌ 呼び出されたことしか検証していない
+it('should search merchants by query string', async () => {
+  const result = await repository.search('テスト');
+  expect(ormRepository.find).toHaveBeenCalled();
+});
+```
+
+### ✅ 強いアサーション
+
+```typescript
+import { Like } from 'typeorm';
+
+// ✅ 呼び出しパラメータも検証
+it('should search merchants by query string', async () => {
+  const result = await repository.search('テスト');
+  
+  expect(ormRepository.find).toHaveBeenCalledWith({
+    where: { name: Like('%テスト%') },
+  });
+});
+```
+
+### メリット
+
+1. **実装の正確性**: 正しいクエリが発行されているか確認
+2. **リグレッション防止**: パラメータ変更時にテストが失敗する
+3. **ドキュメント性**: 期待される動作が明確
+
+**学習元**: PR #301 Geminiレビュー指摘事項（Repository Test）
+
+---
+
+## 3-12. TypeORMシードデータの自動タイムスタンプ
+
+**原則**: `@CreateDateColumn`/`@UpdateDateColumn`を使用している場合、手動設定不要
+
+### ❌ 冗長なパターン
+
+```typescript
+// ❌ 手動で日付を設定（不要）
+const entity = repository.create({
+  ...data,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+```
+
+### ✅ 推奨パターン
+
+```typescript
+// ✅ TypeORMのデコレータに任せる
+const entity = repository.create(data);
+```
+
+### Entity定義
+
+```typescript
+@Entity('subcategories')
+export class SubcategoryOrmEntity {
+  // ...
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;  // 自動設定される
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;  // 自動設定される
+}
+```
+
+### メリット
+
+1. **簡潔性**: コードがシンプルになる
+2. **一貫性**: TypeORMの標準機能に統一
+3. **保守性**: デコレータ変更時に修正箇所が減る
+
+**学習元**: PR #301 Geminiレビュー指摘事項（Seed Runner）
+
+---
