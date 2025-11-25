@@ -37,19 +37,60 @@ BRANCH_NAME=$(git branch --show-current 2>/dev/null || echo "unknown")
 
 # カバレッジデータを一時的に保存する関数
 extract_coverage_data() {
-  local coverage_file=$1
+  local coverage_dir=$1
   local module_name=$2
   
-  if [ ! -f "$coverage_file" ]; then
+  # coverage-summary.jsonまたはcoverage-final.jsonを使用
+  local summary_file="${coverage_dir}/coverage-summary.json"
+  local final_file="${coverage_dir}/coverage-final.json"
+  
+  local lines statements functions branches
+  
+  # coverage-summary.jsonが存在する場合はそれを優先使用
+  if [ -f "$summary_file" ]; then
+    lines=$(jq -r '.total.lines.pct // 0' "$summary_file" 2>/dev/null || echo "0")
+    statements=$(jq -r '.total.statements.pct // 0' "$summary_file" 2>/dev/null || echo "0")
+    functions=$(jq -r '.total.functions.pct // 0' "$summary_file" 2>/dev/null || echo "0")
+    branches=$(jq -r '.total.branches.pct // 0' "$summary_file" 2>/dev/null || echo "0")
+  elif [ -f "$final_file" ]; then
+    # coverage-final.jsonから集計
+    local coverage_data=$(jq '[
+      .[] | 
+      {
+        statements: (.s | length),
+        covered_statements: ([.s[]] | map(select(. > 0)) | length),
+        functions: (.f | length),
+        covered_functions: ([.f[]] | map(select(. > 0)) | length),
+        branches: (if .b then [.b | to_entries[] | .value | length] | add else 0 end),
+        covered_branches: (if .b then [.b | to_entries[] | .value[] | select(. > 0)] | length else 0 end)
+      }
+    ] | 
+    {
+      total_statements: ([.[].statements] | add),
+      covered_statements: ([.[].covered_statements] | add),
+      total_functions: ([.[].functions] | add),
+      covered_functions: ([.[].covered_functions] | add),
+      total_branches: ([.[].branches] | add),
+      covered_branches: ([.[].covered_branches] | add)
+    }' "$final_file" 2>/dev/null)
+    
+    local total_statements=$(echo "$coverage_data" | jq -r '.total_statements // 1')
+    local covered_statements=$(echo "$coverage_data" | jq -r '.covered_statements // 0')
+    local total_functions=$(echo "$coverage_data" | jq -r '.total_functions // 1')
+    local covered_functions=$(echo "$coverage_data" | jq -r '.covered_functions // 0')
+    local total_branches=$(echo "$coverage_data" | jq -r '.total_branches // 1')
+    local covered_branches=$(echo "$coverage_data" | jq -r '.covered_branches // 0')
+    
+    # パーセンテージを計算（ゼロ除算を回避）
+    lines=$(awk "BEGIN {if ($total_statements > 0) print ($covered_statements / $total_statements) * 100; else print 0}")
+    statements=$(awk "BEGIN {if ($total_statements > 0) print ($covered_statements / $total_statements) * 100; else print 0}")
+    functions=$(awk "BEGIN {if ($total_functions > 0) print ($covered_functions / $total_functions) * 100; else print 0}")
+    branches=$(awk "BEGIN {if ($total_branches > 0) print ($covered_branches / $total_branches) * 100; else print 0}")
+  else
+    # どちらも存在しない場合
     echo "0|0|0|0"
     return
   fi
-  
-  # coverage-summary.jsonからカバレッジデータを抽出
-  local lines=$(jq -r '.total.lines.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
-  local statements=$(jq -r '.total.statements.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
-  local functions=$(jq -r '.total.functions.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
-  local branches=$(jq -r '.total.branches.pct // 0' "$coverage_file" 2>/dev/null || echo "0")
   
   # 小数点以下2桁に丸める
   lines=$(printf "%.2f" "$lines" 2>/dev/null || echo "0.00")
@@ -64,19 +105,26 @@ extract_coverage_data() {
 echo "📊 Backend ユニットテストカバレッジを収集中..."
 cd "$PROJECT_ROOT/apps/backend"
 pnpm test:cov > /dev/null 2>&1 || echo "⚠ Backend unit test coverage failed"
-BACKEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage/coverage-summary.json" "backend-unit")
+BACKEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage" "backend-unit")
 
 # Backend E2Eテストカバレッジを取得
 echo "📊 Backend E2Eテストカバレッジを収集中..."
 cd "$PROJECT_ROOT/apps/backend"
 pnpm test:e2e:cov > /dev/null 2>&1 || echo "⚠ Backend e2e test coverage failed"
-BACKEND_E2E_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage-e2e/coverage-summary.json" "backend-e2e")
+BACKEND_E2E_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage-e2e" "backend-e2e")
 
 # Frontendのユニットテストカバレッジを取得
 echo "📊 Frontend ユニットテストカバレッジを収集中..."
 cd "$PROJECT_ROOT/apps/frontend"
 pnpm test -- --coverage --silent > /dev/null 2>&1 || echo "⚠ Frontend test coverage failed"
-FRONTEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/frontend/coverage/coverage-summary.json" "frontend-unit")
+FRONTEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/frontend/coverage" "frontend-unit")
+
+# Frontend E2Eテストカバレッジを取得（注: Playwrightはデフォルトでカバレッジを出力しないため、現時点では未対応）
+# TODO: Playwright coverage設定が完了したら有効化
+# echo "📊 Frontend E2Eテストカバレッジを収集中..."
+# cd "$PROJECT_ROOT/apps/frontend"
+# pnpm test:e2e --coverage > /dev/null 2>&1 || echo "⚠ Frontend e2e test coverage failed"
+# FRONTEND_E2E_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/frontend/coverage-e2e" "frontend-e2e")
 
 # データを配列に分割
 IFS='|' read -r BACKEND_UNIT_LINES BACKEND_UNIT_STMTS BACKEND_UNIT_FUNCS BACKEND_UNIT_BRANCHES <<< "$BACKEND_UNIT_DATA"
