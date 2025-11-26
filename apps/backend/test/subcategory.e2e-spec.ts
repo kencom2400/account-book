@@ -53,7 +53,7 @@ describe('Subcategory API (e2e)', () => {
     it('全サブカテゴリ一覧を取得できる', async () => {
       // Seed実行（サブカテゴリデータ投入）
       await dataSource.query(
-        `INSERT INTO subcategories (id, categoryType, name, parentId, displayOrder, icon, color, isDefault, isActive)
+        `INSERT INTO subcategories (id, category_type, name, parent_id, display_order, icon, color, is_default, is_active)
          VALUES 
          ('food', 'EXPENSE', '食費', NULL, 1, '🍔', '#4CAF50', 1, 1),
          ('food_groceries', 'EXPENSE', '食料品', 'food', 1, '🛒', '#4CAF50', 1, 1),
@@ -84,7 +84,7 @@ describe('Subcategory API (e2e)', () => {
     it('EXPENSE カテゴリのサブカテゴリ一覧を取得できる', async () => {
       // Seed実行
       await dataSource.query(
-        `INSERT INTO subcategories (id, categoryType, name, parentId, displayOrder, icon, color, isDefault, isActive)
+        `INSERT INTO subcategories (id, category_type, name, parent_id, display_order, icon, color, is_default, is_active)
          VALUES 
          ('food', 'EXPENSE', '食費', NULL, 1, '🍔', '#4CAF50', 1, 1),
          ('food_groceries', 'EXPENSE', '食料品', 'food', 1, '🛒', '#4CAF50', 1, 1),
@@ -110,9 +110,12 @@ describe('Subcategory API (e2e)', () => {
         .get('/subcategories/category/INVALID_TYPE')
         .expect(400);
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
-      expect(response.body.error.code).toBe('INVALID_CATEGORY_TYPE');
+      expect(response.body).toMatchObject({
+        success: false,
+        error: expect.objectContaining({
+          code: 'INVALID_CATEGORY_TYPE',
+        }),
+      });
     });
   });
 
@@ -120,7 +123,7 @@ describe('Subcategory API (e2e)', () => {
     beforeEach(async () => {
       // テスト用のサブカテゴリと店舗マスタを挿入
       await dataSource.query(
-        `INSERT INTO subcategories (id, categoryType, name, parentId, displayOrder, icon, color, isDefault, isActive)
+        `INSERT INTO subcategories (id, category_type, name, parent_id, display_order, icon, color, is_default, is_active)
          VALUES 
          ('food_cafe', 'EXPENSE', 'カフェ', 'food', 3, '☕', '#795548', 1, 1),
          ('food_groceries', 'EXPENSE', '食料品', 'food', 1, '🛒', '#4CAF50', 1, 1),
@@ -128,7 +131,7 @@ describe('Subcategory API (e2e)', () => {
       );
 
       await dataSource.query(
-        `INSERT INTO merchants (id, name, aliases, defaultSubcategoryId, confidence)
+        `INSERT INTO merchants (id, name, aliases, default_subcategory_id, confidence)
          VALUES 
          ('merchant_starbucks', 'スターバックス', '["STARBUCKS", "スタバ"]', 'food_cafe', 0.98),
          ('merchant_seven', 'セブンイレブン', '["7-ELEVEN", "7-11"]', 'food_groceries', 0.95)`,
@@ -228,7 +231,7 @@ describe('Subcategory API (e2e)', () => {
     beforeEach(async () => {
       // テスト用のサブカテゴリを挿入
       await dataSource.query(
-        `INSERT INTO subcategories (id, categoryType, name, parentId, displayOrder, icon, color, isDefault, isActive)
+        `INSERT INTO subcategories (id, category_type, name, parent_id, display_order, icon, color, is_default, is_active)
          VALUES 
          ('food_cafe', 'EXPENSE', 'カフェ', 'food', 3, '☕', '#795548', 1, 1),
          ('food_groceries', 'EXPENSE', '食料品', 'food', 1, '🛒', '#4CAF50', 1, 1)`,
@@ -236,12 +239,12 @@ describe('Subcategory API (e2e)', () => {
 
       // テスト用の取引を作成
       await dataSource.query(
-        `INSERT INTO categories (id, name, type, isDefault, displayOrder)
+        `INSERT INTO categories (id, name, type, is_default, display_order)
          VALUES ('cat-001', '食費', 'EXPENSE', 1, 1)`,
       );
 
       await dataSource.query(
-        `INSERT INTO transactions (id, date, amount, description, categoryId, institutionId, accountId, status)
+        `INSERT INTO transactions (id, date, amount, description, category_id, institution_id, account_id, status)
          VALUES (UUID(), '2025-01-15', -450, 'スターバックス', 'cat-001', 'inst-001', 'acc-001', 'COMPLETED')`,
       );
 
@@ -271,7 +274,7 @@ describe('Subcategory API (e2e)', () => {
 
       // データベースで確認
       const [updatedTransaction] = await dataSource.query(
-        `SELECT subcategoryId, classificationConfidence, classificationReason FROM transactions WHERE id = ?`,
+        `SELECT subcategory_id as subcategoryId, classification_confidence as classificationConfidence, classification_reason as classificationReason FROM transactions WHERE id = ?`,
         [transactionId],
       );
 
