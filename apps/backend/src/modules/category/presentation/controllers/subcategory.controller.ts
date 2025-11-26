@@ -9,6 +9,7 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
   Logger,
   Inject,
 } from '@nestjs/common';
@@ -283,7 +284,7 @@ export class SubcategoryController {
         throw error;
       }
 
-      throw new BadRequestException({
+      throw new InternalServerErrorException({
         success: false,
         error: {
           code: 'CLASSIFICATION_FAILED',
@@ -368,7 +369,7 @@ export class SubcategoryController {
         throw error;
       }
 
-      throw new BadRequestException({
+      throw new InternalServerErrorException({
         success: false,
         error: {
           code: 'UPDATE_FAILED',
