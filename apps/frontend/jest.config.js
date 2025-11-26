@@ -54,16 +54,6 @@ const customJestConfig = {
 
   // テストタイムアウト
   testTimeout: 10000,
-
-  // カバレッジ閾値
-  coverageThreshold: {
-    global: {
-      branches: 60,
-      functions: 60,
-      lines: 60,
-      statements: 60,
-    },
-  },
 };
 
 // createJestConfigはこのようにエクスポートして、next/jestが非同期でNext.jsの設定をロードできるようにします

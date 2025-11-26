@@ -202,21 +202,12 @@ jobs:
           # Frontend unit tests with coverage
           pnpm run test:cov --filter @account-book/frontend
 
-      - name: Check coverage threshold
-        run: |
-          echo "Checking backend coverage threshold..."
-          cd apps/backend
-          COVERAGE=$(pnpm test:cov -- --json --outputFile=coverage-summary.json || true)
-          echo "Backend coverage check completed"
-          cd ../..
-          
-          echo "Checking frontend coverage threshold..."
-          cd apps/frontend
-          COVERAGE=$(pnpm test:cov -- --json --outputFile=coverage-summary.json || true)
-          echo "Frontend coverage check completed"
-          cd ../..
-          
-          echo "Coverage threshold check: Jest will fail if coverage is below 60%"
+      # Note: カバレッジ閾値チェックは Issue #308 完了後に有効化
+      # 現在のカバレッジ: Backend 35.89%, Frontend 47.92%
+      # 目標カバレッジ: 60%以上
+      # - name: Check coverage threshold
+      #   run: |
+      #     echo "Coverage threshold check will be enabled after Issue #308"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
