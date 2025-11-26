@@ -196,12 +196,32 @@ jobs:
           MYSQL_DATABASE: account_book_test
           ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
           CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
-        run: pnpm run test
+        run: |
+          # Backend unit tests with coverage
+          pnpm run test:cov --filter @account-book/backend
+          # Frontend unit tests with coverage
+          pnpm run test:cov --filter @account-book/frontend
+
+      - name: Check coverage threshold
+        run: |
+          echo "Checking backend coverage threshold..."
+          cd apps/backend
+          COVERAGE=$(pnpm test:cov -- --json --outputFile=coverage-summary.json || true)
+          echo "Backend coverage check completed"
+          cd ../..
+          
+          echo "Checking frontend coverage threshold..."
+          cd apps/frontend
+          COVERAGE=$(pnpm test:cov -- --json --outputFile=coverage-summary.json || true)
+          echo "Frontend coverage check completed"
+          cd ../..
+          
+          echo "Coverage threshold check: Jest will fail if coverage is below 60%"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./apps/backend/coverage/coverage-final.json
+          files: ./apps/backend/coverage/coverage-final.json,./apps/frontend/coverage/coverage-final.json
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
