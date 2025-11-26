@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # テスト実行スクリプト
+# デフォルトでカバレッジ付きテストを実行（CIと同じ挙動）
 
 set -e
 
 echo "================================"
-echo "テスト実行開始"
+echo "テスト実行開始（カバレッジ付き）"
 echo "================================"
 
 # プロジェクトルートに移動
@@ -30,10 +31,10 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       pnpm test:e2e
     elif [ "$TEST_TYPE" = "all" ]; then
-      pnpm test
+      pnpm test:cov
       pnpm test:e2e
     else
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   frontend)
@@ -42,10 +43,10 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       pnpm test:e2e
     elif [ "$TEST_TYPE" = "all" ]; then
-      pnpm test
+      pnpm test:cov
       pnpm test:e2e
     else
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   all)
@@ -53,21 +54,22 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       ./scripts/test/test-e2e.sh all
     elif [ "$TEST_TYPE" = "all" ]; then
-      # ユニットテスト
-      echo "--- ユニットテスト ---"
+      # ユニットテスト（カバレッジ付き）
+      echo "--- ユニットテスト（カバレッジ付き） ---"
       cd apps/backend
-      pnpm test
+      pnpm test:cov
       cd ../frontend
-      pnpm test
+      pnpm test:cov
       # E2Eテスト
+      cd ../..
       ./scripts/test/test-e2e.sh all
     else
-      # ユニットテストのみ
+      # ユニットテストのみ（カバレッジ付き）
       cd apps/backend
-      pnpm test
+      pnpm test:cov
       echo ""
       cd ../frontend
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   *)

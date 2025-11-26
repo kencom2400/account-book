@@ -207,14 +207,50 @@ Issue作業を効率的に開始するための`start-task.sh`スクリプトを
 
 ## テスト実行
 
+### ⚠️ テスト作成の必須化
+
+**新規機能・バグ修正の実装時は、必ずテストを同時に作成してください。**
+
+テストなしでのPRマージは禁止されています。詳細なガイドラインは以下を参照してください：
+
+- **[テスト必須化ルール](./.cursor/rules/02-code-standards.md#-テスト作成の必須化最重要ルール)** - テスト作成の絶対ルール
+- **[PRテンプレート](./.github/pull_request_template.md)** - テストチェックリスト
+- **[コード品質基準](./.cursor/rules/02-code-standards.md)** - 型安全性とテスト実装ガイドライン
+
+**目標カバレッジ:**
+
+- Backend Unit: 80%以上
+- Frontend Unit: 80%以上
+- E2E: 主要フロー100%
+
+**現在のカバレッジは[カバレッジレポート](./docs/testing/coverage-report.md)で確認できます。**
+
 ### ユニットテスト
 
-```bash
-# 全てのテスト（ユニットテスト）
-pnpm test
+**重要**: ローカルのテストスクリプトは**デフォルトでカバレッジ付き**で実行されます（CIと同じ挙動）。
 
-# ユニットテスト
-pnpm test:unit
+```bash
+# 全てのユニットテスト（カバレッジ付き）
+./scripts/test/test.sh all
+
+# バックエンドのみ（カバレッジ付き）
+./scripts/test/test.sh backend
+
+# フロントエンドのみ（カバレッジ付き）
+./scripts/test/test.sh frontend
+
+# または直接pnpmコマンドを使用
+pnpm test:cov                                    # 全プロジェクト
+pnpm test:cov --filter @account-book/backend    # バックエンドのみ
+pnpm test:cov --filter @account-book/frontend   # フロントエンドのみ
+```
+
+**カバレッジなしで高速実行したい場合:**
+
+```bash
+pnpm test                                        # 全プロジェクト
+pnpm test --filter @account-book/backend        # バックエンドのみ
+pnpm test --filter @account-book/frontend       # フロントエンドのみ
 ```
 
 ### E2Eテスト
