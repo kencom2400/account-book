@@ -98,6 +98,81 @@ extract_coverage_data() {
   echo "$lines|$statements|$functions|$branches"
 }
 
+# モジュール別カバレッジデータを抽出する関数
+extract_module_coverage() {
+  local coverage_file=$1
+  local module_path=$2
+  
+  if [ ! -f "$coverage_file" ]; then
+    echo "0|0|0|0"
+    return
+  fi
+  
+  # モジュールパスに一致するファイルのみをフィルタリング
+  local coverage_data=$(jq --arg module_path "$module_path" '[
+    to_entries[] | 
+    select(.key | contains($module_path)) | 
+    .value | 
+    {
+      statements: (.s | length),
+      covered_statements: ([.s[]] | map(select(. > 0)) | length),
+      functions: (.f | length),
+      covered_functions: ([.f[]] | map(select(. > 0)) | length),
+      branches: (if .b then [.b | to_entries[] | .value | length] | add else 0 end),
+      covered_branches: (if .b then [.b | to_entries[] | .value[] | select(. > 0)] | length else 0 end)
+    }
+  ] | 
+  {
+    total_statements: ([.[].statements] | add // 0),
+    covered_statements: ([.[].covered_statements] | add // 0),
+    total_functions: ([.[].functions] | add // 0),
+    covered_functions: ([.[].covered_functions] | add // 0),
+    total_branches: ([.[].branches] | add // 0),
+    covered_branches: ([.[].covered_branches] | add // 0)
+  }' "$coverage_file" 2>/dev/null)
+  
+  local total_statements=$(echo "$coverage_data" | jq -r '.total_statements // 1')
+  local covered_statements=$(echo "$coverage_data" | jq -r '.covered_statements // 0')
+  local total_functions=$(echo "$coverage_data" | jq -r '.total_functions // 1')
+  local covered_functions=$(echo "$coverage_data" | jq -r '.covered_functions // 0')
+  local total_branches=$(echo "$coverage_data" | jq -r '.total_branches // 1')
+  local covered_branches=$(echo "$coverage_data" | jq -r '.covered_branches // 0')
+  
+  # ファイルが存在しない場合
+  if [ "$total_statements" = "0" ]; then
+    echo "0|0|0|0"
+    return
+  fi
+  
+  # パーセンテージを計算
+  local statements=$(awk "BEGIN {if ($total_statements > 0) print ($covered_statements / $total_statements) * 100; else print 0}")
+  local lines=$statements
+  local functions=$(awk "BEGIN {if ($total_functions > 0) print ($covered_functions / $total_functions) * 100; else print 0}")
+  local branches=$(awk "BEGIN {if ($total_branches > 0) print ($covered_branches / $total_branches) * 100; else print 0}")
+  
+  # 小数点以下2桁に丸める
+  lines=$(printf "%.2f" "$lines" 2>/dev/null || echo "0.00")
+  statements=$(printf "%.2f" "$statements" 2>/dev/null || echo "0.00")
+  functions=$(printf "%.2f" "$functions" 2>/dev/null || echo "0.00")
+  branches=$(printf "%.2f" "$branches" 2>/dev/null || echo "0.00")
+  
+  echo "$lines|$statements|$functions|$branches"
+}
+
+# 優先度を判定する関数
+determine_priority() {
+  local coverage=$1
+  local coverage_num=$(echo "$coverage" | sed 's/%//')
+  
+  if (( $(echo "$coverage_num < 30" | bc -l) )); then
+    echo "🔴 High"
+  elif (( $(echo "$coverage_num < 50" | bc -l) )); then
+    echo "🟡 Medium"
+  else
+    echo "🟢 Low"
+  fi
+}
+
 # Backendのユニットテストカバレッジを取得
 echo "📊 Backend ユニットテストカバレッジを収集中..."
 cd "$PROJECT_ROOT/apps/backend"
@@ -110,11 +185,34 @@ cd "$PROJECT_ROOT/apps/backend"
 pnpm test:e2e:cov > /dev/null 2>&1 || echo "⚠ Backend e2e test coverage failed"
 BACKEND_E2E_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/backend/coverage-e2e" "backend-e2e")
 
+# Backendモジュール別カバレッジを収集
+echo "📊 Backend モジュール別カバレッジを収集中..."
+BACKEND_MODULES=("category" "credit-card" "health" "institution" "securities" "sync" "transaction")
+
+# 各モジュールのカバレッジデータを変数に格納
+for module in "${BACKEND_MODULES[@]}"; do
+  module_path="/modules/$module/"
+  module_var_name=$(echo "$module" | tr '-' '_')
+  eval "BACKEND_MODULE_UNIT_${module_var_name}=\$(extract_module_coverage \"$PROJECT_ROOT/apps/backend/coverage/coverage-final.json\" \"$module_path\")"
+  eval "BACKEND_MODULE_E2E_${module_var_name}=\$(extract_module_coverage \"$PROJECT_ROOT/apps/backend/coverage-e2e/coverage-final.json\" \"$module_path\")"
+done
+
 # Frontendのユニットテストカバレッジを取得
 echo "📊 Frontend ユニットテストカバレッジを収集中..."
 cd "$PROJECT_ROOT/apps/frontend"
 pnpm test -- --coverage --silent > /dev/null 2>&1 || echo "⚠ Frontend test coverage failed"
 FRONTEND_UNIT_DATA=$(extract_coverage_data "$PROJECT_ROOT/apps/frontend/coverage" "frontend-unit")
+
+# Frontendモジュール別カバレッジを収集
+echo "📊 Frontend モジュール別カバレッジを収集中..."
+FRONTEND_MODULES=("app" "components" "lib" "stores" "utils")
+
+# 各モジュールのカバレッジデータを変数に格納
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_path="/src/$module/"
+  module_var_name=$(echo "$module" | tr '-' '_')
+  eval "FRONTEND_MODULE_UNIT_${module_var_name}=\$(extract_module_coverage \"$PROJECT_ROOT/apps/frontend/coverage/coverage-final.json\" \"$module_path\")"
+done
 
 # Frontend E2Eテストカバレッジを取得（注: Playwrightはデフォルトでカバレッジを出力しないため、現時点では未対応）
 # TODO: Playwright coverage設定が完了したら有効化
@@ -147,13 +245,189 @@ cat > "$REPORT_FILE" << EOF
 - **各モジュール**: 80%以上
 - **新規コード**: 80%以上
 
-## モジュール別カバレッジサマリー
+## サマリー
 
-| モジュール | Lines | Statements | Functions | Branches |
+| テスト種類 | Lines | Statements | Functions | Branches |
 |----------|-------|------------|-----------|----------|
 | Backend (Unit) | ${BACKEND_UNIT_LINES}% | ${BACKEND_UNIT_STMTS}% | ${BACKEND_UNIT_FUNCS}% | ${BACKEND_UNIT_BRANCHES}% |
 | Backend (E2E) | ${BACKEND_E2E_LINES}% | ${BACKEND_E2E_STMTS}% | ${BACKEND_E2E_FUNCS}% | ${BACKEND_E2E_BRANCHES}% |
 | Frontend (Unit) | ${FRONTEND_UNIT_LINES}% | ${FRONTEND_UNIT_STMTS}% | ${FRONTEND_UNIT_FUNCS}% | ${FRONTEND_UNIT_BRANCHES}% |
+| Frontend (E2E) | N/A | N/A | N/A | N/A |
+
+## Backend モジュール別詳細
+
+### Unit Tests
+
+| モジュール | Lines | Statements | Functions | Branches | 優先度 |
+|----------|-------|------------|-----------|----------|--------|
+EOF
+
+# Backendモジュール別データを追加
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  priority=$(determine_priority "$lines")
+  cat >> "$REPORT_FILE" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% | $priority |
+EOF
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+### E2E Tests
+
+| モジュール | Lines | Statements | Functions | Branches |
+|----------|-------|------------|-----------|----------|
+EOF
+
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_E2E_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  cat >> "$REPORT_FILE" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% |
+EOF
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+## Frontend モジュール別詳細
+
+### Unit Tests
+
+| モジュール | Lines | Statements | Functions | Branches | 優先度 |
+|----------|-------|------------|-----------|----------|--------|
+EOF
+
+# Frontendモジュール別データを追加
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$FRONTEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  priority=$(determine_priority "$lines")
+  cat >> "$REPORT_FILE" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% | $priority |
+EOF
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+## 改善優先度
+
+### 🔴 High Priority (カバレッジ < 30%)
+
+**Backend:**
+EOF
+
+# High priority Backend modules
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num < 30" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+**Frontend:**
+EOF
+
+# High priority Frontend modules
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$FRONTEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num < 30" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+### 🟡 Medium Priority (30% ≤ カバレッジ < 50%)
+
+**Backend:**
+EOF
+
+# Medium priority Backend modules
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num >= 30" | bc -l) )) && (( $(echo "$lines_num < 50" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+**Frontend:**
+EOF
+
+# Medium priority Frontend modules
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$FRONTEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num >= 30" | bc -l) )) && (( $(echo "$lines_num < 50" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+### 🟢 Low Priority (カバレッジ ≥ 50%)
+
+**Backend:**
+EOF
+
+# Low priority Backend modules
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num >= 50" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
+
+**Frontend:**
+EOF
+
+# Low priority Frontend modules
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$FRONTEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  lines_num=$(echo "$lines" | sed 's/%.*//')
+  if (( $(echo "$lines_num >= 50" | bc -l) )); then
+    cat >> "$REPORT_FILE" << EOF
+- $module (Lines: ${lines}%, Stmts: ${stmts}%, Funcs: ${funcs}%, Branches: ${branches}%)
+EOF
+  fi
+done
+
+cat >> "$REPORT_FILE" << EOF
 
 ## 詳細レポート
 
@@ -229,7 +503,7 @@ cat > "$MODULE_DIR/backend.md" << EOF
 > **最終更新**: $TIMESTAMP  
 > **コミット**: \`$COMMIT_HASH\`
 
-## ユニットテスト カバレッジ
+## ユニットテスト カバレッジ（全体）
 
 | メトリクス | カバレッジ |
 |----------|----------|
@@ -237,6 +511,25 @@ cat > "$MODULE_DIR/backend.md" << EOF
 | Statements | ${BACKEND_UNIT_STMTS}% |
 | Functions | ${BACKEND_UNIT_FUNCS}% |
 | Branches | ${BACKEND_UNIT_BRANCHES}% |
+
+### モジュール別カバレッジ
+
+| モジュール | Lines | Statements | Functions | Branches | 優先度 |
+|----------|-------|------------|-----------|----------|--------|
+EOF
+
+# Backendモジュール別データを追加
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  priority=$(determine_priority "$lines")
+  cat >> "$MODULE_DIR/backend.md" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% | $priority |
+EOF
+done
+
+cat >> "$MODULE_DIR/backend.md" << EOF
 
 ### HTMLレポート
 
@@ -250,7 +543,7 @@ cd apps/backend
 pnpm test:cov
 \`\`\`
 
-## E2Eテスト カバレッジ
+## E2Eテスト カバレッジ（全体）
 
 | メトリクス | カバレッジ |
 |----------|----------|
@@ -258,6 +551,23 @@ pnpm test:cov
 | Statements | ${BACKEND_E2E_STMTS}% |
 | Functions | ${BACKEND_E2E_FUNCS}% |
 | Branches | ${BACKEND_E2E_BRANCHES}% |
+
+### モジュール別カバレッジ
+
+| モジュール | Lines | Statements | Functions | Branches |
+|----------|-------|------------|-----------|----------|
+EOF
+
+for module in "${BACKEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$BACKEND_MODULE_E2E_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  cat >> "$MODULE_DIR/backend.md" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% |
+EOF
+done
+
+cat >> "$MODULE_DIR/backend.md" << EOF
 
 ### HTMLレポート
 
@@ -271,19 +581,17 @@ cd apps/backend
 pnpm test:e2e:cov
 \`\`\`
 
-## モジュール別カバレッジ
+## モジュール説明
 
 Backendは以下のモジュールで構成されています：
 
-- **Common**: 共通ユーティリティ、デコレータ、フィルタ
-- **Institution**: 金融機関管理
-- **Transaction**: 取引データ管理
-- **Category**: カテゴリ管理
-- **Sync**: データ同期
-- **Chart**: チャートデータ生成
-- **Health**: ヘルスチェック
-
-詳細なモジュール別カバレッジは \`apps/backend/coverage/lcov-report/index.html\` を参照してください。
+- **category**: カテゴリ管理（大分類・中分類・小分類）
+- **credit-card**: クレジットカード管理
+- **health**: ヘルスチェック
+- **institution**: 金融機関管理
+- **securities**: 証券管理
+- **sync**: データ同期
+- **transaction**: 取引データ管理
 
 ## カバレッジ向上のヒント
 
@@ -315,7 +623,7 @@ cat > "$MODULE_DIR/frontend.md" << EOF
 > **最終更新**: $TIMESTAMP  
 > **コミット**: \`$COMMIT_HASH\`
 
-## ユニットテスト カバレッジ
+## ユニットテスト カバレッジ（全体）
 
 | メトリクス | カバレッジ |
 |----------|----------|
@@ -323,6 +631,25 @@ cat > "$MODULE_DIR/frontend.md" << EOF
 | Statements | ${FRONTEND_UNIT_STMTS}% |
 | Functions | ${FRONTEND_UNIT_FUNCS}% |
 | Branches | ${FRONTEND_UNIT_BRANCHES}% |
+
+### モジュール別カバレッジ
+
+| モジュール | Lines | Statements | Functions | Branches | 優先度 |
+|----------|-------|------------|-----------|----------|--------|
+EOF
+
+# Frontendモジュール別データを追加
+for module in "${FRONTEND_MODULES[@]}"; do
+  module_var_name=$(echo "$module" | tr '-' '_')
+  module_data=$(eval "echo \$FRONTEND_MODULE_UNIT_${module_var_name}")
+  IFS='|' read -r lines stmts funcs branches <<< "$module_data"
+  priority=$(determine_priority "$lines")
+  cat >> "$MODULE_DIR/frontend.md" << EOF
+| $module | ${lines}% | ${stmts}% | ${funcs}% | ${branches}% | $priority |
+EOF
+done
+
+cat >> "$MODULE_DIR/frontend.md" << EOF
 
 ### HTMLレポート
 
@@ -336,17 +663,15 @@ cd apps/frontend
 pnpm test -- --coverage
 \`\`\`
 
-## コンポーネント別カバレッジ
+## モジュール説明
 
-Frontendは以下のコンポーネントで構成されています：
+Frontendは以下のモジュールで構成されています：
 
-- **Pages**: Next.jsページコンポーネント
-- **Components**: 再利用可能なUIコンポーネント
-- **Hooks**: カスタムReactフック
-- **Utils**: ユーティリティ関数
-- **API Client**: APIクライアント
-
-詳細なコンポーネント別カバレッジは \`apps/frontend/coverage/lcov-report/index.html\` を参照してください。
+- **app**: Next.jsページコンポーネント
+- **components**: 再利用可能なUIコンポーネント
+- **lib**: APIクライアントとユーティリティ
+- **stores**: Zustand状態管理
+- **utils**: 汎用ユーティリティ関数
 
 ## E2Eテスト
 
