@@ -728,6 +728,87 @@ export class GetSubcategoriesByCategoryUseCase {
   - これにより、レスポンスのペイロードサイズを削減し、クリーンなAPIレスポンスになる
   - 例：子要素を持たないノード（葉ノード）に対して空の`children`配列を含めない
 
+#### 4. **Controllerの責務とクリーンアーキテクチャ原則**
+
+#### ⚠️ 今後の改善課題: Controllerからリポジトリを直接呼び出さない
+
+Issue #296 / PR #312のGeminiレビューで指摘された、クリーンアーキテクチャの原則に関する今後の改善課題です。
+
+**現状の問題**:
+
+```typescript
+// ⚠️ 改善が必要: Controllerでリポジトリを直接呼び出している
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  // ユースケースで分類を実行
+  const classificationResult = await this.classifyUseCase.execute(dto);
+
+  // ⚠️ 問題: Controllerでリポジトリを直接呼び出して追加のエンティティを取得
+  const subcategory = await this.subcategoryRepository.findById(
+    classificationResult.subcategoryId
+  );
+
+  if (!subcategory) {
+    throw new NotFoundException(`Subcategory not found`);
+  }
+
+  // merchantName等の追加情報も同様に取得
+  const merchant = await this.merchantRepository.findById(
+    classificationResult.merchantId
+  );
+
+  return {
+    success: true,
+    data: {
+      subcategory,
+      confidence: classificationResult.confidence,
+      merchantName: merchant?.name,
+    },
+  };
+}
+```
+
+**問題点**:
+
+1. **クリーンアーキテクチャの原則違反**: Presentation層（Controller）がInfrastructure層（Repository）に直接依存
+2. **UseCaseの責務が不明確**: 必要なデータをすべて返すべきなのはUseCaseの責務
+3. **保守性の低下**: データ取得ロジックがControllerに漏れ、変更時の影響範囲が広い
+
+**理想的な設計**:
+
+```typescript
+// ✅ 理想: UseCaseがすべての必要なデータを返す
+export interface ClassificationResult {
+  subcategoryId: string;
+  subcategoryName: string;  // 👈 UseCaseで取得
+  categoryType: CategoryType;
+  confidence: number;
+  reason: ClassificationReason;
+  merchantId: string | null;
+  merchantName: string | null;  // 👈 UseCaseで取得
+}
+
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  // ✅ UseCaseがすべてのデータを返す
+  const result = await this.classifyUseCase.execute(dto);
+
+  // ✅ Controllerはデータの整形のみ
+  return {
+    success: true,
+    data: result,
+  };
+}
+```
+
+**対応方針**:
+
+- **現時点**: Phase 5（Presentation層実装）では、動作する実装を優先し、アーキテクチャ改善は保留
+- **今後**: FR-009のリファクタリングフェーズ（Phase 6以降）、または別途「技術的負債解消」Issueで対応
+- **優先度**: Medium（機能は正常に動作しているが、保守性向上のため改善推奨）
+
+**参考**: Issue #296 / PR #312 - Gemini指摘：クリーンアーキテクチャ原則の遵守
+
 ```typescript
 // ✅ リポジトリ実装でDRY原則を徹底
 @Injectable()
@@ -2215,7 +2296,149 @@ src/
 
 ---
 
-### 4-12. 不要な依存関係の削除
+### 4-12. NestJS Controllerでの適切なHTTPステータスコードの使用
+
+#### 🔴 重要: エラーの原因に応じた適切なステータスコードを返す
+
+Issue #296 / PR #312のGeminiレビューから学習した、エラーハンドリングにおける重要な原則です。
+
+**原則**: エラーの原因に応じて適切なHTTPステータスコードを返すこと
+
+- **クライアント起因のエラー**: 4xx系（Bad Request, Not Found, etc.）
+- **サーバー内部のエラー**: 5xx系（Internal Server Error, Service Unavailable, etc.）
+
+#### ❌ 避けるべきパターン: すべてのエラーを400で返す
+
+```typescript
+// ❌ 悪い例: 予期せぬエラーを400で返す
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  try {
+    const result = await this.classifyUseCase.execute(dto);
+    return { success: true, data: result };
+  } catch (error) {
+    this.logger.error('分類処理に失敗しました', error);
+
+    if (error instanceof NotFoundException) {
+      throw error;
+    }
+
+    // ❌ 問題: サーバー内部のエラーも400で返している
+    throw new BadRequestException({
+      success: false,
+      error: {
+        code: 'CLASSIFICATION_FAILED',
+        message: '分類処理に失敗しました',
+      },
+    });
+  }
+}
+```
+
+**問題点**:
+
+1. **APIの仕様と実装の不一致**:
+   - APIドキュメント（Swagger）では500エラーを定義しているが、実際には400を返す
+   - クライアント側のエラーハンドリングが混乱する
+
+2. **エラーの原因が不明確**:
+   - 400（Bad Request）は「クライアントのリクエストが不正」を意味する
+   - サーバー内部のエラー（DB接続エラー、外部API障害等）は500を返すべき
+
+3. **監視・運用の問題**:
+   - 4xx系エラーはクライアント起因として扱われ、アラート対象外になる可能性
+   - 実際にはサーバー側の障害なのに、適切な監視ができない
+
+#### ✅ 正しいパターン: エラーの原因に応じたステータスコードを返す
+
+```typescript
+// ✅ 良い例: エラーの原因に応じて適切なステータスコードを返す
+import {
+  Controller,
+  Post,
+  Body,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+
+@Post('classify')
+@ApiResponse({ status: 200, description: '分類成功' })
+@ApiResponse({ status: 400, description: 'リクエストボディが不正' })
+@ApiResponse({ status: 404, description: 'サブカテゴリが見つからない' })
+@ApiResponse({ status: 500, description: '分類処理に失敗' }) // 👈 500の定義
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  try {
+    const result = await this.classifyUseCase.execute(dto);
+    return { success: true, data: result };
+  } catch (error) {
+    this.logger.error('分類処理に失敗しました', error);
+
+    // クライアント起因のエラーはそのままスロー（4xx系）
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException
+    ) {
+      throw error;
+    }
+
+    // ✅ 正しい: 予期せぬエラーは500で返す
+    throw new InternalServerErrorException({
+      success: false,
+      error: {
+        code: 'CLASSIFICATION_FAILED',
+        message: '分類処理に失敗しました',
+        details: error instanceof Error ? error.message : String(error),
+      },
+    });
+  }
+}
+```
+
+#### ✅ HTTPステータスコードの使い分け
+
+| ステータスコード          | 例外クラス                     | 使用すべき状況                         | 例                                       |
+| ------------------------- | ------------------------------ | -------------------------------------- | ---------------------------------------- |
+| 400 Bad Request           | `BadRequestException`          | リクエストボディのバリデーションエラー | 必須項目が欠けている、形式が不正         |
+| 404 Not Found             | `NotFoundException`            | リソースが存在しない                   | 指定されたIDのエンティティが見つからない |
+| 409 Conflict              | `ConflictException`            | リソースの競合                         | 重複登録、楽観的ロック違反               |
+| 500 Internal Server Error | `InternalServerErrorException` | サーバー内部のエラー                   | DB接続エラー、予期せぬ例外               |
+| 502 Bad Gateway           | `BadGatewayException`          | 外部APIからの不正なレスポンス          | 外部API呼び出しの失敗                    |
+| 503 Service Unavailable   | `ServiceUnavailableException`  | サービス一時停止                       | メンテナンス中、負荷超過                 |
+
+#### ✅ エラーハンドリングのチェックリスト
+
+1. **try-catch内での例外の種類を判定**
+
+   ```typescript
+   if (error instanceof NotFoundException) {
+     throw error; // 4xx系はそのまま
+   }
+   ```
+
+2. **予期せぬエラーは500で返す**
+
+   ```typescript
+   throw new InternalServerErrorException({...});
+   ```
+
+3. **@ApiResponse()でステータスコードを明示**
+
+   ```typescript
+   @ApiResponse({ status: 500, description: '分類処理に失敗' })
+   ```
+
+4. **ログ出力**
+   ```typescript
+   this.logger.error('エラーメッセージ', error);
+   ```
+
+**参考**: Issue #296 / PR #312 - Gemini指摘：エラーハンドリングでの適切なステータスコード使用
+
+---
+
+### 4-13. 不要な依存関係の削除
 
 #### 🟡 推奨: 使用していない依存関係は削除する
 
@@ -3482,6 +3705,79 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 | レスポンスDTO | `interface` | 型定義のみ         |
 
 **参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
+
+#### Swagger/OpenAPI対応のDTO設計（⚠️ 例外ケース）
+
+**重要**: Issue #296 / PR #312のGeminiレビューから、Swagger/OpenAPIドキュメント生成においては、レスポンスDTOも`class`として定義すべき場合があることが判明しました。
+
+**Swagger対応が必要な場合（レスポンスDTOも`class`を使用）**:
+
+```typescript
+// ✅ Swagger対応: classで定義
+import { ApiProperty } from '@nestjs/swagger';
+
+export class SubcategoryResponseDto {
+  @ApiProperty({ description: 'サブカテゴリID', example: 'food_cafe' })
+  id: string = '';
+
+  @ApiProperty({ description: 'サブカテゴリ名', example: 'カフェ' })
+  name: string = '';
+
+  @ApiProperty({
+    description: '子サブカテゴリ',
+    type: () => [SubcategoryResponseDto],
+    required: false,
+  })
+  children?: SubcategoryResponseDto[];
+}
+```
+
+**理由**:
+
+1. **ネストされた構造の正確な表現**: 再帰的なDTO（`children`プロパティ等）の型定義に必須
+2. **`@ApiProperty()`デコレータの使用**: Swaggerドキュメントで詳細なメタデータを提供
+3. **OpenAPI仕様への正確な出力**: `interface`では型情報が失われる場合がある
+
+**対応方法（プロパティ初期化エラーの回避）**:
+
+```typescript
+// 方法1: デフォルト値を設定
+export class ClassificationResponseDto {
+  @ApiProperty()
+  success: boolean = false;
+
+  @ApiProperty()
+  data: ClassificationResultDto = new ClassificationResultDto();
+}
+
+// 方法2: オプショナルプロパティ（`!`を使用）
+export class ClassificationResponseDto {
+  @ApiProperty()
+  success!: boolean;
+
+  @ApiProperty()
+  data!: ClassificationResultDto;
+}
+```
+
+**判断基準**:
+
+| 条件                            | レスポンスDTOの型 | 理由                             |
+| ------------------------------- | ----------------- | -------------------------------- |
+| Swagger/OpenAPI生成が必要       | `class`           | `@ApiProperty()`デコレータが必須 |
+| ネストされた/再帰的な構造       | `class`           | 正確な型情報の表現               |
+| シンプルなレスポンス（内部API） | `interface`       | 型定義のみで十分                 |
+
+**重要な注意点**:
+
+- プロジェクト全体で**Swagger/OpenAPIドキュメントを生成する場合**は、**すべてのレスポンスDTOを`class`として定義**することを推奨
+- 一貫性を保つため、プロジェクト初期段階で方針を決定すること
+- Issue #296で学習: `interface`と`class`の混在により、Swaggerドキュメントの精度が低下
+
+**参考**:
+
+- Issue #296 / PR #312 - Gemini指摘：レスポンスDTOを`interface`から`class`に変更
+- Issue #22 / PR #262 - ビルドエラーから`interface`の使用を決定（Swagger非対応時）
 
 #### レスポンスDTOでの型の厳密化
 
