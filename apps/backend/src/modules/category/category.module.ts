@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoryController } from './presentation/controllers/category.controller';
+import { SubcategoryController } from './presentation/controllers/subcategory.controller';
 import { CategoryRepository } from './infrastructure/repositories/category.repository';
 import { CategoryTypeOrmRepository } from './infrastructure/repositories/category-typeorm.repository';
 import { CategoryOrmEntity } from './infrastructure/entities/category.orm-entity';
@@ -37,7 +38,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from '../transaction/infras
     ]),
     forwardRef(() => TransactionModule),
   ],
-  controllers: [CategoryController],
+  controllers: [CategoryController, SubcategoryController],
   providers: [
     // Repository - TypeORM版を使用（JSON版は予備として残す）
     {
