@@ -227,12 +227,30 @@ Issue作業を効率的に開始するための`start-task.sh`スクリプトを
 
 ### ユニットテスト
 
-```bash
-# 全てのテスト（ユニットテスト）
-pnpm test
+**重要**: ローカルのテストスクリプトは**デフォルトでカバレッジ付き**で実行されます（CIと同じ挙動）。
 
-# ユニットテスト
-pnpm test:unit
+```bash
+# 全てのユニットテスト（カバレッジ付き）
+./scripts/test/test.sh all
+
+# バックエンドのみ（カバレッジ付き）
+./scripts/test/test.sh backend
+
+# フロントエンドのみ（カバレッジ付き）
+./scripts/test/test.sh frontend
+
+# または直接pnpmコマンドを使用
+pnpm test:cov                                    # 全プロジェクト
+pnpm test:cov --filter @account-book/backend    # バックエンドのみ
+pnpm test:cov --filter @account-book/frontend   # フロントエンドのみ
+```
+
+**カバレッジなしで高速実行したい場合:**
+
+```bash
+pnpm test                                        # 全プロジェクト
+pnpm test --filter @account-book/backend        # バックエンドのみ
+pnpm test --filter @account-book/frontend       # フロントエンドのみ
 ```
 
 ### E2Eテスト
