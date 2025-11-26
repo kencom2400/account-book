@@ -239,7 +239,7 @@ describe('Subcategory API (e2e)', () => {
 
       // テスト用の取引を作成
       await dataSource.query(
-        `INSERT INTO categories (id, name, type, is_default, display_order)
+        `INSERT INTO categories (id, name, type, is_system_defined, \`order\`)
          VALUES ('cat-001', '食費', 'EXPENSE', 1, 1)`,
       );
 
