@@ -20,13 +20,6 @@ if [[ $REPLY == "2" ]]; then
 fi
 
 # ローカル環境の場合の処理
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
-  exit 1
-fi
 
 # 引数で起動対象を指定
 TARGET=${1:-all}

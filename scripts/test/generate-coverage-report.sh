@@ -14,13 +14,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
-  exit 1
-fi
 
 # 出力先ディレクトリ
 OUTPUT_DIR="$PROJECT_ROOT/docs/testing"
