@@ -5,6 +5,13 @@ import { CategoryType, Subcategory } from '@account-book/types';
 import { useSubcategoryStore } from '@/stores/subcategory.store';
 
 /**
+ * サブカテゴリツリーノード
+ */
+interface SubcategoryNode extends Subcategory {
+  children?: SubcategoryNode[];
+}
+
+/**
  * サブカテゴリ選択コンポーネントのProps
  */
 interface SubcategorySelectorProps {
@@ -78,7 +85,7 @@ export function SubcategorySelector({
   };
 
   // サブカテゴリノードのレンダリング
-  const renderNode = (node: Subcategory & { children?: Subcategory[] }): React.JSX.Element => {
+  const renderNode = (node: SubcategoryNode): React.JSX.Element => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
     const isSelected = selectedSubcategoryId === node.id;
