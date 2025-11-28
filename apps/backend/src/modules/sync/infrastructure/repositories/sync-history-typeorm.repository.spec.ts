@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SyncHistoryTypeOrmRepository } from './sync-history-typeorm.repository';
 import { SyncHistoryOrmEntity } from '../entities/sync-history.orm-entity';
-import { SyncHistoryEntity } from '../../domain/entities/sync-history.entity';
+import { SyncHistory } from '../../domain/entities/sync-history.entity';
 
 describe('SyncHistoryTypeOrmRepository', () => {
   let repository: SyncHistoryTypeOrmRepository;
@@ -50,7 +50,7 @@ describe('SyncHistoryTypeOrmRepository', () => {
       const result = await repository.findAll();
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toBeInstanceOf(SyncHistoryEntity);
+      expect(result[0]).toBeInstanceOf(SyncHistory);
     });
   });
 
@@ -62,17 +62,19 @@ describe('SyncHistoryTypeOrmRepository', () => {
 
       const result = await repository.findById('sync_1');
 
-      expect(result).toBeInstanceOf(SyncHistoryEntity);
+      expect(result).toBeInstanceOf(SyncHistory);
     });
   });
 
-  describe('save', () => {
-    it('should save sync history', async () => {
+  describe('create', () => {
+    it('should create sync history', async () => {
       mockRepository.save.mockResolvedValue(
         mockOrmEntity as SyncHistoryOrmEntity,
       );
 
-      await expect(repository.save({} as any)).resolves.not.toThrow();
+      const result = await repository.create({} as any);
+
+      expect(result).toBeInstanceOf(SyncHistory);
     });
   });
 });

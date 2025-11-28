@@ -22,10 +22,10 @@ describe('InstitutionController', () => {
     'inst_1',
     'Test Bank',
     'bank',
-    'test-bank',
     mockCredentials,
     true,
     new Date(),
+    [],
     new Date(),
     new Date(),
   );

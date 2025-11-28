@@ -1,16 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreditCardController } from './credit-card.controller';
 import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-credit-card.use-case';
-import { GetCreditCardsUseCase } from '../../application/use-cases/get-credit-cards.use-case';
+import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
+import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
 
 describe('CreditCardController', () => {
   let controller: CreditCardController;
   let connectUseCase: jest.Mocked<ConnectCreditCardUseCase>;
-  let getCardsUseCase: jest.Mocked<GetCreditCardsUseCase>;
+  let creditCardRepository: any;
 
   const mockCredentials = new EncryptedCredentials(
     'encrypted',
@@ -21,18 +22,27 @@ describe('CreditCardController', () => {
   const mockCard = new CreditCardEntity(
     'card_1',
     'Test Card',
-    'test-card',
-    mockCredentials,
     '1234',
+    'Test User',
+    new Date('2025-12-31'),
+    mockCredentials,
+    true,
+    new Date(),
     15,
     10,
+    1000000,
     0,
-    new Date(),
+    'test-issuer',
     new Date(),
     new Date(),
   );
 
   beforeEach(async () => {
+    creditCardRepository = {
+      findAll: jest.fn().mockResolvedValue([mockCard]),
+      findById: jest.fn().mockResolvedValue(mockCard),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CreditCardController],
       providers: [
@@ -41,7 +51,7 @@ describe('CreditCardController', () => {
           useValue: { execute: jest.fn() },
         },
         {
-          provide: GetCreditCardsUseCase,
+          provide: FetchCreditCardTransactionsUseCase,
           useValue: { execute: jest.fn() },
         },
         {
@@ -52,6 +62,10 @@ describe('CreditCardController', () => {
           provide: RefreshCreditCardDataUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: CREDIT_CARD_REPOSITORY,
+          useValue: creditCardRepository,
+        },
       ],
     }).compile();
 
@@ -59,7 +73,6 @@ describe('CreditCardController', () => {
 
     controller = module.get<CreditCardController>(CreditCardController);
     connectUseCase = module.get(ConnectCreditCardUseCase);
-    getCardsUseCase = module.get(GetCreditCardsUseCase);
   });
 
   describe('connect', () => {
@@ -68,10 +81,12 @@ describe('CreditCardController', () => {
 
       const result = await controller.connect({
         cardName: 'Test Card',
-        cardCompanyCode: 'test-card',
-        loginId: 'test',
+        cardNumber: '1234567890123456',
+        cardHolderName: 'Test User',
+        expiryDate: '2025-12',
+        username: 'test',
         password: 'pass',
-        lastFourDigits: '1234',
+        issuer: 'test-card',
         paymentDay: 15,
         closingDay: 10,
       } as any);
@@ -80,11 +95,9 @@ describe('CreditCardController', () => {
     });
   });
 
-  describe('getAll', () => {
+  describe('findAll', () => {
     it('should get all credit cards', async () => {
-      getCardsUseCase.execute.mockResolvedValue([mockCard]);
-
-      const result = await controller.getAll();
+      const result = await controller.findAll();
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);

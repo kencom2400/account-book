@@ -12,17 +12,23 @@ describe('CreditCardTypeOrmRepository', () => {
   const mockOrmEntity: Partial<CreditCardOrmEntity> = {
     id: 'card_1',
     cardName: 'Test Card',
-    cardCompanyCode: 'test-card',
-    credentialsEncrypted: 'encrypted',
-    credentialsIv: 'iv',
-    credentialsAuthTag: 'authTag',
-    credentialsAlgorithm: 'aes-256-gcm',
-    credentialsVersion: 'v1',
-    lastFourDigits: '1234',
+    cardNumber: '1234',
+    cardHolderName: 'Test User',
+    expiryDate: new Date('2025-12-31'),
+    encryptedCredentials: JSON.stringify({
+      encrypted: 'encrypted',
+      iv: 'iv',
+      authTag: 'authTag',
+      algorithm: 'aes-256-gcm',
+      version: 'v1',
+    }),
+    isConnected: true,
+    lastSyncedAt: new Date(),
     paymentDay: 15,
     closingDay: 10,
-    currentBalance: 0,
-    lastSyncedAt: new Date(),
+    creditLimit: '1000000',
+    currentBalance: '0',
+    issuer: 'test-issuer',
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -81,8 +87,36 @@ describe('CreditCardTypeOrmRepository', () => {
       mockRepository.save.mockResolvedValue(
         mockOrmEntity as CreditCardOrmEntity,
       );
+      mockRepository.create.mockReturnValue(
+        mockOrmEntity as CreditCardOrmEntity,
+      );
 
-      await expect(repository.save({} as any)).resolves.not.toThrow();
+      const mockCard = {
+        id: 'card_1',
+        cardNumber: '**** **** **** 1234',
+        cardHolder: 'John Doe',
+        expiryDate: '2025-12',
+        paymentDay: 10,
+        closingDay: 27,
+        creditLimit: 100000,
+        currentBalance: 50000,
+        issuer: 'VISA',
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-02'),
+        credentials: {
+          toJSON: () => ({
+            encrypted: 'encrypted',
+            iv: 'iv',
+            authTag: 'authTag',
+            algorithm: 'aes-256-gcm',
+            version: 'v1',
+          }),
+        },
+      } as any;
+
+      const result = await repository.save(mockCard);
+
+      expect(result).toBeInstanceOf(CreditCardEntity);
     });
   });
 });
