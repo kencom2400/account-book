@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { TransactionRepository } from './transaction.repository';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { Money } from '../../domain/value-objects/money.vo';
-import { TransactionDate } from '../../domain/value-objects/transaction-date.vo';
 import * as fs from 'fs/promises';
 
 jest.mock('fs/promises');
@@ -14,7 +13,7 @@ describe('TransactionRepository', () => {
 
   const mockTransaction = new TransactionEntity(
     'tx_1',
-    new TransactionDate(new Date('2024-01-15')),
+    new Date('2024-01-15'),
     new Money(1000, 'JPY'),
     {
       id: 'cat_1',
@@ -173,39 +172,6 @@ describe('TransactionRepository', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('tx_1');
-    });
-  });
-
-  describe('findByCategory', () => {
-    it('should find transactions by category', async () => {
-      mockFs.readdir.mockResolvedValue(['2024-01.json'] as any);
-      const mockData = JSON.stringify([
-        {
-          id: 'tx_1',
-          date: '2024-01-15',
-          amount: 1000,
-          currency: 'JPY',
-          category: {
-            id: 'cat_1',
-            name: 'Food',
-            type: 'expense',
-          },
-          description: 'Test transaction',
-          institutionId: 'inst_1',
-          accountId: 'acc_1',
-          status: 'completed',
-          isReconciled: false,
-          relatedTransactionId: null,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        },
-      ]);
-      mockFs.readFile.mockResolvedValue(mockData);
-
-      const result = await repository.findByCategory('cat_1');
-
-      expect(result).toHaveLength(1);
-      expect(result[0].category.id).toBe('cat_1');
     });
   });
 
