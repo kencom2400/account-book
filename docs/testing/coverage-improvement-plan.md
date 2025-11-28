@@ -306,8 +306,9 @@
 
 1. **カバレッジ閾値の設定**
 
-   ```javascript
-   // apps/backend/package.json または jest.config.js
+   **Backend (`apps/backend/package.json` または `jest.config.js`)**
+
+   ```json
    {
      "jest": {
        "coverageThreshold": {
@@ -364,8 +365,9 @@
    }
    ```
 
+   **Frontend (`apps/frontend/jest.config.js`)**
+
    ```javascript
-   // apps/frontend/jest.config.js
    module.exports = {
      // ... 既存の設定
      coverageThreshold: {
@@ -411,18 +413,16 @@
 
 2. **CIでカバレッジチェックを実行**
 
+   Jestの`coverageThreshold`設定により、カバレッジが閾値を満たさない場合は`pnpm test:cov`が自動的に失敗します。
+   追加のチェックステップは不要です。
+
    ```yaml
    # .github/workflows/ci.yml
    - name: Run Unit Tests with Coverage
      run: pnpm test:cov
-
-   - name: Check Coverage Threshold
-     run: |
-       if [ $(jq '.total.lines.pct' < coverage/coverage-summary.json | cut -d. -f1) -lt 80 ]; then
-         echo "❌ Coverage is below 80%"
-         exit 1
-       fi
    ```
+
+   **注意**: `coverageThreshold`を設定すると、閾値未達成時にテストコマンド自体が0以外のステータスコードで終了し、CIが停止します。
 
 3. **カバレッジレポートのアップロード**
    ```yaml
