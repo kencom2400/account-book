@@ -40,16 +40,22 @@ if (!process.env.MYSQL_HOST) {
 // NOTE: MYSQL_PORTは環境変数が設定されている場合は上書きしない
 // TEST_ENV=e2eの場合は3326、通常のテストの場合は3316が環境変数で設定される
 if (!process.env.MYSQL_PORT) {
-  process.env.MYSQL_PORT = '3316'; // デフォルトはテスト環境用（3316）
+  // デフォルトはE2E環境用（3326）、通常のテストは3316
+  process.env.MYSQL_PORT = '3326';
 }
 if (!process.env.MYSQL_USER) {
-  process.env.MYSQL_USER = 'account_book_test_user';
+  process.env.MYSQL_USER =
+    process.env.TEST_ENV === 'e2e'
+      ? 'account_book_e2e_user'
+      : 'account_book_test_user';
 }
 if (!process.env.MYSQL_PASSWORD) {
-  process.env.MYSQL_PASSWORD = 'test_password';
+  process.env.MYSQL_PASSWORD =
+    process.env.TEST_ENV === 'e2e' ? 'e2e_password' : 'test_password';
 }
 if (!process.env.MYSQL_DATABASE) {
-  process.env.MYSQL_DATABASE = 'account_book_test';
+  process.env.MYSQL_DATABASE =
+    process.env.TEST_ENV === 'e2e' ? 'account_book_e2e' : 'account_book_test';
 }
 if (!process.env.MYSQL_ROOT_PASSWORD) {
   process.env.MYSQL_ROOT_PASSWORD = 'root_password';
