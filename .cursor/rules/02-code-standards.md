@@ -5115,3 +5115,207 @@ export class SubcategoryOrmEntity {
 **学習元**: PR #301 Geminiレビュー指摘事項（Seed Runner）
 
 ---
+
+## 3-13. TypeORMリポジトリテストのベストプラクティス
+
+**原則**: モックオブジェクトとアサーションを厳密にすることで、テストの信頼性を向上させる
+
+### Geminiレビュー指摘事項（Issue #308, PR #317）
+
+**指摘**: 「TypeORMリポジトリのテストについて、モックオブジェクトの作り方やアサーションをより厳密にすることで、テストの信頼性をさらに向上させられる」
+
+### 🎯 改善観点
+
+#### 1. モックの完全性を確保
+
+❌ **不十分なモック**
+
+```typescript
+// 一部のメソッドのみモック
+const mockRepository = {
+  save: jest.fn(),
+  findOne: jest.fn(),
+} as unknown as Repository<Entity>;
+```
+
+✅ **完全なモック**
+
+```typescript
+// 使用するすべてのメソッドを明示的にモック
+const mockRepository = {
+  save: jest.fn(),
+  findOne: jest.fn(),
+  find: jest.fn(),
+  delete: jest.fn(),
+  create: jest.fn((entity) => entity as OrmEntity),
+  // ... 使用する全メソッド
+} as unknown as jest.Mocked<Repository<OrmEntity>>;
+```
+
+**理由**:
+
+- 未定義のメソッドへのアクセスがエラーを引き起こす可能性がある
+- テストの意図が明確になる
+
+#### 2. アサーションの厳密化
+
+❌ **緩いアサーション**
+
+```typescript
+it('should create entity', async () => {
+  mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+  await repository.create(mockDomainEntity);
+
+  expect(mockRepository.save).toHaveBeenCalled(); // ❌ 引数を検証していない
+});
+```
+
+✅ **厳密なアサーション**
+
+```typescript
+it('should create entity', async () => {
+  mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+  const result = await repository.create(mockDomainEntity);
+
+  // ✅ 引数を詳細に検証
+  expect(mockRepository.save).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 'entity_1',
+      name: 'Test Entity',
+      // ... 重要なフィールドを検証
+    })
+  );
+
+  // ✅ 戻り値を検証
+  expect(result).toEqual(mockDomainEntity);
+  expect(result.id).toBe('entity_1');
+});
+```
+
+**理由**:
+
+- 正しいデータが渡されているかを確認できる
+- リグレッションを防げる
+
+#### 3. EntityManager使用時のテスト
+
+✅ **推奨パターン**
+
+```typescript
+describe('with EntityManager', () => {
+  it('should use provided EntityManager', async () => {
+    const mockManager = {
+      getRepository: jest.fn().mockReturnValue({
+        save: jest.fn().mockResolvedValue(mockOrmEntity),
+      }),
+    } as unknown as EntityManager;
+
+    await repository.create(mockDomainEntity, mockManager);
+
+    // EntityManagerが正しく使用されているか検証
+    expect(mockManager.getRepository).toHaveBeenCalledWith(OrmEntity);
+  });
+
+  it('should use default repository without EntityManager', async () => {
+    mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+    await repository.create(mockDomainEntity);
+
+    // デフォルトリポジトリが使用されているか検証
+    expect(mockRepository.save).toHaveBeenCalled();
+  });
+});
+```
+
+**理由**:
+
+- EntityManagerの使用パターンを網羅的にテストできる
+- トランザクション処理の検証が可能
+
+#### 4. エラーケースのテスト
+
+✅ **必須のエラーテスト**
+
+```typescript
+describe('error handling', () => {
+  it('should throw error when entity not found', async () => {
+    mockRepository.findOne.mockResolvedValue(null);
+
+    await expect(repository.findById('non_existent')).rejects.toThrow('Entity not found');
+  });
+
+  it('should handle database errors', async () => {
+    mockRepository.save.mockRejectedValue(new Error('Database connection failed'));
+
+    await expect(repository.create(mockDomainEntity)).rejects.toThrow('Database connection failed');
+  });
+});
+```
+
+**理由**:
+
+- 異常系の動作を保証できる
+- エラーハンドリングの検証が可能
+
+#### 5. toDomain/toOrm変換のテスト
+
+✅ **推奨パターン**
+
+```typescript
+describe('entity conversion', () => {
+  it('should correctly convert ORM entity to Domain entity', async () => {
+    mockRepository.findOne.mockResolvedValue(mockOrmEntity);
+
+    const result = await repository.findById('entity_1');
+
+    // Domain entityのプロパティを詳細に検証
+    expect(result).toBeInstanceOf(DomainEntity);
+    expect(result?.id).toBe('entity_1');
+    expect(result?.name).toBe('Test Entity');
+    // ValueObjectの検証
+    expect(result?.credentials).toBeInstanceOf(EncryptedCredentials);
+  });
+
+  it('should correctly convert Domain entity to ORM entity', async () => {
+    await repository.create(mockDomainEntity);
+
+    // toOrm()の結果を検証
+    expect(mockRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // ORM entityの構造を検証
+        credentialsEncrypted: expect.any(String),
+        credentialsIv: expect.any(String),
+        credentialsAuthTag: expect.any(String),
+      })
+    );
+  });
+});
+```
+
+**理由**:
+
+- エンティティ変換ロジックの正確性を保証
+- ValueObjectの取り扱いを検証
+
+### 📋 チェックリスト
+
+TypeORMリポジトリのテストを作成する際は、以下を確認：
+
+- [ ] 使用するすべてのメソッドがモックされている
+- [ ] `toHaveBeenCalledWith()`で引数を詳細に検証している
+- [ ] 戻り値の型とプロパティを検証している
+- [ ] EntityManagerありなし両方のパターンをテストしている
+- [ ] エラーケース（not found, database error等）をテストしている
+- [ ] toDomain/toOrm変換の正確性をテストしている
+- [ ] ValueObjectの変換を検証している
+
+### 🎖️ 適用プロジェクト
+
+- **Issue #308**: バックエンド全モジュールで70%以上のユニットテストカバレッジ達成
+- **PR #317**: テストカバレッジ向上（73.89%達成）
+
+**学習元**: PR #317 Geminiレビュー指摘事項（TypeORM Repository Test Quality）
+
+---
