@@ -24,6 +24,7 @@ describe('SyncHistoryTypeOrmRepository', () => {
       findOne: jest.fn(),
       save: jest.fn(),
       create: jest.fn((entity) => entity as SyncHistoryOrmEntity),
+      count: jest.fn(),
     } as unknown as jest.Mocked<Repository<SyncHistoryOrmEntity>>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -75,6 +76,72 @@ describe('SyncHistoryTypeOrmRepository', () => {
       const result = await repository.create({} as any);
 
       expect(result).toBeInstanceOf(SyncHistory);
+    });
+  });
+
+  describe('update', () => {
+    it('should update sync history', async () => {
+      mockRepository.save.mockResolvedValue(
+        mockOrmEntity as SyncHistoryOrmEntity,
+      );
+
+      const result = await repository.update({} as any);
+
+      expect(result).toBeInstanceOf(SyncHistory);
+    });
+  });
+
+  describe('findByInstitutionId', () => {
+    it('should find sync histories by institution id', async () => {
+      mockRepository.find.mockResolvedValue([
+        mockOrmEntity as SyncHistoryOrmEntity,
+      ]);
+
+      const result = await repository.findByInstitutionId('inst_1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBeInstanceOf(SyncHistory);
+    });
+  });
+
+  describe('findByStatus', () => {
+    it('should find sync histories by status', async () => {
+      mockRepository.find.mockResolvedValue([
+        mockOrmEntity as SyncHistoryOrmEntity,
+      ]);
+
+      const result = await repository.findByStatus('completed' as any);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBeInstanceOf(SyncHistory);
+    });
+  });
+
+  describe('findWithFilters', () => {
+    it('should find sync histories with filters', async () => {
+      mockRepository.find.mockResolvedValue([
+        mockOrmEntity as SyncHistoryOrmEntity,
+      ]);
+
+      const result = await repository.findWithFilters({
+        institutionId: 'inst_1',
+        status: 'completed' as any,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBeInstanceOf(SyncHistory);
+    });
+  });
+
+  describe('countWithFilters', () => {
+    it('should count sync histories with filters', async () => {
+      (mockRepository.count as jest.Mock).mockResolvedValue(5);
+
+      const result = await repository.countWithFilters({
+        institutionId: 'inst_1',
+      });
+
+      expect(result).toBe(5);
     });
   });
 });

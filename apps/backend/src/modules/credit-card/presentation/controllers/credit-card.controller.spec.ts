@@ -11,6 +11,8 @@ import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
 describe('CreditCardController', () => {
   let controller: CreditCardController;
   let connectUseCase: jest.Mocked<ConnectCreditCardUseCase>;
+  let fetchPaymentInfoUseCase: jest.Mocked<FetchPaymentInfoUseCase>;
+  let refreshUseCase: jest.Mocked<RefreshCreditCardDataUseCase>;
   let creditCardRepository: any;
 
   const mockCredentials = new EncryptedCredentials(
@@ -73,6 +75,8 @@ describe('CreditCardController', () => {
 
     controller = module.get<CreditCardController>(CreditCardController);
     connectUseCase = module.get(ConnectCreditCardUseCase);
+    fetchPaymentInfoUseCase = module.get(FetchPaymentInfoUseCase);
+    refreshUseCase = module.get(RefreshCreditCardDataUseCase);
   });
 
   describe('connect', () => {
@@ -101,6 +105,56 @@ describe('CreditCardController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('getPaymentInfo', () => {
+    it('should get payment info for a credit card', async () => {
+      const mockPayment = {
+        totalAmount: 50000,
+        dueDate: new Date('2024-02-15'),
+        closingDate: new Date('2024-01-31'),
+        toJSON: () => ({
+          totalAmount: 50000,
+          dueDate: '2024-02-15',
+          closingDate: '2024-01-31',
+        }),
+      };
+
+      fetchPaymentInfoUseCase.execute.mockResolvedValue(mockPayment as any);
+
+      const result = await controller.getPaymentInfo('card_1', {});
+
+      expect(result.success).toBe(true);
+      expect(result.data.totalAmount).toBe(50000);
+    });
+  });
+
+  describe('refresh', () => {
+    it('should refresh credit card data', async () => {
+      const mockTransaction = {
+        toJSON: () => ({
+          id: 'tx_1',
+          amount: 1000,
+          description: 'Test',
+        }),
+      };
+
+      const mockPayment = {
+        toJSON: () => ({
+          totalAmount: 50000,
+        }),
+      };
+
+      refreshUseCase.execute.mockResolvedValue({
+        creditCard: mockCard,
+        transactions: [mockTransaction],
+        payment: mockPayment,
+      } as any);
+
+      const result = await controller.refresh('card_1');
+
+      expect(result.success).toBe(true);
     });
   });
 });
