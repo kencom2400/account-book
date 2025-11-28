@@ -95,6 +95,7 @@ case "$TEST_ENV" in
     export MYSQL_DATABASE="${MYSQL_DATABASE_TEST:-account_book_test}"
     ;;
   e2e)
+    export TEST_ENV="e2e"
     export MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
     export MYSQL_PORT="${MYSQL_PORT_E2E:-3326}"
     export MYSQL_USER="${MYSQL_USER_E2E:-account_book_e2e_user}"
