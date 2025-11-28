@@ -11,9 +11,7 @@ import { ISecuritiesAccountRepository } from '../../domain/repositories/securiti
  * TypeORMを使用した証券口座リポジトリの実装
  */
 @Injectable()
-export class SecuritiesAccountTypeOrmRepository
-  implements ISecuritiesAccountRepository
-{
+export class SecuritiesAccountTypeOrmRepository implements ISecuritiesAccountRepository {
   constructor(
     @InjectRepository(SecuritiesAccountOrmEntity)
     private readonly repository: Repository<SecuritiesAccountOrmEntity>,

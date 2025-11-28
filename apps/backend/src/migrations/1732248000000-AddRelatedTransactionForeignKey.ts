@@ -12,9 +12,7 @@ import { MigrationInterface, QueryRunner, TableForeignKey } from 'typeorm';
  *
  * 参照: docs/database-schema.md - Phase 1.5: データ整合性の改善
  */
-export class AddRelatedTransactionForeignKey1732248000000
-  implements MigrationInterface
-{
+export class AddRelatedTransactionForeignKey1732248000000 implements MigrationInterface {
   name = 'AddRelatedTransactionForeignKey1732248000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
