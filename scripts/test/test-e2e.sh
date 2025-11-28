@@ -15,14 +15,6 @@ echo ""
 # プロジェクトルートに移動
 cd "$(dirname "$0")/../.."
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
-  exit 1
-fi
-
 # テスト環境を指定（デフォルト: e2e）
 TEST_ENV="${TEST_ENV:-e2e}"
 

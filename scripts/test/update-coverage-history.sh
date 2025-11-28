@@ -24,13 +24,6 @@ if [ ! -f "$HISTORY_FILE" ]; then
   exit 0
 fi
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
-  exit 1
-fi
 
 # 現在の日時とコミットハッシュを取得
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')

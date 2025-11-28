@@ -425,11 +425,11 @@ GitHub初期セットアップとIssue作成に使用したスクリプトは **
 
 ### `setup.sh`
 
-Node.js環境（nodeenv）をセットアップします。
+依存パッケージのインストールと初期セットアップを実行します。
 
-### `install.sh`
+### `install.sh` (削除済み)
 
-pnpmで依存パッケージをインストールします。
+nodeenv関連のセットアップスクリプト。Voltaへの移行により不要になりました。
 
 ### `build-libs.sh`
 
@@ -736,16 +736,24 @@ ToDo状態のIssueに対して関連するPRを探して紐づけます。
 
 ### pnpmが見つからない
 
+Voltaを使用している場合は、プロジェクトディレクトリで自動的にpnpmが有効になります。
+Voltaがインストールされているか確認してください：
+
 ```bash
-./scripts/setup/setup.sh
-source .nodeenv/bin/activate
+volta --version
+```
+
+Voltaがインストールされていない場合：
+
+```bash
+curl https://get.volta.sh | bash
 ```
 
 ### ビルドエラー
 
 ```bash
 ./scripts/build/clean.sh
-./scripts/setup/install.sh
+pnpm install
 ./scripts/build/build-libs.sh
 ```
 

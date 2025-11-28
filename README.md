@@ -6,37 +6,48 @@
 
 ### 前提条件
 
-- **Node.js**: 20.18.1 (`.nvmrc`でバージョン固定)
-- **pnpm**: 8.15.0 以上
+- **Node.js**: 24.11.1 (Voltaで管理)
+- **pnpm**: 8.15.0 (Voltaで管理)
 - Docker と Docker Compose（Docker版を使用する場合）
-- または Python 3.8+ と pip3（ローカル環境を使用する場合）
 - MySQL 8.0（データベース）
 
-**重要**: Node.jsとpnpmのバージョンは必須要件です。ローカルでのテストがCIと同じ結果になるよう、バージョンを固定しています。
+**重要**: Node.jsとpnpmのバージョンは`package.json`で固定されています。Voltaを使用することで、プロジェクトディレクトリに入るだけで自動的に正しいバージョンが使用されます。
 
 ### 初回セットアップ（推奨）
 
-新しくプロジェクトに参加する場合は、以下のワンコマンドで環境構築が完了します：
+新しくプロジェクトに参加する場合は、以下の手順で環境構築が完了します：
 
 ```bash
 # リポジトリのクローン
 git clone https://github.com/kencom2400/account-book.git
 cd account-book
 
-# 初回環境セットアップ（自動）
-./scripts/setup/initial-setup.sh
+# 1. Voltaのインストール（未インストールの場合）
+curl https://get.volta.sh | bash
+
+# 2. シェルを再起動するか、環境変数を読み込む
+source ~/.zshrc  # zshの場合
+# または
+source ~/.bashrc  # bashの場合
+
+# 3. 依存関係のインストール
+# Voltaが自動的に正しいNode.js/pnpmバージョンをインストールします
+pnpm install
+
+# 4. 共通ライブラリのビルド
+pnpm run build:libs
+
+# 5. 環境変数ファイルの作成
+cp .env.example .env
+# .envファイルを編集して必要な値を設定
 ```
 
-このスクリプトは以下を自動的に実行します：
+#### Voltaの利点
 
-- Python 3.8+ と pip3 の存在確認
-- nodeenv のインストール
-- Node.js 20.18.1 環境の作成 (.nodeenv)
-- corepack の有効化と pnpm 8.15.0 のセットアップ
-- 依存関係のインストール
-- 共通ライブラリのビルド
-- 環境変数ファイルの作成 (.env)
-- 環境の検証
+- **自動バージョン切り替え**: プロジェクトディレクトリに入るだけで自動的に正しいバージョンを使用
+- **高速起動**: Rustで書かれており、シェル起動時の遅延がない
+- **チーム開発に最適**: `package.json`でバージョンを共有、新メンバーのセットアップが簡素化
+- **グローバルツール管理**: `npm install -g`したツールがNode.jsバージョンごとに管理される
 
 セットアップ完了後、以下のコマンドで開発を開始できます：
 
@@ -93,19 +104,18 @@ docker-compose up -d
 ./scripts/dev/start-database.sh test   # テスト環境
 ./scripts/dev/start-database.sh e2e    # E2E環境
 
-# 2. nodeenv環境の作成
-nodeenv --node=20.18.1 --prebuilt .nodeenv
+# 2. Voltaのインストール（未インストールの場合）
+curl https://get.volta.sh | bash
 
-# 3. 環境のアクティベート
-source .nodeenv/bin/activate
+# 3. シェルを再起動または環境変数を読み込む
+source ~/.zshrc  # zshの場合
 
-# 4. corepackの有効化
-corepack enable
-corepack prepare pnpm@8.15.0 --activate
-
-# 5. 依存関係のインストールと初期セットアップ
+# 4. 依存関係のインストールと初期セットアップ
+# プロジェクト内では、Voltaが自動的にpackage.jsonで指定されたバージョンのNode.jsとpnpmを使用します。
 ./scripts/setup/setup.sh
 ```
+
+**注意**: 以前のnodeenv環境からの移行の場合、`.nodeenv`ディレクトリは削除またはバックアップしてください。
 
 ### 開発サーバーの起動
 
@@ -144,10 +154,8 @@ corepack prepare pnpm@8.15.0 --activate
 #### ローカル環境
 
 ```bash
-# 環境のアクティベート（必要に応じて）
-source .nodeenv/bin/activate
-
 # 全サービスの起動
+# Voltaが自動的に正しいNode.js/pnpmバージョンを使用します
 pnpm dev
 ```
 
@@ -408,6 +416,36 @@ pnpm build
 
 ## トラブルシューティング
 
+### Voltaが正しいバージョンを使用しない場合
+
+プロジェクトディレクトリで正しいNode.js/pnpmバージョンが使用されない場合：
+
+1. Voltaが正しくインストールされているか確認：
+
+   ```bash
+   volta --version
+   ```
+
+2. プロジェクトの`package.json`に`volta`フィールドが設定されていることを確認
+
+3. シェルを再起動してVoltaの設定を再読み込み
+
+4. 詳細は[Volta公式ドキュメント](https://docs.volta.sh/)を参照
+
+### nodenvからの移行
+
+以前のnodeenv環境から移行する場合：
+
+1. `.nodeenv`ディレクトリをバックアップ・削除：
+
+   ```bash
+   mv .nodeenv .nodeenv.backup
+   ```
+
+2. `~/.zshrc`（または`~/.bashrc`）からnodeenv関連の設定を削除
+
+3. Voltaをインストールして、上記の手順でセットアップ
+
 ### Git pre-commitフックでpnpmが見つからない場合
 
 Huskyのpre-commitフック実行時に`pnpm: command not found`エラーが発生した場合：
@@ -418,7 +456,7 @@ Huskyのpre-commitフック実行時に`pnpm: command not found`エラーが発�
    pnpm --version
    ```
 
-2. プロジェクトの`.husky/pre-commit`ファイルには、一般的なpnpmのインストールパスが自動的に設定されています
+2. Voltaがインストールされていることを確認
 
 3. 詳細は[SETUP.md](./SETUP.md#pnpmコマンドが見つからない場合git-pre-commitフック)を参照してください
 
