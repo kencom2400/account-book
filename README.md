@@ -110,12 +110,8 @@ curl https://get.volta.sh | bash
 # 3. シェルを再起動または環境変数を読み込む
 source ~/.zshrc  # zshの場合
 
-# 4. Node.jsとpnpmのインストール
-# Voltaが自動的にpackage.jsonの設定を読み込んで正しいバージョンをインストールします
-volta install node@24.11.1
-volta install pnpm@8.15.0
-
-# 5. 依存関係のインストールと初期セットアップ
+# 4. 依存関係のインストールと初期セットアップ
+# プロジェクト内では、Voltaが自動的にpackage.jsonで指定されたバージョンのNode.jsとpnpmを使用します。
 ./scripts/setup/setup.sh
 ```
 
