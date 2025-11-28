@@ -63,9 +63,9 @@ describe('Subcategory Classification Performance Tests', () => {
       { id: 'shopping', name: '買い物', icon: '🛍️' },
     ];
 
-    for (const category of categories) {
+    for (const [index, category] of categories.entries()) {
       subcategories.push(
-        `('${category.id}', 'EXPENSE', '${category.name}', NULL, 1, '${category.icon}', '#4CAF50', 1, 1)`,
+        `('${category.id}', 'EXPENSE', '${category.name}', NULL, ${index + 1}, '${category.icon}', '#4CAF50', 1, 1)`,
       );
 
       // 各カテゴリに10個の子カテゴリを追加

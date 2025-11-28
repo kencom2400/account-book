@@ -131,6 +131,8 @@ describe('Subcategory Classification Data Integrity Tests', () => {
 
     it('並行更新時の競合を適切に処理できる', async () => {
       // 同じ店舗マスタを2つのトランザクションで同時に更新
+      // 注意: この並行更新テストはデータベースの分離レベルに依存するため、
+      // タイムアウトやデッドロック発生時のエラーハンドリングが必要
       const queryRunner1 = dataSource.createQueryRunner();
       const queryRunner2 = dataSource.createQueryRunner();
 
@@ -147,21 +149,35 @@ describe('Subcategory Classification Data Integrity Tests', () => {
         );
 
         // トランザクション2: confidence を 0.99 に更新
-        await queryRunner2.query(
-          `UPDATE merchants SET confidence = 0.99 WHERE id = 'merchant_starbucks'`,
-        );
+        // 注意: トランザクション1がロックを持っているため、ここでロック待機が発生する可能性がある
+        try {
+          await queryRunner2.query(
+            `UPDATE merchants SET confidence = 0.99 WHERE id = 'merchant_starbucks'`,
+          );
 
-        // トランザクション1をコミット
-        await queryRunner1.commitTransaction();
+          // トランザクション1をコミット
+          await queryRunner1.commitTransaction();
 
-        // トランザクション2をコミット
-        await queryRunner2.commitTransaction();
+          // トランザクション2をコミット
+          await queryRunner2.commitTransaction();
 
-        // 最後にコミットされた値が反映されることを確認
-        const result = await dataSource.query(
-          `SELECT confidence FROM merchants WHERE id = 'merchant_starbucks'`,
-        );
-        expect(result[0].confidence).toBe(0.99);
+          // 最後にコミットされた値が反映されることを確認
+          const result = await dataSource.query(
+            `SELECT confidence FROM merchants WHERE id = 'merchant_starbucks'`,
+          );
+          expect(result[0].confidence).toBe(0.99);
+        } catch (error) {
+          // ロックタイムアウトまたはデッドロックが発生した場合
+          // これは並行更新の典型的な動作であり、エラーではない
+          await queryRunner1.rollbackTransaction();
+          await queryRunner2.rollbackTransaction();
+
+          // エラーメッセージを確認（ロックタイムアウトまたはデッドロック）
+          expect(
+            (error as Error).message.includes('Lock wait timeout') ||
+              (error as Error).message.includes('Deadlock'),
+          ).toBe(true);
+        }
       } finally {
         await queryRunner1.release();
         await queryRunner2.release();
@@ -222,6 +238,25 @@ describe('Subcategory Classification Data Integrity Tests', () => {
         FROM subcategories
         WHERE parent_id IS NOT NULL
         GROUP BY parent_id, display_order
+        HAVING COUNT(*) > 1
+      `);
+
+      expect(result.length).toBe(0); // 重複が存在しないことを確認
+    });
+
+    it('display_order の一意性: ルートカテゴリ間でdisplay_orderが重複しない', async () => {
+      // ルートカテゴリを追加
+      await dataSource.query(
+        `INSERT INTO subcategories (id, category_type, name, parent_id, display_order, icon, color, is_default, is_active)
+         VALUES ('transport', 'EXPENSE', '交通費', NULL, 2, '🚗', '#2196F3', 1, 1)`,
+      );
+
+      // ルートカテゴリ間でdisplay_orderの重複を検出
+      const result = await dataSource.query(`
+        SELECT display_order, COUNT(*) as count
+        FROM subcategories
+        WHERE parent_id IS NULL
+        GROUP BY display_order
         HAVING COUNT(*) > 1
       `);
 

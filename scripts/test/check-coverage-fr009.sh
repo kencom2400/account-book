@@ -44,10 +44,8 @@ echo ""
 
 log_info "バックエンドのユニットテストカバレッジを取得中..."
 
-cd "$PROJECT_ROOT/apps/backend"
-
-# ユニットテストを実行してカバレッジを生成
-pnpm test:cov > /dev/null 2>&1 || true
+# サブシェルを使用してディレクトリ移動の影響を限定
+(cd "$PROJECT_ROOT/apps/backend" && pnpm test:cov > /dev/null 2>&1) || true
 
 # カバレッジ情報を取得
 BACKEND_COVERAGE_FILE="$PROJECT_ROOT/apps/backend/coverage/coverage-summary.json"
@@ -79,10 +77,8 @@ echo ""
 
 log_info "フロントエンドのユニットテストカバレッジを取得中..."
 
-cd "$PROJECT_ROOT/apps/frontend"
-
-# ユニットテストを実行してカバレッジを生成
-pnpm test --coverage > /dev/null 2>&1 || true
+# サブシェルを使用してディレクトリ移動の影響を限定
+(cd "$PROJECT_ROOT/apps/frontend" && pnpm test --coverage > /dev/null 2>&1) || true
 
 # カバレッジ情報を取得
 FRONTEND_COVERAGE_FILE="$PROJECT_ROOT/apps/frontend/coverage/coverage-summary.json"
@@ -114,10 +110,8 @@ echo ""
 
 log_info "E2Eテストカバレッジを取得中..."
 
-cd "$PROJECT_ROOT/apps/backend"
-
-# E2Eテストを実行してカバレッジを生成
-pnpm test:e2e:cov > /dev/null 2>&1 || true
+# サブシェルを使用してディレクトリ移動の影響を限定
+(cd "$PROJECT_ROOT/apps/backend" && pnpm test:e2e:cov > /dev/null 2>&1) || true
 
 E2E_COVERAGE_FILE="$PROJECT_ROOT/apps/backend/coverage-e2e/coverage-summary.json"
 
