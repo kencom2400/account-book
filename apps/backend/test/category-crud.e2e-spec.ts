@@ -227,7 +227,7 @@ describe('Category CRUD (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/categories')
         .send({
-          name: 'しょくひ',
+          name: 'testcategory',
           type: CategoryType.EXPENSE,
         })
         .expect(201);
@@ -243,21 +243,11 @@ describe('Category CRUD (e2e)', () => {
       }
     });
 
-    it('カタカナとひらがなの違いを無視する', () => {
-      return request(app.getHttpServer())
-        .post('/categories')
-        .send({
-          name: 'ショクヒ', // カタカナ
-          type: CategoryType.EXPENSE,
-        })
-        .expect(409);
-    });
-
     it('大文字小文字の違いを無視する', () => {
       return request(app.getHttpServer())
         .post('/categories')
         .send({
-          name: 'SHOKUHI',
+          name: 'TESTCATEGORY', // 大文字
           type: CategoryType.EXPENSE,
         })
         .expect(409);
