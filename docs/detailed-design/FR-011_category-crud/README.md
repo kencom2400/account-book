@@ -150,12 +150,25 @@ CREATE TABLE categories (
   color VARCHAR(20) NULL,
   is_system_defined BOOLEAN NOT NULL DEFAULT false,
   `order` INT NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true, -- 論理削除フラグ（false: 削除済み）
+  deleted_at TIMESTAMP NULL, -- 論理削除日時
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
   INDEX idx_categories_type (type),
-  INDEX idx_categories_parent_id (parent_id)
+  INDEX idx_categories_parent_id (parent_id),
+  INDEX idx_categories_is_active (is_active) -- 論理削除クエリの高速化
 );
+```
+
+**注意**: 論理削除を実装する場合は、以下のマイグレーションが必要です：
+
+```sql
+-- マイグレーション例（将来実装時）
+ALTER TABLE categories
+  ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN deleted_at TIMESTAMP NULL,
+  ADD INDEX idx_categories_is_active (is_active);
 ```
 
 ### データ構造
@@ -172,6 +185,8 @@ interface CategoryEntity {
   color: string | null; // カラーコード（例: #FF9800）
   isSystemDefined: boolean; // システム定義フラグ（true: デフォルト, false: カスタム）
   order: number; // 表示順序
+  isActive: boolean; // 論理削除フラグ（false: 削除済み）
+  deletedAt: Date | null; // 論理削除日時
   createdAt: Date;
   updatedAt: Date;
 }
