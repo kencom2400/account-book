@@ -43,40 +43,46 @@ export class CreateCategoryUseCase {
   async execute(
     request: CreateCategoryRequest,
   ): Promise<CreateCategoryResponse> {
-    // 重複チェック：同一タイプ・親IDで同名の費目が存在しないか確認
-    await this.checkDuplicate(
-      request.name,
-      request.type,
-      request.parentId || null,
-    );
+    const { name, type, parentId: rawParentId } = request;
+    const parentId = rawParentId || null;
 
     // 親カテゴリの存在確認
-    if (request.parentId) {
-      const parent = await this.categoryRepository.findById(request.parentId);
+    if (parentId) {
+      const parent = await this.categoryRepository.findById(parentId);
       if (!parent) {
-        throw new ConflictException(
-          `親費目が見つかりません: ${request.parentId}`,
-        );
+        throw new ConflictException(`親費目が見つかりません: ${parentId}`);
       }
       // 親カテゴリのタイプと一致するか確認
-      if (parent.type !== request.type) {
+      if (parent.type !== type) {
         throw new ConflictException('親費目とタイプが一致しません');
       }
     }
 
-    // 表示順序を決定（同じ親IDの中で最大値+1）
-    const order = await this.getNextOrder(
-      request.type,
-      request.parentId || null,
+    // 関連カテゴリを一度だけ取得し、重複チェックと順序計算を行う
+    const categories = await this.categoryRepository.findByType(type);
+    const siblings = categories.filter((c) => c.parentId === parentId);
+
+    // 重複チェック：NFKC正規化を使用
+    const normalizedName = name.normalize('NFKC').toLowerCase();
+    const duplicate = siblings.find(
+      (c) => c.name.normalize('NFKC').toLowerCase() === normalizedName,
     );
+
+    if (duplicate) {
+      throw new ConflictException(`同名の費目が既に存在します: ${name}`);
+    }
+
+    // 表示順序を決定
+    const order =
+      siblings.length > 0 ? Math.max(...siblings.map((c) => c.order)) + 1 : 0;
 
     // 新しい費目エンティティを作成
     const now = new Date();
     const category = new CategoryEntity(
       uuidv4(),
-      request.name,
-      request.type,
-      request.parentId || null,
+      name,
+      type,
+      parentId,
       request.icon || null,
       request.color || null,
       false, // ユーザー定義カテゴリ
@@ -89,47 +95,5 @@ export class CreateCategoryUseCase {
     const savedCategory = await this.categoryRepository.save(category);
 
     return { category: savedCategory };
-  }
-
-  /**
-   * 重複チェック
-   * NFKC正規化を使用して、大文字小文字・ひらがなカタカナの違いを無視
-   */
-  private async checkDuplicate(
-    name: string,
-    type: CategoryType,
-    parentId: string | null,
-  ): Promise<void> {
-    const categories = await this.categoryRepository.findByType(type);
-    const normalizedName = name.normalize('NFKC').toLowerCase();
-
-    const duplicate = categories.find((c) => {
-      const existingNormalizedName = c.name.normalize('NFKC').toLowerCase();
-      return (
-        existingNormalizedName === normalizedName && c.parentId === parentId
-      );
-    });
-
-    if (duplicate) {
-      throw new ConflictException(`同名の費目が既に存在します: ${name}`);
-    }
-  }
-
-  /**
-   * 次の表示順序を取得
-   */
-  private async getNextOrder(
-    type: CategoryType,
-    parentId: string | null,
-  ): Promise<number> {
-    const categories = await this.categoryRepository.findByType(type);
-    const siblings = categories.filter((c) => c.parentId === parentId);
-
-    if (siblings.length === 0) {
-      return 0;
-    }
-
-    const maxOrder = Math.max(...siblings.map((c) => c.order));
-    return maxOrder + 1;
   }
 }

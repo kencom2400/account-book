@@ -8,6 +8,7 @@ import {
 import { CategoryEntity } from '../../domain/entities/category.entity';
 import type { ICategoryRepository } from '../../domain/repositories/category.repository.interface';
 import { CATEGORY_REPOSITORY } from '../../domain/repositories/category.repository.interface';
+import { CategoryType } from '@account-book/types';
 
 /**
  * 費目更新のリクエストデータ
@@ -97,20 +98,18 @@ export class UpdateCategoryUseCase {
    */
   private async checkDuplicate(
     name: string,
-    type: string,
+    type: CategoryType,
     parentId: string | null,
     excludeId: string,
   ): Promise<void> {
-    const categories = await this.categoryRepository.findAll();
+    const categories = await this.categoryRepository.findByType(type);
     const normalizedName = name.normalize('NFKC').toLowerCase();
 
     const duplicate = categories.find((c) => {
       if (c.id === excludeId) return false; // 自身を除外
       const existingNormalizedName = c.name.normalize('NFKC').toLowerCase();
       return (
-        existingNormalizedName === normalizedName &&
-        String(c.type) === String(type) &&
-        c.parentId === parentId
+        existingNormalizedName === normalizedName && c.parentId === parentId
       );
     });
 
