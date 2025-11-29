@@ -216,14 +216,29 @@ GET /api/categories?type=EXPENSE
 - **Content-Type**: `application/json`
 
 ```typescript
-// CategoryListResponseDto
-interface CategoryListResponse {
-  success: boolean;
+// CategoryListResponseDto (Discriminated Union型)
+type CategoryListResponse = CategoryListSuccessResponse | ErrorResponse;
+
+interface CategoryListSuccessResponse {
+  success: true;
   data: CategoryResponse[];
   total: number;
-  error?: string;
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string; // エラーコード
+  message: string; // エラーメッセージ（日本語）
+  details?: object; // エラー詳細（任意）
 }
 ```
+
+**設計のポイント**:
+
+- Discriminated Union型を使用し、`success`フラグで型を判別
+- `success: true`の場合は`data`と`total`が必ず存在
+- `success: false`の場合は`error`と`message`が必ず存在
+- クライアント側で型安全にハンドリング可能
 
 **Response Example**
 
@@ -684,12 +699,12 @@ interface ErrorResponse {
 
 ### カラーコード（color）
 
-| ルール   | 値                       | エラーメッセージ                                                     |
-| -------- | ------------------------ | -------------------------------------------------------------------- | -------------- | ------------------------ |
-| 任意     | -                        | -                                                                    |
-| 型       | string                   | `カラーコードは文字列で指定してください`                             |
-| 形式     | #RGB, #RRGGBB, #RRGGBBAA | `カラーコードは#RGB、#RRGGBB、または#RRGGBBAA形式で指定してください` |
-| 正規表現 | `^#([0-9A-F]{3}          | [0-9A-F]{6}                                                          | [0-9A-F]{8})$` | `無効なカラーコードです` |
+| ルール   | 値                                           | エラーメッセージ                                                     |
+| -------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| 任意     | -                                            | -                                                                    |
+| 型       | string                                       | `カラーコードは文字列で指定してください`                             |
+| 形式     | #RGB, #RRGGBB, #RRGGBBAA                     | `カラーコードは#RGB、#RRGGBB、または#RRGGBBAA形式で指定してください` |
+| 正規表現 | `^#([0-9A-F]{3}\|[0-9A-F]{6}\|[0-9A-F]{8})$` | `無効なカラーコードです`                                             |
 
 **サポートする形式**:
 
