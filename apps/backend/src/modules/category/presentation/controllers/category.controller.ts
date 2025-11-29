@@ -174,16 +174,7 @@ export class CategoryController {
     @Param('id') id: string,
     @Query('replacementCategoryId') replacementCategoryId?: string,
   ): Promise<DeleteCategoryResponseDto> {
-    const result = await this.deleteCategoryUseCase.execute(
-      id,
-      replacementCategoryId,
-    );
-
-    return {
-      success: true,
-      replacedCount: result.replacedCount,
-      message: result.message,
-    };
+    return this.deleteCategoryUseCase.execute(id, replacementCategoryId);
   }
 
   /**
@@ -192,11 +183,6 @@ export class CategoryController {
    */
   @Get(':id/usage')
   async checkUsage(@Param('id') id: string): Promise<CategoryUsageResponseDto> {
-    const result = await this.checkCategoryUsageUseCase.execute(id);
-    return {
-      isUsed: result.isUsed,
-      usageCount: result.usageCount,
-      transactionSamples: result.transactionSamples,
-    };
+    return this.checkCategoryUsageUseCase.execute(id);
   }
 }

@@ -100,9 +100,8 @@ describe('CreateCategoryUseCase', () => {
       repository.findByType.mockResolvedValue([existingCategory]);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
       await expect(useCase.execute(request)).rejects.toThrow(
-        '同名の費目が既に存在します',
+        new ConflictException('同名の費目が既に存在します'),
       );
     });
 
@@ -146,9 +145,8 @@ describe('CreateCategoryUseCase', () => {
       repository.findById.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
       await expect(useCase.execute(request)).rejects.toThrow(
-        '親費目が見つかりません',
+        new ConflictException('親費目が見つかりません'),
       );
     });
 
@@ -177,9 +175,8 @@ describe('CreateCategoryUseCase', () => {
       repository.findById.mockResolvedValue(parentCategory);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
       await expect(useCase.execute(request)).rejects.toThrow(
-        '親費目とタイプが一致しません',
+        new ConflictException('親費目とタイプが一致しません'),
       );
     });
 

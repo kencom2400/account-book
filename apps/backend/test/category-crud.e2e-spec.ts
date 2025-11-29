@@ -174,43 +174,19 @@ describe('Category CRUD (e2e)', () => {
   });
 
   describe('カラーコードバリデーション', () => {
-    it('#RGB形式を受け入れる', async () => {
+    const testCases = [
+      { format: '#RGB', color: '#FFF', name: 'RGB形式テスト' },
+      { format: '#RRGGBB', color: '#FFFFFF', name: 'RRGGBB形式テスト' },
+      { format: '#RRGGBBAA', color: '#FFFFFFFF', name: 'RRGGBBAA形式テスト' },
+    ];
+
+    it.each(testCases)('$format形式を受け入れる', async ({ color, name }) => {
       const response = await request(app.getHttpServer())
         .post('/categories')
         .send({
-          name: 'RGB形式テスト',
+          name,
           type: CategoryType.EXPENSE,
-          color: '#FFF',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .delete(`/categories/${response.body.id}`)
-        .expect(200);
-    });
-
-    it('#RRGGBB形式を受け入れる', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/categories')
-        .send({
-          name: 'RRGGBB形式テスト',
-          type: CategoryType.EXPENSE,
-          color: '#FFFFFF',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .delete(`/categories/${response.body.id}`)
-        .expect(200);
-    });
-
-    it('#RRGGBBAA形式を受け入れる', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/categories')
-        .send({
-          name: 'RRGGBBAA形式テスト',
-          type: CategoryType.EXPENSE,
-          color: '#FFFFFFFF',
+          color,
         })
         .expect(201);
 
