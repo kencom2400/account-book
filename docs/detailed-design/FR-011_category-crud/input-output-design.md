@@ -28,16 +28,50 @@ http://localhost:3001/api
 
 ### エンドポイント
 
-| メソッド | エンドポイント          | 説明             | 認証 |
-| -------- | ----------------------- | ---------------- | ---- |
-| POST     | `/categories`           | 費目追加         | 不要 |
-| GET      | `/categories`           | 費目一覧取得     | 不要 |
-| GET      | `/categories/:id`       | 費目詳細取得     | 不要 |
-| PUT      | `/categories/:id`       | 費目更新         | 不要 |
-| DELETE   | `/categories/:id`       | 費目削除         | 不要 |
-| GET      | `/categories/:id/usage` | 費目使用状況確認 | 不要 |
+| メソッド | エンドポイント          | 説明             | 認証             |
+| -------- | ----------------------- | ---------------- | ---------------- |
+| POST     | `/categories`           | 費目追加         | 必要（将来対応） |
+| GET      | `/categories`           | 費目一覧取得     | 必要（将来対応） |
+| GET      | `/categories/:id`       | 費目詳細取得     | 必要（将来対応） |
+| PUT      | `/categories/:id`       | 費目更新         | 必要（将来対応） |
+| DELETE   | `/categories/:id`       | 費目削除         | 必要（将来対応） |
+| GET      | `/categories/:id/usage` | 費目使用状況確認 | 必要（将来対応） |
 
-**注意**: 将来的にはユーザー認証を追加予定
+**注意**: 現在は開発フェーズのため認証は実装しませんが、本番環境では必須となります。
+
+### 認証方式（将来実装予定）
+
+**認証タイプ**: JWT Bearer Token
+
+**リクエストヘッダー**:
+
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**トークン検証**:
+
+- コントローラーに`@UseGuards(JwtAuthGuard)`を適用
+- ユーザーIDをリクエストから抽出し、ユーザー所有の費目のみアクセス可能
+
+**エラーレスポンス**:
+
+- **401 Unauthorized**: トークンが無効または期限切れ
+- **403 Forbidden**: 他ユーザーの費目にアクセス試行
+
+**実装時の参考**:
+
+```typescript
+@Controller('categories')
+@UseGuards(JwtAuthGuard) // 全エンドポイントで認証必須
+export class CategoryController {
+  @Post()
+  async create(@Request() req, @Body() dto: CreateCategoryDto) {
+    const userId = req.user.id; // JWTから取得したユーザーID
+    return this.createUseCase.execute(userId, dto);
+  }
+}
+```
 
 ---
 
