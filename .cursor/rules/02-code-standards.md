@@ -5654,7 +5654,7 @@ function convertInstitutionType(type: InstitutionType): 'credit-card' {
   if (type === InstitutionType.CREDIT_CARD) {
     return 'credit-card';
   }
-  return type;
+  throw new Error(`Unsupported institution type: ${type}`);
 }
 ```
 
