@@ -1,8 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  ICategoryRepository,
-  CATEGORY_REPOSITORY,
-} from '../../domain/repositories/category.repository.interface';
+import type { ICategoryRepository } from '../../domain/repositories/category.repository.interface';
+import { CATEGORY_REPOSITORY } from '../../domain/repositories/category.repository.interface';
 
 /**
  * 取引サンプルの型定義
