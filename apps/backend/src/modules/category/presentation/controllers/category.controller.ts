@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { IsOptional, IsEnum, IsString, IsIn } from 'class-validator';
 import { InitializeCategoriesUseCase } from '../../application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
 import { GetCategoryByIdUseCase } from '../../application/use-cases/get-category-by-id.use-case';
@@ -30,9 +31,22 @@ import {
 
 // DTOs
 class GetCategoriesQueryDto {
+  @IsOptional()
+  @IsEnum(CategoryType, { message: '有効なカテゴリタイプを指定してください' })
   type?: CategoryType;
+
+  @IsOptional()
+  @IsString({ message: '親費目IDは文字列で指定してください' })
   parentId?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'], {
+    message: 'isTopLevelはtrue/falseで指定してください',
+  })
   isTopLevel?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'], { message: 'asTreeはtrue/falseで指定してください' })
   asTree?: string;
 }
 

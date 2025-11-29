@@ -54,17 +54,17 @@ export interface CategoryUsageResponse {
  * カテゴリを初期化
  */
 export async function initializeCategories(): Promise<Category[]> {
-  return await apiClient.post<Category[]>('/categories/initialize', {});
+  return await apiClient.post<Category[]>('/api/categories/initialize', {});
 }
 
 /**
  * カテゴリ一覧を取得
  */
 export async function getCategories(
-  params?: GetCategoriesParams,
+  params?: GetCategoriesParams
 ): Promise<Category[] | CategoryNode[]> {
   const searchParams = new URLSearchParams();
-  
+
   if (params) {
     if (params.type) searchParams.append('type', params.type);
     if (params.parentId) searchParams.append('parentId', params.parentId);
@@ -72,24 +72,22 @@ export async function getCategories(
     if (params.asTree) searchParams.append('asTree', 'true');
   }
 
-  const endpoint = `/categories${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const endpoint = `/api/categories${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   return await apiClient.get<Category[] | CategoryNode[]>(endpoint);
 }
 
 /**
  * カテゴリを作成
  */
-export async function createCategory(
-  request: CreateCategoryRequest,
-): Promise<Category> {
-  return await apiClient.post<Category>('/categories', request);
+export async function createCategory(request: CreateCategoryRequest): Promise<Category> {
+  return await apiClient.post<Category>('/api/categories', request);
 }
 
 /**
  * カテゴリを単一取得
  */
 export async function getCategoryById(id: string): Promise<Category> {
-  return await apiClient.get<Category>(`/categories/${id}`);
+  return await apiClient.get<Category>(`/api/categories/${id}`);
 }
 
 /**
@@ -97,9 +95,9 @@ export async function getCategoryById(id: string): Promise<Category> {
  */
 export async function updateCategory(
   id: string,
-  request: UpdateCategoryRequest,
+  request: UpdateCategoryRequest
 ): Promise<Category> {
-  return await apiClient.put<Category>(`/categories/${id}`, request);
+  return await apiClient.put<Category>(`/api/categories/${id}`, request);
 }
 
 /**
@@ -107,23 +105,16 @@ export async function updateCategory(
  */
 export async function deleteCategory(
   id: string,
-  replacementCategoryId?: string,
+  replacementCategoryId?: string
 ): Promise<DeleteCategoryResponse> {
-  const params = replacementCategoryId
-    ? `?replacementCategoryId=${replacementCategoryId}`
-    : '';
-  const result = await apiClient.delete<DeleteCategoryResponse>(
-    `/categories/${id}${params}`,
-  );
+  const params = replacementCategoryId ? `?replacementCategoryId=${replacementCategoryId}` : '';
+  const result = await apiClient.delete<DeleteCategoryResponse>(`/api/categories/${id}${params}`);
   return result;
 }
 
 /**
  * カテゴリの使用状況を確認
  */
-export async function checkCategoryUsage(
-  id: string,
-): Promise<CategoryUsageResponse> {
-  return await apiClient.get<CategoryUsageResponse>(`/categories/${id}/usage`);
+export async function checkCategoryUsage(id: string): Promise<CategoryUsageResponse> {
+  return await apiClient.get<CategoryUsageResponse>(`/api/categories/${id}/usage`);
 }
-

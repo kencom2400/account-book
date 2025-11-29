@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Category Management', () => {
+  // テスト用のユニークな名前を生成
+  const uniqueName = `E2EテストFE_${Date.now()}`;
+
   test.beforeEach(async ({ page }) => {
-    // 費目管理ページに移動
-    await page.goto('http://localhost:3000/categories');
+    // 費目管理ページに移動（baseURLを使用）
+    await page.goto('/categories');
   });
 
   test('費目管理ページが表示される', async ({ page }) => {
@@ -12,17 +15,37 @@ test.describe('Category Management', () => {
   });
 
   test('新しい費目を作成できる', async ({ page }) => {
+    // リクエストをキャプチャ
+    page.on('request', (request) => {
+      if (request.url().includes('/api/categories')) {
+        console.log('>>> Request URL:', request.url());
+        console.log('>>> Request Method:', request.method());
+        console.log('>>> Request Body:', request.postData());
+      }
+    });
+
+    page.on('response', async (response) => {
+      if (response.url().includes('/api/categories')) {
+        console.log('<<< Response Status:', response.status());
+        console.log('<<< Response Body:', await response.text());
+      }
+    });
+
     // フォームに入力
-    await page.fill('input[placeholder="例: 食費"]', 'E2Eテスト費目');
+    await page.fill('input[placeholder="例: 食費"]', uniqueName);
     await page.fill('input[placeholder="例: 🍚"]', '🧪');
     await page.fill('input[placeholder="#FF9800"]', '#4CAF50');
 
     // 作成ボタンをクリック
     await page.click('button:has-text("作成")');
 
+    // 作成リクエストが完了するまで待機
+    await page.waitForTimeout(1000);
+
     // 作成された費目が一覧に表示されることを確認
-    await expect(page.locator('text=E2Eテスト費目')).toBeVisible();
-    await expect(page.locator('text=🧪')).toBeVisible();
+    await expect(page.locator(`text=${uniqueName}`)).toBeVisible({ timeout: 10000 });
+    // 複数のアイコンが存在する可能性があるため、最初の要素をチェック
+    await expect(page.locator('text=🧪').first()).toBeVisible();
   });
 
   test('フィルターが機能する', async ({ page }) => {
@@ -53,14 +76,15 @@ test.describe('Category Management', () => {
       await expect(page.locator('h2:has-text("費目編集")')).toBeVisible();
 
       // 名前を変更
-      await page.fill('input[value]', 'E2Eテスト費目（編集）');
+      const editedName = `${uniqueName}（編集）`;
+      await page.fill('input[value]', editedName);
 
       // 更新ボタンをクリック
       await page.click('button:has-text("更新")');
 
       // 更新された費目が一覧に表示されることを確認
       await page.waitForTimeout(500);
-      await expect(page.locator('text=E2Eテスト費目（編集）')).toBeVisible();
+      await expect(page.locator(`text=${editedName}`)).toBeVisible();
     }
   });
 

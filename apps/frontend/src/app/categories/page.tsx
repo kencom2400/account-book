@@ -57,7 +57,12 @@ export default function CategoryManagementPage(): React.JSX.Element {
       await createCategory(data);
       await loadCategories();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '費目の作成に失敗しました');
+      console.error('費目作成エラー:', err);
+      if (err instanceof Error) {
+        setError(`費目の作成に失敗しました: ${err.message}`);
+      } else {
+        setError('費目の作成に失敗しました');
+      }
     }
   };
 
