@@ -804,6 +804,7 @@ import {
 import {
   CreateCategoryUseCase,
   GetCategoriesUseCase,
+  GetCategoryByIdUseCase,
   UpdateCategoryUseCase,
   DeleteCategoryUseCase,
   CheckCategoryUsageUseCase,
@@ -814,6 +815,7 @@ export class CategoryController {
   constructor(
     private readonly createUseCase: CreateCategoryUseCase,
     private readonly getCategoriesUseCase: GetCategoriesUseCase,
+    private readonly getCategoryByIdUseCase: GetCategoryByIdUseCase,
     private readonly updateUseCase: UpdateCategoryUseCase,
     private readonly deleteUseCase: DeleteCategoryUseCase,
     private readonly checkUsageUseCase: CheckCategoryUsageUseCase
@@ -838,7 +840,7 @@ export class CategoryController {
 
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
-    const result = await this.getCategoriesUseCase.executeById(id);
+    const result = await this.getCategoryByIdUseCase.execute(id);
     return CategoryResponseDto.fromEntity(result);
   }
 
