@@ -500,7 +500,14 @@ GET /api/categories/cat_custom_001/usage
 interface CategoryUsageResponse {
   isUsed: boolean; // 使用中かどうか
   usageCount: number; // 使用件数
-  transactionIds: string[]; // 使用中の取引ID（先頭10件）
+  transactionSamples: TransactionSample[]; // 使用中の取引サンプル（先頭10件）
+}
+
+interface TransactionSample {
+  id: string; // 取引ID
+  date: string; // 取引日（ISO 8601形式）
+  description: string; // 摘要
+  amount: number; // 金額
 }
 ```
 
@@ -510,17 +517,25 @@ interface CategoryUsageResponse {
 {
   "isUsed": true,
   "usageCount": 50,
-  "transactionIds": [
-    "tx_001",
-    "tx_002",
-    "tx_003",
-    "tx_004",
-    "tx_005",
-    "tx_006",
-    "tx_007",
-    "tx_008",
-    "tx_009",
-    "tx_010"
+  "transactionSamples": [
+    {
+      "id": "tx_001",
+      "date": "2025-11-01",
+      "description": "ペットフード",
+      "amount": 2000
+    },
+    {
+      "id": "tx_002",
+      "date": "2025-11-05",
+      "description": "動物病院",
+      "amount": 5000
+    },
+    {
+      "id": "tx_003",
+      "date": "2025-11-10",
+      "description": "ペット用品",
+      "amount": 1500
+    }
   ]
 }
 ```
@@ -531,7 +546,7 @@ interface CategoryUsageResponse {
 {
   "isUsed": false,
   "usageCount": 0,
-  "transactionIds": []
+  "transactionSamples": []
 }
 ```
 

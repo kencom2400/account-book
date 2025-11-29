@@ -125,10 +125,10 @@ classDiagram
         <<ValueObject>>
         +boolean isUsed
         +number usageCount
-        +string[] transactionIds
+        +TransactionSample[] transactionSamples
         +getUsageCount() number
         +isInUse() boolean
-        +getTransactionSample() string[]
+        +getTransactionSamples() TransactionSample[]
     }
 
     CategoryDomainService ..> UsageInfo
@@ -152,7 +152,11 @@ classDiagram
 - **プロパティ**:
   - `isUsed`: 使用中かどうか
   - `usageCount`: 使用件数
-  - `transactionIds`: 使用中の取引ID一覧（先頭10件）
+  - `transactionSamples`: 使用中の取引サンプル一覧（先頭10件）
+    - `id`: 取引ID
+    - `date`: 取引日
+    - `description`: 摘要
+    - `amount`: 金額
 
 ---
 
@@ -439,9 +443,9 @@ classDiagram
     class CreateCategoryDto {
         +string name
         +CategoryType type
-        +string parentId
-        +string icon
-        +string color
+        +string|null parentId
+        +string|null icon
+        +string|null color
         +validate() boolean
     }
 
@@ -483,7 +487,14 @@ classDiagram
     class UsageResponseDto {
         +boolean isUsed
         +number usageCount
-        +string[] transactionIds
+        +TransactionSample[] transactionSamples
+    }
+
+    class TransactionSample {
+        +string id
+        +string date
+        +string description
+        +number amount
     }
 
     CategoryController ..> CreateCategoryDto
