@@ -11,7 +11,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
-  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CategoryType } from '@account-book/types';
@@ -19,10 +18,6 @@ import { GetSubcategoriesUseCase } from '../../application/use-cases/get-subcate
 import { GetSubcategoriesByCategoryUseCase } from '../../application/use-cases/get-subcategories-by-category.use-case';
 import { ClassifySubcategoryUseCase } from '../../application/use-cases/classify-subcategory.use-case';
 import { UpdateTransactionSubcategoryUseCase } from '../../application/use-cases/update-transaction-subcategory.use-case';
-import type { ISubcategoryRepository } from '../../domain/repositories/subcategory.repository.interface';
-import { SUB_CATEGORY_REPOSITORY } from '../../domain/repositories/subcategory.repository.interface';
-import type { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
-import { MERCHANT_REPOSITORY } from '../../domain/repositories/merchant.repository.interface';
 import { ClassificationRequestDto } from '../dto/classification-request.dto';
 import { ClassificationResponseDto } from '../dto/classification-response.dto';
 import {
@@ -46,10 +41,6 @@ export class SubcategoryController {
     private readonly getSubcategoriesByCategoryUseCase: GetSubcategoriesByCategoryUseCase,
     private readonly classifySubcategoryUseCase: ClassifySubcategoryUseCase,
     private readonly updateTransactionSubcategoryUseCase: UpdateTransactionSubcategoryUseCase,
-    @Inject(SUB_CATEGORY_REPOSITORY)
-    private readonly subcategoryRepository: ISubcategoryRepository,
-    @Inject(MERCHANT_REPOSITORY)
-    private readonly merchantRepository: IMerchantRepository,
   ) {}
 
   /**
@@ -221,57 +212,34 @@ export class SubcategoryController {
     );
 
     try {
-      // ユースケースで分類を実行
-      const classificationResult =
-        await this.classifySubcategoryUseCase.execute({
-          description: dto.description,
-          amount: dto.amount,
-          mainCategory: dto.mainCategory,
-          transactionDate: dto.transactionDate
-            ? new Date(dto.transactionDate)
-            : undefined,
-        });
-
-      // サブカテゴリ詳細を取得
-      const subcategory = await this.subcategoryRepository.findById(
-        classificationResult.subcategoryId,
-      );
-
-      if (!subcategory) {
-        throw new NotFoundException(
-          `Subcategory not found with ID: ${classificationResult.subcategoryId}`,
-        );
-      }
-
-      // 店舗情報を取得（店舗IDがある場合）
-      let merchantName: string | null = null;
-      if (classificationResult.merchantId) {
-        const merchant = await this.merchantRepository.findById(
-          classificationResult.merchantId,
-        );
-        if (merchant) {
-          merchantName = merchant.name;
-        }
-      }
+      // ユースケースで分類を実行（サブカテゴリ詳細と店舗情報を含む）
+      const result = await this.classifySubcategoryUseCase.execute({
+        description: dto.description,
+        amount: dto.amount,
+        mainCategory: dto.mainCategory,
+        transactionDate: dto.transactionDate
+          ? new Date(dto.transactionDate)
+          : undefined,
+      });
 
       return {
         success: true,
         data: {
           subcategory: {
-            id: subcategory.id,
-            categoryType: subcategory.categoryType,
-            name: subcategory.name,
-            parentId: subcategory.parentId,
-            displayOrder: subcategory.displayOrder,
-            icon: subcategory.icon,
-            color: subcategory.color,
-            isDefault: subcategory.isDefault,
-            isActive: subcategory.isActive,
+            id: result.subcategoryId,
+            categoryType: result.categoryType,
+            name: result.subcategoryName,
+            parentId: result.parentId,
+            displayOrder: result.displayOrder,
+            icon: result.icon,
+            color: result.color,
+            isDefault: result.isDefault,
+            isActive: result.isActive,
           },
-          confidence: classificationResult.confidence,
-          reason: classificationResult.reason,
-          merchantId: classificationResult.merchantId || null,
-          merchantName,
+          confidence: result.confidence,
+          reason: result.reason,
+          merchantId: result.merchantId,
+          merchantName: result.merchantName,
         },
       };
     } catch (error) {
@@ -337,23 +305,12 @@ export class SubcategoryController {
         subcategoryId: dto.subcategoryId,
       });
 
-      // サブカテゴリ詳細を取得
-      const subcategory = await this.subcategoryRepository.findById(
-        result.subcategoryId,
-      );
-
-      if (!subcategory) {
-        throw new NotFoundException(
-          `Subcategory not found with ID: ${result.subcategoryId}`,
-        );
-      }
-
       return {
         success: true,
         transaction: {
           id: result.transactionId,
           subcategoryId: result.subcategoryId,
-          subcategoryName: subcategory.name,
+          subcategoryName: result.subcategoryName,
           classificationConfidence: result.confidence,
           classificationReason: result.reason,
           confirmedAt: result.confirmedAt.toISOString(),
