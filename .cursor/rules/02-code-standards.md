@@ -5966,3 +5966,464 @@ refactor(category): Geminiレビュー対応
 ```
 
 ---
+
+---
+
+## 16. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
+
+### 16-1. 認証設計の明確化 🔴 Critical
+
+#### ❌ 避けるべきパターン: 認証要件の曖昧な記述
+
+```markdown
+| エンドポイント         | 認証 |
+| ---------------------- | ---- |
+| POST /categories       | 不要 |
+| DELETE /categories/:id | 不要 |
+
+**注意**: 将来的にはユーザー認証を追加予定
+```
+
+**問題点**:
+
+- 開発時に認証不要と誤解される
+- セキュリティリスク（誰でもデータ操作可能）
+- 実装時の判断基準が不明確
+
+#### ✅ 正しいパターン: 認証方式と将来計画を明記
+
+```markdown
+| エンドポイント         | 認証             |
+| ---------------------- | ---------------- |
+| POST /categories       | 必要（将来対応） |
+| DELETE /categories/:id | 必要（将来対応） |
+
+**注意**: 現在は開発フェーズのため認証は実装しませんが、本番環境では必須となります。
+
+### 認証方式（将来実装予定）
+
+**認証タイプ**: JWT Bearer Token
+
+**実装例**:
+\`\`\`typescript
+@Controller('categories')
+@UseGuards(JwtAuthGuard) // 全エンドポイントで認証必須
+export class CategoryController {
+@Post()
+async create(@Request() req, @Body() dto: CreateCategoryDto) {
+const userId = req.user.id; // JWTから取得
+return this.createUseCase.execute(userId, dto);
+}
+}
+\`\`\`
+```
+
+**教訓**:
+
+- 認証要件は設計段階から明確に記載
+- 将来実装時の参考となる具体例を提供
+- セキュリティリスクを事前に認識
+
+---
+
+### 16-2. データモデル設計の整合性 🔴 Critical
+
+#### ❌ 避けるべきパターン: テーブル定義と実装方針の矛盾
+
+```sql
+CREATE TABLE categories (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL
+);
+```
+
+```markdown
+### 削除処理
+
+- 論理削除を実装する
+```
+
+**問題点**:
+
+- テーブル定義に論理削除用カラムがない
+- 実装時に混乱を招く
+- マイグレーションが必要になる
+
+#### ✅ 正しいパターン: テーブル定義に論理削除カラムを含める
+
+```sql
+CREATE TABLE categories (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true, -- 論理削除フラグ
+  deleted_at TIMESTAMP NULL, -- 論理削除日時
+  created_at TIMESTAMP NOT NULL,
+  INDEX idx_categories_is_active (is_active)
+);
+```
+
+```typescript
+interface CategoryEntity {
+  id: string;
+  name: string;
+  isActive: boolean; // 論理削除フラグ
+  deletedAt: Date | null; // 論理削除日時
+  createdAt: Date;
+}
+```
+
+**教訓**:
+
+- テーブル定義と実装方針を一致させる
+- 論理削除には専用カラムとインデックスが必要
+- ドメインモデルにも対応するプロパティを追加
+
+---
+
+### 16-3. API仕様の統一性 🟡 High
+
+#### ❌ 避けるべきパターン: リクエストボディとクエリパラメータの混在
+
+**class-diagrams.md**:
+
+```typescript
+class DeleteCategoryDto {
+  +string replacementCategoryId  // リクエストボディ
+}
+```
+
+**input-output-design.md**:
+
+```
+DELETE /api/categories/:id?replacementCategoryId=xxx  // クエリパラメータ
+```
+
+**問題点**:
+
+- 設計書間で仕様が矛盾
+- 実装時に判断が困難
+- フロントエンド・バックエンドで異なる実装になる可能性
+
+#### ✅ 正しいパターン: 全設計書で仕様を統一
+
+```markdown
+**注意**: `DeleteCategoryDto`は削除されました。
+削除時の代替費目IDはクエリパラメータで指定します。
+
+DELETE /api/categories/:id?replacementCategoryId=xxx
+```
+
+**教訓**:
+
+- APIの仕様は全設計書で統一
+- 変更時は関連する全ドキュメントを更新
+- RESTful APIの慣習に従う（DELETE時のクエリパラメータ推奨）
+
+---
+
+### 16-4. ユースケース設計の明確化 🟡 High
+
+#### ❌ 避けるべきパターン: 存在しないメソッドの呼び出し
+
+```typescript
+@Get(':id')
+async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+  // GetCategoriesUseCaseにexecuteById()メソッドは存在しない
+  const result = await this.getCategoriesUseCase.executeById(id);
+  return CategoryResponseDto.fromEntity(result);
+}
+```
+
+**問題点**:
+
+- 設計書に定義されていないメソッドを使用
+- 実装時にエラーが発生
+- クラス図との不整合
+
+#### ✅ 正しいパターン: 専用ユースケースを定義
+
+```typescript
+@Controller('categories')
+export class CategoryController {
+  constructor(
+    private readonly getCategoriesUseCase: GetCategoriesUseCase,
+    private readonly getCategoryByIdUseCase: GetCategoryByIdUseCase
+  ) {}
+
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+    const result = await this.getCategoryByIdUseCase.execute(id);
+    return CategoryResponseDto.fromEntity(result);
+  }
+}
+```
+
+**教訓**:
+
+- 単一責任の原則（SRP）に従う
+- 一覧取得と詳細取得は別ユースケースとして分離
+- 設計書間の整合性を保つ
+
+---
+
+### 16-5. バリデーションルールの柔軟性 🟢 Medium
+
+#### ❌ 避けるべきパターン: 制限的な正規表現
+
+```typescript
+// 6桁形式のみ許可
+color: string; // #RRGGBB
+regex: /^#[0-9A-F]{6}$/;
+```
+
+**問題点**:
+
+- 3桁形式（#RGB）が使えない
+- 8桁形式（#RRGGBBAA - アルファチャンネル付き）が使えない
+- テーブル定義（VARCHAR(20)）との不整合
+
+#### ✅ 正しいパターン: 複数形式をサポート
+
+```typescript
+/**
+ * カラーコードのバリデーション
+ * サポートする形式:
+ * - 3桁: #RGB (例: #F00 は #FF0000 と同義)
+ * - 6桁: #RRGGBB (例: #FF9800)
+ * - 8桁: #RRGGBBAA (例: #FF9800FF - アルファチャンネル付き)
+ */
+@Matches(/^#([0-9A-F]{3}|[0-9A-F]{6}|[0-9A-F]{8})$/, {
+  message: 'カラーコードは#RGB、#RRGGBB、または#RRGGBBAA形式で指定してください',
+})
+color: string;
+```
+
+**教訓**:
+
+- 一般的な形式をすべてサポート
+- テーブルカラムの定義と整合性を保つ
+- 将来の拡張性を考慮
+
+---
+
+### 16-6. パフォーマンス最適化の意識 🟢 Medium
+
+#### ❌ 避けるべきパターン: 不要なカラムの取得
+
+```typescript
+// 使用状況確認で全カラムを取得
+async checkCategoryUsage(categoryId: string) {
+  const transactions = await this.transactionRepository.query(
+    'SELECT * FROM transactions WHERE category_id = ?',
+    [categoryId]
+  );
+  return transactions.map(tx => tx.id); // IDのみ使用
+}
+```
+
+**問題点**:
+
+- 不要なデータを取得してメモリを消費
+- ネットワーク帯域の無駄
+- クエリパフォーマンスの低下
+
+#### ✅ 正しいパターン: 必要なカラムのみ取得
+
+```typescript
+// 必要なカラムのみ取得
+async checkCategoryUsage(categoryId: string) {
+  const transactionIds = await this.transactionRepository.query(
+    'SELECT id FROM transactions WHERE category_id = ? LIMIT 10',
+    [categoryId]
+  );
+  return transactionIds.map(row => row.id);
+}
+```
+
+**教訓**:
+
+- SELECT \* を避け、必要なカラムのみ指定
+- LIMIT句で取得件数を制限
+- メモリとネットワーク帯域を節約
+- クエリの意図が明確になる
+
+---
+
+## 17. 詳細設計書レビュー第2弾から学んだ観点（Issue #32 / PR #321）
+
+### 17-1. N+1問題の回避（API設計） 🔴 Critical
+
+**学習元**: Issue #32 / PR #321 - Geminiレビュー（FR-011 詳細設計書 第2弾）
+
+#### ❌ 避けるべきパターン: IDのみ返却 + 追加APIコール
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionIds: string[]; // IDのみ
+}
+```
+
+**UI表示**:
+
+```typescript
+// 各IDに対して追加APIコールが必要（N+1問題）
+const transactionDetails = await Promise.all(
+  transactionIds.map((id) => fetchTransactionDetail(id))
+);
+```
+
+**問題点**:
+
+- UI表示に必要な情報を取得するために複数のAPIコールが必要
+- N+1問題によるパフォーマンス低下
+- ネットワーク遅延の累積
+
+#### ✅ 正しいパターン: 表示に必要な情報を含める
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionSamples: TransactionSample[]; // 詳細情報を含む
+}
+
+interface TransactionSample {
+  id: string;
+  date: string; // 表示用
+  description: string; // 表示用
+  amount: number; // 表示用
+}
+```
+
+**教訓**:
+
+- UI表示に必要な情報を事前に考慮
+- 1回のAPIコールで完結するよう設計
+- フロントエンドの実装を想定した設計
+
+---
+
+### 17-2. RESTful API設計の原則 🟡 High
+
+#### ❌ 避けるべきパターン: 冗長なエンドポイント
+
+```markdown
+DELETE /api/categories/:id
+POST /api/categories/batch-update
+```
+
+**問題点**:
+
+- 削除時の一括置換が別エンドポイントとして分離
+- APIの責務が不明確
+
+#### ✅ 正しいパターン: 単一エンドポイントで完結
+
+```markdown
+DELETE /api/categories/:id?replacementCategoryId=xxx
+```
+
+**教訓**:
+
+- RESTful な設計原則に従う
+- 関連する操作は単一エンドポイントで処理
+
+---
+
+### 17-3. 文字列正規化の明確化 🟡 High
+
+#### ❌ 避けるべきパターン: 曖昧なルール記述
+
+```markdown
+- 大文字小文字を区別しない
+- 例: 「ペット」と「ぺっと」は重複
+```
+
+**問題点**:
+
+- ひらがな/カタカナは大文字小文字の問題ではない
+- 実装時に混乱を招く
+
+#### ✅ 正しいパターン: NFKC正規化を明記
+
+```markdown
+- 文字の正規化後に比較（NFKC正規化）
+  - ひらがな/カタカナの統一
+  - 全角/半角の統一
+  - 大文字/小文字の統一
+```
+
+**教訓**:
+
+- 文字列比較のルールは具体的に記述
+- NFKC正規化などの技術用語を使用
+
+---
+
+### 17-4. Discriminated Union型の活用 🟢 Medium
+
+#### ❌ 避けるべきパターン: 曖昧なユニオン型
+
+```typescript
+interface ApiResponse {
+  success: boolean;
+  data?: SomeData;
+  error?: string;
+}
+```
+
+**問題点**:
+
+- \`success: true\` でも \`data\` が \`undefined\` の可能性
+- クライアント側でのハンドリングが複雑
+
+#### ✅ 正しいパターン: Discriminated Union型
+
+```typescript
+type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+interface SuccessResponse<T> {
+  success: true;
+  data: T; // 必ず存在
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string; // 必ず存在
+  message: string;
+  details?: object; // エラー詳細（任意）
+}
+```
+
+**教訓**:
+
+- Discriminated Union型で型安全性を確保
+- \`success\`フラグで型を判別
+
+---
+
+### 17-5. Markdownテーブルの正しい記法 🟢 Medium
+
+#### ❌ パイプ文字のエスケープ忘れ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}|[0-9A-F]{6})$\` |
+```
+
+#### ✅ パイプ文字をエスケープ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}\\|[0-9A-F]{6})$\` |
+```
+
+**教訓**:
+
+- Markdownテーブル内では特殊文字をエスケープ
+- バックスラッシュ \`\\|\` を使用
