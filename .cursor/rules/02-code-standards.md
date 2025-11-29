@@ -5319,3 +5319,488 @@ TypeORMリポジトリのテストを作成する際は、以下を確認：
 **学習元**: PR #317 Geminiレビュー指摘事項（TypeORM Repository Test Quality）
 
 ---
+
+## 13. Geminiレビューから学んだ観点
+
+### 13-1. 型安全性の維持 🔴 Critical
+
+**学習元**: PR #259 - パフォーマンステストとチューニング
+
+#### ❌ 避けるべきパターン: モジュール全体でのルール緩和
+
+```javascript
+// eslint.config.mjs
+{
+  files: ['src/modules/health/**/*.ts'],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'warn',  // モジュール全体で緩和
+    '@typescript-eslint/no-unsafe-assignment': 'warn',
+  },
+}
+```
+
+**問題点**:
+
+- 意図しない`any`型の使用を見逃すリスク
+- モジュール全体の型安全性が低下
+- 将来的なリファクタリングが困難
+
+#### ✅ 正しいパターン: 必要な箇所でのみインライン無効化
+
+```typescript
+async checkConnection(apiAdapter: unknown): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = apiAdapter as any;
+  return await adapter.testConnection();
+}
+```
+
+**推奨アプローチ**:
+
+1. `unknown`型と型ガードを優先的に使用
+2. 本当に必要な箇所のみ`// eslint-disable-next-line`で個別対応
+3. `any`の代わりに`unknown`型を検討
+4. インターフェースを明確に定義
+
+---
+
+### 13-2. テストセレクターの一貫性 🟡 Medium
+
+#### ❌ 避けるべきパターン: クラス名との併用
+
+```typescript
+await page.waitForSelector('[data-testid="list"], .list-container');
+```
+
+**問題点**:
+
+- スタイリング変更でテストが壊れる
+- セレクターの一貫性がない
+
+#### ✅ 正しいパターン: data-testid優先
+
+```typescript
+await page.waitForSelector('[data-testid="list"]');
+```
+
+**利点**:
+
+- テストの堅牢性向上
+- スタイリング変更の影響を受けない
+- 意図が明確
+
+---
+
+### 13-3. ページネーションテストの前提条件 🔴 Critical
+
+#### ❌ 避けるべきパターン: 実装されていない機能のテスト
+
+```typescript
+describe('Pagination Performance', () => {
+  it('should fetch page 1', async () => {
+    await request(app).get('/api/institutions').query({ page: 1, limit: 20 });
+  });
+});
+```
+
+**問題点**:
+
+- APIがページネーションを実装していない
+- テストが常に失敗または誤った結果を返す
+
+#### ✅ 正しいパターン: 未実装機能は.skip
+
+```typescript
+describe.skip('Pagination Performance (Future Implementation)', () => {
+  // Note: InstitutionControllerにページネーション実装後に有効化
+  it('should fetch page 1', async () => {
+    await request(app).get('/api/institutions').query({ page: 1, limit: 20 });
+  });
+});
+```
+
+**推奨**:
+
+1. 実装されていない機能のテストは`.skip`
+2. コメントで実装予定を明記
+3. 実装完了後にテストを有効化
+
+---
+
+### 13-4. コード重複の回避とDRY原則 🔴 Critical
+
+**学習元**: PR #266 - カスタムプロンプト（@トリガー）の追加
+
+#### ❌ 避けるべきパターン: ルールファイルリストの重複
+
+```markdown
+<!-- start-task.md -->
+
+await Promise.all([
+read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
+read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
+// ... 全10ファイル
+]);
+
+<!-- inc-all-rules.md -->
+
+await Promise.all([
+read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
+read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
+// ... 全10ファイル（完全に同じリスト）
+]);
+```
+
+**問題点**:
+
+- ルールファイル追加時に2箇所を修正する必要
+- メンテナンス性の低下
+- 変更漏れのリスク
+
+#### ✅ 正しいパターン: 一元管理と再利用
+
+```markdown
+<!-- start-task.md -->
+
+### 0. すべてのルールファイルを再読込（最優先）
+
+**必ず最初に** `@inc-all-rules` を実行して、すべてのルールファイルを読み込んでください。
+```
+
+**利点**:
+
+- ルールファイルリストを一箇所で管理
+- 変更時の修正箇所が1つだけ
+- DRY原則の遵守
+
+---
+
+### 13-5. ドキュメントの可読性と一貫性 🟡 Medium
+
+#### ❌ 避けるべきパターン: 情報が分散したファイルリスト
+
+```markdown
+### 読込対象ファイル
+
+以下のファイルを順番に読み込んでください：
+
+1. ファイルA
+2. ファイルB
+
+### テンプレート
+
+- テンプレート1
+- テンプレート2
+
+### 追加リソース
+
+- リソース1
+```
+
+**問題点**:
+
+- ファイルリストが複数セクションに分散
+- 「順番に」の記述が並列読み込みの実装と矛盾
+- 可読性が低い
+
+#### ✅ 正しいパターン: 統合されたファイルリスト
+
+```markdown
+### 読込対象ファイル
+
+以下のファイルをすべて読み込んでください：
+
+- **ファイルA** - 説明
+- **ファイルB** - 説明
+- **テンプレート1** - 説明
+- **テンプレート2** - 説明
+- **リソース1** - 説明
+```
+
+**利点**:
+
+- すべての対象ファイルが一目で把握できる
+- 並列読み込みの実装と記述が一致
+- 可読性の向上
+
+---
+
+### 13-6. 命名規則の一貫性 🟡 Medium
+
+#### △ 不十分なパターン: 曖昧な命名規則
+
+```bash
+git checkout -b feature/issue-<番号>-<説明>
+```
+
+**問題点**:
+
+- `<説明>`が曖昧
+- 開発者によって異なるフォーマットになる
+- 自動化スクリプトとの不一致
+
+#### ✅ 正しいパターン: 明確な命名規則
+
+```bash
+git checkout -b feature/issue-<番号>-<Issueタイトルをケバブケースにした文字列>
+
+# 例:
+# Issue #267: "CI最適化: マークダウン変更時のスキップ"
+# → feature/issue-267-ci-optimization-skip-markdown-changes
+```
+
+**利点**:
+
+- 一貫したブランチ名
+- 自動化スクリプトとの整合性
+- 誰が作成しても同じ形式
+
+---
+
+## 14. Issue #279から学んだ教訓
+
+**学習元**: Issue #279 - FR-006: 未実装機能の実装、PR #285
+
+### 14-1. エラーメッセージの文字列依存は脆弱 🔴 Critical
+
+#### ❌ 脆弱な実装
+
+```typescript
+if (error instanceof Error && error.message === 'Transaction fetch was cancelled') {
+  // キャンセル処理
+}
+```
+
+**教訓**:
+
+- エラーメッセージが変更されるとロジックが壊れる
+- 文字列の完全一致が必要で、メンテナンスコストが高い
+
+#### ✅ 堅牢な実装: カスタムエラークラス
+
+```typescript
+export class CancellationError extends Error {
+  constructor(message: string = 'Operation was cancelled') {
+    super(message);
+    this.name = 'CancellationError';
+    Error.captureStackTrace?.(this, CancellationError);
+  }
+}
+
+// 判定（型安全）
+if (error instanceof CancellationError) {
+  // キャンセル処理
+}
+```
+
+**適用箇所**:
+
+- キャンセルエラー: `CancellationError`
+- バリデーションエラー: `ValidationError`
+- ネットワークエラー: `NetworkError`
+
+---
+
+### 14-2. 不要な依存関係は削除する 🟡 Medium
+
+#### ❌ 使用していない依存関係
+
+```typescript
+constructor(
+  @Inject(SYNC_HISTORY_REPOSITORY)
+  private readonly syncHistoryRepository: ISyncHistoryRepository,
+  @Inject(CREDIT_CARD_REPOSITORY)
+  private readonly creditCardRepository: ICreditCardRepository, // 使用していない
+  private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+) {}
+```
+
+**教訓**:
+
+- 子UseCaseに機能を委譲した場合、親からは不要な依存関係を削除
+- テストが複雑になる（不要なモックを作成する必要）
+- コードの意図が不明確になる
+
+#### ✅ 必要な依存関係のみ
+
+```typescript
+constructor(
+  @Inject(SYNC_HISTORY_REPOSITORY)
+  private readonly syncHistoryRepository: ISyncHistoryRepository,
+  private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+) {}
+```
+
+**チェックリスト**:
+
+1. `this.xxxRepository` で検索して使用状況を確認
+2. 子UseCaseに機能が委譲されていないか確認
+3. テストを簡素化できるか確認
+
+---
+
+### 14-3. Enum値と使用箇所の型を統一する 🟡 Medium
+
+#### ❌ 型の不一致
+
+```typescript
+enum InstitutionType {
+  CREDIT_CARD = 'credit_card', // アンダースコア
+}
+type SyncTarget = 'credit-card'; // ハイフン
+
+// 変換関数が必要
+function convertInstitutionType(type: InstitutionType): 'credit-card' {
+  if (type === InstitutionType.CREDIT_CARD) {
+    return 'credit-card';
+  }
+  throw new Error(`Unsupported institution type: ${type}`);
+}
+```
+
+**教訓**:
+
+- 型の不一致は変換関数を必要とし、コードが複雑になる
+- バグの原因になる
+- 保守性が低い
+
+#### ✅ 統一された型
+
+```typescript
+enum InstitutionType {
+  CREDIT_CARD = 'credit-card', // ハイフンで統一
+}
+type SyncTarget = InstitutionType; // 直接使用可能
+
+// 変換関数は不要
+const target: SyncTarget = institution.type;
+```
+
+---
+
+### 14-4. 特定のエラーによるステータス上書き防止 🔴 Critical
+
+#### ❌ キャンセルエラーもFAILEDに上書きされる
+
+```typescript
+try {
+  await fetchData();
+} catch (error) {
+  // すべてのエラーがFAILEDになる
+  syncHistory = syncHistory.markAsFailed(error.message);
+}
+```
+
+**教訓**:
+
+- キャンセルエラーをFAILEDステータスで上書きすると、ステータスの整合性が失われる
+- ユーザーの意図的なキャンセル操作が「失敗」として記録される
+
+#### ✅ キャンセルエラーを判定して早期return
+
+```typescript
+try {
+  await fetchData();
+} catch (error) {
+  if (error instanceof CancellationError) {
+    // キャンセル処理（早期return）
+    syncHistory = syncHistory.markAsCancelled();
+    return { status: 'CANCELLED' };
+  }
+  // その他のエラーはFAILED
+  syncHistory = syncHistory.markAsFailed(error.message);
+}
+```
+
+---
+
+### 14-5. テストの動作確認を行わずに品質保証はできない ⚠️ Critical
+
+**学び**:
+
+> 「テストの動作確認を行わずに、品質担保ができているというのは、テストというものの概念を正しく理解できていないようにも思います。」
+>
+> — ユーザーフィードバック
+
+**教訓**:
+
+- テストコードを書いただけでは不十分
+- **必ずローカルで実行してパスすることを確認**
+- テストがパスして初めて品質保証ができる
+
+**実践**:
+
+```bash
+# テスト実行（必須）
+pnpm --filter @account-book/backend test sync-all-transactions.use-case.spec
+
+# 結果確認（必須）
+# ✅ Test Suites: 1 passed, 1 total
+# ✅ Tests: 11 passed, 11 total
+```
+
+**Push前チェックリスト**:
+
+1. ✅ Lintチェック: `./scripts/test/lint.sh`
+2. ✅ ビルドチェック: `pnpm build`
+3. ✅ **テスト実行**: `./scripts/test/test.sh all`（必須！）
+4. ✅ E2Eテスト: `./scripts/test/test-e2e.sh frontend`
+
+---
+
+### 14-6. テストの冗長性を排除する 🎯 Medium
+
+#### ❌ useCase.executeが2回呼び出される（非効率）
+
+```typescript
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(NotFoundException);
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  `Credit card not found with ID: ${creditCardId}`
+);
+```
+
+**教訓**:
+
+- 同じ処理を2回実行するのは非効率
+- 副作用のある処理の場合、予期しない動作を引き起こす可能性
+
+#### ✅ 一度の呼び出しで型とメッセージの両方を検証
+
+```typescript
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  new NotFoundException(`Credit card not found with ID: ${creditCardId}`)
+);
+```
+
+---
+
+### 14-7. Factory関数でテストデータ作成を簡潔に 🧪 Medium
+
+#### ✅ Factory関数の活用
+
+```typescript
+export function createTestCreditCard(overrides?: Partial<CreditCardEntity>) {
+  return new CreditCardEntity(
+    overrides?.id || 'cc_test_123',
+    overrides?.cardName || 'テストカード'
+    // ...デフォルト値
+  );
+}
+
+// テストで使用
+const creditCard = createTestCreditCard({ isConnected: true });
+```
+
+**教訓**:
+
+- テストデータの作成が簡潔になる
+- デフォルト値を一箇所で管理できる
+- テストの可読性が向上
+
+**適用例**:
+
+- `test/helpers/credit-card.factory.ts`
+- `test/helpers/securities.factory.ts`
+- `test/helpers/institution.factory.ts`
+
+---
