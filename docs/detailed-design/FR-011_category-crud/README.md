@@ -289,15 +289,16 @@ enum CategoryType {
 
 ### 主要エンドポイント
 
-| メソッド | エンドポイント                 | 説明               |
-| -------- | ------------------------------ | ------------------ |
-| GET      | `/api/categories`              | 費目一覧取得       |
-| GET      | `/api/categories/:id`          | 費目詳細取得       |
-| POST     | `/api/categories`              | 費目追加           |
-| PUT      | `/api/categories/:id`          | 費目編集           |
-| DELETE   | `/api/categories/:id`          | 費目削除           |
-| GET      | `/api/categories/:id/usage`    | 費目使用状況確認   |
-| POST     | `/api/categories/batch-update` | 一括置換（削除時） |
+| メソッド | エンドポイント              | 説明             |
+| -------- | --------------------------- | ---------------- |
+| GET      | `/api/categories`           | 費目一覧取得     |
+| GET      | `/api/categories/:id`       | 費目詳細取得     |
+| POST     | `/api/categories`           | 費目追加         |
+| PUT      | `/api/categories/:id`       | 費目更新         |
+| DELETE   | `/api/categories/:id`       | 費目削除         |
+| GET      | `/api/categories/:id/usage` | 費目使用状況確認 |
+
+**注意**: 費目削除時の取引一括置換は `DELETE /api/categories/:id?replacementCategoryId=xxx` のクエリパラメータで指定します。
 
 ## 業務ルール
 
