@@ -66,7 +66,7 @@ describe('UpdateCategoryUseCase', () => {
       };
 
       repository.findById.mockResolvedValue(existingCategory);
-      repository.findAll.mockResolvedValue([existingCategory]);
+      repository.findByType.mockResolvedValue([existingCategory]);
       const updatedCategory = new CategoryEntity(
         existingCategory.id,
         request.name,
@@ -168,7 +168,10 @@ describe('UpdateCategoryUseCase', () => {
       };
 
       repository.findById.mockResolvedValue(existingCategory);
-      repository.findAll.mockResolvedValue([existingCategory, anotherCategory]);
+      repository.findByType.mockResolvedValue([
+        existingCategory,
+        anotherCategory,
+      ]);
 
       // Act & Assert
       await expect(useCase.execute('test-id', request)).rejects.toThrow(
@@ -197,7 +200,7 @@ describe('UpdateCategoryUseCase', () => {
       };
 
       repository.findById.mockResolvedValue(existingCategory);
-      repository.findAll.mockResolvedValue([existingCategory]);
+      repository.findByType.mockResolvedValue([existingCategory]);
       repository.update.mockResolvedValue(existingCategory);
 
       // Act
@@ -230,7 +233,7 @@ describe('UpdateCategoryUseCase', () => {
       };
 
       repository.findById.mockResolvedValue(existingCategory);
-      repository.findAll.mockResolvedValue([existingCategory]);
+      repository.findByType.mockResolvedValue([existingCategory]);
       const updatedCategory = new CategoryEntity(
         existingCategory.id,
         existingCategory.name,

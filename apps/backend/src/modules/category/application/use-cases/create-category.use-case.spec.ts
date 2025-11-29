@@ -101,7 +101,7 @@ describe('CreateCategoryUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(request)).rejects.toThrow(
-        new ConflictException('同名の費目が既に存在します'),
+        new ConflictException('同名の費目が既に存在します: 食費'),
       );
     });
 
@@ -146,7 +146,7 @@ describe('CreateCategoryUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(request)).rejects.toThrow(
-        new ConflictException('親費目が見つかりません'),
+        new ConflictException('親費目が見つかりません: non-existent-parent'),
       );
     });
 
