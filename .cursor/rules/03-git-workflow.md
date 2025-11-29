@@ -902,16 +902,19 @@ git push origin feat/XXX-description
 ```bash
 # ⚠️ 警告: この操作は慎重に行ってください
 
-# ステップ1: mainブランチのコミットを取り消す
+# ステップ1: mainブランチの現在の状態から、復旧用のブランチを作成
+git checkout -b feature/recover-my-work
+
+# ステップ2: mainブランチに切り替えて、コミットを巻き戻す
+git checkout main
 git reset --hard 'HEAD^'
 
-# ステップ2: force pushでリモートも巻き戻す
+# ステップ3: force pushでリモートのmainブランチも巻き戻す
 git push origin main --force
 
-# ステップ3: フィーチャーブランチを作成して作業をやり直す
-git checkout -b feat/XXX-description
-
-# ステップ4: 変更を再度実装してPR作成
+# ステップ4: 復旧用ブランチに切り替えて作業を続ける
+git checkout feature/recover-my-work
+# これで、このブランチから安全にPRを作成できます。
 ```
 
 ---
