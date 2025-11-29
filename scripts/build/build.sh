@@ -13,13 +13,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Voltaを優先的に使用
-export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
+# Volta環境設定を読み込み
+source "$PROJECT_ROOT/scripts/setup/volta-env.sh"
 
 # pnpmコマンドの存在確認
-if ! command -v pnpm >/dev/null 2>&1; then
-  echo "❌ エラー: pnpmコマンドが見つかりません"
-  echo "   Voltaとpnpmをインストールしてください"
+if ! check_volta_env; then
+  echo "❌ エラー: 必要なツールがインストールされていません"
   echo "   詳細: README.mdを参照"
   exit 1
 fi

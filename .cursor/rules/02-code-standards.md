@@ -6427,3 +6427,202 @@ interface ErrorResponse {
 
 - Markdownテーブル内では特殊文字をエスケープ
 - バックスラッシュ \`\\|\` を使用
+
+---
+
+## 18. Gemini Code Assist レビューから学んだ観点（PR #322 実装フェーズ）
+
+### 18-1. データベースクエリの最適化 🔴 High
+
+#### ❌ 複数回のDB呼び出し
+
+```typescript
+// 非効率：3回のDB呼び出し
+async execute(request: CreateCategoryRequest): Promise<CreateCategoryResponse> {
+  await this.checkDuplicate(request.name, request.type, request.parentId);
+  const order = await this.getNextOrder(request.type, request.parentId);
+  // ...
+}
+
+private async checkDuplicate(...) {
+  const categories = await this.repository.findByType(type); // 1回目
+}
+
+private async getNextOrder(...) {
+  const categories = await this.repository.findByType(type); // 2回目（重複）
+}
+```
+
+#### ✅ 1回のDB呼び出しに統合
+
+```typescript
+async execute(request: CreateCategoryRequest): Promise<CreateCategoryResponse> {
+  const { name, type, parentId } = request;
+
+  // 関連カテゴリを一度だけ取得し、重複チェックと順序計算を行う
+  const categories = await this.repository.findByType(type);
+  const siblings = categories.filter((c) => c.parentId === parentId);
+
+  // 重複チェック
+  const normalizedName = name.normalize('NFKC').toLowerCase();
+  const duplicate = siblings.find(
+    (c) => c.name.normalize('NFKC').toLowerCase() === normalizedName,
+  );
+  if (duplicate) {
+    throw new ConflictException(\`同名の費目が既に存在します: \${name}\`);
+  }
+
+  // 順序計算
+  const order = siblings.length > 0
+    ? Math.max(...siblings.map((c) => c.order)) + 1
+    : 0;
+  // ...
+}
+```
+
+**教訓**:
+
+- 複数のプライベートメソッドがそれぞれDBを呼び出す場合、統合を検討
+- 同じデータを複数回取得しない
+- 1回の取得で必要なロジックを全て実行
+
+---
+
+### 18-2. findAll() vs findByType() 🔴 High
+
+#### ❌ 全件取得（非効率）
+
+```typescript
+private async checkDuplicate(...): Promise<void> {
+  const categories = await this.repository.findAll(); // 全カテゴリ取得
+  // カテゴリ数が増えるとパフォーマンス低下
+}
+```
+
+#### ✅ 必要なデータのみ取得
+
+```typescript
+private async checkDuplicate(
+  name: string,
+  type: CategoryType,
+  parentId: string | null,
+  excludeId: string,
+): Promise<void> {
+  const categories = await this.repository.findByType(type); // タイプ別のみ
+  // ...
+}
+```
+
+**教訓**:
+
+- \`findAll()\`は最小限に使用
+- 可能な限り条件付きクエリ（\`findByType\`, \`findByParentId\`等）を使用
+- スケーラビリティを考慮したクエリ設計
+
+---
+
+### 18-3. テストの効率化 🟡 Medium
+
+#### ❌ 重複したexpect呼び出し
+
+```typescript
+await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
+await expect(useCase.execute(request)).rejects.toThrow('同名の費目が既に存在します');
+// 問題：2回実行される、モック状態が影響
+```
+
+#### ✅ 1回の呼び出しで型とメッセージを検証
+
+```typescript
+await expect(useCase.execute(request)).rejects.toThrow(
+  new ConflictException('同名の費目が既に存在します')
+);
+// 1回の実行で型とメッセージの両方を検証
+```
+
+**教訓**:
+
+- 例外インスタンスを直接\`toThrow\`に渡す
+- テスト実行効率が向上
+- モック状態の管理が簡単
+
+---
+
+### 18-4. it.eachでテストケースをまとめる 🟡 Medium
+
+#### ❌ 同じロジックの繰り返し
+
+```typescript
+it('#RGB形式を受け入れる', async () => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name: 'RGB形式テスト', color: '#FFF' })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+
+it('#RRGGBB形式を受け入れる', async () => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name: 'RRGGBB形式テスト', color: '#FFFFFF' })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+```
+
+#### ✅ it.eachで簡潔に
+
+```typescript
+const testCases = [
+  { format: '#RGB', color: '#FFF', name: 'RGB形式テスト' },
+  { format: '#RRGGBB', color: '#FFFFFF', name: 'RRGGBB形式テスト' },
+  { format: '#RRGGBBAA', color: '#FFFFFFFF', name: 'RRGGBBAA形式テスト' },
+];
+
+it.each(testCases)('$format形式を受け入れる', async ({ color, name }) => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name, type: CategoryType.EXPENSE, color })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+```
+
+**教訓**:
+
+- 同じロジックで異なるデータの場合は\`it.each\`を使用
+- コードの重複削減
+- テストケースの追加が容易
+
+---
+
+### 18-5. Controllerレスポンスの簡潔化 🟡 Medium
+
+#### ❌ 手動でレスポンス構築
+
+```typescript
+async delete(id: string): Promise<DeleteCategoryResponseDto> {
+  const result = await this.deleteCategoryUseCase.execute(id);
+  return {
+    success: true,
+    replacedCount: result.replacedCount,
+    message: result.message,
+  };
+}
+```
+
+#### ✅ UseCaseの返り値を直接返す
+
+```typescript
+async delete(id: string): Promise<DeleteCategoryResponseDto> {
+  return this.deleteCategoryUseCase.execute(id);
+}
+```
+
+**教訓**:
+
+- UseCaseの返り値型とControllerのレスポンス型が一致する場合は直接返す
+- コードの簡潔性向上
+- 将来の変更に強い（UseCaseの変更がControllerに自動反映）
+
+---

@@ -94,6 +94,15 @@ export class CategoryTypeOrmRepository {
   }
 
   /**
+   * カテゴリを更新
+   */
+  async update(category: CategoryEntity): Promise<CategoryEntity> {
+    const ormEntity: CategoryOrmEntity = this.toOrm(category);
+    const saved: CategoryOrmEntity = await this.repository.save(ormEntity);
+    return this.toDomain(saved);
+  }
+
+  /**
    * カテゴリを削除
    */
   async delete(id: string): Promise<void> {
