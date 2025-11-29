@@ -7,9 +7,12 @@ set -e
 # プロジェクトルートに移動
 cd "$(dirname "$0")/../.."
 
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$PATH"
+
 # 開発環境の起動方法を選択
 echo "開発環境の起動方法を選択してください:"
-echo "  1) ローカル環境 (nodeenv)"
+echo "  1) ローカル環境 (Volta)"
 echo "  2) Docker環境 (推奨)"
 read -p "選択 (1/2): " -n 1 -r
 echo

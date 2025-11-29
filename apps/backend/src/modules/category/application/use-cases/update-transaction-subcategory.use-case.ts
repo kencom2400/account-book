@@ -26,6 +26,7 @@ export interface UpdateTransactionSubcategoryDto {
 export interface UpdateTransactionSubcategoryResult {
   transactionId: string;
   subcategoryId: string;
+  subcategoryName: string;
   confidence: number;
   reason: ClassificationReason;
   confirmedAt: Date;
@@ -177,6 +178,7 @@ export class UpdateTransactionSubcategoryUseCase {
       return {
         transactionId: transaction.id,
         subcategoryId: dto.subcategoryId,
+        subcategoryName: subcategory.name,
         confidence: 1.0,
         reason: ClassificationReason.MANUAL,
         confirmedAt: now,

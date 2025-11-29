@@ -12,14 +12,21 @@ echo "================================"
 # プロジェクトルートに移動
 cd "$(dirname "$0")/../.."
 
-# 1. 環境セットアップ
-if [ ! -d ".nodeenv" ]; then
-  echo ""
-  echo "📦 Node.js環境をセットアップ中..."
-  ./scripts/setup/setup.sh
-else
-  echo "✓ Node.js環境は既にセットアップ済み"
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$PATH"
+
+# 1. Voltaの確認
+if ! command -v volta >/dev/null 2>&1; then
+  echo "❌ エラー: Voltaがインストールされていません"
+  echo "   以下のコマンドでインストールしてください:"
+  echo "   curl https://get.volta.sh | bash"
+  echo "   詳細: README.mdを参照"
+  exit 1
 fi
+
+echo "✓ Volta $(volta --version) を使用"
+echo "✓ Node.js $(node --version) を使用"
+echo "✓ pnpm $(pnpm --version) を使用"
 
 # 2. 依存パッケージのインストール
 echo ""

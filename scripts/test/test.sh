@@ -10,7 +10,20 @@ echo "テスト実行開始（カバレッジ付き）"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
+
+# pnpmコマンドの存在確認
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "❌ エラー: pnpmコマンドが見つかりません"
+  echo "   Voltaとpnpmをインストールしてください"
+  echo "   詳細: README.mdを参照"
+  exit 1
+fi
 
 # 引数でテスト対象を指定
 TARGET=${1:-all}

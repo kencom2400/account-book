@@ -5804,3 +5804,165 @@ const creditCard = createTestCreditCard({ isConnected: true });
 - `test/helpers/institution.factory.ts`
 
 ---
+
+## 15. Gemini Code Assist レビューから学んだ観点（PR #320）
+
+### 15-1. データ不整合の早期発見：警告ログの重要性 🟡 Medium
+
+#### ❌ データ不整合が検知されない
+
+```typescript
+// 店舗IDがあるが、店舗が見つからない場合
+const merchantId = classification.getMerchantId();
+if (merchantId) {
+  const merchant = await this.merchantRepository.findById(merchantId);
+  if (merchant) {
+    merchantName = merchant.name;
+  }
+  // 店舗が見つからなくても何も記録されない
+}
+```
+
+**問題点**:
+
+- 分類器が返した`merchantId`に対応する店舗が存在しない場合、データ不整合が発生
+- この不整合が検知されず、デバッグが困難になる
+- 本番環境で気づかないままデータが蓄積される可能性
+
+#### ✅ Logger注入で警告を出力
+
+```typescript
+@Injectable()
+export class ClassifySubcategoryUseCase {
+  private readonly logger = new Logger(ClassifySubcategoryUseCase.name);
+
+  constructor(
+    private readonly classifierService: SubcategoryClassifierService,
+    @Inject(SUB_CATEGORY_REPOSITORY)
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    @Inject(MERCHANT_REPOSITORY)
+    private readonly merchantRepository: IMerchantRepository
+  ) {}
+
+  async execute(dto: ClassifySubcategoryDto): Promise<ClassifySubcategoryResult> {
+    // ...
+
+    const merchantId = classification.getMerchantId();
+    if (merchantId) {
+      const merchant = await this.merchantRepository.findById(merchantId);
+      if (merchant) {
+        merchantName = merchant.name;
+      } else {
+        // データ不整合を警告ログで記録
+        this.logger.warn(
+          `Merchant with ID ${merchantId} not found, but was returned by classifier.`
+        );
+      }
+    }
+
+    // ...
+  }
+}
+```
+
+**効果**:
+
+- データ不整合の早期発見が可能
+- ログから問題のある分類パターンを特定できる
+- 分類器のトレーニングデータ改善に活用できる
+
+**チェックリスト**:
+
+1. 外部データソース（分類器、API等）が返すIDを信頼せず、必ず存在確認
+2. 期待されるデータが存在しない場合は警告ログを出力
+3. Logger注入を忘れずに
+
+---
+
+### 15-2. スプレッド構文でコードを簡潔に 🟢 Low
+
+#### ❌ 冗長なプロパティ列挙
+
+```typescript
+return {
+  subcategoryId: subcategory.id,
+  subcategoryName: subcategory.name,
+  categoryType: subcategory.categoryType,
+  parentId: subcategory.parentId,
+  displayOrder: subcategory.displayOrder,
+  icon: subcategory.icon,
+  color: subcategory.color,
+  isDefault: subcategory.isDefault,
+  isActive: subcategory.isActive,
+  confidence: classification.getConfidence().getValue(),
+  reason: classification.getReason(),
+  merchantId: merchantId || null,
+  merchantName,
+};
+```
+
+**問題点**:
+
+- プロパティを個別に代入していて冗長
+- 新しいプロパティ追加時に漏れが発生しやすい
+- 保守性が低い
+
+#### ✅ スプレッド構文と分割代入を活用
+
+```typescript
+// createdAt/updatedAtを除外し、id/nameをリネーム
+const { id, name, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = subcategory;
+
+return {
+  subcategoryId: id,
+  subcategoryName: name,
+  ...rest, // 残りのプロパティを一括展開
+  confidence: classification.getConfidence().getValue(),
+  reason: classification.getReason(),
+  merchantId: merchantId || null,
+  merchantName,
+};
+```
+
+**効果**:
+
+- コードが簡潔で可読性が向上
+- 新しいプロパティが自動的に含まれる
+- メンテナンス性が向上
+
+**チェックリスト**:
+
+1. 不要なプロパティ（`createdAt`, `updatedAt`等）を分割代入で除外
+2. リネームが必要なプロパティ（`id` → `subcategoryId`）は明示的に指定
+3. 残りは`...rest`で一括展開
+4. 未使用変数には`_`プレフィックスを付ける（ESLintエラー回避）
+
+---
+
+### 15-3. Geminiレビュー対応フロー
+
+**ルール**: Geminiからの指摘は必ず個別commit/pushで対応する
+
+**手順**:
+
+1. Geminiレビューコメントを確認
+2. 各指摘に対して個別に対応
+3. 各対応ごとにcommit（コミットメッセージに指摘内容を記載）
+4. push
+5. 全対応完了後、PRコメントで返信
+
+**コミットメッセージ例**:
+
+```bash
+refactor(category): Geminiレビュー対応
+
+1. 店舗が見つからない場合の警告ログ追加
+   - Merchant not foundの警告を出力
+   - データ不整合の早期発見が可能に
+
+2. 戻り値生成をスプレッド構文でリファクタリング
+   - createdAt/updatedAtを除外
+   - コードを簡潔に保守しやすく改善
+```
+
+---

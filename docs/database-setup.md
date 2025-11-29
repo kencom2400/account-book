@@ -54,9 +54,6 @@ docker-compose up -d
 ### 3. マイグレーションの実行
 
 ```bash
-# nodeenv環境をアクティベート
-source scripts/setup/activate.sh
-
 # マイグレーション実行
 cd apps/backend
 pnpm run migration:run
@@ -67,9 +64,6 @@ pnpm run migration:run
 既存のJSONデータをMySQLに移行する場合：
 
 ```bash
-# nodeenv環境をアクティベート
-source scripts/setup/activate.sh
-
 # データ移行スクリプト実行
 cd apps/backend
 pnpm ts-node scripts/migrate-json-to-mysql.ts

@@ -251,17 +251,26 @@ pnpm test:e2e:cov
 
 ## トラブルシューティング
 
-### nodeenvが見つからない
+### Voltaが見つからない
 
-**エラー**: `⚠ .nodeenv が見つかりません`
+**エラー**: `volta: command not found` または `pnpm: command not found`
 
 **対処法**:
 
 ```bash
-./scripts/setup/initial-setup.sh
-# または
-source .nodeenv/bin/activate
+# Voltaをインストール
+curl https://get.volta.sh | bash
+
+# シェルを再起動してPATHを反映
+exec $SHELL
+
+# プロジェクトでVoltaを設定
+cd /path/to/account-book
+volta install node@24.11.1
+volta install pnpm@8.15.0
 ```
+
+詳細はREADME.mdを参照してください。
 
 ### jqコマンドが見つからない
 
