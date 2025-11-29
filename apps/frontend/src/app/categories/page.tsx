@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Category, CategoryType } from '@account-book/types';
-import { getCategories, createCategory, updateCategory, deleteCategory, checkCategoryUsage } from '@/lib/api/categories';
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  checkCategoryUsage,
+} from '@/lib/api/categories';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { CategoryList } from '@/components/categories/CategoryList';
 import { DeleteConfirmModal } from '@/components/categories/DeleteConfirmModal';
@@ -11,7 +17,7 @@ import { Card } from '@/components/ui/Card';
 /**
  * 費目管理ページ
  */
-export default function CategoryManagementPage() {
+export default function CategoryManagementPage(): JSX.Element {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +26,7 @@ export default function CategoryManagementPage() {
   const [filterType, setFilterType] = useState<CategoryType | 'ALL'>('ALL');
 
   // 費目一覧を取得
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -33,11 +39,11 @@ export default function CategoryManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType]);
 
   useEffect(() => {
     void loadCategories();
-  }, [filterType]);
+  }, [loadCategories]);
 
   // 費目作成
   const handleCreate = async (data: {
@@ -58,7 +64,7 @@ export default function CategoryManagementPage() {
   // 費目更新
   const handleUpdate = async (
     id: string,
-    data: { name: string; icon?: string | null; color?: string | null },
+    data: { name: string; icon?: string | null; color?: string | null }
   ): Promise<void> => {
     try {
       await updateCategory(id, data);
@@ -121,7 +127,10 @@ export default function CategoryManagementPage() {
               category={selectedCategory}
               onSubmit={(data) => {
                 if (selectedCategory) {
-                  void handleUpdate(selectedCategory.id, data as { name: string; icon?: string | null; color?: string | null });
+                  void handleUpdate(
+                    selectedCategory.id,
+                    data as { name: string; icon?: string | null; color?: string | null }
+                  );
                 } else {
                   void handleCreate(data);
                 }
@@ -140,9 +149,7 @@ export default function CategoryManagementPage() {
               <button
                 onClick={() => setFilterType('ALL')}
                 className={`px-4 py-2 rounded ${
-                  filterType === 'ALL'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
+                  filterType === 'ALL' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
                 }`}
               >
                 すべて
@@ -202,4 +209,3 @@ export default function CategoryManagementPage() {
     </div>
   );
 }
-

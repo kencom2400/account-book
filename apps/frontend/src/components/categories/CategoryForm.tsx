@@ -18,7 +18,7 @@ interface CategoryFormProps {
 /**
  * 費目フォームコンポーネント
  */
-export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps) {
+export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps): JSX.Element {
   const [name, setName] = useState('');
   const [type, setType] = useState<CategoryType>(CategoryType.EXPENSE);
   const [icon, setIcon] = useState('');
@@ -38,7 +38,7 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
     }
   }, [category]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     onSubmit({
       name,
@@ -51,16 +51,15 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold mb-4">
-          {category ? '費目編集' : '費目作成'}
-        </h2>
+        <h2 className="text-xl font-bold mb-4">{category ? '費目編集' : '費目作成'}</h2>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="category-name" className="block text-sm font-medium mb-1">
           費目名 <span className="text-red-500">*</span>
         </label>
         <input
+          id="category-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -73,10 +72,11 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
 
       {!category && (
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="category-type" className="block text-sm font-medium mb-1">
             タイプ <span className="text-red-500">*</span>
           </label>
           <select
+            id="category-type"
             value={type}
             onChange={(e) => setType(e.target.value as CategoryType)}
             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -90,10 +90,11 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
       )}
 
       <div>
-        <label className="block text-sm font-medium mb-1">
+        <label htmlFor="category-icon" className="block text-sm font-medium mb-1">
           アイコン（絵文字）
         </label>
         <input
+          id="category-icon"
           type="text"
           value={icon}
           onChange={(e) => setIcon(e.target.value)}
@@ -104,7 +105,9 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">カラー</label>
+        <label htmlFor="category-color" className="block text-sm font-medium mb-1">
+          カラー
+        </label>
         <div className="flex gap-2">
           <input
             type="color"
@@ -113,6 +116,7 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
             className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
           />
           <input
+            id="category-color"
             type="text"
             value={color}
             onChange={(e) => setColor(e.target.value)}
@@ -121,9 +125,7 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
             pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"
           />
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          #RGB, #RRGGBB, #RRGGBBAA形式で入力
-        </p>
+        <p className="text-xs text-gray-500 mt-1">#RGB, #RRGGBB, #RRGGBBAA形式で入力</p>
       </div>
 
       <div className="flex gap-2 pt-4">
@@ -146,4 +148,3 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
     </form>
   );
 }
-

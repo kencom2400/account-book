@@ -19,14 +19,14 @@ export function DeleteConfirmModal({
   categories,
   onConfirm,
   onCancel,
-}: DeleteConfirmModalProps) {
+}: DeleteConfirmModalProps): JSX.Element {
   const [isUsed, setIsUsed] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
   const [replacementId, setReplacementId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUsage = async () => {
+    const checkUsage = async (): Promise<void> => {
       try {
         const usage = await checkCategoryUsage(category.id);
         setIsUsed(usage.isUsed);
@@ -40,7 +40,7 @@ export function DeleteConfirmModal({
     void checkUsage();
   }, [category.id]);
 
-  const handleConfirm = () => {
+  const handleConfirm = (): void => {
     if (isUsed && !replacementId) {
       alert('代替費目を選択してください');
       return;
@@ -49,10 +49,7 @@ export function DeleteConfirmModal({
   };
 
   const replacementOptions = categories.filter(
-    (c) =>
-      c.id !== category.id &&
-      c.type === category.type &&
-      !c.isSystemDefined,
+    (c) => c.id !== category.id && c.type === category.type && !c.isSystemDefined
   );
 
   return (
@@ -64,9 +61,7 @@ export function DeleteConfirmModal({
           <div className="text-center py-4">確認中...</div>
         ) : (
           <>
-            <p className="mb-4">
-              「{category.name}」を削除してもよろしいですか？
-            </p>
+            <p className="mb-4">「{category.name}」を削除してもよろしいですか？</p>
 
             {isUsed && (
               <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
@@ -74,10 +69,11 @@ export function DeleteConfirmModal({
                   ⚠️ この費目は{usageCount}件の取引で使用されています
                 </p>
                 <div className="mt-3">
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="replacement-category" className="block text-sm font-medium mb-1">
                     代替費目を選択してください <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="replacement-category"
                     value={replacementId}
                     onChange={(e) => setReplacementId(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -115,4 +111,3 @@ export function DeleteConfirmModal({
     </div>
   );
 }
-
