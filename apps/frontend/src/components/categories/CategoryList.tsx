@@ -11,7 +11,11 @@ interface CategoryListProps {
 /**
  * 費目一覧コンポーネント
  */
-export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps): JSX.Element {
+export function CategoryList({
+  categories,
+  onEdit,
+  onDelete,
+}: CategoryListProps): React.JSX.Element {
   if (categories.length === 0) {
     return <div className="text-center py-8 text-gray-500">費目がありません</div>;
   }

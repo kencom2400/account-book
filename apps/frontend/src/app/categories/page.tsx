@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/Card';
 /**
  * 費目管理ページ
  */
-export default function CategoryManagementPage(): JSX.Element {
+export default function CategoryManagementPage(): React.JSX.Element {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

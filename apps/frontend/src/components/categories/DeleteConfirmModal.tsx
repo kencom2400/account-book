@@ -19,7 +19,7 @@ export function DeleteConfirmModal({
   categories,
   onConfirm,
   onCancel,
-}: DeleteConfirmModalProps): JSX.Element {
+}: DeleteConfirmModalProps): React.JSX.Element {
   const [isUsed, setIsUsed] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
   const [replacementId, setReplacementId] = useState('');

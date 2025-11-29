@@ -18,7 +18,11 @@ interface CategoryFormProps {
 /**
  * 費目フォームコンポーネント
  */
-export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps): JSX.Element {
+export function CategoryForm({
+  category,
+  onSubmit,
+  onCancel,
+}: CategoryFormProps): React.JSX.Element {
   const [name, setName] = useState('');
   const [type, setType] = useState<CategoryType>(CategoryType.EXPENSE);
   const [icon, setIcon] = useState('');
