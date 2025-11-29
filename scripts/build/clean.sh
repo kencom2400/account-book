@@ -9,12 +9,8 @@ echo "================================"
 # プロジェクトルートに移動
 cd "$(dirname "$0")/../.."
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。"
-fi
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$PATH"
 
 echo ""
 echo "🧹 ビルド成果物を削除中..."

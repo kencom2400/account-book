@@ -1,12 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# プロジェクトのnodeenv環境を優先的に使用
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# nodeenv、pnpm、その他の一般的なパスをPATHに追加
-export PATH="$PROJECT_ROOT/.nodeenv/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
 
 # pnpmコマンドを探す関数
 find_pnpm() {
