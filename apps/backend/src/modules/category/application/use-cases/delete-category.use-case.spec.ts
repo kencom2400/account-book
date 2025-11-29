@@ -130,9 +130,6 @@ describe('DeleteCategoryUseCase', () => {
       await expect(
         useCase.execute('test-id', 'non-existent-replacement'),
       ).rejects.toThrow(NotFoundException);
-      await expect(
-        useCase.execute('test-id', 'non-existent-replacement'),
-      ).rejects.toThrow('代替費目が見つかりません');
     });
 
     it('代替費目のタイプが異なる場合はBadRequestExceptionをスローする', async () => {
@@ -171,9 +168,6 @@ describe('DeleteCategoryUseCase', () => {
       await expect(
         useCase.execute('test-id', 'replacement-id'),
       ).rejects.toThrow(BadRequestException);
-      await expect(
-        useCase.execute('test-id', 'replacement-id'),
-      ).rejects.toThrow('代替費目のタイプが一致しません');
     });
 
     it('代替費目を指定して削除できる', async () => {

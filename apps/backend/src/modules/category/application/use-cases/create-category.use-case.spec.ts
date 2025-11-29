@@ -128,6 +128,7 @@ describe('CreateCategoryUseCase', () => {
       );
 
       repository.findByType.mockResolvedValue([existingCategory]);
+      repository.findById.mockResolvedValue(null); // 親IDチェックをスキップ
 
       // Act & Assert
       await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
