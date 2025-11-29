@@ -452,10 +452,6 @@ classDiagram
         +validate() boolean
     }
 
-    class DeleteCategoryDto {
-        +string replacementCategoryId
-    }
-
     class CategoryResponseDto {
         +string id
         +string name
@@ -492,7 +488,6 @@ classDiagram
 
     CategoryController ..> CreateCategoryDto
     CategoryController ..> UpdateCategoryDto
-    CategoryController ..> DeleteCategoryDto
     CategoryController ..> CategoryResponseDto
     CategoryController ..> CategoryListResponseDto
     CategoryController ..> DeleteResponseDto
@@ -530,11 +525,7 @@ classDiagram
   - `icon`: 任意、絵文字
   - `color`: 任意、HEXカラーコード
 
-#### DeleteCategoryDto
-
-- **責務**: 費目削除リクエストのバリデーション
-- **バリデーション**:
-  - `replacementCategoryId`: 使用中の場合は必須
+**注意**: `DeleteCategoryDto`は削除されました。削除時の代替費目IDはクエリパラメータで指定します。
 
 ---
 
