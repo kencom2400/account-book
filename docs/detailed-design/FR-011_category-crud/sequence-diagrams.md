@@ -262,8 +262,8 @@ sequenceDiagram
     TxRepo-->>DS: usageCount
 
     DS->>TxRepo: findByCategoryId(id, limit 10)
-    TxRepo->>DB: SELECT *<br/>FROM transactions<br/>WHERE category_id = ?<br/>LIMIT 10
-    DB-->>TxRepo: transactions
+    TxRepo->>DB: SELECT id<br/>FROM transactions<br/>WHERE category_id = ?<br/>LIMIT 10
+    DB-->>TxRepo: transaction ids
     TxRepo-->>DS: transactionIds
 
     DS-->>API: UsageInfo<br/>{isUsed: true, count: 50, ids: [...]}
