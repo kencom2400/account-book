@@ -2,15 +2,31 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
+  Body,
+  Param,
   Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { InitializeCategoriesUseCase } from '../../application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from '../../application/use-cases/get-categories.use-case';
+import { GetCategoryByIdUseCase } from '../../application/use-cases/get-category-by-id.use-case';
+import { CreateCategoryUseCase } from '../../application/use-cases/create-category.use-case';
+import { UpdateCategoryUseCase } from '../../application/use-cases/update-category.use-case';
+import { DeleteCategoryUseCase } from '../../application/use-cases/delete-category.use-case';
+import { CheckCategoryUsageUseCase } from '../../application/use-cases/check-category-usage.use-case';
 import { CategoryEntity } from '../../domain/entities/category.entity';
 import { CategoryNode } from '../../domain/services/category-domain.service';
 import { CategoryType } from '@account-book/types';
+import { CreateCategoryDto } from '../dto/create-category.dto';
+import { UpdateCategoryDto } from '../dto/update-category.dto';
+import {
+  CategoryResponseDto,
+  DeleteCategoryResponseDto,
+  CategoryUsageResponseDto,
+} from '../dto/category-response.dto';
 
 // DTOs
 class GetCategoriesQueryDto {
@@ -28,6 +44,11 @@ export class CategoryController {
   constructor(
     private readonly initializeCategoriesUseCase: InitializeCategoriesUseCase,
     private readonly getCategoriesUseCase: GetCategoriesUseCase,
+    private readonly getCategoryByIdUseCase: GetCategoryByIdUseCase,
+    private readonly createCategoryUseCase: CreateCategoryUseCase,
+    private readonly updateCategoryUseCase: UpdateCategoryUseCase,
+    private readonly deleteCategoryUseCase: DeleteCategoryUseCase,
+    private readonly checkCategoryUsageUseCase: CheckCategoryUsageUseCase,
   ) {}
 
   /**
@@ -95,6 +116,87 @@ export class CategoryController {
         return c;
       }),
       count: categories.length,
+    };
+  }
+
+  /**
+   * 費目を追加
+   * POST /categories
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() dto: CreateCategoryDto): Promise<CategoryResponseDto> {
+    const result = await this.createCategoryUseCase.execute({
+      name: dto.name,
+      type: dto.type,
+      parentId: dto.parentId,
+      icon: dto.icon,
+      color: dto.color,
+    });
+
+    return result.category.toJSON();
+  }
+
+  /**
+   * 費目を単一取得
+   * GET /categories/:id
+   */
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+    const result = await this.getCategoryByIdUseCase.execute(id);
+    return result.category.toJSON();
+  }
+
+  /**
+   * 費目を更新
+   * PUT /categories/:id
+   */
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCategoryDto,
+  ): Promise<CategoryResponseDto> {
+    const result = await this.updateCategoryUseCase.execute(id, {
+      name: dto.name,
+      icon: dto.icon,
+      color: dto.color,
+    });
+
+    return result.category.toJSON();
+  }
+
+  /**
+   * 費目を削除
+   * DELETE /categories/:id
+   */
+  @Delete(':id')
+  async delete(
+    @Param('id') id: string,
+    @Query('replacementCategoryId') replacementCategoryId?: string,
+  ): Promise<DeleteCategoryResponseDto> {
+    const result = await this.deleteCategoryUseCase.execute(
+      id,
+      replacementCategoryId,
+    );
+
+    return {
+      success: true,
+      replacedCount: result.replacedCount,
+      message: result.message,
+    };
+  }
+
+  /**
+   * 費目使用状況を確認
+   * GET /categories/:id/usage
+   */
+  @Get(':id/usage')
+  async checkUsage(@Param('id') id: string): Promise<CategoryUsageResponseDto> {
+    const result = await this.checkCategoryUsageUseCase.execute(id);
+    return {
+      isUsed: result.isUsed,
+      usageCount: result.usageCount,
+      transactionSamples: result.transactionSamples,
     };
   }
 }

@@ -16,6 +16,11 @@ import { MerchantMatcherService } from './domain/services/merchant-matcher.servi
 import { KeywordMatcherService } from './domain/services/keyword-matcher.service';
 import { InitializeCategoriesUseCase } from './application/use-cases/initialize-categories.use-case';
 import { GetCategoriesUseCase } from './application/use-cases/get-categories.use-case';
+import { GetCategoryByIdUseCase } from './application/use-cases/get-category-by-id.use-case';
+import { CreateCategoryUseCase } from './application/use-cases/create-category.use-case';
+import { UpdateCategoryUseCase } from './application/use-cases/update-category.use-case';
+import { DeleteCategoryUseCase } from './application/use-cases/delete-category.use-case';
+import { CheckCategoryUsageUseCase } from './application/use-cases/check-category-usage.use-case';
 import { ClassifySubcategoryUseCase } from './application/use-cases/classify-subcategory.use-case';
 import { GetSubcategoriesUseCase } from './application/use-cases/get-subcategories.use-case';
 import { GetSubcategoriesByCategoryUseCase } from './application/use-cases/get-subcategories-by-category.use-case';
@@ -63,6 +68,11 @@ import { TransactionCategoryChangeHistoryOrmEntity } from '../transaction/infras
     // Use Cases
     InitializeCategoriesUseCase,
     GetCategoriesUseCase,
+    GetCategoryByIdUseCase,
+    CreateCategoryUseCase,
+    UpdateCategoryUseCase,
+    DeleteCategoryUseCase,
+    CheckCategoryUsageUseCase,
     ClassifySubcategoryUseCase,
     GetSubcategoriesUseCase,
     GetSubcategoriesByCategoryUseCase,
