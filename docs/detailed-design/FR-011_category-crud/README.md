@@ -29,7 +29,6 @@
 │  - CategoryController                   │
 │  - CreateCategoryDto                    │
 │  - UpdateCategoryDto                    │
-│  - DeleteCategoryDto                    │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────┴──────────────────────────┐
@@ -100,8 +99,9 @@
   - `GET /api/categories/:id/usage` - 使用状況確認
 - `CreateCategoryDto` - 費目追加DTO
 - `UpdateCategoryDto` - 費目更新DTO
-- `DeleteCategoryDto` - 費目削除DTO（代替費目ID含む）
 - `CategoryResponseDto` - 費目レスポンスDTO
+
+**注意**: 費目削除時の代替費目IDはクエリパラメータで指定します（`DELETE /api/categories/:id?replacementCategoryId=xxx`）
 
 ### Frontend (Next.js)
 
@@ -161,10 +161,10 @@ CREATE TABLE categories (
 );
 ```
 
-**注意**: 論理削除を実装する場合は、以下のマイグレーションが必要です：
+**注意**: 上記のテーブル定義は論理削除を実装する場合の理想的な構造です。実際の既存テーブルにこれらのカラムがまだ存在しない場合は、以下のマイグレーションが必要です：
 
 ```sql
--- マイグレーション例（将来実装時）
+-- マイグレーション例（論理削除カラムが未実装の場合）
 ALTER TABLE categories
   ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT true,
   ADD COLUMN deleted_at TIMESTAMP NULL,
@@ -532,6 +532,6 @@ enum CategoryType {
 
 ### オプション項目
 
-- [ ] 画面遷移図が作成されている（作成予定）
+- [x] 画面遷移図が作成されている
 - [ ] 状態遷移図は不要（シンプルなCRUD）
 - [ ] バッチ処理詳細は不要（バッチ処理なし）

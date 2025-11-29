@@ -6398,6 +6398,7 @@ interface ErrorResponse {
   success: false;
   error: string; // 必ず存在
   message: string;
+  details?: object; // エラー詳細（任意）
 }
 ```
 
