@@ -11,7 +11,7 @@ import { CATEGORY_REPOSITORY } from '../../domain/repositories/category.reposito
  * 費目削除のレスポンスデータ
  */
 export interface DeleteCategoryResponse {
-  success: boolean;
+  success: true;
   replacedCount: number;
   message: string;
 }
