@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CategoryType } from '@account-book/types';
 import { SubcategoryClassifierService } from '../../domain/services/subcategory-classifier.service';
 import { ClassificationReason } from '../../domain/enums/classification-reason.enum';
@@ -38,6 +38,8 @@ export interface ClassifySubcategoryResult {
  */
 @Injectable()
 export class ClassifySubcategoryUseCase {
+  private readonly logger = new Logger(ClassifySubcategoryUseCase.name);
+
   constructor(
     private readonly classifierService: SubcategoryClassifierService,
     @Inject(SUB_CATEGORY_REPOSITORY)
@@ -81,20 +83,25 @@ export class ClassifySubcategoryUseCase {
       const merchant = await this.merchantRepository.findById(merchantId);
       if (merchant) {
         merchantName = merchant.name;
+      } else {
+        this.logger.warn(
+          `Merchant with ID ${merchantId} not found, but was returned by classifier.`,
+        );
       }
     }
 
-    // 完全なデータを返す
+    // 完全なデータを返す（スプレッド構文で簡潔に）
+    const {
+      id,
+      name,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...rest
+    } = subcategory;
     return {
-      subcategoryId: subcategory.id,
-      subcategoryName: subcategory.name,
-      categoryType: subcategory.categoryType,
-      parentId: subcategory.parentId,
-      displayOrder: subcategory.displayOrder,
-      icon: subcategory.icon,
-      color: subcategory.color,
-      isDefault: subcategory.isDefault,
-      isActive: subcategory.isActive,
+      subcategoryId: id,
+      subcategoryName: name,
+      ...rest,
       confidence: classification.getConfidence().getValue(),
       reason: classification.getReason(),
       merchantId: merchantId || null,
