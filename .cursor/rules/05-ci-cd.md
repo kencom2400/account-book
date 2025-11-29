@@ -451,3 +451,301 @@ jobs:
 - 使用する環境・ツールのバージョンが明記されている
 - 記述スタイルが統一されている
 - 専門用語が正確に使用されている
+
+---
+
+## パフォーマンス測定とテストのベストプラクティス
+
+### パフォーマンス測定の精度向上 🟠 High
+
+**学習元**: PR #259 - パフォーマンステストとチューニング
+
+#### ❌ 悪い例: Date.now()の使用
+
+```typescript
+const startTime = Date.now();
+await someOperation();
+const duration = Date.now() - startTime;
+```
+
+**問題点**:
+
+- ミリ秒単位の精度しかない
+- システムクロックの変更に影響を受ける
+- 短い処理時間の測定には不十分
+
+#### △ 良い例: performance.now()の使用
+
+```typescript
+import { performance } from 'perf_hooks';
+
+const startTime = performance.now();
+await someOperation();
+const duration = performance.now() - startTime;
+```
+
+**利点**:
+
+- マイクロ秒単位の精度
+- 単調増加が保証
+- システムクロックの変更に影響されない
+
+#### ✅ 最良の例: process.hrtime.bigint()の使用
+
+```typescript
+// ヘルパー関数を定義
+function measureTime(startTime: bigint): number {
+  return Number(process.hrtime.bigint() - startTime) / 1_000_000;
+}
+
+// テストコード
+const startTime = process.hrtime.bigint();
+await someOperation();
+const duration = measureTime(startTime);
+```
+
+**利点**:
+
+- ナノ秒単位の高精度計測
+- BigInt型で精度の損失なし
+- 短いレスポンスタイムも正確に測定可能
+- 単調増加が保証
+
+---
+
+### 非同期処理の待機ロジック 🟡 Medium
+
+#### ❌ 悪い例: 固定時間のsleep
+
+```bash
+start-database.sh
+sleep 5  # 固定5秒待機
+```
+
+**問題点**:
+
+- 環境によって起動時間が異なる
+- 5秒で足りない場合がある
+- 必要以上に待機する可能性がある
+
+#### ✅ 良い例: ポーリング＋タイムアウト
+
+```bash
+max_wait=30
+waited=0
+while ! nc -z localhost 3306 2>/dev/null && [ $waited -lt $max_wait ]; do
+  sleep 1
+  waited=$((waited + 1))
+  echo -n "."
+done
+
+if [ $waited -ge $max_wait ]; then
+  echo "Failed to start within ${max_wait} seconds"
+  exit 1
+fi
+```
+
+**利点**:
+
+- 起動完了次第即座に進行
+- タイムアウトで無限待機を防止
+- CI環境での安定性向上
+
+---
+
+### フロントエンドパフォーマンステスト 🟡 Medium
+
+#### ❌ 悪い例: 固定時間待機
+
+```typescript
+// Core Web Vitals取得
+setTimeout(() => {
+  resolve(metrics);
+}, 3000); // 常に3秒待機
+```
+
+**問題点**:
+
+- メトリクスが早く取得できても3秒待機
+- 3秒で取得できない場合もある
+- テスト実行時間の無駄
+
+#### ✅ 良い例: ポーリング＋タイムアウト
+
+```typescript
+const pollInterval = setInterval(() => {
+  if (fcpCaptured && lcpCaptured) {
+    clearInterval(pollInterval);
+    clearTimeout(timeoutId);
+    resolve(metrics);
+  }
+}, 100);
+
+const timeoutId = setTimeout(() => {
+  clearInterval(pollInterval);
+  resolve(metrics); // 部分的な結果でも返す
+}, 5000);
+```
+
+**利点**:
+
+- 取得完了次第即座に進行
+- テスト実行速度の向上
+- 信頼性の向上
+
+---
+
+### レガシーAPIの使用回避 🟡 Medium
+
+#### ❌ 悪い例: window.performance.timing
+
+```typescript
+const perfData = window.performance.timing;
+const duration = perfData.loadEventEnd - perfData.navigationStart;
+```
+
+**問題点**:
+
+- 非推奨API（将来削除される可能性）
+- 精度が低い
+
+#### ✅ 良い例: Navigation Timing API Level 2
+
+```typescript
+const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+const duration = navigation.loadEventEnd - navigation.loadEventStart;
+```
+
+**利点**:
+
+- 最新の標準API
+- より詳細なメトリクスを取得可能
+- 将来的な互換性が保証されている
+
+---
+
+### データベーステストの実用性 🟠 High
+
+#### ❌ 悪い例: データベースにアクセスしないエンドポイント
+
+```typescript
+describe('Database Connection Pool Performance', () => {
+  it('should manage pool efficiently', async () => {
+    // /api/healthはDBにアクセスしないため、コネクションプールを測定できない
+    const requests = Array.from({ length: 30 }, () => request(app).get('/api/health'));
+    await Promise.all(requests);
+  });
+});
+```
+
+**問題点**:
+
+- コネクションプールの負荷を測定できない
+- テスト名と実際の測定内容が乖離
+- 実用的でないパフォーマンステスト
+
+#### ✅ 良い例: 実際にDBにアクセスするエンドポイント
+
+```typescript
+describe('Database Connection Pool Performance', () => {
+  it('should manage pool efficiently', async () => {
+    // テストデータを準備
+    await seedTestData();
+
+    // /api/institutionsは実際にDBにアクセスする
+    const requests = Array.from({ length: 30 }, () => request(app).get('/api/institutions'));
+    const startTime = process.hrtime.bigint();
+    await Promise.all(requests);
+    const duration = measureTime(startTime);
+
+    // コネクションプールの効率を正確に測定できる
+    expect(duration).toBeLessThan(3000);
+  });
+});
+```
+
+**利点**:
+
+- 実際のDBアクセスで正確な測定
+- コネクションプールの負荷を適切に評価
+- 実運用に近い条件でのテスト
+
+---
+
+### フロントエンドテストの堅牢性 🟡 Medium
+
+#### ❌ 悪い例: 固定時間待機
+
+```typescript
+test('Button clicks should respond quickly', async ({ page }) => {
+  await buttons[0].click();
+  await page.waitForTimeout(100); // 固定100ms待機
+  const duration = Date.now() - startTime;
+});
+```
+
+**問題点**:
+
+- フレーキーテスト（不安定なテスト）の原因
+- 環境によって動作が変わる
+- クリック後の変化を正しく待機していない
+
+#### ✅ 良い例: イベントベースの待機
+
+```typescript
+test('Button clicks should respond quickly', async ({ page }) => {
+  await buttons[0].click();
+  // 具体的な変化（モーダル表示など）を待つ
+  await page.waitForSelector('.modal-dialog', {
+    state: 'visible',
+    timeout: 500,
+  });
+  const duration = Date.now() - startTime;
+});
+```
+
+**利点**:
+
+- テストの堅牢性向上
+- 具体的な変化を待つことで意図が明確
+- タイムアウトで無限待機を防止
+
+---
+
+### CI/CD設定の最新化 🟡 Medium
+
+#### ❌ 悪い例: 古いアクションバージョン
+
+```yaml
+- uses: actions/checkout@v3
+- uses: actions/setup-node@v3
+- uses: actions/upload-artifact@v3
+```
+
+#### ✅ 良い例: 最新バージョンの使用
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+- uses: actions/upload-artifact@v4
+  with:
+    if-no-files-found: ignore # ファイルがない場合も継続
+```
+
+**利点**:
+
+- セキュリティアップデートの適用
+- 新機能の利用
+- 将来的な互換性の確保
+
+---
+
+### 計測精度の進化
+
+```
+Date.now() → performance.now() → process.hrtime.bigint()
+   ↓              ↓                    ↓
+ミリ秒         マイクロ秒           ナノ秒
+```
+
+---
