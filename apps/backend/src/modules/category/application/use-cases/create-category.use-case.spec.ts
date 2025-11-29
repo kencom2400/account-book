@@ -109,14 +109,14 @@ describe('CreateCategoryUseCase', () => {
     it('NFKC正規化により、大文字小文字の違いを無視して重複を検出する', async () => {
       // Arrange
       const request = {
-        name: 'ショクヒ', // カタカナ
+        name: 'SHOKUHI', // 大文字
         type: CategoryType.EXPENSE,
         parentId: null,
       };
 
       const existingCategory = new CategoryEntity(
         'existing-id',
-        'しょくひ', // ひらがな
+        'shokuhi', // 小文字
         CategoryType.EXPENSE,
         null,
         null,
