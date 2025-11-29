@@ -693,14 +693,17 @@ test('Button clicks should respond quickly', async ({ page }) => {
 #### ✅ 良い例: イベントベースの待機
 
 ```typescript
+import { performance } from 'perf_hooks';
+
 test('Button clicks should respond quickly', async ({ page }) => {
+  const startTime = performance.now();
   await buttons[0].click();
   // 具体的な変化（モーダル表示など）を待つ
   await page.waitForSelector('.modal-dialog', {
     state: 'visible',
     timeout: 500,
   });
-  const duration = Date.now() - startTime;
+  const duration = performance.now() - startTime;
 });
 ```
 
