@@ -6247,3 +6247,182 @@ async checkCategoryUsage(categoryId: string) {
 - LIMIT句で取得件数を制限
 - メモリとネットワーク帯域を節約
 - クエリの意図が明確になる
+
+---
+
+## 17. 詳細設計書レビュー第2弾から学んだ観点（Issue #32 / PR #321）
+
+### 17-1. N+1問題の回避（API設計） 🔴 Critical
+
+**学習元**: Issue #32 / PR #321 - Geminiレビュー（FR-011 詳細設計書 第2弾）
+
+#### ❌ 避けるべきパターン: IDのみ返却 + 追加APIコール
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionIds: string[]; // IDのみ
+}
+```
+
+**UI表示**:
+
+```typescript
+// 各IDに対して追加APIコールが必要（N+1問題）
+const transactionDetails = await Promise.all(
+  transactionIds.map((id) => fetchTransactionDetail(id))
+);
+```
+
+**問題点**:
+
+- UI表示に必要な情報を取得するために複数のAPIコールが必要
+- N+1問題によるパフォーマンス低下
+- ネットワーク遅延の累積
+
+#### ✅ 正しいパターン: 表示に必要な情報を含める
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionSamples: TransactionSample[]; // 詳細情報を含む
+}
+
+interface TransactionSample {
+  id: string;
+  date: string; // 表示用
+  description: string; // 表示用
+  amount: number; // 表示用
+}
+```
+
+**教訓**:
+
+- UI表示に必要な情報を事前に考慮
+- 1回のAPIコールで完結するよう設計
+- フロントエンドの実装を想定した設計
+
+---
+
+### 17-2. RESTful API設計の原則 🟡 High
+
+#### ❌ 避けるべきパターン: 冗長なエンドポイント
+
+```markdown
+DELETE /api/categories/:id
+POST /api/categories/batch-update
+```
+
+**問題点**:
+
+- 削除時の一括置換が別エンドポイントとして分離
+- APIの責務が不明確
+
+#### ✅ 正しいパターン: 単一エンドポイントで完結
+
+```markdown
+DELETE /api/categories/:id?replacementCategoryId=xxx
+```
+
+**教訓**:
+
+- RESTful な設計原則に従う
+- 関連する操作は単一エンドポイントで処理
+
+---
+
+### 17-3. 文字列正規化の明確化 🟡 High
+
+#### ❌ 避けるべきパターン: 曖昧なルール記述
+
+```markdown
+- 大文字小文字を区別しない
+- 例: 「ペット」と「ぺっと」は重複
+```
+
+**問題点**:
+
+- ひらがな/カタカナは大文字小文字の問題ではない
+- 実装時に混乱を招く
+
+#### ✅ 正しいパターン: NFKC正規化を明記
+
+```markdown
+- 文字の正規化後に比較（NFKC正規化）
+  - ひらがな/カタカナの統一
+  - 全角/半角の統一
+  - 大文字/小文字の統一
+```
+
+**教訓**:
+
+- 文字列比較のルールは具体的に記述
+- NFKC正規化などの技術用語を使用
+
+---
+
+### 17-4. Discriminated Union型の活用 🟢 Medium
+
+#### ❌ 避けるべきパターン: 曖昧なユニオン型
+
+```typescript
+interface ApiResponse {
+  success: boolean;
+  data?: SomeData;
+  error?: string;
+}
+```
+
+**問題点**:
+
+- \`success: true\` でも \`data\` が \`undefined\` の可能性
+- クライアント側でのハンドリングが複雑
+
+#### ✅ 正しいパターン: Discriminated Union型
+
+```typescript
+type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+interface SuccessResponse<T> {
+  success: true;
+  data: T; // 必ず存在
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string; // 必ず存在
+  message: string;
+}
+```
+
+**教訓**:
+
+- Discriminated Union型で型安全性を確保
+- \`success\`フラグで型を判別
+
+---
+
+### 17-5. Markdownテーブルの正しい記法 🟢 Medium
+
+#### ❌ パイプ文字のエスケープ忘れ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}|[0-9A-F]{6})$\` |
+```
+
+#### ✅ パイプ文字をエスケープ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}\\|[0-9A-F]{6})$\` |
+```
+
+**教訓**:
+
+- Markdownテーブル内では特殊文字をエスケープ
+- バックスラッシュ \`\\|\` を使用
