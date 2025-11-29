@@ -430,6 +430,7 @@ classDiagram
         -UpdateCategoryUseCase updateUseCase
         -DeleteCategoryUseCase deleteUseCase
         -GetCategoriesUseCase getCategoriesUseCase
+        -GetCategoryByIdUseCase getCategoryByIdUseCase
         -CheckCategoryUsageUseCase checkUsageUseCase
         +create(request) Promise~CategoryResponseDto~
         +findAll(type) Promise~CategoryListResponseDto~
@@ -451,8 +452,8 @@ classDiagram
 
     class UpdateCategoryDto {
         +string name
-        +string icon
-        +string color
+        +string|null icon
+        +string|null color
         +validate() boolean
     }
 

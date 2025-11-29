@@ -262,9 +262,9 @@ sequenceDiagram
     TxRepo-->>DS: usageCount
 
     DS->>TxRepo: findByCategoryId(id, limit 10)
-    TxRepo->>DB: SELECT id<br/>FROM transactions<br/>WHERE category_id = ?<br/>LIMIT 10
-    DB-->>TxRepo: transaction ids
-    TxRepo-->>DS: transactionIds
+    TxRepo->>DB: SELECT id, date, description, amount<br/>FROM transactions<br/>WHERE category_id = ?<br/>LIMIT 10
+    DB-->>TxRepo: transaction samples
+    TxRepo-->>DS: transactionSamples
 
     DS-->>API: UsageInfo<br/>{isUsed: true, count: 50, ids: [...]}
     API-->>FE: 200 OK<br/>{UsageResponseDto}

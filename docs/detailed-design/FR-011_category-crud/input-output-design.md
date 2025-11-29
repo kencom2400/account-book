@@ -127,7 +127,7 @@ interface CreateCategoryRequest {
   type: CategoryType; // 必須: カテゴリタイプ
   parentId?: string | null; // 任意: 親費目ID
   icon?: string | null; // 任意: アイコン（絵文字、1文字）
-  color?: string | null; // 任意: カラーコード（#RRGGBB形式）
+  color?: string | null; // 任意: カラーコード（#RGB, #RRGGBB, #RRGGBBAA形式）
 }
 ```
 
@@ -911,7 +911,7 @@ export class CategoryController {
     return {
       isUsed: result.isUsed,
       usageCount: result.usageCount,
-      transactionIds: result.transactionIds,
+      transactionSamples: result.transactionSamples,
     };
   }
 }
