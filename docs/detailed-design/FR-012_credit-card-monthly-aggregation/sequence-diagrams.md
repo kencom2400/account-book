@@ -97,7 +97,7 @@ sequenceDiagram
     UC-->>API: Result.success(MonthlyCardSummaryResponseDto[])
     API-->>User: 201 Created<br/>{success: true, data: summaries}
 
-    Note over UC,API: UseCaseでエンティティをDTOに変換<br/>ControllerはドメインエンティティをAPI扱わない
+    Note over UC,API: UseCaseでエンティティをDTOに変換<br/>Controllerはドメインエンティティを扱わない
 ```
 
 ### ステップ詳細

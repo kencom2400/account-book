@@ -141,7 +141,6 @@ classDiagram
         +string cardId
         +string startMonth
         +string endMonth
-        +Discount[] discounts
         +validate() boolean
     }
 
@@ -282,9 +281,26 @@ classDiagram
         +string updatedAt
     }
 
+    class MonthlyCardSummaryListItemDto {
+        <<interface>>
+        +string id
+        +string cardId
+        +string cardName
+        +string billingMonth
+        +string closingDate
+        +string paymentDate
+        +number totalAmount
+        +number transactionCount
+        +number netPaymentAmount
+        +string status
+        +string createdAt
+        +string updatedAt
+    }
+
     AggregationController --> AggregateCardTransactionsUseCase
     AggregationController --> AggregateCardTransactionsRequestDto
     AggregationController --> MonthlyCardSummaryResponseDto
+    AggregationController --> MonthlyCardSummaryListItemDto
 ```
 
 **クラス説明**:
@@ -309,9 +325,17 @@ classDiagram
 
 #### MonthlyCardSummaryResponseDto（interface）
 
-- **責務**: レスポンスデータの構築
+- **責務**: 詳細レスポンスデータの構築（POST、GET /:id用）
 - **変換**: MonthlyCardSummary Entityから変換
 - **日付形式**: ISO8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）
+- **特徴**: カテゴリ別内訳、取引IDリストを含む完全版
+
+#### MonthlyCardSummaryListItemDto（interface）
+
+- **責務**: 一覧表示用の簡略レスポンスデータの構築（GET一覧用）
+- **変換**: MonthlyCardSummary Entityから変換
+- **日付形式**: ISO8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）
+- **特徴**: 一覧表示に必要な最小限の情報のみ（`categoryBreakdown`、`transactionIds`を省略）
 
 ---
 

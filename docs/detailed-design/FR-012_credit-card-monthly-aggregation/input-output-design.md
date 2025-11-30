@@ -123,6 +123,8 @@
 
 **Response Schema (MonthlyCardSummaryResponseDto[]):**
 
+詳細取得用DTO（完全版）を返却します。
+
 | フィールド        | 型               | 説明                       |
 | ----------------- | ---------------- | -------------------------- |
 | id                | string           | 集計データID（UUID）       |
@@ -140,6 +142,8 @@
 | createdAt         | string           | 作成日時（ISO8601）        |
 | updatedAt         | string           | 更新日時（ISO8601）        |
 
+**注意**: POSTは詳細情報を含む完全版DTOを返却します。
+
 **Error Responses:**
 
 - `400 Bad Request`: バリデーションエラー
@@ -156,7 +160,7 @@ export class AggregateCardTransactionsRequestDto {
   endMonth: string;
 }
 
-// Response DTO (interface)
+// Response DTO (interface) - 詳細版（POST, GET /:id用）
 export interface MonthlyCardSummaryResponseDto {
   id: string;
   cardId: string;
@@ -168,6 +172,22 @@ export interface MonthlyCardSummaryResponseDto {
   transactionCount: number;
   categoryBreakdown: CategoryAmount[];
   transactionIds: string[];
+  netPaymentAmount: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Response DTO (interface) - 簡略版（GET一覧用）
+export interface MonthlyCardSummaryListItemDto {
+  id: string;
+  cardId: string;
+  cardName: string;
+  billingMonth: string;
+  closingDate: string;
+  paymentDate: string;
+  totalAmount: number;
+  transactionCount: number;
   netPaymentAmount: number;
   status: string;
   createdAt: string;
@@ -235,10 +255,31 @@ export enum DiscountType {
 
 **Response Schema:**
 
+簡略版DTO（`MonthlyCardSummaryListItemDto[]`）を返却します。一覧表示に必要な最小限の情報のみを含みます。
+
 | フィールド | 型                              | 説明       |
 | ---------- | ------------------------------- | ---------- |
 | success    | boolean                         | 成功フラグ |
-| data       | MonthlyCardSummaryResponseDto[] | データ配列 |
+| data       | MonthlyCardSummaryListItemDto[] | データ配列 |
+
+**MonthlyCardSummaryListItemDtoフィールド:**
+
+| フィールド       | 型     | 説明                       |
+| ---------------- | ------ | -------------------------- |
+| id               | string | 集計データID（UUID）       |
+| cardId           | string | クレジットカードID（UUID） |
+| cardName         | string | クレジットカード名         |
+| billingMonth     | string | 請求月（YYYY-MM）          |
+| closingDate      | string | 締め日（ISO8601）          |
+| paymentDate      | string | 支払日（ISO8601）          |
+| totalAmount      | number | 合計金額                   |
+| transactionCount | number | 取引件数                   |
+| netPaymentAmount | number | 最終支払額                 |
+| status           | string | 支払いステータス           |
+| createdAt        | string | 作成日時（ISO8601）        |
+| updatedAt        | string | 更新日時（ISO8601）        |
+
+**注意**: 一覧取得では`categoryBreakdown`と`transactionIds`は省略され、詳細取得（`GET /:id`）で取得可能です。
 
 ---
 
