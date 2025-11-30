@@ -43,30 +43,19 @@
 {
   "cardId": "550e8400-e29b-41d4-a716-446655440000",
   "startMonth": "2025-01",
-  "endMonth": "2025-03",
-  "discounts": [
-    {
-      "type": "POINT",
-      "amount": 5000,
-      "description": "ポイント利用"
-    },
-    {
-      "type": "CASHBACK",
-      "amount": 1000,
-      "description": "キャッシュバック"
-    }
-  ]
+  "endMonth": "2025-03"
 }
 ```
 
 **Request Schema (AggregateCardTransactionsRequestDto):**
 
-| フィールド | 型         | 必須 | 説明                                 | 制約                     |
-| ---------- | ---------- | ---- | ------------------------------------ | ------------------------ |
-| cardId     | string     | ✅   | クレジットカードID                   | UUID形式                 |
-| startMonth | string     | ✅   | 集計開始月                           | YYYY-MM形式              |
-| endMonth   | string     | ✅   | 集計終了月                           | YYYY-MM形式              |
-| discounts  | Discount[] | ⬜   | 割引・ポイント利用（デフォルト: []） | 配列、各要素はDiscount型 |
+| フィールド | 型     | 必須 | 説明               | 制約        |
+| ---------- | ------ | ---- | ------------------ | ----------- |
+| cardId     | string | ✅   | クレジットカードID | UUID形式    |
+| startMonth | string | ✅   | 集計開始月         | YYYY-MM形式 |
+| endMonth   | string | ✅   | 集計終了月         | YYYY-MM形式 |
+
+**注意**: 割引・ポイント利用機能はFR-013で実装予定
 
 **Response (201 Created):**
 
@@ -96,20 +85,13 @@
         }
       ],
       "transactionIds": ["tx-001", "tx-002", "tx-003"],
-      "discounts": [
-        {
-          "type": "POINT",
-          "amount": 5000,
-          "description": "ポイント利用"
-        }
-      ],
-      "netPaymentAmount": 45000,
+      "netPaymentAmount": 50000,
       "status": "PENDING",
       "createdAt": "2025-11-30T00:00:00.000Z",
       "updatedAt": "2025-11-30T00:00:00.000Z"
     },
     {
-      "id": "8d0e7780-8536-51ef-b058-f18gd2g01bf8",
+      "id": "8d0e7780-8536-51ef-b058-f18da2d01bf8",
       "cardId": "550e8400-e29b-41d4-a716-446655440000",
       "cardName": "楽天カード",
       "billingMonth": "2025-02",
@@ -130,14 +112,7 @@
         }
       ],
       "transactionIds": ["tx-004", "tx-005"],
-      "discounts": [
-        {
-          "type": "CASHBACK",
-          "amount": 1000,
-          "description": "キャッシュバック"
-        }
-      ],
-      "netPaymentAmount": 59000,
+      "netPaymentAmount": 60000,
       "status": "PENDING",
       "createdAt": "2025-11-30T00:00:00.000Z",
       "updatedAt": "2025-11-30T00:00:00.000Z"
@@ -160,8 +135,7 @@
 | transactionCount  | number           | 取引件数                   |
 | categoryBreakdown | CategoryAmount[] | カテゴリ別内訳             |
 | transactionIds    | string[]         | 取引IDリスト               |
-| discounts         | Discount[]       | 割引・ポイント利用         |
-| netPaymentAmount  | number           | 最終支払額（割引控除後）   |
+| netPaymentAmount  | number           | 最終支払額                 |
 | status            | string           | 支払いステータス           |
 | createdAt         | string           | 作成日時（ISO8601）        |
 | updatedAt         | string           | 更新日時（ISO8601）        |
@@ -180,7 +154,6 @@ export class AggregateCardTransactionsRequestDto {
   cardId: string;
   startMonth: string;
   endMonth: string;
-  discounts?: Discount[];
 }
 
 // Response DTO (interface)
@@ -195,7 +168,6 @@ export interface MonthlyCardSummaryResponseDto {
   transactionCount: number;
   categoryBreakdown: CategoryAmount[];
   transactionIds: string[];
-  discounts: Discount[];
   netPaymentAmount: number;
   status: string;
   createdAt: string;

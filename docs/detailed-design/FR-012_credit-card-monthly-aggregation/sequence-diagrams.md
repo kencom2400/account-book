@@ -87,13 +87,11 @@ sequenceDiagram
         UC->>Entity: create MonthlyCardSummary
         Entity-->>UC: summary
 
-        UC->>Entity: addDiscount(discounts)
-        Entity->>Entity: calculateNetPayment()
-        Entity-->>UC: netPaymentAmount
-
         UC->>AggRepo: save(summary)
         AggRepo-->>UC: saved summary
     end
+
+    Note over UC: 割引は初期実装では未対応<br/>（FR-013実装時に対応予定）
 
     UC-->>API: Result.success(MonthlyCardSummary[])
     API->>API: ResponseDTOに変換

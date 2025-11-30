@@ -35,27 +35,24 @@ classDiagram
         +Date updatedAt
         +calculateNetPayment() number
         +addDiscount(discount) void
-        +toJSON() MonthlyCardSummaryResponseDto
     }
 
     note right of MonthlyCardSummary
-        toJSON()の返り値型は
-        input-output-design.mdで
-        定義されているレスポンスモデル
+        エンティティからDTOへの変換は、
+        Application層のUseCaseまたは
+        Presentation層のマッパーで実施
     end note
 
     class CategoryAmount {
         +string category
         +number amount
         +number count
-        +toJSON() object
     }
 
     class Discount {
         +DiscountType type
         +number amount
         +string description
-        +toJSON() object
     }
 
     class PaymentStatus {
@@ -101,7 +98,7 @@ classDiagram
 - **主要メソッド**:
   - `calculateNetPayment()`: ポイント利用・キャッシュバックを控除した最終支払額を計算
   - `addDiscount(discount)`: 割引・ポイント利用を追加
-  - `toJSON()`: JSON形式への変換
+- **注意**: エンティティからDTOへの変換は、Application層のUseCaseまたはPresentation層のマッパーで行う（Onion Architecture原則遵守）
 - **ビジネスルール**:
   - 支払額 = 合計金額 - 割引合計（0円未満にはならない）
   - 締め日に基づいて請求月を決定
@@ -248,7 +245,10 @@ classDiagram
 
 - **責務**: 月別集計データのJSON形式での永続化
 - **永続化方法**: JSON形式でファイルに保存（`data/aggregation/monthly-card-summary.json`）
-- **キャッシング**: メモリキャッシュを使用（ファイル読み込みの高速化）
+- **キャッシング戦略**: ライトスルーキャッシュ
+  - 読み取り時: メモリキャッシュが存在すればそれを返却、なければファイルから読み込み
+  - 書き込み時: ファイルとメモリキャッシュを同時に更新（一貫性を保証）
+  - 無効化: アプリケーション再起動時にキャッシュをクリア
 - **主要メソッド**:
   - `save()`: 集計データを保存（既存データがある場合は更新）
   - `findByCardAndMonth()`: カードIDと請求月で検索
