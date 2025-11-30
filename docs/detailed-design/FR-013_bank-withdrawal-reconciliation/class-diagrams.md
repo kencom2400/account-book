@@ -105,8 +105,8 @@ classDiagram
     Reconciliation --> ReconciliationSummary
     Reconciliation --> ReconciliationStatus
     ReconciliationResult --> Discrepancy
-    Reconciliation --> MonthlyCardSummary
-    ReconciliationResult --> TransactionEntity
+    Reconciliation ..> MonthlyCardSummary : uses (cardId, billingMonth)
+    ReconciliationResult ..> TransactionEntity : uses (bankTransactionId)
 ```
 
 **クラス説明**:
@@ -121,6 +121,7 @@ classDiagram
 - **注意**: エンティティからDTOへの変換は、Application層のUseCaseまたはPresentation層のマッパーで行う（Onion Architecture原則遵守）
 - **ビジネスルール**:
   - 同じカード・請求月の照合結果は上書き（最新の結果を保持）
+- **関連エンティティ**: `MonthlyCardSummary`とは`cardId`と`billingMonth`で関連付けられる（直接保持しない）
 
 #### ReconciliationResult
 
@@ -132,6 +133,7 @@ classDiagram
   - 完全一致（金額・日付・摘要すべて一致）: confidence = 100
   - 部分一致（金額・日付のみ一致）: confidence = 70
   - 不一致: confidence = 0
+- **関連エンティティ**: `TransactionEntity`とは`bankTransactionId`で関連付けられる（直接保持しない）
 
 #### ReconciliationSummary
 
@@ -175,7 +177,6 @@ classDiagram
         +execute(dto) Promise<Result<ReconciliationResponseDto>>
         -fetchCardSummary(cardId, billingMonth) Promise<MonthlyCardSummary>
         -fetchBankTransactions(cardId, paymentDate, days) Promise<TransactionEntity[]>
-        -reconcile(cardSummary, bankTransactions) ReconciliationResult[]
         -toResponseDto(entity) ReconciliationResponseDto
     }
 
@@ -214,9 +215,10 @@ classDiagram
 - **処理フロー**:
   1. カード月別集計データ取得（AggregationRepository）
   2. 引落予定日前後3営業日の銀行取引取得（TransactionRepository）
-  3. 照合処理実行（ReconciliationService）
+  3. 照合処理実行（ReconciliationService.reconcilePayment()を直接呼び出し）
   4. 照合結果を保存（ReconciliationRepository）
   5. エンティティをResponseDTOに変換して返却
+- **注意**: 照合ロジックは`ReconciliationService`に委譲し、UseCaseは調整のみを行う
 
 #### ReconciliationService
 
@@ -317,8 +319,12 @@ classDiagram
     class ReconcileCreditCardRequestDto {
         +string cardId
         +string billingMonth
-        +validate() boolean
     }
+
+    note right of ReconcileCreditCardRequestDto
+        バリデーションはclass-validatorデコレータと
+        ValidationPipeを使用（NestJSのベストプラクティス）
+    end note
 
     class ReconciliationResponseDto {
         <<interface>>
@@ -383,10 +389,10 @@ classDiagram
 
 #### ReconcileCreditCardRequestDto（class）
 
-- **責務**: リクエストデータの受け取りとバリデーション
-- **バリデーション**:
-  - cardId: 必須、UUID形式
-  - billingMonth: 必須、YYYY-MM形式
+- **責務**: リクエストデータの受け取り
+- **バリデーション**: `class-validator`デコレータと`ValidationPipe`を使用（NestJSのベストプラクティス）
+  - cardId: 必須、UUID形式（`@IsUUID()`）
+  - billingMonth: 必須、YYYY-MM形式（`@Matches(/^\d{4}-(0[1-9]|1[0-2])$/)`）
 
 #### ReconciliationResponseDto（interface）
 
