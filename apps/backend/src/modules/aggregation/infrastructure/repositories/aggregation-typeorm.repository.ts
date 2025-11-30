@@ -102,8 +102,8 @@ export class AggregationTypeOrmRepository implements AggregationRepository {
    */
   private toDomain(ormEntity: MonthlyCardSummaryOrmEntity): MonthlyCardSummary {
     // CategoryAmountの配列を復元
-    const categoryBreakdown = ormEntity.categoryBreakdown.map(
-      (item) => new CategoryAmount(item.category, item.amount, item.count),
+    const categoryBreakdown = ormEntity.categoryBreakdown.map((item) =>
+      CategoryAmount.fromPlain(item),
     );
 
     return new MonthlyCardSummary(
@@ -129,11 +129,9 @@ export class AggregationTypeOrmRepository implements AggregationRepository {
    */
   private toOrm(domain: MonthlyCardSummary): MonthlyCardSummaryOrmEntity {
     // CategoryAmountをプレーンオブジェクトに変換
-    const categoryBreakdown = domain.categoryBreakdown.map((item) => ({
-      category: item.category,
-      amount: item.amount,
-      count: item.count,
-    }));
+    const categoryBreakdown = domain.categoryBreakdown.map((item) =>
+      item.toPlain(),
+    );
 
     return this.repository.create({
       id: domain.id,

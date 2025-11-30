@@ -139,11 +139,9 @@ export class AggregationController {
       paymentDate: summary.paymentDate.toISOString(),
       totalAmount: summary.totalAmount,
       transactionCount: summary.transactionCount,
-      categoryBreakdown: summary.categoryBreakdown.map((item) => ({
-        category: item.category,
-        amount: item.amount,
-        count: item.count,
-      })),
+      categoryBreakdown: summary.categoryBreakdown.map((item) =>
+        item.toPlain(),
+      ),
       transactionIds: summary.transactionIds,
       netPaymentAmount: summary.netPaymentAmount,
       status: summary.status,

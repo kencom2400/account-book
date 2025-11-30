@@ -271,15 +271,15 @@ describe('AggregateCardTransactionsUseCase', () => {
       ).rejects.toThrow('Credit card not found: invalid-id');
     });
 
-    it('取引が存在しない場合、エラーをスローする', async () => {
+    it('取引が存在しない場合、空配列を返す', async () => {
       creditCardRepository.findById.mockResolvedValue(mockCreditCard);
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         [],
       );
 
-      await expect(
-        useCase.execute('card-123', '2025-01', '2025-02'),
-      ).rejects.toThrow('No transactions found for the specified period');
+      const result = await useCase.execute('card-123', '2025-01', '2025-02');
+
+      expect(result).toEqual([]);
     });
 
     it('結果が請求月順にソートされる', async () => {

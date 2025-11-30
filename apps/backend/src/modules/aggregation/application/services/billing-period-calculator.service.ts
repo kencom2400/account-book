@@ -79,21 +79,19 @@ export class BillingPeriodCalculator {
    * @returns 支払日の日付
    */
   calculatePaymentDate(closingDate: Date, paymentDay: number): Date {
-    const year = closingDate.getFullYear();
-    const month = closingDate.getMonth();
-
-    // 翌月の支払日を計算
-    const nextMonth = month + 1;
-    const nextYear = nextMonth > 11 ? year + 1 : year;
-    const actualMonth = nextMonth > 11 ? 0 : nextMonth;
+    const firstDayOfNextMonth = new Date(
+      closingDate.getFullYear(),
+      closingDate.getMonth() + 1,
+      1,
+    );
+    const year = firstDayOfNextMonth.getFullYear();
+    const month = firstDayOfNextMonth.getMonth();
 
     // エッジケース処理: 支払日がその月に存在しない場合
-    const actualPaymentDay = Math.min(
-      paymentDay,
-      this.getLastDayOfMonth(nextYear, actualMonth),
-    );
+    const lastDayOfPaymentMonth = this.getLastDayOfMonth(year, month);
+    const actualPaymentDay = Math.min(paymentDay, lastDayOfPaymentMonth);
 
-    return new Date(nextYear, actualMonth, actualPaymentDay);
+    return new Date(year, month, actualPaymentDay);
   }
 
   /**

@@ -67,9 +67,7 @@ export class AggregateCardTransactionsUseCase {
       );
 
     if (transactions.length === 0) {
-      throw new NotFoundException(
-        'No transactions found for the specified period',
-      );
+      return [];
     }
 
     // 4. 取引を請求月別にグループ化
@@ -106,22 +104,13 @@ export class AggregateCardTransactionsUseCase {
       const existing = existingSummariesMap.get(summary.billingMonth);
       if (existing) {
         // 既存データのIDを引き継いで更新
-        return new MonthlyCardSummary(
-          existing.id, // 既存IDを使用
-          summary.cardId,
-          summary.cardName,
-          summary.billingMonth,
-          summary.closingDate,
-          summary.paymentDate,
-          summary.totalAmount,
-          summary.transactionCount,
-          summary.categoryBreakdown,
-          summary.transactionIds,
-          summary.netPaymentAmount,
-          summary.status,
-          existing.createdAt, // createdAtは保持
-          new Date(), // updatedAtは更新
-        );
+        const plainSummary = summary.toPlain();
+        return MonthlyCardSummary.fromPlain({
+          ...plainSummary,
+          id: existing.id,
+          createdAt: existing.createdAt,
+          updatedAt: new Date(),
+        });
       }
       // 新規作成
       return summary;
