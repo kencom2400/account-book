@@ -6988,3 +6988,143 @@ pnpm build
 - CIで失敗すると時間損失が大きい
 
 ---
+
+## 📚 セクション18: FR-012実装レビュー第3回（最終）から学んだ観点（Gemini PR#325）
+
+### 18.1 API設計：0件は例外ではなく正常
+
+**問題**: 取引が0件の場合に`NotFoundException`をスローしている。
+
+```typescript
+// ❌ 0件をエラー扱い
+if (transactions.length === 0) {
+  throw new NotFoundException('No transactions found for the specified period');
+}
+
+// ✅ 0件は正常、空配列を返す
+if (transactions.length === 0) {
+  return [];
+}
+```
+
+**教訓**:
+
+- **「データがない」は正常な状態**
+- クライアントが404エラーハンドリング不要
+- API設計として自然で使いやすい
+- 検索APIやリスト取得APIでは特に重要
+
+### 18.2 toPlain/fromPlainの活用（エンティティの保守性）
+
+**問題**: 長いコンストラクタ引数で更新すると、将来の変更に脆弱。
+
+```typescript
+// ❌ 引数14個、将来の変更に脆弱
+return new MonthlyCardSummary(
+  existing.id,
+  summary.cardId,
+  summary.cardName,
+  summary.billingMonth,
+  summary.closingDate,
+  summary.paymentDate,
+  summary.totalAmount,
+  summary.transactionCount,
+  summary.categoryBreakdown,
+  summary.transactionIds,
+  summary.netPaymentAmount,
+  summary.status,
+  existing.createdAt,
+  new Date()
+);
+
+// ✅ toPlain/fromPlainで簡潔かつ堅牢
+const plainSummary = summary.toPlain();
+return MonthlyCardSummary.fromPlain({
+  ...plainSummary,
+  id: existing.id,
+  createdAt: existing.createdAt,
+  updatedAt: new Date(),
+});
+```
+
+**教訓**:
+
+- エンティティに`toPlain/fromPlain`がある場合は積極活用
+- 引数の順番間違いを防止
+- フィールド追加時の変更箇所を最小化
+- コード可読性向上
+
+### 18.3 Value Objectのファクトリメソッド統一
+
+**問題**: VOを直接`new`で生成したり、`fromPlain`を使ったりで統一されていない。
+
+```typescript
+// ❌ 手動生成（一貫性欠如）
+const categoryBreakdown = ormEntity.categoryBreakdown.map(
+  (item) => new CategoryAmount(item.category, item.amount, item.count)
+);
+
+// 手動変換
+const categoryBreakdown = domain.categoryBreakdown.map((item) => ({
+  category: item.category,
+  amount: item.amount,
+  count: item.count,
+}));
+
+// ✅ 統一：VOのメソッド活用
+// ORM→Domain
+const categoryBreakdown = ormEntity.categoryBreakdown.map((item) => CategoryAmount.fromPlain(item));
+
+// Domain→Plain
+const categoryBreakdown = domain.categoryBreakdown.map((item) => item.toPlain());
+```
+
+**教訓**:
+
+- VOに`toPlain/fromPlain`がある場合は必ず使用
+- 変換ロジックをVOに集約
+- コード全体で一貫性を保つ
+- バリデーションもVOに集約されるため安全
+
+### 18.4 Date API活用の徹底
+
+**問題**: 翌月計算で手動の年月判定をしている。
+
+```typescript
+// ❌ 手動の年月判定
+const year = closingDate.getFullYear();
+const month = closingDate.getMonth();
+const nextMonth = month + 1;
+const nextYear = nextMonth > 11 ? year + 1 : year;
+const actualMonth = nextMonth > 11 ? 0 : nextMonth;
+
+// ✅ Date APIの自動処理活用
+const firstDayOfNextMonth = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, 1);
+const year = firstDayOfNextMonth.getFullYear();
+const month = firstDayOfNextMonth.getMonth();
+```
+
+**教訓**:
+
+- `Date`コンストラクタは自動でオーバーフロー処理
+- 12月→1月の年越しも自動
+- 手動計算は複雑でバグの温床
+- 標準APIを最大限活用
+
+### 18.5 全体的な学び：コードの一貫性と保守性
+
+**統一すべきパターン**:
+
+1. **変換ロジック**: エンティティ/VOのメソッドを使用
+2. **日付計算**: Date APIの自動処理を活用
+3. **API設計**: 0件は正常な結果として扱う
+4. **エラーハンドリング**: 適切なHTTP例外を使用
+
+**保守性向上のポイント**:
+
+- ファクトリメソッド/変換メソッドの積極活用
+- 手動変換の排除
+- 一貫したパターンの適用
+- 将来の変更に強い設計
+
+---
