@@ -16,6 +16,7 @@ import { SecuritiesModule } from './modules/securities/securities.module';
 import { HealthModule } from './modules/health/health.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { AggregationModule } from './modules/aggregation/aggregation.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AggregationModule } from './modules/aggregation/aggregation.module';
     HealthModule,
     SyncModule,
     AggregationModule,
+    ReconciliationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
