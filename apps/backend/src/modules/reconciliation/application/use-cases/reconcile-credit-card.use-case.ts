@@ -8,6 +8,7 @@ import { ReconciliationService } from '../../domain/services/reconciliation.serv
 import type { ReconciliationRepository } from '../../domain/repositories/reconciliation.repository.interface';
 import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
+import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
 import { CardSummaryNotFoundError } from '../../domain/errors/reconciliation.errors';
 import { InvalidPaymentDateError } from '../../domain/errors/reconciliation.errors';
 import { MultipleCandidateError } from '../../domain/errors/reconciliation.errors';
@@ -100,9 +101,7 @@ export class ReconcileCreditCardUseCase {
    */
   private async fetchBankTransactions(
     paymentDate: Date,
-  ): Promise<
-    import('../../../transaction/domain/entities/transaction.entity').TransactionEntity[]
-  > {
+  ): Promise<TransactionEntity[]> {
     // 営業日計算（±3営業日）
     const startDate = this.subtractBusinessDays(paymentDate, 3);
     const endDate = this.addBusinessDays(paymentDate, 3);
@@ -114,11 +113,10 @@ export class ReconcileCreditCardUseCase {
    * 営業日を減算
    */
   private subtractBusinessDays(date: Date, days: number): Date {
-    let currentDate = new Date(date);
+    const currentDate = new Date(date);
     let remainingDays = days;
 
     while (remainingDays > 0) {
-      currentDate = new Date(currentDate);
       currentDate.setDate(currentDate.getDate() - 1);
 
       if (this.isBusinessDay(currentDate)) {
@@ -133,11 +131,10 @@ export class ReconcileCreditCardUseCase {
    * 営業日を加算
    */
   private addBusinessDays(date: Date, days: number): Date {
-    let currentDate = new Date(date);
+    const currentDate = new Date(date);
     let remainingDays = days;
 
     while (remainingDays > 0) {
-      currentDate = new Date(currentDate);
       currentDate.setDate(currentDate.getDate() + 1);
 
       if (this.isBusinessDay(currentDate)) {

@@ -76,7 +76,7 @@ export class ReconciliationController {
         data: this.toResponseDto(reconciliation),
       };
     } catch (error) {
-      return this.handleError(error);
+      this.handleError(error);
     }
   }
 

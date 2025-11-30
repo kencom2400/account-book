@@ -56,7 +56,16 @@ export class ReconciliationService {
 
     // 部分一致（金額・日付のみ一致）
     if (amountMatches.length > 0) {
-      const bestMatch = amountMatches[0]; // 最も近い日付の取引を選択
+      // 最も近い日付の取引を選択
+      const bestMatch = amountMatches.reduce((prev, curr) => {
+        const prevDiff = Math.abs(
+          prev.date.getTime() - cardSummary.paymentDate.getTime(),
+        );
+        const currDiff = Math.abs(
+          curr.date.getTime() - cardSummary.paymentDate.getTime(),
+        );
+        return currDiff < prevDiff ? curr : prev;
+      });
       const confidence = ReconciliationResult.calculateConfidence(
         true, // amountMatch
         true, // dateMatch
@@ -217,11 +226,10 @@ export class ReconciliationService {
    * 営業日を減算
    */
   private subtractBusinessDays(date: Date, days: number): Date {
-    let currentDate = new Date(date);
+    const currentDate = new Date(date);
     let remainingDays = days;
 
     while (remainingDays > 0) {
-      currentDate = new Date(currentDate);
       currentDate.setDate(currentDate.getDate() - 1);
 
       if (this.isBusinessDay(currentDate)) {
@@ -236,11 +244,10 @@ export class ReconciliationService {
    * 営業日を加算
    */
   private addBusinessDays(date: Date, days: number): Date {
-    let currentDate = new Date(date);
+    const currentDate = new Date(date);
     let remainingDays = days;
 
     while (remainingDays > 0) {
-      currentDate = new Date(currentDate);
       currentDate.setDate(currentDate.getDate() + 1);
 
       if (this.isBusinessDay(currentDate)) {

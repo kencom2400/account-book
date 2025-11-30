@@ -67,44 +67,12 @@ export class JsonReconciliationRepository implements ReconciliationRepository {
         r.billingMonth === reconciliation.billingMonth,
     );
 
-    const plain = reconciliation.toPlain();
-    const json: ReconciliationJSON = {
-      ...plain,
-      executedAt: plain.executedAt.toISOString(),
-      results: plain.results.map((r) => ({
-        ...r,
-        matchedAt: r.matchedAt?.toISOString() ?? null,
-      })),
-      createdAt: plain.createdAt.toISOString(),
-      updatedAt: plain.updatedAt.toISOString(),
-    };
-
     if (existingIndex >= 0) {
       // 既存データを更新
-      reconciliations[existingIndex] = Reconciliation.fromPlain({
-        ...json,
-        executedAt: new Date(json.executedAt),
-        results: json.results.map((r) => ({
-          ...r,
-          matchedAt: r.matchedAt ? new Date(r.matchedAt) : null,
-        })),
-        createdAt: new Date(json.createdAt),
-        updatedAt: new Date(json.updatedAt),
-      });
+      reconciliations[existingIndex] = reconciliation;
     } else {
       // 新規データを追加
-      reconciliations.push(
-        Reconciliation.fromPlain({
-          ...json,
-          executedAt: new Date(json.executedAt),
-          results: json.results.map((r) => ({
-            ...r,
-            matchedAt: r.matchedAt ? new Date(r.matchedAt) : null,
-          })),
-          createdAt: new Date(json.createdAt),
-          updatedAt: new Date(json.updatedAt),
-        }),
-      );
+      reconciliations.push(reconciliation);
     }
 
     await this.saveToFile(reconciliations);
