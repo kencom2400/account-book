@@ -15,6 +15,7 @@ import { CreditCardModule } from './modules/credit-card/credit-card.module';
 import { SecuritiesModule } from './modules/securities/securities.module';
 import { HealthModule } from './modules/health/health.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { AggregationModule } from './modules/aggregation/aggregation.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SyncModule } from './modules/sync/sync.module';
     SecuritiesModule,
     HealthModule,
     SyncModule,
+    AggregationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

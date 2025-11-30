@@ -6626,3 +6626,505 @@ async delete(id: string): Promise<DeleteCategoryResponseDto> {
 - 将来の変更に強い（UseCaseの変更がControllerに自動反映）
 
 ---
+
+## 📚 セクション16: FR-012実装レビューから学んだ観点（Gemini PR#325）
+
+### 16.1 集計処理の冪等性確保
+
+**問題**: 集計APIを再実行すると、ユニーク制約違反でエラーが発生する。
+
+**解決策**: Upsert処理を実装
+
+```typescript
+// ❌ 常に新規作成（再実行でエラー）
+await this.aggregationRepository.save(summary);
+
+// ✅ 既存データをチェックしてUpsert
+const existing = await this.aggregationRepository.findByCardAndMonth(
+  summary.cardId,
+  summary.billingMonth
+);
+
+if (existing) {
+  // 既存データのIDを引き継いで更新
+  const updatedSummary = new MonthlyCardSummary(
+    existing.id, // 既存IDを使用
+    // ... 他のフィールド
+    existing.createdAt, // createdAtは保持
+    new Date() // updatedAtは更新
+  );
+  await this.aggregationRepository.save(updatedSummary);
+} else {
+  await this.aggregationRepository.save(summary);
+}
+```
+
+**教訓**:
+
+- 集計・バッチ処理は冪等性を確保する
+- ユニーク制約がある場合は必ずUpsert処理を実装
+- createdAt/updatedAtを適切に管理
+
+### 16.2 DIトークンのSymbol統一
+
+**問題**: 文字列リテラルをDIトークンとして使用すると、タイプミスやリファクタリングが困難。
+
+**解決策**: Symbolトークンを定義
+
+```typescript
+// ✅ tokens.ts
+export const AGGREGATION_REPOSITORY = Symbol('AggregationRepository');
+
+// ✅ UseCase
+@Inject(AGGREGATION_REPOSITORY)
+private readonly aggregationRepository: AggregationRepository,
+
+// ✅ Module
+{
+  provide: AGGREGATION_REPOSITORY,
+  useClass: AggregationTypeOrmRepository,
+}
+```
+
+**教訓**:
+
+- すべてのモジュールで`*.tokens.ts`ファイルを作成
+- DIトークンはSymbolで統一
+- タイプミスを防ぎ、リファクタリングが容易
+
+### 16.3 Controller層のアーキテクチャ違反
+
+**問題**: Controllerがリポジトリに直接アクセスしている（Onion Architecture違反）。
+
+**解決策**: 専用UseCaseを作成
+
+```typescript
+// ❌ Controllerからリポジトリへ直接アクセス
+@Controller()
+export class AggregationController {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async findAll() {
+    return this.aggregationRepository.findAll(); // 違反
+  }
+}
+
+// ✅ UseCase経由でアクセス
+@Injectable()
+export class FindAllSummariesUseCase {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async execute(): Promise<MonthlyCardSummary[]> {
+    return this.aggregationRepository.findAll();
+  }
+}
+
+@Controller()
+export class AggregationController {
+  constructor(private readonly findAllSummariesUseCase: FindAllSummariesUseCase) {}
+
+  async findAll() {
+    return this.findAllSummariesUseCase.execute();
+  }
+}
+```
+
+**教訓**:
+
+- Presentation層はInfrastructure層に直接依存しない
+- CRUD操作でも専用UseCaseを作成
+- ビジネスロジックをApplication層に集約
+- Onion Architectureの原則を厳守
+
+### 16.4 到達不能コードの削除
+
+**問題**: 条件分岐で必ず真になる条件がある場合、else節は到達不能。
+
+```typescript
+// ❌ 到達不能コード
+if (this.isLastDayOfMonth(closingDay)) {
+  const lastDay = this.getLastDayOfMonth(year, month);
+  if (day <= lastDay) {
+    // dayは必ずlastDay以下
+    return this.formatYearMonth(year, month);
+  } else {
+    // ここには到達しない
+    return this.formatYearMonth(year, month + 1);
+  }
+}
+
+// ✅ シンプルに
+if (this.isLastDayOfMonth(closingDay)) {
+  return this.formatYearMonth(year, month);
+}
+```
+
+**教訓**:
+
+- ロジックを単純化し、到達不能コードを削除
+- コードレビューで論理的な不整合を指摘
+
+### 16.5 適切なHTTP例外の使用
+
+**問題**: UseCase内で汎用`Error`をthrowすると、クライアントに500エラーが返る。
+
+**解決策**: NestJSのHTTP例外クラスを使用
+
+```typescript
+// ❌ 汎用Error（500エラー）
+throw new Error(`Credit card not found: ${cardId}`);
+
+// ✅ NotFoundException（404エラー）
+throw new NotFoundException(`Credit card not found: ${cardId}`);
+```
+
+**教訓**:
+
+- UseCaseでは適切なHTTP例外を使用
+- `NotFoundException`, `BadRequestException`, `ForbiddenException`等
+- クライアントに適切なステータスコードを返す
+
+### 16.6 一括保存によるパフォーマンス向上
+
+**問題**: ループ内で1件ずつ保存すると、I/Oがボトルネックになる。
+
+**解決策**: Promise.allで並列実行
+
+```typescript
+// ❌ 1件ずつ保存
+for (const summary of summaries) {
+  await this.aggregationRepository.save(summary);
+}
+
+// ✅ 一括保存（並列実行）
+await Promise.all(summaries.map((summary) => this.aggregationRepository.save(summary)));
+```
+
+**教訓**:
+
+- 複数件の保存は並列実行を検討
+- データベースI/Oを削減
+- パフォーマンス向上
+
+---
+
+## 📚 セクション17: FR-012実装レビュー第2回から学んだ観点（Gemini PR#325）
+
+### 17.1 N+1クエリ問題とUpsertの重大なバグ
+
+**問題1 (N+1クエリ)**: ループ内でリポジトリ呼び出しを繰り返すとパフォーマンスが低下する。
+
+```typescript
+// ❌ N+1クエリ
+for (const summary of summaries) {
+  const existing = await this.aggregationRepository.findByCardAndMonth(
+    summary.cardId,
+    summary.billingMonth
+  );
+  // ...
+}
+```
+
+**問題2 (重大なバグ)**: 更新後のデータではなく、更新前のデータを返している。
+
+```typescript
+// ❌ 更新前のsummariesを返す（バグ）
+summaries.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summaries;
+```
+
+**解決策**: 一括取得してMap化、更新後の配列を返す
+
+```typescript
+// ✅ 一括取得してMap化
+const existingSummaries = await this.aggregationRepository.findByCard(
+  creditCard.id,
+  startMonth,
+  endMonth
+);
+const existingSummariesMap = new Map(existingSummaries.map((s) => [s.billingMonth, s]));
+
+const summariesToSave = summaries.map((summary) => {
+  const existing = existingSummariesMap.get(summary.billingMonth);
+  if (existing) {
+    // 更新
+    return new MonthlyCardSummary(/* ... */);
+  }
+  return summary;
+});
+
+// 一括保存
+await Promise.all(summariesToSave.map((s) => this.aggregationRepository.save(s)));
+
+// ✅ 更新後のデータを返す
+summariesToSave.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summariesToSave;
+```
+
+**教訓**:
+
+- N+1問題はパフォーマンス劣化の主要因
+- 一括取得→Map化で解決
+- 更新後のデータを返す（クライアントが正しいデータを受け取る）
+- Upsert処理の返り値は特に注意
+
+### 17.2 useFactoryの冗長性
+
+**問題**: `@Injectable()`デコレータがあるのに、手動でファクトリを定義している。
+
+```typescript
+// ❌ 冗長
+{
+  provide: AggregateCardTransactionsUseCase,
+  useFactory: (
+    creditCardRepository: ICreditCardRepository,
+    // ...
+  ): AggregateCardTransactionsUseCase => {
+    return new AggregateCardTransactionsUseCase(
+      creditCardRepository,
+      // ...
+    );
+  },
+  inject: [
+    CREDIT_CARD_REPOSITORY,
+    // ...
+  ],
+}
+
+// ✅ シンプル（NestJSが自動解決）
+AggregateCardTransactionsUseCase,
+```
+
+**教訓**:
+
+- `@Injectable()`があればNestJSが自動でDI解決
+- 手動ファクトリは特別な初期化が必要な場合のみ
+- コードの簡潔性向上
+
+### 17.3 Dateの自動オーバーフロー処理活用
+
+**問題**: 年月計算を手動で実装すると複雑になる。
+
+```typescript
+// ❌ 複雑
+private formatYearMonth(year: number, month: number): string {
+  if (month > 11) {
+    const yearOffset = Math.floor(month / 12);
+    const actualMonth = month % 12;
+    return `${year + yearOffset}-${String(actualMonth + 1).padStart(2, '0')}`;
+  }
+  if (month < 0) {
+    // ... 複雑なロジック
+  }
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+// ✅ Dateの自動処理活用
+private formatYearMonth(year: number, month: number): string {
+  const date = new Date(year, month);
+  const formattedYear = date.getFullYear();
+  const formattedMonth = String(date.getMonth() + 1).padStart(2, '0');
+  return `${formattedYear}-${formattedMonth}`;
+}
+```
+
+**教訓**:
+
+- `new Date(year, month)`は自動でオーバーフロー・アンダーフロー処理
+- 標準APIの機能を最大限活用
+- コードが簡潔で可読性向上
+
+### 17.4 テストのモック整合性
+
+**問題**: 実装を変更したのに、テストのモックを更新し忘れる。
+
+```typescript
+// 実装で追加
+const existingSummaries = await this.aggregationRepository.findByCard(/* ... */);
+
+// ❌ テストでモック未定義
+// aggregationRepository.findByCard.mockResolvedValue([]);  // 追加忘れ
+
+// ✅ テストで追加
+aggregationRepository.findByCard.mockResolvedValue([]);
+```
+
+**教訓**:
+
+- リポジトリメソッドを追加したら、すべてのテストでモック追加
+- テスト失敗の原因が「モック未定義」になることが多い
+- 実装変更とテスト更新は常にセット
+
+### 17.5 ローカルチェックの徹底
+
+**問題**: Lint/Buildは通過しても、Testを忘れてCI失敗。
+
+**解決策**: 4ステップチェックを完全実行
+
+```bash
+# 1. Lint
+./scripts/test/lint.sh
+
+# 2. Build（重要！）
+pnpm build
+
+# 3. Unit Tests
+./scripts/test/test.sh all
+
+# 4. E2E Tests
+./scripts/test/test-e2e.sh frontend
+```
+
+**教訓**:
+
+- **Build**は特に重要（型エラーを検出）
+- すべてのチェックを自動化スクリプトで実行
+- CIで失敗すると時間損失が大きい
+
+---
+
+## 📚 セクション18: FR-012実装レビュー第3回（最終）から学んだ観点（Gemini PR#325）
+
+### 18.1 API設計：0件は例外ではなく正常
+
+**問題**: 取引が0件の場合に`NotFoundException`をスローしている。
+
+```typescript
+// ❌ 0件をエラー扱い
+if (transactions.length === 0) {
+  throw new NotFoundException('No transactions found for the specified period');
+}
+
+// ✅ 0件は正常、空配列を返す
+if (transactions.length === 0) {
+  return [];
+}
+```
+
+**教訓**:
+
+- **「データがない」は正常な状態**
+- クライアントが404エラーハンドリング不要
+- API設計として自然で使いやすい
+- 検索APIやリスト取得APIでは特に重要
+
+### 18.2 toPlain/fromPlainの活用（エンティティの保守性）
+
+**問題**: 長いコンストラクタ引数で更新すると、将来の変更に脆弱。
+
+```typescript
+// ❌ 引数14個、将来の変更に脆弱
+return new MonthlyCardSummary(
+  existing.id,
+  summary.cardId,
+  summary.cardName,
+  summary.billingMonth,
+  summary.closingDate,
+  summary.paymentDate,
+  summary.totalAmount,
+  summary.transactionCount,
+  summary.categoryBreakdown,
+  summary.transactionIds,
+  summary.netPaymentAmount,
+  summary.status,
+  existing.createdAt,
+  new Date()
+);
+
+// ✅ toPlain/fromPlainで簡潔かつ堅牢
+const plainSummary = summary.toPlain();
+return MonthlyCardSummary.fromPlain({
+  ...plainSummary,
+  id: existing.id,
+  createdAt: existing.createdAt,
+  updatedAt: new Date(),
+});
+```
+
+**教訓**:
+
+- エンティティに`toPlain/fromPlain`がある場合は積極活用
+- 引数の順番間違いを防止
+- フィールド追加時の変更箇所を最小化
+- コード可読性向上
+
+### 18.3 Value Objectのファクトリメソッド統一
+
+**問題**: VOを直接`new`で生成したり、`fromPlain`を使ったりで統一されていない。
+
+```typescript
+// ❌ 手動生成（一貫性欠如）
+const categoryBreakdown = ormEntity.categoryBreakdown.map(
+  (item) => new CategoryAmount(item.category, item.amount, item.count)
+);
+
+// 手動変換
+const categoryBreakdown = domain.categoryBreakdown.map((item) => ({
+  category: item.category,
+  amount: item.amount,
+  count: item.count,
+}));
+
+// ✅ 統一：VOのメソッド活用
+// ORM→Domain
+const categoryBreakdown = ormEntity.categoryBreakdown.map((item) => CategoryAmount.fromPlain(item));
+
+// Domain→Plain
+const categoryBreakdown = domain.categoryBreakdown.map((item) => item.toPlain());
+```
+
+**教訓**:
+
+- VOに`toPlain/fromPlain`がある場合は必ず使用
+- 変換ロジックをVOに集約
+- コード全体で一貫性を保つ
+- バリデーションもVOに集約されるため安全
+
+### 18.4 Date API活用の徹底
+
+**問題**: 翌月計算で手動の年月判定をしている。
+
+```typescript
+// ❌ 手動の年月判定
+const year = closingDate.getFullYear();
+const month = closingDate.getMonth();
+const nextMonth = month + 1;
+const nextYear = nextMonth > 11 ? year + 1 : year;
+const actualMonth = nextMonth > 11 ? 0 : nextMonth;
+
+// ✅ Date APIの自動処理活用
+const firstDayOfNextMonth = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, 1);
+const year = firstDayOfNextMonth.getFullYear();
+const month = firstDayOfNextMonth.getMonth();
+```
+
+**教訓**:
+
+- `Date`コンストラクタは自動でオーバーフロー処理
+- 12月→1月の年越しも自動
+- 手動計算は複雑でバグの温床
+- 標準APIを最大限活用
+
+### 18.5 全体的な学び：コードの一貫性と保守性
+
+**統一すべきパターン**:
+
+1. **変換ロジック**: エンティティ/VOのメソッドを使用
+2. **日付計算**: Date APIの自動処理を活用
+3. **API設計**: 0件は正常な結果として扱う
+4. **エラーハンドリング**: 適切なHTTP例外を使用
+
+**保守性向上のポイント**:
+
+- ファクトリメソッド/変換メソッドの積極活用
+- 手動変換の排除
+- 一貫したパターンの適用
+- 将来の変更に強い設計
+
+---
