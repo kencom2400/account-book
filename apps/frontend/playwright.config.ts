@@ -55,6 +55,10 @@ export default defineConfig({
     ['junit', { outputFile: 'playwright-report/results.xml' }],
   ],
   globalSetup: require.resolve('./e2e/global-setup.ts'),
+  globalSetupOptions: {
+    // global-setup.tsに環境変数を渡す
+    NEXT_PUBLIC_API_URL: `http://localhost:${backendPort}`,
+  },
   use: {
     baseURL: process.env.BASE_URL || `http://localhost:${frontendPort}`,
     trace: 'on-first-retry',

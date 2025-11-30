@@ -48,7 +48,10 @@ interface Transaction {
  * APIリクエストを実行
  */
 async function apiRequest<T>(method: string, endpoint: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log(`  🔹 ${method} ${url}`);
+
+  const response = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -58,18 +61,26 @@ async function apiRequest<T>(method: string, endpoint: string, body?: unknown): 
 
   if (!response.ok) {
     const error = await response.text();
+    console.error(`  ❌ API Error (${response.status}): ${error}`);
     throw new Error(`API Error (${response.status}): ${error}`);
   }
 
-  return (await response.json()) as T;
+  const result = (await response.json()) as T;
+  return result;
 }
 
 /**
  * カテゴリを作成
  */
 export async function createCategory(category: Omit<Category, 'id'>): Promise<Category> {
-  const response = await apiRequest<Category>('POST', '/api/categories', category);
-  return response;
+  try {
+    const response = await apiRequest<Category>('POST', '/api/categories', category);
+    console.log(`  ✅ Created category: ${response.name}`);
+    return response;
+  } catch (error) {
+    console.error(`  ❌ Failed to create category: ${category.name}`, error);
+    throw error;
+  }
 }
 
 /**
@@ -78,12 +89,18 @@ export async function createCategory(category: Omit<Category, 'id'>): Promise<Ca
 export async function createInstitution(
   institution: Omit<Institution, 'id'>
 ): Promise<Institution> {
-  const response = await apiRequest<{ success: boolean; data: Institution }>(
-    'POST',
-    '/api/institutions',
-    institution
-  );
-  return response.data;
+  try {
+    const response = await apiRequest<{ success: boolean; data: Institution }>(
+      'POST',
+      '/api/institutions',
+      institution
+    );
+    console.log(`  ✅ Created institution: ${response.data.name}`);
+    return response.data;
+  } catch (error) {
+    console.error(`  ❌ Failed to create institution: ${institution.name}`, error);
+    throw error;
+  }
 }
 
 /**
@@ -92,12 +109,20 @@ export async function createInstitution(
 export async function createTransaction(
   transaction: Omit<Transaction, 'id'>
 ): Promise<Transaction> {
-  const response = await apiRequest<{ success: boolean; data: Transaction }>(
-    'POST',
-    '/api/transactions',
-    transaction
-  );
-  return response.data;
+  try {
+    const response = await apiRequest<{ success: boolean; data: Transaction }>(
+      'POST',
+      '/api/transactions',
+      transaction
+    );
+    console.log(
+      `  ✅ Created transaction: ${response.data.description} (${response.data.amount}円)`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`  ❌ Failed to create transaction: ${transaction.description}`, error);
+    throw error;
+  }
 }
 
 /**

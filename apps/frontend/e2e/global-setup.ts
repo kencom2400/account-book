@@ -14,7 +14,13 @@ async function globalSetup(): Promise<void> {
 
   try {
     // バックエンドサーバーの起動を待つ
+    // E2E環境のデフォルトポートは3021
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3021';
+
+    // test-data.tsに環境変数を設定
+    process.env.NEXT_PUBLIC_API_URL = API_BASE_URL;
+
+    console.log(`📡 API Base URL: ${API_BASE_URL}`);
     const maxRetries = 30;
     const retryInterval = 1000; // 1秒
 
