@@ -87,12 +87,37 @@ test.describe('取引カテゴリ編集機能', () => {
     if (options.length > 1) {
       const newOption = await options[1].getAttribute('value');
       if (newOption) {
+        // 新しいカテゴリ名を取得
+        const newCategoryName = await options[1].textContent();
+
+        // セレクトボックスでカテゴリを選択
         await select.selectOption(newOption);
 
-        // カテゴリが変更されたことを確認（元のカテゴリ名とは異なることを確認）
-        await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText(
-          originalCategory || ''
-        );
+        // APIリクエストが完了するまで待機（PATCHリクエストを待つ）
+        await page
+          .waitForResponse(
+            (response) => response.url().includes('/api/transactions') && response.status() === 200,
+            { timeout: 10000 }
+          )
+          .catch(() => {
+            // レスポンスを待てない場合は続行
+          });
+
+        // セレクトボックスが消えて、ボタンが表示されるまで待つ
+        await expect(select).not.toBeVisible({ timeout: 10000 });
+
+        // 更新されたボタンが表示されることを確認
+        const updatedButton = page.locator('tbody tr:first-child button').first();
+        await expect(updatedButton).toBeVisible({ timeout: 5000 });
+
+        // カテゴリが変更されたことを確認（新しいカテゴリ名が表示される）
+        if (newCategoryName) {
+          await expect(updatedButton).toHaveText(newCategoryName.trim(), { timeout: 5000 });
+        } else {
+          // カテゴリ名が取得できない場合は、元のカテゴリ名とは異なることを確認
+          const currentCategory = await updatedButton.textContent();
+          expect(currentCategory).not.toBe(originalCategory);
+        }
       }
     }
   });

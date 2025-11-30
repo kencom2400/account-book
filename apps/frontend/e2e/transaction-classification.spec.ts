@@ -29,24 +29,27 @@ test.describe('取引分類（サブカテゴリ）機能', () => {
 
     // テーブルが存在することを確認（取引データがない場合でもテーブル構造は表示される）
     const table = page.locator('table');
-    await expect(table).toBeVisible();
+    await expect(table).toBeVisible({ timeout: 10000 });
 
     // テーブルヘッダーの確認（取引データがない場合でもヘッダーは表示される）
+    // 注意: テーブルが空の場合は「該当する取引がありません」メッセージが表示される
     const headers = ['日付', '説明', 'カテゴリ', '金額', 'サブカテゴリ', '信頼度', '操作'];
 
-    for (const header of headers) {
-      const headerElement = page.getByRole('columnheader', { name: header });
-      // ヘッダーが存在するか、または「該当する取引がありません」メッセージが表示される
-      const hasHeader = await headerElement.isVisible().catch(() => false);
-      const hasNoDataMessage = await page
-        .getByText('該当する取引がありません')
-        .isVisible()
-        .catch(() => false);
+    // まず、テーブルが表示されているか、または「該当する取引がありません」メッセージが表示されているかを確認
+    const hasNoDataMessage = await page
+      .getByText('該当する取引がありません')
+      .isVisible()
+      .catch(() => false);
 
-      if (!hasHeader && !hasNoDataMessage) {
-        // どちらも見つからない場合はエラー
-        throw new Error(`ヘッダー "${header}" が見つかりません`);
-      }
+    if (hasNoDataMessage) {
+      // データがない場合は、メッセージが表示されていることを確認して終了
+      return;
+    }
+
+    // データがある場合は、すべてのヘッダーが表示されていることを確認
+    for (const header of headers) {
+      const headerElement = page.getByRole('columnheader', { name: header, exact: true });
+      await expect(headerElement).toBeVisible({ timeout: 5000 });
     }
   });
 
