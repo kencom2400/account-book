@@ -5557,6 +5557,200 @@ git checkout -b feature/issue-<番号>-<Issueタイトルをケバブケース�
 
 ---
 
+### 13-7. ReactコンポーネントのJSX共通化とDRY原則 🟡 Medium
+
+**学習元**: PR #327 - FR-010: 費目の手動修正機能（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: 共通レイアウトの重複
+
+```typescript
+// ❌ 悪い例: 同じレイアウトコードが3回繰り返される
+export default function TransactionsPage(): React.JSX.Element {
+  // ...
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+        <div className="flex justify-center items-center py-12">
+          {/* ローディング表示 */}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+        {/* エラー表示 */}
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      {/* 正常表示 */}
+    </div>
+  );
+}
+```
+
+**問題点**:
+
+- 同じレイアウトコード（`<div className="container...">`と`<h1>`）が重複
+- レイアウト変更時に3箇所を修正する必要
+- メンテナンス性の低下
+
+#### ✅ 正しいパターン: 共通レイアウトコンポーネントの抽出
+
+```typescript
+// ✅ 良い例: 共通レイアウトをコンポーネント化
+export default function TransactionsPage(): React.JSX.Element {
+  // ...
+
+  // 共通レイアウトコンポーネント
+  const PageLayout = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      {children}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex justify-center items-center py-12">
+          {/* ローディング表示 */}
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageLayout>
+        {/* エラー表示 */}
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout>
+      {/* 正常表示 */}
+    </PageLayout>
+  );
+}
+```
+
+**利点**:
+
+- レイアウト変更が1箇所で完結
+- DRY原則の遵守
+- メンテナンス性の向上
+
+**推奨アプローチ**:
+
+1. 複数の状態（loading/error/success）で同じレイアウトを使用する場合は共通化
+2. コンポーネント内で`PageLayout`のようなヘルパーコンポーネントを定義
+3. 複数ページで使用する場合は、共通コンポーネントとして抽出
+
+---
+
+### 13-8. データフェッチングライブラリの導入検討 🟢 Low（将来改善）
+
+**学習元**: PR #327 - FR-010: 費目の手動修正機能（Geminiレビュー指摘）
+
+#### 現状のパターン: 手動でのデータフェッチング
+
+```typescript
+// 現状: useState + useEffect で手動実装
+export default function TransactionsPage(): React.JSX.Element {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTransactions = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTransactions();
+      setTransactions(data);
+    } catch (err) {
+      setError('取引データの取得に失敗しました。再読み込みしてください。');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTransactions();
+  }, [loadTransactions]);
+}
+```
+
+**現状の問題点**:
+
+- ローディング・エラー状態の管理が冗長
+- キャッシュ機能がない
+- 再フェッチ、リトライなどの機能を手動実装する必要
+
+#### 将来の改善案: データフェッチングライブラリの導入
+
+**検討対象**:
+
+- **SWR** (Stale-While-Revalidate)
+  - 軽量でNext.jsとの統合が容易
+  - 自動キャッシュ、再検証、エラーハンドリング
+- **React Query (TanStack Query)**
+  - より高機能（キャッシュ、同期、オプティミスティック更新）
+  - 複雑なデータフェッチング要件に対応
+
+**導入時の利点**:
+
+```typescript
+// 将来の改善例: SWRを使用
+import useSWR from 'swr';
+
+export default function TransactionsPage(): React.JSX.Element {
+  const { data: transactions, error, isLoading, mutate } = useSWR(
+    '/api/transactions',
+    getTransactions
+  );
+
+  if (isLoading) return <PageLayout><Loading /></PageLayout>;
+  if (error) return <PageLayout><Error error={error} /></PageLayout>;
+
+  return (
+    <PageLayout>
+      <TransactionList transactions={transactions} />
+    </PageLayout>
+  );
+}
+```
+
+**利点**:
+
+- コードの簡潔化
+- 自動キャッシュと再検証
+- エラーハンドリングの統一
+- リトライ、ポーリングなどの高度な機能
+
+**導入判断基準**:
+
+- ✅ **導入を検討**: 複数のページでデータフェッチングが必要な場合
+- ✅ **導入を検討**: リアルタイム更新が必要な場合
+- ⚠️ **現状維持**: 単一ページのみで、シンプルな要件の場合
+
+**注意点**:
+
+- プロジェクト全体の方針として検討が必要
+- 既存コードへの影響範囲を評価
+- チーム全体での合意が必要
+
+---
+
 ## 14. Issue #279から学んだ教訓
 
 **学習元**: Issue #279 - FR-006: 未実装機能の実装、PR #285

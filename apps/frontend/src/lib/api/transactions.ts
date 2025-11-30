@@ -54,7 +54,7 @@ export interface MonthlySummary {
  * 取引を作成
  */
 export async function createTransaction(data: CreateTransactionRequest): Promise<Transaction> {
-  return await apiClient.post<Transaction>('/transactions', data);
+  return await apiClient.post<Transaction>('/api/transactions', data);
 }
 
 /**
@@ -72,7 +72,7 @@ export async function getTransactions(params?: GetTransactionsParams): Promise<T
     if (params.endDate) searchParams.append('endDate', params.endDate);
   }
 
-  const endpoint = `/transactions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const endpoint = `/api/transactions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   return await apiClient.get<Transaction[]>(endpoint);
 }
 
@@ -80,7 +80,7 @@ export async function getTransactions(params?: GetTransactionsParams): Promise<T
  * 月次サマリーを取得
  */
 export async function getMonthlySummary(year: number, month: number): Promise<MonthlySummary> {
-  return await apiClient.get<MonthlySummary>(`/transactions/summary/monthly/${year}/${month}`);
+  return await apiClient.get<MonthlySummary>(`/api/transactions/summary/monthly/${year}/${month}`);
 }
 
 /**
@@ -94,7 +94,7 @@ export async function updateTransactionCategory(
     type: CategoryType;
   }
 ): Promise<Transaction> {
-  return await apiClient.patch<Transaction>(`/transactions/${transactionId}/category`, {
+  return await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/category`, {
     category,
   });
 }
@@ -107,7 +107,7 @@ export async function updateTransactionSubcategory(
   transactionId: string,
   subcategoryId: string
 ): Promise<Transaction> {
-  return await apiClient.patch<Transaction>(`/transactions/${transactionId}/subcategory`, {
+  return await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/subcategory`, {
     subcategoryId,
   });
 }

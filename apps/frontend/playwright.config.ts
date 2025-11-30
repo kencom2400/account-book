@@ -54,6 +54,7 @@ export default defineConfig({
     ['json', { outputFile: 'playwright-report/results.json' }],
     ['junit', { outputFile: 'playwright-report/results.xml' }],
   ],
+  globalSetup: require.resolve('./e2e/global-setup.ts'),
   use: {
     baseURL: process.env.BASE_URL || `http://localhost:${frontendPort}`,
     trace: 'on-first-retry',
