@@ -1,0 +1,1287 @@
+{
+  "total": {
+    "lines": { "total": 5271, "covered": 295, "skipped": 0, "pct": 5.59 },
+    "statements": { "total": 5633, "covered": 299, "skipped": 0, "pct": 5.3 },
+    "functions": { "total": 1147, "covered": 45, "skipped": 0, "pct": 3.92 },
+    "branches": { "total": 2053, "covered": 66, "skipped": 0, "pct": 3.21 },
+    "branchesTrue": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/app.controller.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/app.module.ts": {
+    "lines": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 23, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/app.service.ts": {
+    "lines": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/main.ts": {
+    "lines": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/common/errors/cancellation.error.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/common/errors/http-error.interface.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/common/errors/index.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/common/filters/http-exception.filter.ts": {
+    "lines": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 23, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/common/interceptors/transform.interceptor.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/config/app.config.ts": {
+    "lines": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/config/crypto.config.ts": {
+    "lines": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/config/database-common.config.ts": {
+    "lines": { "total": 58, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 58, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/config/database.config.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/config/typeorm-migration.config.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/migrations/1700000000000-InitialMigration.ts": {
+    "lines": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/migrations/1732248000000-AddRelatedTransactionForeignKey.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/migrations/1732300000000-AddSecuritiesTables.ts": {
+    "lines": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/migrations/1732400000000-AddSubcategoriesAndMerchantsTables.ts": {
+    "lines": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/aggregation.module.ts": {
+    "lines": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/aggregation.tokens.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/application/services/billing-period-calculator.service.ts": {
+    "lines": { "total": 33, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/application/use-cases/aggregate-card-transactions.use-case.ts": {
+    "lines": { "total": 71, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 74, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/application/use-cases/delete-summary.use-case.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/application/use-cases/find-all-summaries.use-case.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/application/use-cases/find-summary-by-id.use-case.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/domain/entities/monthly-card-summary.entity.ts": {
+    "lines": { "total": 59, "covered": 36, "skipped": 0, "pct": 61.01 },
+    "functions": { "total": 7, "covered": 2, "skipped": 0, "pct": 28.57 },
+    "statements": { "total": 59, "covered": 36, "skipped": 0, "pct": 61.01 },
+    "branches": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/domain/enums/payment-status.enum.ts": {
+    "lines": { "total": 9, "covered": 9, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 9, "covered": 9, "skipped": 0, "pct": 100 },
+    "branches": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/domain/value-objects/category-amount.vo.ts": {
+    "lines": { "total": 16, "covered": 9, "skipped": 0, "pct": 56.25 },
+    "functions": { "total": 3, "covered": 1, "skipped": 0, "pct": 33.33 },
+    "statements": { "total": 16, "covered": 9, "skipped": 0, "pct": 56.25 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/infrastructure/entities/monthly-card-summary.orm-entity.ts": {
+    "lines": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/infrastructure/repositories/aggregation-typeorm.repository.ts": {
+    "lines": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/presentation/controllers/aggregation.controller.ts": {
+    "lines": { "total": 29, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/presentation/dto/aggregate-card-transactions.dto.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/aggregation/presentation/dto/monthly-card-summary.dto.ts": {
+    "lines": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/category.module.ts": {
+    "lines": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 37, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/check-category-usage.use-case.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/classify-subcategory.use-case.ts": {
+    "lines": { "total": 22, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/create-category.use-case.ts": {
+    "lines": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/delete-category.use-case.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/get-categories.use-case.ts": {
+    "lines": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/get-category-by-id.use-case.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/get-subcategories-by-category.use-case.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/get-subcategories.use-case.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/initialize-categories.use-case.ts": {
+    "lines": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/update-category.use-case.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/application/use-cases/update-transaction-subcategory.use-case.ts": {
+    "lines": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/entities/category.entity.ts": {
+    "lines": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/entities/merchant.entity.ts": {
+    "lines": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/entities/subcategory.entity.ts": {
+    "lines": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/enums/classification-reason.enum.ts": {
+    "lines": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/repositories/category.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/repositories/merchant.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/repositories/subcategory.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/services/category-domain.service.ts": {
+    "lines": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 43, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/services/keyword-matcher.service.ts": {
+    "lines": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 29, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/services/merchant-matcher.service.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/services/subcategory-classifier.service.ts": {
+    "lines": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/services/subcategory-tree-builder.service.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/utils/text-normalizer.util.ts": {
+    "lines": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/value-objects/classification-confidence.vo.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/domain/value-objects/subcategory-classification.vo.ts": {
+    "lines": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/entities/category.orm-entity.ts": {
+    "lines": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/entities/merchant.orm-entity.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/entities/subcategory.orm-entity.ts": {
+    "lines": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/repositories/category-typeorm.repository.ts": {
+    "lines": { "total": 32, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/repositories/category.repository.ts": {
+    "lines": { "total": 54, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 64, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/repositories/merchant-typeorm.repository.ts": {
+    "lines": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 41, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/repositories/subcategory-typeorm.repository.ts": {
+    "lines": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 43, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/seeds/merchants.seed.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/seeds/seed.runner.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/infrastructure/seeds/subcategories.seed.ts": {
+    "lines": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/controllers/category.controller.ts": {
+    "lines": { "total": 51, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 53, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 72, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/controllers/subcategory.controller.ts": {
+    "lines": { "total": 50, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 54, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 53, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/classification-request.dto.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/classification-response.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/create-category.dto.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/subcategory-response.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/update-category.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/update-subcategory-request.dto.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/category/presentation/dto/update-subcategory-response.dto.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/credit-card.module.ts": {
+    "lines": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/credit-card.tokens.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/application/use-cases/connect-credit-card.use-case.ts": {
+    "lines": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/application/use-cases/fetch-credit-card-transactions.use-case.ts": {
+    "lines": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/application/use-cases/fetch-payment-info.use-case.ts": {
+    "lines": { "total": 48, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 51, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/application/use-cases/refresh-credit-card-data.use-case.ts": {
+    "lines": { "total": 57, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 59, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/domain/entities/credit-card-transaction.entity.ts": {
+    "lines": { "total": 61, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 62, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/domain/entities/credit-card.entity.ts": {
+    "lines": { "total": 56, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 57, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/domain/value-objects/payment.vo.ts": {
+    "lines": { "total": 43, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 44, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 32, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/infrastructure/adapters/mock-credit-card-api.adapter.ts": {
+    "lines": { "total": 41, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/infrastructure/entities/credit-card.orm-entity.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/infrastructure/repositories/credit-card-typeorm.repository.ts": {
+    "lines": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 33, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/infrastructure/repositories/credit-card.repository.ts": {
+    "lines": { "total": 165, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 70, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 191, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 66, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/presentation/controllers/credit-card.controller.ts": {
+    "lines": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 61, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/presentation/dto/connect-credit-card.dto.ts": {
+    "lines": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/presentation/dto/get-payment-info.dto.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/credit-card/presentation/dto/get-transactions.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/health.module.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/health.tokens.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/handlers/connection-failed.handler.ts": {
+    "lines": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/services/institution-aggregation.service.ts": {
+    "lines": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/services/notification-cleanup.service.ts": {
+    "lines": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/services/notification.service.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/use-cases/check-connection-status.use-case.ts": {
+    "lines": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/use-cases/get-connection-history.use-case.ts": {
+    "lines": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 53, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/application/use-cases/scheduled-connection-check.use-case.ts": {
+    "lines": { "total": 39, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/entities/connection-history.entity.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/entities/notification.entity.ts": {
+    "lines": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/events/connection-failed.event.ts": {
+    "lines": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/repositories/connection-history.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/types/connection.types.ts": {
+    "lines": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/value-objects/connection-check-result.vo.ts": {
+    "lines": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/domain/value-objects/connection-status.enum.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/infrastructure/repositories/connection-history.repository.ts": {
+    "lines": { "total": 104, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 110, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/infrastructure/repositories/notification.repository.ts": {
+    "lines": { "total": 56, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 58, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/infrastructure/services/connection-checker.service.ts": {
+    "lines": { "total": 48, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 51, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 35, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/presentation/controllers/health.controller.ts": {
+    "lines": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 43, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/presentation/dto/check-connection.dto.ts": {
+    "lines": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/health/presentation/dto/get-connection-history.dto.ts": {
+    "lines": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/institution.module.ts": {
+    "lines": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/institution.tokens.ts": {
+    "lines": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/application/use-cases/create-institution.use-case.ts": {
+    "lines": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/application/use-cases/get-institutions.use-case.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/application/use-cases/get-supported-banks.use-case.ts": {
+    "lines": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/application/use-cases/test-bank-connection.use-case.ts": {
+    "lines": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/domain/entities/account.entity.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/domain/entities/institution.entity.ts": {
+    "lines": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/domain/errors/bank-connection.error.ts": {
+    "lines": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/domain/value-objects/encrypted-credentials.vo.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/adapters/mock-bank-api.adapter.ts": {
+    "lines": { "total": 25, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/data/banks.data.ts": {
+    "lines": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/entities/account.orm-entity.ts": {
+    "lines": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/entities/institution.orm-entity.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/repositories/institution-typeorm.repository.ts": {
+    "lines": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/repositories/institution.repository.ts": {
+    "lines": { "total": 54, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 61, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/infrastructure/services/crypto.service.ts": {
+    "lines": { "total": 32, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/controllers/institution.controller.ts": {
+    "lines": { "total": 29, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 44, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/dto/create-institution.dto.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/dto/get-institutions.dto.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/dto/get-supported-banks.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/dto/test-bank-connection.dto.ts": {
+    "lines": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/institution/presentation/filters/bank-connection-exception.filter.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/reconciliation.module.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/reconciliation.tokens.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/application/use-cases/reconcile-credit-card.use-case.ts": {
+    "lines": { "total": 58, "covered": 52, "skipped": 0, "pct": 89.65 },
+    "functions": { "total": 8, "covered": 7, "skipped": 0, "pct": 87.5 },
+    "statements": { "total": 61, "covered": 54, "skipped": 0, "pct": 88.52 },
+    "branches": { "total": 17, "covered": 12, "skipped": 0, "pct": 70.58 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/entities/reconciliation.entity.ts": {
+    "lines": { "total": 40, "covered": 28, "skipped": 0, "pct": 70 },
+    "functions": { "total": 10, "covered": 6, "skipped": 0, "pct": 60 },
+    "statements": { "total": 40, "covered": 28, "skipped": 0, "pct": 70 },
+    "branches": { "total": 9, "covered": 1, "skipped": 0, "pct": 11.11 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/enums/reconciliation-status.enum.ts": {
+    "lines": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "functions": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 },
+    "branches": { "total": 2, "covered": 2, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/errors/reconciliation.errors.ts": {
+    "lines": { "total": 17, "covered": 11, "skipped": 0, "pct": 64.7 },
+    "functions": { "total": 5, "covered": 2, "skipped": 0, "pct": 40 },
+    "statements": { "total": 17, "covered": 11, "skipped": 0, "pct": 64.7 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/services/reconciliation.service.ts": {
+    "lines": { "total": 99, "covered": 56, "skipped": 0, "pct": 56.56 },
+    "functions": { "total": 17, "covered": 15, "skipped": 0, "pct": 88.23 },
+    "statements": { "total": 101, "covered": 58, "skipped": 0, "pct": 57.42 },
+    "branches": { "total": 26, "covered": 11, "skipped": 0, "pct": 42.3 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/value-objects/discrepancy.vo.ts": {
+    "lines": { "total": 13, "covered": 13, "skipped": 0, "pct": 100 },
+    "functions": { "total": 3, "covered": 3, "skipped": 0, "pct": 100 },
+    "statements": { "total": 13, "covered": 13, "skipped": 0, "pct": 100 },
+    "branches": { "total": 5, "covered": 5, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/value-objects/reconciliation-result.vo.ts": {
+    "lines": { "total": 27, "covered": 24, "skipped": 0, "pct": 88.88 },
+    "functions": { "total": 4, "covered": 3, "skipped": 0, "pct": 75 },
+    "statements": { "total": 27, "covered": 24, "skipped": 0, "pct": 88.88 },
+    "branches": { "total": 25, "covered": 21, "skipped": 0, "pct": 84 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/domain/value-objects/reconciliation-summary.vo.ts": {
+    "lines": { "total": 37, "covered": 27, "skipped": 0, "pct": 72.97 },
+    "functions": { "total": 4, "covered": 2, "skipped": 0, "pct": 50 },
+    "statements": { "total": 37, "covered": 27, "skipped": 0, "pct": 72.97 },
+    "branches": { "total": 16, "covered": 8, "skipped": 0, "pct": 50 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/infrastructure/repositories/json-reconciliation.repository.ts": {
+    "lines": { "total": 76, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 81, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 37, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/presentation/controllers/reconciliation.controller.ts": {
+    "lines": { "total": 48, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 50, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 44, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/presentation/dto/reconcile-credit-card.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/reconciliation/presentation/dto/reconciliation.dto.ts": {
+    "lines": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/securities.module.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/securities.tokens.ts": {
+    "lines": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/application/use-cases/calculate-portfolio-value.use-case.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/application/use-cases/connect-securities-account.use-case.ts": {
+    "lines": { "total": 43, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/application/use-cases/fetch-holdings.use-case.ts": {
+    "lines": { "total": 42, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 44, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/application/use-cases/fetch-security-transactions.use-case.ts": {
+    "lines": { "total": 50, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 52, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 23, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/domain/entities/holding.entity.ts": {
+    "lines": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 46, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/domain/entities/securities-account.entity.ts": {
+    "lines": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/domain/entities/security-transaction.entity.ts": {
+    "lines": { "total": 46, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 46, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/domain/value-objects/portfolio.vo.ts": {
+    "lines": { "total": 37, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 38, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/adapters/mock-securities-api.adapter.ts": {
+    "lines": { "total": 28, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/entities/holding.orm-entity.ts": {
+    "lines": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/entities/securities-account.orm-entity.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/entities/security-transaction.orm-entity.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/repositories/holding-typeorm.repository.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/repositories/securities-account-typeorm.repository.ts": {
+    "lines": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 32, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/repositories/securities.repository.ts": {
+    "lines": { "total": 120, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 136, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/infrastructure/repositories/security-transaction-typeorm.repository.ts": {
+    "lines": { "total": 31, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 33, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/presentation/controllers/securities.controller.ts": {
+    "lines": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 52, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/presentation/dto/connect-securities-account.dto.ts": {
+    "lines": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/presentation/dto/get-holdings.dto.ts": {
+    "lines": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/securities/presentation/dto/get-transactions.dto.ts": {
+    "lines": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/sync.module.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/sync.tokens.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/jobs/scheduled-sync.job.ts": {
+    "lines": { "total": 62, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 65, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 23, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/use-cases/cancel-sync.use-case.ts": {
+    "lines": { "total": 22, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/use-cases/get-sync-history.use-case.ts": {
+    "lines": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/use-cases/get-sync-status.use-case.ts": {
+    "lines": { "total": 14, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/use-cases/sync-all-transactions.use-case.ts": {
+    "lines": { "total": 125, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 129, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/application/use-cases/sync-transactions.use-case.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/domain/entities/sync-history.entity.ts": {
+    "lines": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 34, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/domain/enums/sync-status.enum.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/domain/strategies/incremental-sync.strategy.ts": {
+    "lines": { "total": 47, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/infrastructure/entities/sync-history.orm-entity.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 16, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/infrastructure/repositories/sync-history-typeorm.repository.ts": {
+    "lines": { "total": 62, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 69, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 25, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/presentation/controllers/sync.controller.ts": {
+    "lines": { "total": 36, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 40, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 60, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/presentation/dto/sync-request.dto.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/sync/presentation/dto/sync.dto.ts": {
+    "lines": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/transaction.module.ts": {
+    "lines": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/application/use-cases/calculate-monthly-summary.use-case.ts": {
+    "lines": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 19, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/application/use-cases/classify-transaction.use-case.ts": {
+    "lines": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 25, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/application/use-cases/create-transaction.use-case.ts": {
+    "lines": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/application/use-cases/get-transactions.use-case.ts": {
+    "lines": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 17, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/application/use-cases/update-transaction-category.use-case.ts": {
+    "lines": { "total": 27, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 29, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/entities/transaction-category-change-history.entity.ts": {
+    "lines": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 3, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/entities/transaction.entity.ts": {
+    "lines": { "total": 37, "covered": 22, "skipped": 0, "pct": 59.45 },
+    "functions": { "total": 10, "covered": 2, "skipped": 0, "pct": 20 },
+    "statements": { "total": 37, "covered": 22, "skipped": 0, "pct": 59.45 },
+    "branches": { "total": 11, "covered": 4, "skipped": 0, "pct": 36.36 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/repositories/transaction-category-change-history.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/repositories/transaction.repository.interface.ts": {
+    "lines": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 1, "covered": 1, "skipped": 0, "pct": 100 },
+    "branches": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/services/category-classification.service.ts": {
+    "lines": { "total": 54, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 56, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/services/transaction-domain.service.ts": {
+    "lines": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 51, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/value-objects/money.vo.ts": {
+    "lines": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 11, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 8, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/domain/value-objects/transaction-date.vo.ts": {
+    "lines": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 10, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 9, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/infrastructure/entities/transaction-category-change-history.orm-entity.ts": {
+    "lines": { "total": 13, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 0, "covered": 0, "skipped": 0, "pct": 100 },
+    "statements": { "total": 15, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 12, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/infrastructure/entities/transaction.orm-entity.ts": {
+    "lines": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 1, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 26, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 20, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/infrastructure/repositories/transaction-category-change-history.repository.ts": {
+    "lines": { "total": 18, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 6, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 21, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 4, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/infrastructure/repositories/transaction-typeorm.repository.ts": {
+    "lines": { "total": 45, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 23, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 48, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 5, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/infrastructure/repositories/transaction.repository.ts": {
+    "lines": { "total": 101, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 30, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 109, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 24, "covered": 0, "skipped": 0, "pct": 0 }
+  },
+  "/Users/kencom/github/account-book/apps/backend/src/modules/transaction/presentation/controllers/transaction.controller.ts": {
+    "lines": { "total": 49, "covered": 0, "skipped": 0, "pct": 0 },
+    "functions": { "total": 7, "covered": 0, "skipped": 0, "pct": 0 },
+    "statements": { "total": 51, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 52, "covered": 0, "skipped": 0, "pct": 0 }
+  }
+}
