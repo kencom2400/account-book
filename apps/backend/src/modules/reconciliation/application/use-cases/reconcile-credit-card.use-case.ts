@@ -11,7 +11,6 @@ import type { ITransactionRepository } from '../../../transaction/domain/reposit
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
 import { CardSummaryNotFoundError } from '../../domain/errors/reconciliation.errors';
 import { InvalidPaymentDateError } from '../../domain/errors/reconciliation.errors';
-import { MultipleCandidateError } from '../../domain/errors/reconciliation.errors';
 import { RECONCILIATION_REPOSITORY } from '../../reconciliation.tokens';
 import { AGGREGATION_REPOSITORY } from '../../../aggregation/aggregation.tokens';
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
@@ -64,31 +63,26 @@ export class ReconcileCreditCardUseCase {
       bankTransactions,
     );
 
-    // 5. 複数候補の場合はエラー
-    // 注: 現在の実装では複数候補は検出されないが、将来の拡張のためにチェック
-    if (reconciliationResult.confidence === 70 && bankTransactions.length > 1) {
-      const candidates = bankTransactions.map((tx) => ({
-        id: tx.id,
-        date: tx.date,
-        amount: tx.amount,
-        description: tx.description,
-      }));
-      throw new MultipleCandidateError(candidates);
-    }
+    // 5. 既存の照合結果を検索（Upsertロジック）
+    const existingReconciliation =
+      await this.reconciliationRepository.findByCardAndMonth(
+        cardId,
+        billingMonth,
+      );
 
     // 6. 照合結果エンティティを作成
     const results = [reconciliationResult];
     const summary = ReconciliationSummary.calculateSummary(results);
 
     const reconciliation = new Reconciliation(
-      uuidv4(),
+      existingReconciliation?.id ?? uuidv4(),
       cardId,
       billingMonth,
       this.determineStatus(reconciliationResult),
       new Date(),
       results,
       summary,
-      new Date(),
+      existingReconciliation?.createdAt ?? new Date(),
       new Date(),
     );
 

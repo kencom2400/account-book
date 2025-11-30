@@ -126,7 +126,7 @@ describe('ReconciliationService', () => {
         'その他の引落',
       );
       const bankTransaction2 = createMockBankTransaction(
-        new Date('2025-02-28'), // 1営業日後
+        new Date('2025-03-03'), // 4営業日後（異なる日付差）
         50000,
         'その他の引落',
       );
@@ -138,7 +138,28 @@ describe('ReconciliationService', () => {
 
       expect(result.isMatched).toBe(false);
       expect(result.confidence).toBe(70);
-      // 最も近い日付の取引が選択される（実装に依存）
+      // 最も近い日付の取引（bankTransaction1）が選択される
+    });
+
+    it('同じ日付差の候補が複数ある場合、MultipleCandidateErrorをスロー', () => {
+      const cardSummary = createMockCardSummary();
+      const bankTransaction1 = createMockBankTransaction(
+        new Date('2025-02-26'), // 1営業日前
+        50000,
+        'その他の引落',
+      );
+      const bankTransaction2 = createMockBankTransaction(
+        new Date('2025-02-28'), // 1営業日後（同じ日付差）
+        50000,
+        'その他の引落',
+      );
+
+      expect(() => {
+        service.reconcilePayment(cardSummary, [
+          bankTransaction1,
+          bankTransaction2,
+        ]);
+      }).toThrow('複数の候補取引が存在します。手動で選択してください');
     });
 
     it('銀行取引が空の場合、不一致を返す', () => {

@@ -115,6 +115,7 @@ describe('ReconcileCreditCardUseCase', () => {
       transactionRepository.findByDateRange.mockResolvedValue([
         mockBankTransaction,
       ]);
+      reconciliationRepository.findByCardAndMonth.mockResolvedValue(null);
       reconciliationRepository.save.mockImplementation(async (r) => r);
 
       const result = await useCase.execute('card-001', '2025-01');
@@ -126,6 +127,41 @@ describe('ReconcileCreditCardUseCase', () => {
         'card-001',
         '2025-01',
       );
+      expect(reconciliationRepository.findByCardAndMonth).toHaveBeenCalledWith(
+        'card-001',
+        '2025-01',
+      );
+      expect(reconciliationRepository.save).toHaveBeenCalled();
+    });
+
+    it('既存の照合結果がある場合、IDを保持して更新', async () => {
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(
+        mockCardSummary,
+      );
+      transactionRepository.findByDateRange.mockResolvedValue([
+        mockBankTransaction,
+      ]);
+
+      const existingReconciliation = {
+        id: 'existing-reconciliation-id',
+        cardId: 'card-001',
+        billingMonth: '2025-01',
+        status: 'MATCHED' as const,
+        executedAt: new Date('2025-01-30'),
+        results: [],
+        summary: { total: 1, matched: 1, unmatched: 0, partial: 0 },
+        createdAt: new Date('2025-01-30'),
+        updatedAt: new Date('2025-01-30'),
+      };
+      reconciliationRepository.findByCardAndMonth.mockResolvedValue(
+        existingReconciliation as any,
+      );
+      reconciliationRepository.save.mockImplementation(async (r) => r);
+
+      const result = await useCase.execute('card-001', '2025-01');
+
+      expect(result.id).toBe('existing-reconciliation-id');
+      expect(result.createdAt).toEqual(existingReconciliation.createdAt);
       expect(reconciliationRepository.save).toHaveBeenCalled();
     });
 

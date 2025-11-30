@@ -2,6 +2,7 @@ import { TransactionEntity } from '../../../transaction/domain/entities/transact
 import { MonthlyCardSummary } from '../../../aggregation/domain/entities/monthly-card-summary.entity';
 import { ReconciliationResult } from '../value-objects/reconciliation-result.vo';
 import { Discrepancy } from '../value-objects/discrepancy.vo';
+import { MultipleCandidateError } from '../errors/reconciliation.errors';
 
 /**
  * 照合サービス
@@ -56,7 +57,7 @@ export class ReconciliationService {
 
     // 部分一致（金額・日付のみ一致）
     if (amountMatches.length > 0) {
-      // 最も近い日付の取引を選択
+      // 最も近い日付の取引を特定
       const bestMatch = amountMatches.reduce((prev, curr) => {
         const prevDiff = Math.abs(
           prev.date.getTime() - cardSummary.paymentDate.getTime(),
@@ -66,6 +67,31 @@ export class ReconciliationService {
         );
         return currDiff < prevDiff ? curr : prev;
       });
+
+      // 複数候補がある場合、同じ日付差の候補が複数あるかチェック
+      // 例: 支払日の前日と翌日に同額の取引があった場合、どちらが正しいか判断できない
+      if (amountMatches.length > 1) {
+        const bestMatchDiff = Math.abs(
+          bestMatch.date.getTime() - cardSummary.paymentDate.getTime(),
+        );
+        const sameDiffCandidates = amountMatches.filter(
+          (tx) =>
+            Math.abs(tx.date.getTime() - cardSummary.paymentDate.getTime()) ===
+            bestMatchDiff,
+        );
+
+        // 同じ日付差の候補が複数ある場合はエラー
+        if (sameDiffCandidates.length > 1) {
+          throw new MultipleCandidateError(
+            sameDiffCandidates.map((tx) => ({
+              id: tx.id,
+              date: tx.date,
+              amount: tx.amount,
+              description: tx.description,
+            })),
+          );
+        }
+      }
       const confidence = ReconciliationResult.calculateConfidence(
         true, // amountMatch
         true, // dateMatch
@@ -268,29 +294,34 @@ export class ReconciliationService {
 
   /**
    * 営業日数を計算
+   * 日付の「差」を計算するため、期間の片方の端点のみを含める
    */
-  private calculateBusinessDays(startDate: Date, endDate: Date): number {
-    let count = 0;
-    const current = new Date(startDate);
-    const end = new Date(endDate);
+  private calculateBusinessDays(d1: Date, d2: Date): number {
+    const date1 = new Date(d1.getTime());
+    const date2 = new Date(d2.getTime());
+    date1.setHours(0, 0, 0, 0);
+    date2.setHours(0, 0, 0, 0);
 
-    // 開始日と終了日のどちらが前か判定
-    const isStartBeforeEnd = current <= end;
-    const increment = isStartBeforeEnd ? 1 : -1;
+    if (date1.getTime() === date2.getTime()) {
+      return 0;
+    }
 
-    while (current.getTime() !== end.getTime()) {
-      if (this.isBusinessDay(current)) {
-        count++;
+    const sign = date2 > date1 ? 1 : -1;
+    const start = sign > 0 ? date1 : date2;
+    const end = sign > 0 ? date2 : date1;
+
+    let businessDays = 0;
+    const current = new Date(start);
+
+    while (current < end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) {
+        businessDays++;
       }
-      current.setDate(current.getDate() + increment);
+      current.setDate(current.getDate() + 1);
     }
 
-    // 終了日も含める
-    if (this.isBusinessDay(end)) {
-      count++;
-    }
-
-    return isStartBeforeEnd ? count : -count;
+    return businessDays * sign;
   }
 
   /**
