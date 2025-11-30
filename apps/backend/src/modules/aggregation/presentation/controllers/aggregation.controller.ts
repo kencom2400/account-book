@@ -5,16 +5,15 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
-  NotFoundException,
   Param,
   Post,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
-import type { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
-import { AGGREGATION_REPOSITORY } from '../../aggregation.tokens';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
+import { FindAllSummariesUseCase } from '../../application/use-cases/find-all-summaries.use-case';
+import { FindSummaryByIdUseCase } from '../../application/use-cases/find-summary-by-id.use-case';
+import { DeleteSummaryUseCase } from '../../application/use-cases/delete-summary.use-case';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 import {
   MonthlyCardSummaryResponseDto,
@@ -30,8 +29,9 @@ import {
 export class AggregationController {
   constructor(
     private readonly aggregateCardTransactionsUseCase: AggregateCardTransactionsUseCase,
-    @Inject(AGGREGATION_REPOSITORY)
-    private readonly aggregationRepository: AggregationRepository,
+    private readonly findAllSummariesUseCase: FindAllSummariesUseCase,
+    private readonly findSummaryByIdUseCase: FindSummaryByIdUseCase,
+    private readonly deleteSummaryUseCase: DeleteSummaryUseCase,
   ) {}
 
   /**
@@ -79,7 +79,7 @@ export class AggregationController {
     success: boolean;
     data: MonthlyCardSummaryListItemDto[];
   }> {
-    const summaries = await this.aggregationRepository.findAll();
+    const summaries = await this.findAllSummariesUseCase.execute();
 
     return {
       success: true,
@@ -103,11 +103,7 @@ export class AggregationController {
     success: boolean;
     data: MonthlyCardSummaryResponseDto;
   }> {
-    const summary = await this.aggregationRepository.findById(id);
-
-    if (!summary) {
-      throw new NotFoundException('Monthly card summary not found');
-    }
+    const summary = await this.findSummaryByIdUseCase.execute(id);
 
     return {
       success: true,
@@ -125,13 +121,7 @@ export class AggregationController {
   @ApiResponse({ status: 204, description: '削除成功' })
   @ApiResponse({ status: 404, description: '集計データが見つからない' })
   async delete(@Param('id') id: string): Promise<void> {
-    const summary = await this.aggregationRepository.findById(id);
-
-    if (!summary) {
-      throw new NotFoundException('Monthly card summary not found');
-    }
-
-    await this.aggregationRepository.delete(id);
+    await this.deleteSummaryUseCase.execute(id);
   }
 
   /**

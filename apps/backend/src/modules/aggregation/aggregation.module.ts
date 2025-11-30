@@ -10,6 +10,9 @@ import {
   CREDIT_CARD_TRANSACTION_REPOSITORY,
 } from '../credit-card/credit-card.tokens';
 import { AggregateCardTransactionsUseCase } from './application/use-cases/aggregate-card-transactions.use-case';
+import { FindAllSummariesUseCase } from './application/use-cases/find-all-summaries.use-case';
+import { FindSummaryByIdUseCase } from './application/use-cases/find-summary-by-id.use-case';
+import { DeleteSummaryUseCase } from './application/use-cases/delete-summary.use-case';
 import { BillingPeriodCalculator } from './application/services/billing-period-calculator.service';
 import type { AggregationRepository } from './domain/repositories/aggregation.repository.interface';
 import { MonthlyCardSummaryOrmEntity } from './infrastructure/entities/monthly-card-summary.orm-entity';
@@ -51,6 +54,9 @@ import { AGGREGATION_REPOSITORY } from './aggregation.tokens';
         BillingPeriodCalculator,
       ],
     },
+    FindAllSummariesUseCase,
+    FindSummaryByIdUseCase,
+    DeleteSummaryUseCase,
     BillingPeriodCalculator,
     // Infrastructure Layer
     {
