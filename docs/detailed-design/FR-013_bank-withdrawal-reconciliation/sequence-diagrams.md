@@ -44,7 +44,7 @@ sequenceDiagram
     participant RR as ReconciliationRepository
     participant Entity as Reconciliation
 
-    User->>API: POST /api/reconciliation/card<br/>{cardId, billingMonth}
+    User->>API: POST /api/reconciliations<br/>{cardId, billingMonth}
 
     API->>API: リクエスト検証
     API->>UC: execute(dto)
@@ -59,14 +59,10 @@ sequenceDiagram
     end
 
     UC->>UC: 引落予定日 ± 3営業日の範囲を計算
-    UC->>TR: findByDateRange(paymentDate - 3 days, paymentDate + 3 days)
+    UC->>TR: findByDateRange(paymentDate ± 3営業日)
     TR-->>UC: TransactionEntity[]
 
-    alt 銀行取引データが取得できない
-        TR-->>UC: []
-        UC-->>API: Result.failure(BankTransactionNotFoundError)
-        API-->>User: 500 Internal Server Error<br/>{error: "銀行取引データが取得できません", code: "RC002"}
-    end
+    Note over UC,TR: 空配列（[]）は正常な応答<br/>照合対象がない場合は不一致として処理
 
     UC->>RS: reconcilePayment(cardSummary, bankTransactions)
 
@@ -119,7 +115,7 @@ sequenceDiagram
 ### ステップ詳細
 
 1. **リクエスト受信**
-   - エンドポイント: `POST /api/reconciliation/card`
+   - エンドポイント: `POST /api/reconciliations`
    - RequestDTO: `ReconcileCreditCardRequestDto`
    - バリデーション: cardId（UUID）、billingMonth（YYYY-MM）
 
@@ -131,7 +127,8 @@ sequenceDiagram
 3. **銀行取引データ取得**
    - 引落予定日 ± 3営業日の範囲で銀行取引を取得
    - 営業日計算（土日を除外）
-   - 取引が存在しない場合は500エラー（RC002）
+   - 空配列（[]）は正常な応答として扱い、照合対象がない場合は不一致（UNMATCHED）として処理
+   - データベース接続失敗など予期しないエラーの場合のみ500エラー（RC002）
 
 4. **照合処理**
    - **日付範囲フィルタリング**: 引落予定日 ± 3営業日の範囲でフィルタ
@@ -177,7 +174,7 @@ sequenceDiagram
     participant API as ReconciliationController
     participant RR as ReconciliationRepository
 
-    User->>API: GET /api/reconciliation/card/:cardId?startMonth=2025-01&endMonth=2025-03
+    User->>API: GET /api/reconciliations?cardId=xxx&startMonth=2025-01&endMonth=2025-03
 
     API->>API: クエリパラメータ検証
 
@@ -202,7 +199,7 @@ sequenceDiagram
     participant API as ReconciliationController
     participant RR as ReconciliationRepository
 
-    User->>API: GET /api/reconciliation/card/:cardId/:month
+    User->>API: GET /api/reconciliations/:id
 
     API->>RR: findByCardAndMonth(cardId, billingMonth)
     RR-->>API: Reconciliation | null
@@ -227,7 +224,7 @@ sequenceDiagram
     participant API as ReconciliationController
     participant UC as UseCase
 
-    User->>API: POST /api/reconciliation/card<br/>{cardId: "invalid", billingMonth: "2025-13"}
+    User->>API: POST /api/reconciliations<br/>{cardId: "invalid", billingMonth: "2025-13"}
 
     API->>API: リクエスト検証
     API->>API: バリデーションエラー検出<br/>- cardId: UUID形式ではない<br/>- billingMonth: 無効な月
@@ -263,7 +260,7 @@ sequenceDiagram
     participant UC as UseCase
     participant AR as AggregationRepository
 
-    User->>API: POST /api/reconciliation/card
+    User->>API: POST /api/reconciliations
     API->>UC: execute(dto)
     UC->>AR: findByCardAndMonth(cardId, billingMonth)
     AR-->>UC: null
@@ -298,7 +295,7 @@ sequenceDiagram
     participant RS as ReconciliationService
     participant TR as TransactionRepository
 
-    UC->>TR: findByDateRange(paymentDate ± 3 days)
+    UC->>TR: findByDateRange(paymentDate ± 3営業日)
     TR-->>UC: TransactionEntity[]
 
     UC->>RS: reconcilePayment(cardSummary, transactions)
@@ -306,9 +303,9 @@ sequenceDiagram
     RS->>RS: filterByDescription() → 2件の候補（摘要一致）
 
     RS->>RS: 複数候補検出
-    RS-->>UC: MultipleCandidateException（RC004）
+    RS-->>UC: ReconciliationResult{isMatched: false, confidence: 0, multipleCandidates: true}
 
-    UC->>UC: MultipleCandidateError生成
+    UC->>UC: MultipleCandidateError生成（RC004）
     UC-->>UC: Result.failure(MultipleCandidateError)
 ```
 
@@ -344,15 +341,13 @@ sequenceDiagram
 
     Note over RS: 例: 引落予定日 2025-02-27（金）、±3営業日
 
-    RS->>RS: calculateBusinessDays(2025-02-24, 2025-02-27)
-    RS->>RS: 2/24（月）: 営業日
-    RS->>RS: 2/25（火）: 営業日
-    RS->>RS: 2/26（水）: 営業日
-    RS->>RS: 2/27（金）: 営業日
+    RS->>RS: calculateBusinessDays(2025-02-24, 2025-03-04)
+    RS->>RS: -3営業日: 2/24（月）, 2/25（火）, 2/26（水）
+    RS->>RS: 2/27（金）: 引落予定日
+    RS->>RS: +3営業日: 3/2（月）, 3/3（火）, 3/4（水）
     RS->>RS: 2/28（土）: 非営業日（除外）
     RS->>RS: 3/1（日）: 非営業日（除外）
-    RS->>RS: 3/2（月）: 営業日
-    RS-->>RS: 範囲: 2025-02-24 〜 2025-03-02
+    RS-->>RS: 範囲: 2025-02-24 〜 2025-03-04
 ```
 
 ### 照合マッチングフロー
@@ -371,7 +366,9 @@ sequenceDiagram
         RS->>RS: calculateConfidence() = 100
         RS-->>RS: ReconciliationResult{isMatched: true, confidence: 100}
     else 2件以上（複数候補）
-        RS-->>RS: MultipleCandidateException（RC004）
+        RS->>RS: 複数候補検出
+        RS-->>RS: ReconciliationResult{isMatched: false, confidence: 0, multipleCandidates: true}
+        Note over RS: UseCaseでMultipleCandidateError（RC004）を生成
     else 0件（不一致）
         RS->>RS: analyzeDiscrepancy()
         RS-->>RS: ReconciliationResult{isMatched: false, confidence: 0, discrepancy}

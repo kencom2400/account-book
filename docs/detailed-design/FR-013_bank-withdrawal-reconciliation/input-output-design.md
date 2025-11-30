@@ -16,12 +16,16 @@
 
 ### クレジットカード照合 - FR-013
 
-| Method | Path                                      | 説明                     | 認証     |
-| ------ | ----------------------------------------- | ------------------------ | -------- |
-| POST   | `/api/reconciliation/card`                | クレジットカード照合実行 | 将来対応 |
-| GET    | `/api/reconciliation/card/:cardId`        | 照合結果一覧を取得       | 将来対応 |
-| GET    | `/api/reconciliation/card/:cardId/:month` | 照合結果詳細を取得       | 将来対応 |
-| GET    | `/api/reconciliation/:id`                 | 照合結果詳細を取得       | 将来対応 |
+| Method | Path                       | 説明                     | 認証     |
+| ------ | -------------------------- | ------------------------ | -------- |
+| POST   | `/api/reconciliations`     | クレジットカード照合実行 | 将来対応 |
+| GET    | `/api/reconciliations`     | 照合結果一覧を取得       | 将来対応 |
+| GET    | `/api/reconciliations/:id` | 照合結果詳細を取得       | 将来対応 |
+
+**補足**:
+
+- 一覧取得時の絞り込みはクエリパラメータで行う（例: `?cardId=...&billingMonth=...`）
+- RESTfulな設計原則に基づき、リソース名を複数形（`reconciliations`）で統一
 
 ### 補足
 
@@ -33,7 +37,7 @@
 
 ## リクエスト/レスポンス仕様
 
-### POST /api/reconciliation/card
+### POST /api/reconciliations
 
 クレジットカードの月別集計額と銀行引落額を照合します。
 
@@ -134,7 +138,7 @@
 - `400 Bad Request`: バリデーションエラー
 - `404 Not Found`: カード月別集計データが見つからない（RC001）
 - `422 Unprocessable Entity`: 引落予定日が未来（RC003）、複数の候補取引が存在（RC004）
-- `500 Internal Server Error`: サーバーエラー、銀行取引データが取得できない（RC002）
+- `500 Internal Server Error`: サーバーエラー、データベース接続失敗など予期しないエラー（RC002）
 
 **TypeScript型定義:**
 
@@ -153,6 +157,18 @@ export interface ReconciliationResponseDto {
   status: ReconciliationStatus;
   executedAt: string;
   results: ReconciliationResultDto[];
+  summary: ReconciliationSummaryDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 一覧取得用DTO（簡略版）
+export interface ReconciliationListItemDto {
+  id: string;
+  cardId: string;
+  billingMonth: string;
+  status: ReconciliationStatus;
+  executedAt: string;
   summary: ReconciliationSummaryDto;
   createdAt: string;
   updatedAt: string;
@@ -191,24 +207,20 @@ export enum ReconciliationStatus {
 
 ---
 
-### GET /api/reconciliation/card/:cardId
+### GET /api/reconciliations
 
-特定カードの照合結果一覧を取得します。
-
-**Path Parameters:**
-
-| パラメータ | 型     | 必須 | 説明               |
-| ---------- | ------ | ---- | ------------------ |
-| cardId     | string | ✅   | クレジットカードID |
+照合結果一覧を取得します。
 
 **Query Parameters:**
 
-| パラメータ | 型     | 必須 | デフォルト | 説明                            |
-| ---------- | ------ | ---- | ---------- | ------------------------------- |
-| startMonth | string | ⬜   | -          | 照合開始月（YYYY-MM）           |
-| endMonth   | string | ⬜   | -          | 照合終了月（YYYY-MM）           |
-| page       | number | ⬜   | 1          | ページ番号（将来対応）          |
-| limit      | number | ⬜   | 20         | 1ページあたりの件数（将来対応） |
+| パラメータ   | 型     | 必須 | デフォルト | 説明                            |
+| ------------ | ------ | ---- | ---------- | ------------------------------- |
+| cardId       | string | ⬜   | -          | クレジットカードID（UUID）      |
+| billingMonth | string | ⬜   | -          | 請求月（YYYY-MM）               |
+| startMonth   | string | ⬜   | -          | 照合開始月（YYYY-MM）           |
+| endMonth     | string | ⬜   | -          | 照合終了月（YYYY-MM）           |
+| page         | number | ⬜   | 1          | ページ番号（将来対応）          |
+| limit        | number | ⬜   | 20         | 1ページあたりの件数（将来対応） |
 
 **Response (200 OK):**
 
@@ -235,22 +247,45 @@ export enum ReconciliationStatus {
 }
 ```
 
+**Response Schema:**
+
+一覧取得用DTO（`ReconciliationListItemDto[]`）を返却します。一覧表示に必要な最小限の情報のみを含みます。
+
+| フィールド | 型                          | 説明       |
+| ---------- | --------------------------- | ---------- |
+| success    | boolean                     | 成功フラグ |
+| data       | ReconciliationListItemDto[] | データ配列 |
+
+**ReconciliationListItemDto:**
+
+| フィールド   | 型                       | 説明                       |
+| ------------ | ------------------------ | -------------------------- |
+| id           | string                   | 照合結果ID（UUID）         |
+| cardId       | string                   | クレジットカードID（UUID） |
+| billingMonth | string                   | 請求月（YYYY-MM）          |
+| status       | string                   | 照合ステータス             |
+| executedAt   | string                   | 照合実行日時（ISO8601）    |
+| summary      | ReconciliationSummaryDto | 照合サマリー               |
+| createdAt    | string                   | 作成日時（ISO8601）        |
+| updatedAt    | string                   | 更新日時（ISO8601）        |
+
+**注意**: 一覧取得では`results`（詳細な照合結果リスト）は省略され、詳細取得（`GET /:id`）で取得可能です。
+
 **Error Responses:**
 
-- `404 Not Found`: カードが見つからない
+- `400 Bad Request`: バリデーションエラー
 
 ---
 
-### GET /api/reconciliation/card/:cardId/:month
+### GET /api/reconciliations/:id
 
-特定カード・請求月の照合結果詳細を取得します。
+照合結果の詳細を取得します。
 
 **Path Parameters:**
 
-| パラメータ   | 型     | 必須 | 説明               |
-| ------------ | ------ | ---- | ------------------ |
-| cardId       | string | ✅   | クレジットカードID |
-| billingMonth | string | ✅   | 請求月（YYYY-MM）  |
+| パラメータ | 型     | 必須 | 説明       |
+| ---------- | ------ | ---- | ---------- |
+| id         | string | ✅   | 照合結果ID |
 
 **Response (200 OK):**
 
@@ -290,24 +325,6 @@ export enum ReconciliationStatus {
 - `404 Not Found`: 照合結果が見つからない
 
 ---
-
-### GET /api/reconciliation/:id
-
-照合結果の詳細を取得します。
-
-**Path Parameters:**
-
-| パラメータ | 型     | 必須 | 説明       |
-| ---------- | ------ | ---- | ---------- |
-| id         | string | ✅   | 照合結果ID |
-
-**Response (200 OK):**
-
-上記の「GET /api/reconciliation/card/:cardId/:month」と同じ形式
-
-**Error Responses:**
-
-- `404 Not Found`: 照合結果が見つからない
 
 ---
 
@@ -444,18 +461,20 @@ export enum ReconciliationStatus {
 }
 ```
 
-### 銀行取引データ取得失敗エラー (500 - RC002)
+### サーバーエラー (500 - RC002)
 
 ```json
 {
   "success": false,
   "statusCode": 500,
-  "message": "銀行取引データが取得できません",
+  "message": "サーバーエラーが発生しました",
   "code": "RC002",
   "cardId": "550e8400-e29b-41d4-a716-446655440000",
   "billingMonth": "2025-01"
 }
 ```
+
+**注意**: 空配列（[]）は正常な応答として扱い、照合対象がない場合は不一致（UNMATCHED）として処理します。RC002はデータベース接続失敗など予期しないエラーの場合のみ返します。
 
 ### 引落予定日が未来エラー (422 - RC003)
 
@@ -531,28 +550,28 @@ export class ReconcileCreditCardRequestDto {
 
 ```bash
 # 照合を実行
-curl -X POST http://localhost:3001/api/reconciliation/card \
+curl -X POST http://localhost:3001/api/reconciliations \
   -H "Content-Type: application/json" \
   -d '{
     "cardId": "550e8400-e29b-41d4-a716-446655440000",
     "billingMonth": "2025-01"
   }'
 
-# 一覧取得
-curl -X GET "http://localhost:3001/api/reconciliation/card/550e8400-e29b-41d4-a716-446655440000?startMonth=2025-01&endMonth=2025-03"
+# 一覧取得（カードIDで絞り込み）
+curl -X GET "http://localhost:3001/api/reconciliations?cardId=550e8400-e29b-41d4-a716-446655440000&startMonth=2025-01&endMonth=2025-03"
 
-# 詳細取得（カードID + 請求月）
-curl -X GET http://localhost:3001/api/reconciliation/card/550e8400-e29b-41d4-a716-446655440000/2025-01
+# 一覧取得（請求月で絞り込み）
+curl -X GET "http://localhost:3001/api/reconciliations?billingMonth=2025-01"
 
 # 詳細取得（照合結果ID）
-curl -X GET http://localhost:3001/api/reconciliation/7c9e6679-7425-40de-944b-e07fc1f90ae7
+curl -X GET http://localhost:3001/api/reconciliations/7c9e6679-7425-40de-944b-e07fc1f90ae7
 ```
 
 ### TypeScript (Fetch API)
 
 ```typescript
 // 照合を実行
-const response = await fetch('http://localhost:3001/api/reconciliation/card', {
+const response = await fetch('http://localhost:3001/api/reconciliations', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

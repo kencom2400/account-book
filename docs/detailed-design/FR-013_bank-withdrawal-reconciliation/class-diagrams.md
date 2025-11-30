@@ -333,6 +333,18 @@ classDiagram
         +string updatedAt
     }
 
+    class ReconciliationListItemDto {
+        <<interface>>
+        +string id
+        +string cardId
+        +string billingMonth
+        +string status
+        +string executedAt
+        +ReconciliationSummaryDto summary
+        +string createdAt
+        +string updatedAt
+    }
+
     class ReconciliationResultDto {
         <<interface>>
         +boolean isMatched
@@ -354,6 +366,7 @@ classDiagram
     ReconciliationController --> ReconcileCreditCardUseCase
     ReconciliationController --> ReconcileCreditCardRequestDto
     ReconciliationController --> ReconciliationResponseDto
+    ReconciliationController --> ReconciliationListItemDto
     ReconciliationController --> ReconciliationResultDto
     ReconciliationController --> ReconciliationSummaryDto
 ```
@@ -364,10 +377,9 @@ classDiagram
 
 - **責務**: 照合APIの提供
 - **エンドポイント**:
-  - `POST /api/reconciliation/card`: クレジットカード照合を実行
-  - `GET /api/reconciliation/card/:cardId`: 照合結果一覧を取得
-  - `GET /api/reconciliation/card/:cardId/:month`: 照合結果詳細を取得
-  - `GET /api/reconciliation/:id`: 照合結果詳細を取得
+  - `POST /api/reconciliations`: クレジットカード照合を実行
+  - `GET /api/reconciliations`: 照合結果一覧を取得（クエリパラメータで絞り込み）
+  - `GET /api/reconciliations/:id`: 照合結果詳細を取得
 
 #### ReconcileCreditCardRequestDto（class）
 
@@ -378,9 +390,17 @@ classDiagram
 
 #### ReconciliationResponseDto（interface）
 
-- **責務**: 照合結果レスポンスデータの構築
+- **責務**: 照合結果詳細レスポンスデータの構築（GET /:id用）
 - **変換**: Reconciliation Entityから変換
 - **日付形式**: ISO8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）
+- **特徴**: 詳細な照合結果リスト（`results`）を含む完全版
+
+#### ReconciliationListItemDto（interface）
+
+- **責務**: 照合結果一覧レスポンスデータの構築（GET一覧用）
+- **変換**: Reconciliation Entityから変換
+- **日付形式**: ISO8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）
+- **特徴**: 一覧表示に必要な最小限の情報のみ（`results`を省略）
 
 #### ReconciliationResultDto（interface）
 

@@ -122,9 +122,14 @@
    - 不一致: confidence = 0
 
 5. **結果判定**
-   - confidence = 100: ステータスを「支払済（PAID）」に更新
-   - confidence = 70: ステータスを「要確認（DISPUTED）」に更新、手動確認を促す
-   - confidence = 0: ステータスを「不一致（DISPUTED）」に更新、アラート生成（FR-015）
+   - **Reconciliation.status**:
+     - confidence = 100: `MATCHED`に更新
+     - confidence = 70: `PARTIAL`に更新
+     - confidence = 0: `UNMATCHED`に更新
+   - **MonthlyCardSummary.status**（将来対応）:
+     - confidence = 100: `PAID`に更新
+     - confidence = 70: `PARTIAL`または`DISPUTED`に更新（要確認）
+     - confidence = 0: `DISPUTED`に更新、アラート生成（FR-015）
 
 **照合タイミング**:
 
@@ -214,12 +219,16 @@ export enum ReconciliationStatus {
 
 ### 主要エンドポイント
 
-| メソッド | エンドポイント                            | 説明                     |
-| -------- | ----------------------------------------- | ------------------------ |
-| POST     | `/api/reconciliation/card`                | クレジットカード照合実行 |
-| GET      | `/api/reconciliation/card/:cardId`        | 照合結果一覧を取得       |
-| GET      | `/api/reconciliation/card/:cardId/:month` | 照合結果詳細を取得       |
-| GET      | `/api/reconciliation/:id`                 | 照合結果詳細を取得       |
+| メソッド | エンドポイント             | 説明                     |
+| -------- | -------------------------- | ------------------------ |
+| POST     | `/api/reconciliations`     | クレジットカード照合実行 |
+| GET      | `/api/reconciliations`     | 照合結果一覧を取得       |
+| GET      | `/api/reconciliations/:id` | 照合結果詳細を取得       |
+
+**補足**:
+
+- 一覧取得時の絞り込みはクエリパラメータで行う（例: `?cardId=...&billingMonth=...`）
+- RESTfulな設計原則に基づき、リソース名を複数形（`reconciliations`）で統一
 
 ## セキュリティ考慮事項
 
@@ -250,13 +259,12 @@ export enum ReconciliationStatus {
 ### エラー分類
 
 1. **バリデーションエラー** (400 Bad Request)
-   - 入力値の形式エラー
+   - 入力値の形式エラー（例: UUID形式でない、YYYY-MM形式でない）
    - 必須項目の欠如
-   - カードIDが存在しない
 
 2. **リソース未検出** (404 Not Found)
-   - カードIDが存在しない
-   - 月別集計データが存在しない
+   - カードIDが存在しない（リクエストされたリソースが存在しない）
+   - 月別集計データが存在しない（RC001）
    - 照合結果が存在しない
 
 3. **ビジネスロジックエラー** (422 Unprocessable Entity)
