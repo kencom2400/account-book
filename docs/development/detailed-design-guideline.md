@@ -311,6 +311,18 @@ docs/detailed-design/
 - [ ] **エラーハンドリング方式の統一**
   - Resultパターンと例外スローの混在がないか
   - アプリケーション全体でエラーハンドリング方式が統一されているか
+- [ ] **ステータス名とEnumの整合性**
+  - 設計書で使用しているステータス名がEnum定義と一致しているか
+  - 「支払済」「要確認」などの曖昧な表現ではなく、Enum値（MATCHED、PARTIAL、UNMATCHED）を使用しているか
+- [ ] **共通エラーレスポンス形式の統一**
+  - すべてのエラーレスポンスが共通形式に準拠しているか（success、statusCode、message、code、errors、timestamp、path）
+  - エラーレスポンス例が共通形式と一致しているか
+- [ ] **HTTPステータスコードの適切性**
+  - 外部サービス障害の場合は502 Bad Gatewayまたは503 Service Unavailableを使用
+  - 500 Internal Server Errorは自サーバーの内部ロジックエラーのみ
+- [ ] **Presentation層のクラス図の完結性**
+  - 参照されているDTO（例: DiscrepancyDto）がすべてクラス図に定義されているか
+  - クラス図を見るだけでDTOの構造が理解できるか
 
 ### レビューチェックリスト
 
