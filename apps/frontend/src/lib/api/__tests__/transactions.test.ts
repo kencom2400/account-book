@@ -57,7 +57,7 @@ describe('Transaction API Client', () => {
 
       const result = await createTransaction(request);
 
-      expect(mockApiClient.post).toHaveBeenCalledWith('/transactions', request);
+      expect(mockApiClient.post).toHaveBeenCalledWith('/api/transactions', request);
       expect(result).toEqual(mockTransaction);
     });
   });
@@ -88,7 +88,7 @@ describe('Transaction API Client', () => {
 
       const result = await getTransactions();
 
-      expect(mockApiClient.get).toHaveBeenCalledWith('/transactions');
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions');
       expect(result).toEqual(mockTransactions);
     });
 
@@ -101,7 +101,7 @@ describe('Transaction API Client', () => {
 
       await getTransactions(params);
 
-      expect(mockApiClient.get).toHaveBeenCalledWith('/transactions?institutionId=inst-1');
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions?institutionId=inst-1');
     });
 
     it('accountIdを指定して取引一覧を取得できる', async () => {
@@ -113,7 +113,7 @@ describe('Transaction API Client', () => {
 
       await getTransactions(params);
 
-      expect(mockApiClient.get).toHaveBeenCalledWith('/transactions?accountId=acc-1');
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions?accountId=acc-1');
     });
 
     it('year/monthを指定して取引一覧を取得できる', async () => {
@@ -126,7 +126,7 @@ describe('Transaction API Client', () => {
 
       await getTransactions(params);
 
-      expect(mockApiClient.get).toHaveBeenCalledWith('/transactions?year=2025&month=11');
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions?year=2025&month=11');
     });
 
     it('startDate/endDateを指定して取引一覧を取得できる', async () => {
@@ -140,7 +140,7 @@ describe('Transaction API Client', () => {
       await getTransactions(params);
 
       expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/transactions?startDate=2025-11-01&endDate=2025-11-30'
+        '/api/transactions?startDate=2025-11-01&endDate=2025-11-30'
       );
     });
 
@@ -156,7 +156,7 @@ describe('Transaction API Client', () => {
       await getTransactions(params);
 
       expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/transactions?institutionId=inst-1&year=2025&month=11'
+        '/api/transactions?institutionId=inst-1&year=2025&month=11'
       );
     });
   });
@@ -186,7 +186,7 @@ describe('Transaction API Client', () => {
 
       const result = await getMonthlySummary(2025, 11);
 
-      expect(mockApiClient.get).toHaveBeenCalledWith('/transactions/summary/monthly/2025/11');
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions/summary/monthly/2025/11');
       expect(result).toEqual(mockSummary);
     });
   });
@@ -218,7 +218,7 @@ describe('Transaction API Client', () => {
 
       const result = await updateTransactionCategory(transactionId, category);
 
-      expect(mockApiClient.patch).toHaveBeenCalledWith('/transactions/tx-1/category', {
+      expect(mockApiClient.patch).toHaveBeenCalledWith('/api/transactions/tx-1/category', {
         category,
       });
       expect(result).toEqual(mockUpdatedTransaction);
@@ -252,7 +252,7 @@ describe('Transaction API Client', () => {
 
       const result = await updateTransactionSubcategory(transactionId, subcategoryId);
 
-      expect(mockApiClient.patch).toHaveBeenCalledWith('/transactions/tx-1/subcategory', {
+      expect(mockApiClient.patch).toHaveBeenCalledWith('/api/transactions/tx-1/subcategory', {
         subcategoryId,
       });
       expect(result).toEqual(mockUpdatedTransaction);
