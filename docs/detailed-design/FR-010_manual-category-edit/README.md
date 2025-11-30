@@ -19,6 +19,7 @@
 1. [クラス図](./class-diagrams.md) - **必須**
 2. [シーケンス図](./sequence-diagrams.md) - **必須**
 3. [入出力設計](./input-output-design.md) - **必須** (API仕様)
+4. [画面遷移図](./screen-transitions.md) - **推奨**
 
 ## アーキテクチャ概要
 
@@ -303,6 +304,8 @@ CREATE TABLE transaction_category_change_history (
   - カテゴリ選択UIの表示
   - カテゴリ変更の実行
   - エラーハンドリングの確認
+- **スキップ理由**: `/transactions` ページが未実装のため
+- **有効化予定**: ページ実装完了後にテストのスキップを解除
 
 **テストカバレッジ**: 80%以上を達成
 
@@ -370,6 +373,33 @@ CREATE TABLE transaction_category_change_history (
 - データベースはMySQL 8.0以上を使用
 - トランザクション分離レベル: READ COMMITTED（デフォルト）
 
+## 残作業
+
+### 実装完了済み
+
+- [x] Backend API実装（`PATCH /api/transactions/:id/category`）
+- [x] カテゴリ変更履歴エンティティ実装
+- [x] トランザクション管理実装
+- [x] Backend E2Eテスト実装（3件）
+- [x] Backend ユニットテスト実装（5件）
+- [x] Frontend コンポーネント実装（`TransactionList`）
+- [x] Frontend APIクライアント実装
+
+### 実装予定（Issue #39）
+
+- [ ] `/transactions` ページの実装
+  - [ ] ページコンポーネントの作成
+  - [ ] 取引データ取得APIの統合
+  - [ ] `TransactionList`コンポーネントの統合
+  - [ ] ローディング・エラー状態の実装
+- [ ] E2Eテストの有効化
+  - [ ] `transaction-category-edit.spec.ts` のスキップを解除
+  - [ ] テストケース7件の実行確認
+  - [ ] 必要に応じてテストの修正
+- [ ] ドキュメント更新
+  - [ ] 画面遷移図の作成 ✅ 完了
+  - [ ] README.mdの更新 ✅ 完了
+
 ## 関連ドキュメント
 
 - [機能要件書](../../functional-requirements/FR-008-011_data-classification.md) (L535-714)
@@ -381,6 +411,7 @@ CREATE TABLE transaction_category_change_history (
 | バージョン | 日付       | 変更内容                       | 作成者     |
 | ---------- | ---------- | ------------------------------ | ---------- |
 | 1.0        | 2025-11-24 | 初版作成（事後ドキュメント化） | kencom2400 |
+| 1.1        | 2025-11-30 | 画面遷移図追加、残作業明記     | kencom2400 |
 
 ## チェックリスト
 
@@ -402,8 +433,11 @@ CREATE TABLE transaction_category_change_history (
 - [x] エラーハンドリング方針が明確
 - [x] テスト方針が記載されている
 
+### 推奨項目
+
+- [x] 画面遷移図が作成されている（画面がある場合）
+- [x] 状態遷移図が作成されている（複雑な状態管理がある場合）
+
 ### オプション項目
 
-- [ ] 画面遷移図が作成されている（画面がある場合）- **不要**（既存UIの一部機能）
-- [ ] 状態遷移図が作成されている（複雑な状態管理がある場合）- **不要**（シンプルな状態管理）
 - [ ] バッチ処理詳細が作成されている（バッチ処理がある場合）- **不要**（リアルタイム処理のみ）
