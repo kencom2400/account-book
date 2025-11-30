@@ -168,6 +168,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-02');
@@ -187,6 +188,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-02');
@@ -213,6 +215,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-01');
@@ -226,6 +229,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-01');
@@ -238,6 +242,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-01');
@@ -250,6 +255,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       await useCase.execute('card-123', '2025-01', '2025-02');
@@ -281,6 +287,7 @@ describe('AggregateCardTransactionsUseCase', () => {
       transactionRepository.findByCreditCardIdAndDateRange.mockResolvedValue(
         mockTransactions,
       );
+      aggregationRepository.findByCard.mockResolvedValue([]);
       aggregationRepository.save.mockImplementation(async (summary) => summary);
 
       const result = await useCase.execute('card-123', '2025-01', '2025-02');

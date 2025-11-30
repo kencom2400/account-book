@@ -93,18 +93,20 @@ export class AggregateCardTransactionsUseCase {
     }
 
     // 6. 集計結果を保存（既存データがあればUpsert）
-    const summariesToSave: MonthlyCardSummary[] = [];
+    const existingSummaries = await this.aggregationRepository.findByCard(
+      creditCard.id,
+      startMonth,
+      endMonth,
+    );
+    const existingSummariesMap = new Map(
+      existingSummaries.map((s) => [s.billingMonth, s]),
+    );
 
-    for (const summary of summaries) {
-      // 既存データの確認
-      const existing = await this.aggregationRepository.findByCardAndMonth(
-        summary.cardId,
-        summary.billingMonth,
-      );
-
+    const summariesToSave = summaries.map((summary) => {
+      const existing = existingSummariesMap.get(summary.billingMonth);
       if (existing) {
         // 既存データのIDを引き継いで更新
-        const updatedSummary = new MonthlyCardSummary(
+        return new MonthlyCardSummary(
           existing.id, // 既存IDを使用
           summary.cardId,
           summary.cardName,
@@ -120,26 +122,24 @@ export class AggregateCardTransactionsUseCase {
           existing.createdAt, // createdAtは保持
           new Date(), // updatedAtは更新
         );
-        summariesToSave.push(updatedSummary);
-      } else {
-        // 新規作成
-        summariesToSave.push(summary);
       }
-    }
+      // 新規作成
+      return summary;
+    });
 
     // 一括保存
     if (summariesToSave.length > 0) {
       await Promise.all(
-        summariesToSave.map((summary) =>
-          this.aggregationRepository.save(summary),
-        ),
+        summariesToSave.map((s) => this.aggregationRepository.save(s)),
       );
     }
 
     // 7. 請求月順にソート（昇順）
-    summaries.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+    summariesToSave.sort((a, b) =>
+      a.billingMonth.localeCompare(b.billingMonth),
+    );
 
-    return summaries;
+    return summariesToSave;
   }
 
   /**

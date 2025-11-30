@@ -126,21 +126,10 @@ export class BillingPeriodCalculator {
    * @returns YYYY-MM形式の文字列
    */
   private formatYearMonth(year: number, month: number): string {
-    // 12月を超えた場合の処理
-    if (month > 11) {
-      const yearOffset = Math.floor(month / 12);
-      const actualMonth = month % 12;
-      return `${year + yearOffset}-${String(actualMonth + 1).padStart(2, '0')}`;
-    }
-
-    // 0月未満の場合の処理（通常は発生しないが念のため）
-    if (month < 0) {
-      const yearOffset = Math.floor((month + 1) / 12) - 1;
-      const actualMonth = ((month % 12) + 12) % 12;
-      return `${year + yearOffset}-${String(actualMonth + 1).padStart(2, '0')}`;
-    }
-
-    return `${year}-${String(month + 1).padStart(2, '0')}`;
+    const date = new Date(year, month);
+    const formattedYear = date.getFullYear();
+    const formattedMonth = String(date.getMonth() + 1).padStart(2, '0');
+    return `${formattedYear}-${formattedMonth}`;
   }
 
   /**
