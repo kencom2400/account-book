@@ -1,8 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreditCardModule } from '../credit-card/credit-card.module';
+import type {
+  ICreditCardRepository,
+  ICreditCardTransactionRepository,
+} from '../credit-card/domain/repositories/credit-card.repository.interface';
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+} from '../credit-card/credit-card.tokens';
 import { AggregateCardTransactionsUseCase } from './application/use-cases/aggregate-card-transactions.use-case';
 import { BillingPeriodCalculator } from './application/services/billing-period-calculator.service';
+import type { AggregationRepository } from './domain/repositories/aggregation.repository.interface';
 import { MonthlyCardSummaryOrmEntity } from './infrastructure/entities/monthly-card-summary.orm-entity';
 import { AggregationTypeOrmRepository } from './infrastructure/repositories/aggregation-typeorm.repository';
 import { AggregationController } from './presentation/controllers/aggregation.controller';
@@ -19,7 +28,28 @@ import { AggregationController } from './presentation/controllers/aggregation.co
   controllers: [AggregationController],
   providers: [
     // Application Layer
-    AggregateCardTransactionsUseCase,
+    {
+      provide: AggregateCardTransactionsUseCase,
+      useFactory: (
+        creditCardRepository: ICreditCardRepository,
+        transactionRepository: ICreditCardTransactionRepository,
+        aggregationRepository: AggregationRepository,
+        billingPeriodCalculator: BillingPeriodCalculator,
+      ): AggregateCardTransactionsUseCase => {
+        return new AggregateCardTransactionsUseCase(
+          creditCardRepository,
+          transactionRepository,
+          aggregationRepository,
+          billingPeriodCalculator,
+        );
+      },
+      inject: [
+        CREDIT_CARD_REPOSITORY,
+        CREDIT_CARD_TRANSACTION_REPOSITORY,
+        'AggregationRepository',
+        BillingPeriodCalculator,
+      ],
+    },
     BillingPeriodCalculator,
     // Infrastructure Layer
     {
