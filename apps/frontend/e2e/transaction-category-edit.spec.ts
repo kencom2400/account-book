@@ -2,13 +2,9 @@ import { test, expect, Page } from '@playwright/test';
 
 /**
  * FR-010: 費目の手動修正機能 E2Eテスト
- *
- * NOTE: このテストはテストデータのセットアップが未実装のため、スキップされています。
- * 別Issueでテストデータセットアップを実装後に有効化してください。
- * TODO: E2Eテスト用の取引データセットアップを実装 (別Issue)
  */
 
-test.describe.skip('取引カテゴリ編集機能', () => {
+test.describe('取引カテゴリ編集機能', () => {
   let page: Page;
 
   test.beforeEach(async ({ page: p }) => {
