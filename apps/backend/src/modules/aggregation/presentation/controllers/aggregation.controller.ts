@@ -13,6 +13,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
 import type { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
+import { AGGREGATION_REPOSITORY } from '../../aggregation.tokens';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 import {
@@ -29,7 +30,7 @@ import {
 export class AggregationController {
   constructor(
     private readonly aggregateCardTransactionsUseCase: AggregateCardTransactionsUseCase,
-    @Inject('AggregationRepository')
+    @Inject(AGGREGATION_REPOSITORY)
     private readonly aggregationRepository: AggregationRepository,
   ) {}
 

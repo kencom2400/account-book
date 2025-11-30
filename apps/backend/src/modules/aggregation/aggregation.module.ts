@@ -15,6 +15,7 @@ import type { AggregationRepository } from './domain/repositories/aggregation.re
 import { MonthlyCardSummaryOrmEntity } from './infrastructure/entities/monthly-card-summary.orm-entity';
 import { AggregationTypeOrmRepository } from './infrastructure/repositories/aggregation-typeorm.repository';
 import { AggregationController } from './presentation/controllers/aggregation.controller';
+import { AGGREGATION_REPOSITORY } from './aggregation.tokens';
 
 /**
  * Aggregation Module
@@ -46,19 +47,19 @@ import { AggregationController } from './presentation/controllers/aggregation.co
       inject: [
         CREDIT_CARD_REPOSITORY,
         CREDIT_CARD_TRANSACTION_REPOSITORY,
-        'AggregationRepository',
+        AGGREGATION_REPOSITORY,
         BillingPeriodCalculator,
       ],
     },
     BillingPeriodCalculator,
     // Infrastructure Layer
     {
-      provide: 'AggregationRepository',
+      provide: AGGREGATION_REPOSITORY,
       useClass: AggregationTypeOrmRepository,
     },
   ],
   exports: [
-    'AggregationRepository',
+    AGGREGATION_REPOSITORY,
     AggregateCardTransactionsUseCase,
     BillingPeriodCalculator,
   ],

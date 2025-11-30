@@ -4,10 +4,15 @@ import type {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
 } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+} from '../../../credit-card/credit-card.tokens';
 import { CreditCardTransactionEntity } from '../../../credit-card/domain/entities/credit-card-transaction.entity';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import type { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
+import { AGGREGATION_REPOSITORY } from '../../aggregation.tokens';
 import { CategoryAmount } from '../../domain/value-objects/category-amount.vo';
 import { BillingPeriodCalculator } from '../services/billing-period-calculator.service';
 
@@ -19,11 +24,11 @@ import { BillingPeriodCalculator } from '../services/billing-period-calculator.s
 @Injectable()
 export class AggregateCardTransactionsUseCase {
   constructor(
-    @Inject('ICreditCardRepository')
+    @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: ICreditCardRepository,
-    @Inject('ICreditCardTransactionRepository')
+    @Inject(CREDIT_CARD_TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ICreditCardTransactionRepository,
-    @Inject('AggregationRepository')
+    @Inject(AGGREGATION_REPOSITORY)
     private readonly aggregationRepository: AggregationRepository,
     private readonly billingPeriodCalculator: BillingPeriodCalculator,
   ) {}
