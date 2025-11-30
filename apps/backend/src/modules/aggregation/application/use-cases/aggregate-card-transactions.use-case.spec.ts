@@ -5,9 +5,14 @@ import {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
 } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
+import {
+  CREDIT_CARD_REPOSITORY,
+  CREDIT_CARD_TRANSACTION_REPOSITORY,
+} from '../../../credit-card/credit-card.tokens';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
+import { AGGREGATION_REPOSITORY } from '../../aggregation.tokens';
 import { BillingPeriodCalculator } from '../services/billing-period-calculator.service';
 import { AggregateCardTransactionsUseCase } from './aggregate-card-transactions.use-case';
 
@@ -138,15 +143,15 @@ describe('AggregateCardTransactionsUseCase', () => {
         AggregateCardTransactionsUseCase,
         BillingPeriodCalculator,
         {
-          provide: 'ICreditCardRepository',
+          provide: CREDIT_CARD_REPOSITORY,
           useValue: creditCardRepository,
         },
         {
-          provide: 'ICreditCardTransactionRepository',
+          provide: CREDIT_CARD_TRANSACTION_REPOSITORY,
           useValue: transactionRepository,
         },
         {
-          provide: 'AggregationRepository',
+          provide: AGGREGATION_REPOSITORY,
           useValue: aggregationRepository,
         },
       ],

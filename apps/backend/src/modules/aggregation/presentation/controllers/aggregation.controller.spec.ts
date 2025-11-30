@@ -3,15 +3,19 @@ import { NotFoundException } from '@nestjs/common';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { CategoryAmount } from '../../domain/value-objects/category-amount.vo';
-import { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
+import { FindAllSummariesUseCase } from '../../application/use-cases/find-all-summaries.use-case';
+import { FindSummaryByIdUseCase } from '../../application/use-cases/find-summary-by-id.use-case';
+import { DeleteSummaryUseCase } from '../../application/use-cases/delete-summary.use-case';
 import { AggregationController } from './aggregation.controller';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 
 describe('AggregationController', () => {
   let controller: AggregationController;
-  let useCase: jest.Mocked<AggregateCardTransactionsUseCase>;
-  let repository: jest.Mocked<AggregationRepository>;
+  let aggregateUseCase: jest.Mocked<AggregateCardTransactionsUseCase>;
+  let findAllUseCase: jest.Mocked<FindAllSummariesUseCase>;
+  let findByIdUseCase: jest.Mocked<FindSummaryByIdUseCase>;
+  let deleteUseCase: jest.Mocked<DeleteSummaryUseCase>;
 
   const mockSummary = new MonthlyCardSummary(
     'summary-123',
@@ -34,29 +38,40 @@ describe('AggregationController', () => {
   );
 
   beforeEach(async () => {
-    useCase = {
+    aggregateUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<AggregateCardTransactionsUseCase>;
 
-    repository = {
-      save: jest.fn(),
-      findById: jest.fn(),
-      findByCardAndMonth: jest.fn(),
-      findByCard: jest.fn(),
-      findAll: jest.fn(),
-      delete: jest.fn(),
-    } as jest.Mocked<AggregationRepository>;
+    findAllUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindAllSummariesUseCase>;
+
+    findByIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindSummaryByIdUseCase>;
+
+    deleteUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<DeleteSummaryUseCase>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AggregationController],
       providers: [
         {
           provide: AggregateCardTransactionsUseCase,
-          useValue: useCase,
+          useValue: aggregateUseCase,
         },
         {
-          provide: 'AggregationRepository',
-          useValue: repository,
+          provide: FindAllSummariesUseCase,
+          useValue: findAllUseCase,
+        },
+        {
+          provide: FindSummaryByIdUseCase,
+          useValue: findByIdUseCase,
+        },
+        {
+          provide: DeleteSummaryUseCase,
+          useValue: deleteUseCase,
         },
       ],
     }).compile();
@@ -72,11 +87,11 @@ describe('AggregationController', () => {
         endMonth: '2025-03',
       };
 
-      useCase.execute.mockResolvedValue([mockSummary]);
+      aggregateUseCase.execute.mockResolvedValue([mockSummary]);
 
       const result = await controller.aggregate(dto);
 
-      expect(useCase.execute).toHaveBeenCalledWith(
+      expect(aggregateUseCase.execute).toHaveBeenCalledWith(
         'card-456',
         '2025-01',
         '2025-03',
@@ -96,7 +111,7 @@ describe('AggregationController', () => {
         endMonth: '2025-01',
       };
 
-      useCase.execute.mockResolvedValue([mockSummary]);
+      aggregateUseCase.execute.mockResolvedValue([mockSummary]);
 
       const result = await controller.aggregate(dto);
 
@@ -109,18 +124,18 @@ describe('AggregationController', () => {
 
   describe('GET /api/aggregation/card/monthly', () => {
     it('月別集計の一覧を取得できる', async () => {
-      repository.findAll.mockResolvedValue([mockSummary]);
+      findAllUseCase.execute.mockResolvedValue([mockSummary]);
 
       const result = await controller.findAll();
 
-      expect(repository.findAll).toHaveBeenCalled();
+      expect(findAllUseCase.execute).toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('summary-123');
     });
 
     it('リスト項目DTOに必要なフィールドのみが含まれる', async () => {
-      repository.findAll.mockResolvedValue([mockSummary]);
+      findAllUseCase.execute.mockResolvedValue([mockSummary]);
 
       const result = await controller.findAll();
 
@@ -146,11 +161,11 @@ describe('AggregationController', () => {
 
   describe('GET /api/aggregation/card/monthly/:id', () => {
     it('月別集計の詳細を取得できる', async () => {
-      repository.findById.mockResolvedValue(mockSummary);
+      findByIdUseCase.execute.mockResolvedValue(mockSummary);
 
       const result = await controller.findOne('summary-123');
 
-      expect(repository.findById).toHaveBeenCalledWith('summary-123');
+      expect(findByIdUseCase.execute).toHaveBeenCalledWith('summary-123');
       expect(result.success).toBe(true);
       expect(result.data.id).toBe('summary-123');
       expect(result.data.categoryBreakdown).toHaveLength(2);
@@ -158,36 +173,32 @@ describe('AggregationController', () => {
     });
 
     it('集計データが存在しない場合、NotFoundExceptionをスローする', async () => {
-      repository.findById.mockResolvedValue(null);
+      findByIdUseCase.execute.mockRejectedValue(
+        new NotFoundException('Monthly card summary not found: non-existent'),
+      );
 
       await expect(controller.findOne('non-existent')).rejects.toThrow(
         NotFoundException,
-      );
-      await expect(controller.findOne('non-existent')).rejects.toThrow(
-        'Monthly card summary not found',
       );
     });
   });
 
   describe('DELETE /api/aggregation/card/monthly/:id', () => {
     it('月別集計を削除できる', async () => {
-      repository.findById.mockResolvedValue(mockSummary);
-      repository.delete.mockResolvedValue(undefined);
+      deleteUseCase.execute.mockResolvedValue(undefined);
 
       await controller.delete('summary-123');
 
-      expect(repository.findById).toHaveBeenCalledWith('summary-123');
-      expect(repository.delete).toHaveBeenCalledWith('summary-123');
+      expect(deleteUseCase.execute).toHaveBeenCalledWith('summary-123');
     });
 
     it('集計データが存在しない場合、NotFoundExceptionをスローする', async () => {
-      repository.findById.mockResolvedValue(null);
+      deleteUseCase.execute.mockRejectedValue(
+        new NotFoundException('Monthly card summary not found: non-existent'),
+      );
 
       await expect(controller.delete('non-existent')).rejects.toThrow(
         NotFoundException,
-      );
-      await expect(controller.delete('non-existent')).rejects.toThrow(
-        'Monthly card summary not found',
       );
     });
   });

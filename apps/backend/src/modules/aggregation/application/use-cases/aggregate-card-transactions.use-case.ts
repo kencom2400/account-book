@@ -116,7 +116,7 @@ export class AggregateCardTransactionsUseCase {
           summary.categoryBreakdown,
           summary.transactionIds,
           summary.netPaymentAmount,
-          summary.paymentStatus as PaymentStatus,
+          summary.status,
           existing.createdAt, // createdAtは保持
           new Date(), // updatedAtは更新
         );
