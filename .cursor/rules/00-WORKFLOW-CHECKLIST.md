@@ -186,7 +186,16 @@ rm batch-processing.md
 
 ### 🚨 CRITICAL: push前の必須チェック
 
-**必須4ステップ:**
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  🔴 ABSOLUTE PROHIBITION - テスト未実行でのpush禁止 🔴      ║
+║                                                               ║
+║  ローカルですべてのテストがPASSするまでpushは絶対禁止         ║
+║  「見込み」「多分大丈夫」という判断は禁止                     ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**必須4ステップ（すべてPASS必須）:**
 
 ```bash
 1. ./scripts/test/lint.sh         # 構文・スタイル
@@ -197,10 +206,55 @@ rm batch-processing.md
 
 **実行時間:** 約4-6分
 
+**🚨 絶対禁止事項:**
+
+- ❌ テストを実行せずにpushする
+- ❌ テストが失敗している状態でpushする
+- ❌ 「見込み」「多分大丈夫」という判断でpushする
+- ❌ 「CIで確認すればいい」という考えでpushする
+- ❌ 一部のテストだけ実行してpushする
+
+**✅ 正しいワークフロー:**
+
+```bash
+# 1. すべてのチェックを実行
+./scripts/test/lint.sh
+pnpm build
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+
+# 2. すべてPASSしたことを確認
+# ✅ Lint: PASS
+# ✅ Build: PASS
+# ✅ Unit Tests: PASS
+# ✅ E2E Tests: PASS
+
+# 3. すべてPASSした場合のみpush
+git push origin <ブランチ名>
+```
+
+**テストが失敗した場合:**
+
+```bash
+# ❌ テストが失敗
+./scripts/test/test-e2e.sh frontend
+# → 7 failed
+
+# ✅ 修正してから再度チェック（push禁止）
+# （修正作業）
+./scripts/test/test-e2e.sh frontend
+# → すべてPASS
+
+# ✅ すべてPASSしたらpush
+git push origin <ブランチ名>
+```
+
 **なぜ重要か:**
 
 - ビルドエラーはすべてのCI jobをブロックする
 - ローカルでの早期発見により時間節約（実例: Issue #22で20分の損失）
+- CI実行の無駄を防ぐ（約5-10分の節約）
+- プロジェクトの品質を維持する
 
 **詳細:** `.cursor/rules/03-git-workflow.md` の「3. Push前チェック」セクション参照
 
