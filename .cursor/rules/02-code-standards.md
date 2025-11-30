@@ -6813,3 +6813,178 @@ await Promise.all(summaries.map((summary) => this.aggregationRepository.save(sum
 - パフォーマンス向上
 
 ---
+
+## 📚 セクション17: FR-012実装レビュー第2回から学んだ観点（Gemini PR#325）
+
+### 17.1 N+1クエリ問題とUpsertの重大なバグ
+
+**問題1 (N+1クエリ)**: ループ内でリポジトリ呼び出しを繰り返すとパフォーマンスが低下する。
+
+```typescript
+// ❌ N+1クエリ
+for (const summary of summaries) {
+  const existing = await this.aggregationRepository.findByCardAndMonth(
+    summary.cardId,
+    summary.billingMonth
+  );
+  // ...
+}
+```
+
+**問題2 (重大なバグ)**: 更新後のデータではなく、更新前のデータを返している。
+
+```typescript
+// ❌ 更新前のsummariesを返す（バグ）
+summaries.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summaries;
+```
+
+**解決策**: 一括取得してMap化、更新後の配列を返す
+
+```typescript
+// ✅ 一括取得してMap化
+const existingSummaries = await this.aggregationRepository.findByCard(
+  creditCard.id,
+  startMonth,
+  endMonth
+);
+const existingSummariesMap = new Map(existingSummaries.map((s) => [s.billingMonth, s]));
+
+const summariesToSave = summaries.map((summary) => {
+  const existing = existingSummariesMap.get(summary.billingMonth);
+  if (existing) {
+    // 更新
+    return new MonthlyCardSummary(/* ... */);
+  }
+  return summary;
+});
+
+// 一括保存
+await Promise.all(summariesToSave.map((s) => this.aggregationRepository.save(s)));
+
+// ✅ 更新後のデータを返す
+summariesToSave.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summariesToSave;
+```
+
+**教訓**:
+
+- N+1問題はパフォーマンス劣化の主要因
+- 一括取得→Map化で解決
+- 更新後のデータを返す（クライアントが正しいデータを受け取る）
+- Upsert処理の返り値は特に注意
+
+### 17.2 useFactoryの冗長性
+
+**問題**: `@Injectable()`デコレータがあるのに、手動でファクトリを定義している。
+
+```typescript
+// ❌ 冗長
+{
+  provide: AggregateCardTransactionsUseCase,
+  useFactory: (
+    creditCardRepository: ICreditCardRepository,
+    // ...
+  ): AggregateCardTransactionsUseCase => {
+    return new AggregateCardTransactionsUseCase(
+      creditCardRepository,
+      // ...
+    );
+  },
+  inject: [
+    CREDIT_CARD_REPOSITORY,
+    // ...
+  ],
+}
+
+// ✅ シンプル（NestJSが自動解決）
+AggregateCardTransactionsUseCase,
+```
+
+**教訓**:
+
+- `@Injectable()`があればNestJSが自動でDI解決
+- 手動ファクトリは特別な初期化が必要な場合のみ
+- コードの簡潔性向上
+
+### 17.3 Dateの自動オーバーフロー処理活用
+
+**問題**: 年月計算を手動で実装すると複雑になる。
+
+```typescript
+// ❌ 複雑
+private formatYearMonth(year: number, month: number): string {
+  if (month > 11) {
+    const yearOffset = Math.floor(month / 12);
+    const actualMonth = month % 12;
+    return `${year + yearOffset}-${String(actualMonth + 1).padStart(2, '0')}`;
+  }
+  if (month < 0) {
+    // ... 複雑なロジック
+  }
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+// ✅ Dateの自動処理活用
+private formatYearMonth(year: number, month: number): string {
+  const date = new Date(year, month);
+  const formattedYear = date.getFullYear();
+  const formattedMonth = String(date.getMonth() + 1).padStart(2, '0');
+  return `${formattedYear}-${formattedMonth}`;
+}
+```
+
+**教訓**:
+
+- `new Date(year, month)`は自動でオーバーフロー・アンダーフロー処理
+- 標準APIの機能を最大限活用
+- コードが簡潔で可読性向上
+
+### 17.4 テストのモック整合性
+
+**問題**: 実装を変更したのに、テストのモックを更新し忘れる。
+
+```typescript
+// 実装で追加
+const existingSummaries = await this.aggregationRepository.findByCard(/* ... */);
+
+// ❌ テストでモック未定義
+// aggregationRepository.findByCard.mockResolvedValue([]);  // 追加忘れ
+
+// ✅ テストで追加
+aggregationRepository.findByCard.mockResolvedValue([]);
+```
+
+**教訓**:
+
+- リポジトリメソッドを追加したら、すべてのテストでモック追加
+- テスト失敗の原因が「モック未定義」になることが多い
+- 実装変更とテスト更新は常にセット
+
+### 17.5 ローカルチェックの徹底
+
+**問題**: Lint/Buildは通過しても、Testを忘れてCI失敗。
+
+**解決策**: 4ステップチェックを完全実行
+
+```bash
+# 1. Lint
+./scripts/test/lint.sh
+
+# 2. Build（重要！）
+pnpm build
+
+# 3. Unit Tests
+./scripts/test/test.sh all
+
+# 4. E2E Tests
+./scripts/test/test-e2e.sh frontend
+```
+
+**教訓**:
+
+- **Build**は特に重要（型エラーを検出）
+- すべてのチェックを自動化スクリプトで実行
+- CIで失敗すると時間損失が大きい
+
+---
