@@ -323,14 +323,22 @@ classDiagram
 graph TD
     A[Presentation Layer] -->|依存| B[Application Layer]
     B -->|依存| C[Domain Layer]
-    A -->|依存| C
     D[Infrastructure Layer] -->|実装| C
 
     style A fill:#e1f5ff
     style B fill:#fff4e1
     style C fill:#ffe1f5
     style D fill:#e1ffe1
+
+    Note1[Presentation層はApplication層のみに依存<br/>Domain層には直接依存しない]
 ```
+
+**依存関係の原則**:
+
+- Presentation層 → Application層のみ（Domain層には直接依存しない）
+- Application層 → Domain層
+- Infrastructure層 → Domain層（インターフェースを実装）
+- ドメイン層は他のレイヤに依存しない（最も内側）
 
 ### データフロー
 

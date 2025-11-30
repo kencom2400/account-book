@@ -117,12 +117,17 @@
   - 例: 10日締め、翌月5日払い
 - カスタム締め日（締め日: `1-30`）
   - 任意の日付を締め日とする
+  - **エッジケース**: 締め日が29や30の場合、2月など該当日が存在しない月は、その月の最終日を締め日として扱う
 
 **締め日の設計**:
 
 - 締め日は1-31の整数で保持
 - `0`または`31`の場合は「月末締め」として扱う
 - 月末締めは`BillingPeriodCalculator`で各月の最終日に自動調整
+- **カスタム締め日のエッジケース処理**:
+  - 指定された締め日がその月に存在しない場合（例: 2月30日）
+  - その月の最終日を締め日として扱う（例: 2月28日または29日）
+  - これにより、すべての月で正しく締め日計算が可能になる
 
 **計算ロジック**:
 
@@ -167,13 +172,14 @@ export interface MonthlyCardSummary {
   transactionCount: number;
   categoryBreakdown: CategoryAmount[];
   transactionIds: string[];
-  discounts: Discount[];
   netPaymentAmount: number;
   status: PaymentStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 ```
+
+**注意**: `discounts`（割引）フィールドはFR-013で追加予定
 
 #### CategoryAmount
 
@@ -182,22 +188,6 @@ export interface CategoryAmount {
   category: string;
   amount: number;
   count: number;
-}
-```
-
-#### Discount
-
-```typescript
-export interface Discount {
-  type: DiscountType;
-  amount: number;
-  description: string;
-}
-
-export enum DiscountType {
-  POINT = 'POINT',
-  CASHBACK = 'CASHBACK',
-  CAMPAIGN = 'CAMPAIGN',
 }
 ```
 

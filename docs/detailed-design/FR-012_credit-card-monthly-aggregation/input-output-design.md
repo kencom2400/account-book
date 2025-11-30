@@ -224,7 +224,7 @@ export enum DiscountType {
       "paymentDate": "2025-02-27T00:00:00.000Z",
       "totalAmount": 50000,
       "transactionCount": 15,
-      "netPaymentAmount": 45000,
+      "netPaymentAmount": 50000,
       "status": "PENDING",
       "createdAt": "2025-11-30T00:00:00.000Z",
       "updatedAt": "2025-11-30T00:00:00.000Z"
@@ -510,13 +510,6 @@ const response = await fetch('http://localhost:3001/api/aggregation/card/monthly
     cardId: '550e8400-e29b-41d4-a716-446655440000',
     startMonth: '2025-01',
     endMonth: '2025-03',
-    discounts: [
-      {
-        type: 'POINT',
-        amount: 5000,
-        description: 'ポイント利用',
-      },
-    ],
   }),
 });
 
