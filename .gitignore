@@ -45,3 +45,4 @@ test-results/
 
 # Turbo
 .turbo/
+apps/backend/src/coverage-reconciliation/
