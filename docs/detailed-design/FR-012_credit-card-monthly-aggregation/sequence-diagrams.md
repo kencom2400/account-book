@@ -43,7 +43,7 @@ sequenceDiagram
     participant AggRepo as AggregationRepository
     participant Entity as MonthlyCardSummary
 
-    User->>API: POST /api/aggregation/card/monthly<br/>{cardId, startMonth, endMonth, discounts}
+    User->>API: POST /api/aggregation/card/monthly<br/>{cardId, startMonth, endMonth}
 
     API->>API: リクエスト検証
     API->>UC: execute(dto)
@@ -93,9 +93,11 @@ sequenceDiagram
 
     Note over UC: 割引は初期実装では未対応<br/>（FR-013実装時に対応予定）
 
-    UC-->>API: Result.success(MonthlyCardSummary[])
-    API->>API: ResponseDTOに変換
+    UC->>UC: toResponseDto(summaries)
+    UC-->>API: Result.success(MonthlyCardSummaryResponseDto[])
     API-->>User: 201 Created<br/>{success: true, data: summaries}
+
+    Note over UC,API: UseCaseでエンティティをDTOに変換<br/>ControllerはドメインエンティティをAPI扱わない
 ```
 
 ### ステップ詳細
@@ -243,10 +245,12 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    actor User
     participant API as Controller
     participant UC as UseCase
     participant CardRepo as CreditCardRepository
 
+    User->>API: POST /api/aggregation/card/monthly
     API->>UC: execute(dto)
     UC->>CardRepo: findById(cardId)
     CardRepo-->>UC: null
@@ -255,7 +259,7 @@ sequenceDiagram
     UC-->>API: Result.failure(CardNotFoundError)
 
     API->>API: エラーハンドリング
-    API-->>API: 404 Not Found<br/>{<br/>  statusCode: 404,<br/>  message: "カードが見つかりません",<br/>  cardId: "xxx"<br/>}
+    API-->>User: 404 Not Found<br/>{<br/>  "success": false,<br/>  "statusCode": 404,<br/>  "message": "カードが見つかりません",<br/>  "cardId": "xxx"<br/>}
 ```
 
 ### 取引データ不存在エラー (404 Not Found)

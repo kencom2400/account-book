@@ -274,14 +274,7 @@ export enum DiscountType {
       }
     ],
     "transactionIds": ["tx-001", "tx-002"],
-    "discounts": [
-      {
-        "type": "POINT",
-        "amount": 5000,
-        "description": "ポイント利用"
-      }
-    ],
-    "netPaymentAmount": 45000,
+    "netPaymentAmount": 50000,
     "status": "PENDING",
     "createdAt": "2025-11-30T00:00:00.000Z",
     "updatedAt": "2025-11-30T00:00:00.000Z"
@@ -311,13 +304,14 @@ export interface MonthlyCardSummary {
   transactionCount: number; // 取引件数
   categoryBreakdown: CategoryAmount[]; // カテゴリ別内訳
   transactionIds: string[]; // 取引IDリスト
-  discounts: Discount[]; // 割引・ポイント利用
   netPaymentAmount: number; // 最終支払額
   status: PaymentStatus; // 支払いステータス
   createdAt: Date; // 作成日時
   updatedAt: Date; // 更新日時
 }
 ```
+
+**注意**: `discounts`（割引）機能はFR-013で追加予定
 
 ### Enum定義
 
@@ -332,12 +326,6 @@ export enum PaymentStatus {
   CANCELLED = 'CANCELLED', // キャンセル
   MANUAL_CONFIRMED = 'MANUAL_CONFIRMED', // 手動確認済
 }
-
-export enum DiscountType {
-  POINT = 'POINT', // ポイント利用
-  CASHBACK = 'CASHBACK', // キャッシュバック
-  CAMPAIGN = 'CAMPAIGN', // キャンペーン割引
-}
 ```
 
 ### 関連データ構造
@@ -349,14 +337,9 @@ export interface CategoryAmount {
   amount: number; // 金額
   count: number; // 件数
 }
-
-// 割引・ポイント利用
-export interface Discount {
-  type: DiscountType; // 割引タイプ
-  amount: number; // 割引額
-  description: string; // 説明
-}
 ```
+
+**注意**: `Discount`（割引）関連の型定義はFR-013で追加予定
 
 ---
 
@@ -464,21 +447,13 @@ export interface Discount {
 | startMonth | 必須、YYYY-MM形式、有効な年月                 |
 | endMonth   | 必須、YYYY-MM形式、有効な年月、startMonth以降 |
 | 期間       | startMonth〜endMonth <= 12ヶ月                |
-| discounts  | オプション、配列、各要素はDiscount型          |
+
+**注意**: `discounts`（割引）機能はFR-013で実装予定
 
 **実装例 (class-validator):**
 
 ```typescript
-import {
-  IsString,
-  IsUUID,
-  IsOptional,
-  IsArray,
-  ValidateNested,
-  Matches,
-  Validate,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsUUID, Matches, Validate } from 'class-validator';
 
 export class AggregateCardTransactionsRequestDto {
   @IsUUID()
@@ -496,25 +471,6 @@ export class AggregateCardTransactionsRequestDto {
   })
   @Validate(EndMonthAfterStartMonth)
   endMonth: string;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => DiscountDto)
-  discounts?: DiscountDto[];
-}
-
-export class DiscountDto {
-  @IsEnum(DiscountType)
-  type: DiscountType;
-
-  @IsNumber()
-  @Min(0)
-  amount: number;
-
-  @IsString()
-  @Length(1, 200)
-  description: string;
 }
 ```
 
@@ -531,14 +487,7 @@ curl -X POST http://localhost:3001/api/aggregation/card/monthly \
   -d '{
     "cardId": "550e8400-e29b-41d4-a716-446655440000",
     "startMonth": "2025-01",
-    "endMonth": "2025-03",
-    "discounts": [
-      {
-        "type": "POINT",
-        "amount": 5000,
-        "description": "ポイント利用"
-      }
-    ]
+    "endMonth": "2025-03"
   }'
 
 # 一覧取得

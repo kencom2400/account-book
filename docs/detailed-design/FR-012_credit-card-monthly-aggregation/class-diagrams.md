@@ -28,31 +28,24 @@ classDiagram
         +number transactionCount
         +CategoryAmount[] categoryBreakdown
         +string[] transactionIds
-        +Discount[] discounts
         +number netPaymentAmount
         +PaymentStatus status
         +Date createdAt
         +Date updatedAt
         +calculateNetPayment() number
-        +addDiscount(discount) void
     }
 
     note right of MonthlyCardSummary
         エンティティからDTOへの変換は、
         Application層のUseCaseまたは
         Presentation層のマッパーで実施
+        ※ discounts機能はFR-013で対応予定
     end note
 
     class CategoryAmount {
         +string category
         +number amount
         +number count
-    }
-
-    class Discount {
-        +DiscountType type
-        +number amount
-        +string description
     }
 
     class PaymentStatus {
@@ -67,27 +60,18 @@ classDiagram
         MANUAL_CONFIRMED
     }
 
-    class DiscountType {
-        <<enumeration>>
-        POINT
-        CASHBACK
-        CAMPAIGN
-    }
-
     class AggregationRepository {
         <<interface>>
-        +save(summary) Promise~MonthlyCardSummary~
-        +findById(id) Promise~MonthlyCardSummary|null~
-        +findByCardAndMonth(cardId, billingMonth) Promise~MonthlyCardSummary|null~
-        +findByCard(cardId, startMonth, endMonth) Promise~MonthlyCardSummary[]~
-        +findAll() Promise~MonthlyCardSummary[]~
-        +delete(id) Promise~void~
+        +save(summary) Promise<MonthlyCardSummary>
+        +findById(id) Promise<MonthlyCardSummary|null>
+        +findByCardAndMonth(cardId, billingMonth) Promise<MonthlyCardSummary|null>
+        +findByCard(cardId, startMonth, endMonth) Promise<MonthlyCardSummary[]>
+        +findAll() Promise<MonthlyCardSummary[]>
+        +delete(id) Promise<void>
     }
 
     MonthlyCardSummary --> CategoryAmount
-    MonthlyCardSummary --> Discount
     MonthlyCardSummary --> PaymentStatus
-    Discount --> DiscountType
 ```
 
 **クラス説明**:
@@ -96,11 +80,9 @@ classDiagram
 
 - **責務**: カード利用明細の月別集計データを保持し、支払額計算を行う
 - **主要メソッド**:
-  - `calculateNetPayment()`: ポイント利用・キャッシュバックを控除した最終支払額を計算
-  - `addDiscount(discount)`: 割引・ポイント利用を追加
+  - `calculateNetPayment()`: 最終支払額を計算（FR-013で割引控除機能を追加予定）
 - **注意**: エンティティからDTOへの変換は、Application層のUseCaseまたはPresentation層のマッパーで行う（Onion Architecture原則遵守）
 - **ビジネスルール**:
-  - 支払額 = 合計金額 - 割引合計（0円未満にはならない）
   - 締め日に基づいて請求月を決定
 
 #### CategoryAmount
@@ -126,14 +108,6 @@ classDiagram
   - CANCELLED: キャンセル
   - MANUAL_CONFIRMED: 手動確認済
 
-#### DiscountType
-
-- **責務**: 割引タイプの定義
-- **値**:
-  - POINT: ポイント利用
-  - CASHBACK: キャッシュバック
-  - CAMPAIGN: キャンペーン割引
-
 ---
 
 ## Application層クラス図
@@ -147,11 +121,12 @@ classDiagram
         -TransactionRepository transactionRepository
         -CreditCardRepository creditCardRepository
         -BillingPeriodCalculator billingPeriodCalculator
-        +execute(dto) Promise~Result~MonthlyCardSummary[]~~
-        -fetchTransactions(cardId, startDate, endDate) Promise~Transaction[]~
-        -getCreditCard(cardId) Promise~CreditCard~
-        -groupByBillingMonth(transactions, closingDay) Map~string, Transaction[]~
+        +execute(dto) Promise<Result<MonthlyCardSummaryResponseDto[]>>
+        -fetchTransactions(cardId, startDate, endDate) Promise<Transaction[]>
+        -getCreditCard(cardId) Promise<CreditCard>
+        -groupByBillingMonth(transactions, closingDay) Map<string, Transaction[]>
         -aggregateTransactions(transactions) MonthlyCardSummary
+        -toResponseDto(entity) MonthlyCardSummaryResponseDto
     }
 
     class BillingPeriodCalculator {
@@ -182,15 +157,15 @@ classDiagram
 - **責務**: カード利用明細の月別集計を実行する
 - **依存**: AggregationRepository, TransactionRepository, CreditCardRepository, BillingPeriodCalculator
 - **入力**: `AggregateCardTransactionsRequestDto`
-- **出力**: `Result<MonthlyCardSummary[]>`
+- **出力**: `Result<MonthlyCardSummaryResponseDto[]>`
 - **処理フロー**:
   1. カード情報取得（締め日、支払日）
   2. 指定期間の取引データ取得
   3. 締め日に基づいて請求月別にグループ化
   4. 月別に集計（カテゴリ別内訳、合計金額）
-  5. 割引・ポイント利用を反映
-  6. 最終支払額を計算
-  7. 集計結果を保存
+  5. 最終支払額を計算
+  6. 集計結果を保存
+  7. エンティティをResponseDTOに変換して返却
 
 #### BillingPeriodCalculator
 
@@ -215,25 +190,25 @@ classDiagram
     class JsonAggregationRepository {
         -string dataPath
         -MonthlyCardSummary[] cache
-        +save(summary) Promise~MonthlyCardSummary~
-        +findById(id) Promise~MonthlyCardSummary|null~
-        +findByCardAndMonth(cardId, billingMonth) Promise~MonthlyCardSummary|null~
-        +findByCard(cardId, startMonth, endMonth) Promise~MonthlyCardSummary[]~
-        +findAll() Promise~MonthlyCardSummary[]~
-        +delete(id) Promise~void~
-        -loadFromFile() Promise~MonthlyCardSummary[]~
-        -saveToFile(data) Promise~void~
+        +save(summary) Promise<MonthlyCardSummary>
+        +findById(id) Promise<MonthlyCardSummary|null>
+        +findByCardAndMonth(cardId, billingMonth) Promise<MonthlyCardSummary|null>
+        +findByCard(cardId, startMonth, endMonth) Promise<MonthlyCardSummary[]>
+        +findAll() Promise<MonthlyCardSummary[]>
+        +delete(id) Promise<void>
+        -loadFromFile() Promise<MonthlyCardSummary[]>
+        -saveToFile(data) Promise<void>
         -filterByDateRange(summaries, startMonth, endMonth) MonthlyCardSummary[]
     }
 
     class TransactionRepository {
         <<existing>>
-        +findByCardId(cardId, startDate, endDate) Promise~Transaction[]~
+        +findByCardId(cardId, startDate, endDate) Promise<Transaction[]>
     }
 
     class CreditCardRepository {
         <<existing>>
-        +findById(id) Promise~CreditCard|null~
+        +findById(id) Promise<CreditCard|null>
     }
 
     JsonAggregationRepository ..|> AggregationRepository
@@ -275,9 +250,9 @@ classDiagram
 classDiagram
     class AggregationController {
         -AggregateCardTransactionsUseCase aggregateUseCase
-        +aggregateCardTransactions(request) Promise~Response~
-        +listMonthlyAggregations(query) Promise~Response~
-        +getMonthlyAggregation(id) Promise~Response~
+        +aggregateCardTransactions(request) Promise<Response>
+        +listMonthlyAggregations(query) Promise<Response>
+        +getMonthlyAggregation(id) Promise<Response>
         -validateRequest(request) ValidationResult
         -handleError(error) Response
     }
@@ -286,7 +261,6 @@ classDiagram
         +string cardId
         +string startMonth
         +string endMonth
-        +Discount[] discounts
         +validate() boolean
     }
 
@@ -302,7 +276,6 @@ classDiagram
         +number transactionCount
         +CategoryAmount[] categoryBreakdown
         +string[] transactionIds
-        +Discount[] discounts
         +number netPaymentAmount
         +string status
         +string createdAt
@@ -379,7 +352,10 @@ sequenceDiagram
     E-->>U: netPaymentAmount
     U->>R: save(summaries)
     R-->>U: saved summaries
-    U-->>C: Result<MonthlyCardSummary[]>
+    U->>U: toResponseDto(entities)
+    U-->>C: Result<MonthlyCardSummaryResponseDto[]>
+
+    Note over U,C: UseCaseでエンティティをDTOに変換<br/>Controllerはドメインエンティティを扱わない
 ```
 
 ---
