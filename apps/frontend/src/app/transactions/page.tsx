@@ -38,22 +38,28 @@ export default function TransactionsPage(): React.JSX.Element {
     );
   }, []);
 
+  // 共通レイアウト
+  const PageLayout = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      {children}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      <PageLayout>
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           <span className="ml-3 text-gray-600">読み込み中...</span>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      <PageLayout>
         <div className="bg-red-50 border border-red-500 rounded p-4 mb-4">
           <p className="text-red-700">{error}</p>
         </div>
@@ -63,14 +69,13 @@ export default function TransactionsPage(): React.JSX.Element {
         >
           再読み込み
         </button>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+    <PageLayout>
       <TransactionList transactions={transactions} onTransactionUpdate={handleTransactionUpdate} />
-    </div>
+    </PageLayout>
   );
 }
