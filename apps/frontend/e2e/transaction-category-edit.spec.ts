@@ -9,8 +9,47 @@ test.describe('取引カテゴリ編集機能', () => {
 
   test.beforeEach(async ({ page: p }) => {
     page = p;
+
+    // コンソールログを監視
+    page.on('console', (msg) => {
+      const text = msg.text();
+      if (text.includes('取引データ') || text.includes('API') || text.includes('Error')) {
+        console.log(`[Browser Console] ${msg.type()}: ${text}`);
+      }
+    });
+
+    // ネットワークリクエストを監視
+    page.on('request', (request) => {
+      const url = request.url();
+      if (url.includes('/api/')) {
+        console.log(`[E2E] Request: ${request.method()} ${url}`);
+      }
+    });
+
+    page.on('response', async (response) => {
+      const url = response.url();
+      if (url.includes('/api/')) {
+        console.log(`[E2E] Response: ${response.status()} ${url}`);
+        try {
+          const body = await response.json();
+          console.log(`[E2E] Response body:`, JSON.stringify(body, null, 2).substring(0, 500));
+        } catch {
+          // JSONパースエラーは無視
+        }
+      }
+    });
+
     // テストデータのセットアップ（将来的にはAPIで設定）
     await page.goto('/transactions');
+
+    // ページが完全に読み込まれるまで待つ
+    await page.waitForLoadState('networkidle');
+
+    // エラーメッセージが表示されている場合はログを出力
+    const errorMessage = page.getByText('取引データの取得に失敗しました');
+    if (await errorMessage.isVisible().catch(() => false)) {
+      console.log('[E2E] ⚠️ エラーメッセージが表示されています');
+    }
   });
 
   test('取引一覧が表示される', async () => {
