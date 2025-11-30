@@ -85,9 +85,37 @@ export class AggregateCardTransactionsUseCase {
       summaries.push(summary);
     }
 
-    // 6. 集計結果を保存
+    // 6. 集計結果を保存（既存データがあればUpsert）
     for (const summary of summaries) {
-      await this.aggregationRepository.save(summary);
+      // 既存データの確認
+      const existing = await this.aggregationRepository.findByCardAndMonth(
+        summary.cardId,
+        summary.billingMonth,
+      );
+
+      if (existing) {
+        // 既存データのIDを引き継いで更新
+        const updatedSummary = new MonthlyCardSummary(
+          existing.id, // 既存IDを使用
+          summary.cardId,
+          summary.cardName,
+          summary.billingMonth,
+          summary.closingDate,
+          summary.paymentDate,
+          summary.totalAmount,
+          summary.transactionCount,
+          summary.categoryBreakdown,
+          summary.transactionIds,
+          summary.netPaymentAmount,
+          summary.paymentStatus as PaymentStatus,
+          existing.createdAt, // createdAtは保持
+          new Date(), // updatedAtは更新
+        );
+        await this.aggregationRepository.save(updatedSummary);
+      } else {
+        // 新規作成
+        await this.aggregationRepository.save(summary);
+      }
     }
 
     // 7. 請求月順にソート（昇順）
