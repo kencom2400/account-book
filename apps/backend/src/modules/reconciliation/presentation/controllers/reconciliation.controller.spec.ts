@@ -91,9 +91,7 @@ describe('ReconciliationController', () => {
 
     it('カード請求データが見つからない場合は404エラー', async () => {
       reconcileCreditCardUseCase.execute.mockRejectedValue(
-        new NotFoundException(
-          new CardSummaryNotFoundError('card-001', '2025-01'),
-        ),
+        new CardSummaryNotFoundError('card-001', '2025-01'),
       );
 
       await expect(

@@ -12,6 +12,7 @@ import { PaymentStatus } from '../../../aggregation/domain/enums/payment-status.
 import { CategoryAmount } from '../../../aggregation/domain/value-objects/category-amount.vo';
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
 import { TransactionStatus } from '@account-book/types';
+import { CardSummaryNotFoundError } from '../../domain/errors/reconciliation.errors';
 describe('ReconcileCreditCardUseCase', () => {
   let useCase: ReconcileCreditCardUseCase;
   let reconciliationRepository: jest.Mocked<ReconciliationRepository>;
@@ -168,7 +169,7 @@ describe('ReconcileCreditCardUseCase', () => {
       aggregationRepository.findByCardAndMonth.mockResolvedValue(null);
 
       await expect(useCase.execute('card-001', '2025-01')).rejects.toThrow(
-        'CardSummaryNotFoundError',
+        CardSummaryNotFoundError,
       );
     });
   });
