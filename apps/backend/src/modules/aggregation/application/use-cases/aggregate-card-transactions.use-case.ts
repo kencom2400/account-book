@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import {
+import type {
   ICreditCardRepository,
   ICreditCardTransactionRepository,
 } from '../../../credit-card/domain/repositories/credit-card.repository.interface';
+import { CreditCardTransactionEntity } from '../../../credit-card/domain/entities/credit-card-transaction.entity';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
-import { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
+import type { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
 import { CategoryAmount } from '../../domain/value-objects/category-amount.vo';
 import { BillingPeriodCalculator } from '../services/billing-period-calculator.service';
 
@@ -118,13 +119,10 @@ export class AggregateCardTransactionsUseCase {
    * 取引を請求月別にグループ化
    */
   private groupByBillingMonth(
-    transactions: Array<{ transactionDate: Date; id: string }>,
+    transactions: CreditCardTransactionEntity[],
     closingDay: number,
-  ): Map<string, Array<{ transactionDate: Date; id: string }>> {
-    const grouped = new Map<
-      string,
-      Array<{ transactionDate: Date; id: string }>
-    >();
+  ): Map<string, CreditCardTransactionEntity[]> {
+    const grouped = new Map<string, CreditCardTransactionEntity[]>();
 
     for (const transaction of transactions) {
       const billingMonth = this.billingPeriodCalculator.determineBillingMonth(
@@ -150,13 +148,8 @@ export class AggregateCardTransactionsUseCase {
     billingMonth: string,
     closingDay: number,
     paymentDay: number,
-    transactions: Array<{
-      id: string;
-      amount: number;
-      category: string;
-      transactionDate: Date;
-    }>,
-  ): Promise<MonthlyCardSummary> {
+    transactions: CreditCardTransactionEntity[],
+  ): MonthlyCardSummary {
     // カテゴリ別集計
     const categoryMap = new Map<string, { amount: number; count: number }>();
     let totalAmount = 0;

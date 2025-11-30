@@ -5,7 +5,7 @@ import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.e
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
 import { CategoryAmount } from '../../domain/value-objects/category-amount.vo';
-import { MonthlyCardSummaryOrmEntity } from '../entities/monthly-card-summary.orm-entity.ts';
+import { MonthlyCardSummaryOrmEntity } from '../entities/monthly-card-summary.orm-entity';
 
 /**
  * AggregationTypeOrmRepository

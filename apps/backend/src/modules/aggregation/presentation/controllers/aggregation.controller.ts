@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
-import { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
+import type { AggregationRepository } from '../../domain/repositories/aggregation.repository.interface';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 import {
