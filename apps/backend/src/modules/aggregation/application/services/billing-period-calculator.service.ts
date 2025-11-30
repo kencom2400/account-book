@@ -27,14 +27,8 @@ export class BillingPeriodCalculator {
 
     // 月末締めの場合
     if (this.isLastDayOfMonth(closingDay)) {
-      const lastDay = this.getLastDayOfMonth(year, month);
-      if (day <= lastDay) {
-        // 当月請求
-        return this.formatYearMonth(year, month);
-      } else {
-        // 翌月請求
-        return this.formatYearMonth(year, month + 1);
-      }
+      // 当月請求
+      return this.formatYearMonth(year, month);
     }
 
     // カスタム締め日の場合（エッジケース処理含む）

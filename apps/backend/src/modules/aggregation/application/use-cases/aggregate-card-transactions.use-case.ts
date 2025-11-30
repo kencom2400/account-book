@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   ICreditCardRepository,
@@ -49,7 +49,7 @@ export class AggregateCardTransactionsUseCase {
     // 1. カード情報取得
     const creditCard = await this.creditCardRepository.findById(cardId);
     if (!creditCard) {
-      throw new Error(`Credit card not found: ${cardId}`);
+      throw new NotFoundException(`Credit card not found: ${cardId}`);
     }
 
     // 2. 期間を日付範囲に変換
@@ -67,7 +67,9 @@ export class AggregateCardTransactionsUseCase {
       );
 
     if (transactions.length === 0) {
-      throw new Error('No transactions found for the specified period');
+      throw new NotFoundException(
+        'No transactions found for the specified period',
+      );
     }
 
     // 4. 取引を請求月別にグループ化
@@ -91,6 +93,8 @@ export class AggregateCardTransactionsUseCase {
     }
 
     // 6. 集計結果を保存（既存データがあればUpsert）
+    const summariesToSave: MonthlyCardSummary[] = [];
+
     for (const summary of summaries) {
       // 既存データの確認
       const existing = await this.aggregationRepository.findByCardAndMonth(
@@ -116,11 +120,20 @@ export class AggregateCardTransactionsUseCase {
           existing.createdAt, // createdAtは保持
           new Date(), // updatedAtは更新
         );
-        await this.aggregationRepository.save(updatedSummary);
+        summariesToSave.push(updatedSummary);
       } else {
         // 新規作成
-        await this.aggregationRepository.save(summary);
+        summariesToSave.push(summary);
       }
+    }
+
+    // 一括保存
+    if (summariesToSave.length > 0) {
+      await Promise.all(
+        summariesToSave.map((summary) =>
+          this.aggregationRepository.save(summary),
+        ),
+      );
     }
 
     // 7. 請求月順にソート（昇順）
