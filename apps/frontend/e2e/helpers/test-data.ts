@@ -115,6 +115,20 @@ export async function getCategories(): Promise<{
 }
 
 /**
+ * すべての金融機関を取得
+ */
+export async function getInstitutions(): Promise<{
+  success: boolean;
+  data: Institution[];
+  count: number;
+}> {
+  return await apiRequest<{ success: boolean; data: Institution[]; count: number }>(
+    'GET',
+    '/api/institutions'
+  );
+}
+
+/**
  * すべての取引を削除（テストクリーンアップ用）
  */
 export async function clearTransactions(): Promise<void> {
@@ -142,23 +156,28 @@ export async function seedE2ETestData(): Promise<{
   const existingCategories = await getCategories();
   let categories: Category[] = existingCategories.data;
 
-  // カテゴリが存在しない場合のみ作成
-  if (categories.length === 0) {
-    console.log('  📁 Creating categories...');
-    const categoryData = [
-      { name: '給与', type: 'INCOME' as const, icon: '💰', color: '#4CAF50' },
-      { name: '食費', type: 'EXPENSE' as const, icon: '🍴', color: '#FF5722' },
-      { name: '交通費', type: 'EXPENSE' as const, icon: '🚇', color: '#2196F3' },
-      { name: '娯楽', type: 'EXPENSE' as const, icon: '🎮', color: '#9C27B0' },
-    ];
+  // 必要なカテゴリを確認・作成
+  const requiredCategories = [
+    { name: '給与', type: 'INCOME' as const, icon: '💰', color: '#4CAF50' },
+    { name: '食費', type: 'EXPENSE' as const, icon: '🍴', color: '#FF5722' },
+    { name: '交通費', type: 'EXPENSE' as const, icon: '🚇', color: '#2196F3' },
+    { name: '娯楽', type: 'EXPENSE' as const, icon: '🎮', color: '#9C27B0' },
+  ];
 
-    categories = await Promise.all(categoryData.map((cat) => createCategory(cat)));
-    console.log(`  ✅ Created ${categories.length} categories`);
+  const missingCategories = requiredCategories.filter(
+    (req) => !categories.some((cat) => cat.name === req.name)
+  );
+
+  if (missingCategories.length > 0) {
+    console.log(`  📁 Creating ${missingCategories.length} missing categories...`);
+    const newCategories = await Promise.all(missingCategories.map((cat) => createCategory(cat)));
+    categories = [...categories, ...newCategories];
+    console.log(`  ✅ Created ${newCategories.length} categories`);
   } else {
     console.log(`  ℹ️  Using ${categories.length} existing categories`);
   }
 
-  // 金融機関を作成
+  // 金融機関を作成または取得
   console.log('  🏦 Creating institution...');
   let institution: Institution;
   try {
@@ -172,15 +191,16 @@ export async function seedE2ETestData(): Promise<{
     });
     console.log(`  ✅ Created institution: ${institution.name}`);
   } catch (_error) {
-    // 既に存在する場合はエラーを無視（IDは取得できないが、テストには影響しない）
-    console.log('  ℹ️  Institution already exists, using existing data');
-    // ダミーのinstitutionを作成
-    institution = {
-      id: 'existing-institution-id',
-      name: 'テスト銀行E2E',
-      type: 'bank',
-      credentials: {},
-    };
+    // 既に存在する場合は既存の金融機関を取得
+    console.log('  ℹ️  Institution already exists, fetching existing data...');
+    const existingInstitutions = await getInstitutions();
+    const existing = existingInstitutions.data.find((i) => i.name === 'テスト銀行E2E');
+    if (existing) {
+      institution = existing;
+      console.log(`  ✅ Using existing institution: ${institution.name}`);
+    } else {
+      throw new Error('Failed to find existing institution');
+    }
   }
 
   // アカウント情報（実際のAPIでは自動作成される想定）
@@ -201,7 +221,7 @@ export async function seedE2ETestData(): Promise<{
       date: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0],
       amount: 300000,
       category: {
-        id: categories.find((c) => c.name === '給与')!.id,
+        id: categories.find((c) => c.name === '給与')?.id || categories[0].id,
         name: '給与',
         type: 'INCOME',
       },
@@ -214,7 +234,7 @@ export async function seedE2ETestData(): Promise<{
       date: new Date(today.getFullYear(), today.getMonth(), 5).toISOString().split('T')[0],
       amount: 1500,
       category: {
-        id: categories.find((c) => c.name === '食費')!.id,
+        id: categories.find((c) => c.name === '食費')?.id || categories[0].id,
         name: '食費',
         type: 'EXPENSE',
       },
@@ -227,7 +247,7 @@ export async function seedE2ETestData(): Promise<{
       date: new Date(today.getFullYear(), today.getMonth(), 7).toISOString().split('T')[0],
       amount: 500,
       category: {
-        id: categories.find((c) => c.name === '交通費')!.id,
+        id: categories.find((c) => c.name === '交通費')?.id || categories[0].id,
         name: '交通費',
         type: 'EXPENSE',
       },
@@ -240,7 +260,7 @@ export async function seedE2ETestData(): Promise<{
       date: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0],
       amount: 2000,
       category: {
-        id: categories.find((c) => c.name === '食費')!.id,
+        id: categories.find((c) => c.name === '食費')?.id || categories[0].id,
         name: '食費',
         type: 'EXPENSE',
       },
@@ -253,7 +273,7 @@ export async function seedE2ETestData(): Promise<{
       date: new Date(today.getFullYear(), today.getMonth(), 15).toISOString().split('T')[0],
       amount: 3000,
       category: {
-        id: categories.find((c) => c.name === '娯楽')!.id,
+        id: categories.find((c) => c.name === '娯楽')?.id || categories[0].id,
         name: '娯楽',
         type: 'EXPENSE',
       },
