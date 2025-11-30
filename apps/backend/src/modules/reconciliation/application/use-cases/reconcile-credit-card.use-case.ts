@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { Reconciliation } from '../../domain/entities/reconciliation.entity';
 import { ReconciliationStatus } from '../../domain/enums/reconciliation-status.enum';
@@ -41,9 +41,7 @@ export class ReconcileCreditCardUseCase {
     );
 
     if (!cardSummary) {
-      throw new NotFoundException(
-        new CardSummaryNotFoundError(cardId, billingMonth),
-      );
+      throw new CardSummaryNotFoundError(cardId, billingMonth);
     }
 
     // 2. 引落予定日が未来でないか確認

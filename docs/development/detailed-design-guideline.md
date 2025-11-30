@@ -348,6 +348,10 @@ docs/detailed-design/
   - `handleError`メソッドが`never`型を返す場合、`return`を付けずに直接呼び出す
   - 例外が正しく伝播するように実装されているか
   - NestJSの標準的な例外フィルタリング機構をバイパスしていないか
+- [ ] **関心の分離（レイヤ間の依存関係）**
+  - UseCase層はフレームワーク（NestJS）に依存しないドメイン/アプリケーションエラーを直接スローする
+  - HTTPステータスコードへの変換は、コントローラー層や例外フィルターが担当する
+  - 例: UseCaseでは`CardSummaryNotFoundError`を直接スローし、`NotFoundException`は使わない
 
 ### 13-2. ビジネスロジックの実装
 

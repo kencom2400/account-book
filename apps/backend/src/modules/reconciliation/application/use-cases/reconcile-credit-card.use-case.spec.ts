@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { ReconcileCreditCardUseCase } from './reconcile-credit-card.use-case';
 import type { ReconciliationRepository } from '../../domain/repositories/reconciliation.repository.interface';
 import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
@@ -169,7 +168,7 @@ describe('ReconcileCreditCardUseCase', () => {
       aggregationRepository.findByCardAndMonth.mockResolvedValue(null);
 
       await expect(useCase.execute('card-001', '2025-01')).rejects.toThrow(
-        NotFoundException,
+        'CardSummaryNotFoundError',
       );
     });
   });

@@ -77,6 +77,7 @@ export class ReconciliationController {
       };
     } catch (error) {
       this.handleError(error);
+      // handleErrorは常に例外をスローするため、ここには到達しない
     }
   }
 
