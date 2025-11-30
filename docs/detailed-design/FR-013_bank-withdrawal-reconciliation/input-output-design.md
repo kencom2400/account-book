@@ -403,7 +403,7 @@ export enum ReconciliationStatus {
   "success": false,
   "statusCode": 400,
   "message": "エラーメッセージ",
-  "code": "RC001",
+  "code": "VALIDATION_ERROR",
   "errors": [
     {
       "field": "field1",
@@ -414,6 +414,11 @@ export enum ReconciliationStatus {
   "path": "/api/reconciliations"
 }
 ```
+
+**エラーコード命名規則**:
+
+- バリデーションエラー: `VALIDATION_ERROR`
+- 機能固有のエラー: `RC001`, `RC002`, `RC003`, `RC004`（Reconciliationの略）
 
 ### HTTPステータスコード
 
@@ -487,8 +492,9 @@ export enum ReconciliationStatus {
 **注意**:
 
 - 空配列（[]）は正常な応答として扱い、照合対象がない場合は不一致（UNMATCHED）として処理します
-- RC002は外部システム（銀行APIなど）の障害やデータベース接続失敗など、予期しないエラーの場合に返します
+- RC002は外部システム（銀行APIなど）の障害の場合に返します
 - HTTPステータスコードは`502 Bad Gateway`（外部サービス障害）または`503 Service Unavailable`（サービス一時利用不可）を使用します
+- データベース接続エラーなど自サーバー内部の問題は`500 Internal Server Error`を返します
 
 ### 引落予定日が未来エラー (422 - RC003)
 

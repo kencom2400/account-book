@@ -53,7 +53,7 @@ classDiagram
         +number matched
         +number unmatched
         +number partial
-        +calculateSummary() void
+        +calculateSummary(results) ReconciliationSummary
     }
 
     class Discrepancy {
@@ -140,7 +140,7 @@ classDiagram
 - **責務**: 照合結果のサマリー情報を保持（Value Object）
 - **不変性**: 値オブジェクトとして不変（immutable）
 - **主要メソッド**:
-  - `calculateSummary()`: 照合結果からサマリーを計算
+  - `calculateSummary(results)`: 照合結果から新しい`ReconciliationSummary`インスタンスを生成して返す（不変性を保つ）
 
 #### Discrepancy
 
@@ -194,8 +194,12 @@ classDiagram
     class ReconcileCreditCardRequestDto {
         +string cardId
         +string billingMonth
-        +validate() boolean
     }
+
+    note right of ReconcileCreditCardRequestDto
+        バリデーションはclass-validatorデコレータと
+        ValidationPipeを使用（NestJSのベストプラクティス）
+    end note
 
     ReconcileCreditCardUseCase --> ReconciliationRepository
     ReconcileCreditCardUseCase --> AggregationRepository

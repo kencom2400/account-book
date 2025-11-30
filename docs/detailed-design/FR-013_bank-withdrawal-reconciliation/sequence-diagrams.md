@@ -201,7 +201,7 @@ sequenceDiagram
 
     User->>API: GET /api/reconciliations/:id
 
-    API->>RR: findByCardAndMonth(cardId, billingMonth)
+    API->>RR: findById(id)
     RR-->>API: Reconciliation | null
 
     alt データが存在する
@@ -339,14 +339,14 @@ sequenceDiagram
 sequenceDiagram
     participant RS as ReconciliationService
 
-    Note over RS: 例: 引落予定日 2025-02-27（金）、±3営業日
+    Note over RS: 例: 引落予定日 2025-02-27（木）、±3営業日
 
     RS->>RS: calculateBusinessDays(2025-02-24, 2025-03-04)
     RS->>RS: -3営業日: 2/24（月）, 2/25（火）, 2/26（水）
-    RS->>RS: 2/27（金）: 引落予定日
-    RS->>RS: +3営業日: 3/2（月）, 3/3（火）, 3/4（水）
-    RS->>RS: 2/28（土）: 非営業日（除外）
+    RS->>RS: 2/27（木）: 引落予定日
+    RS->>RS: +3営業日: 2/28（金）, 3/3（月）, 3/4（火）
     RS->>RS: 3/1（日）: 非営業日（除外）
+    RS->>RS: 3/2（日）: 非営業日（除外）
     RS-->>RS: 範囲: 2025-02-24 〜 2025-03-04
 ```
 

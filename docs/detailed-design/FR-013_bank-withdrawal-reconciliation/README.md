@@ -128,7 +128,7 @@
      - confidence = 0: `UNMATCHED`に更新
    - **MonthlyCardSummary.status**（将来対応）:
      - confidence = 100: `PAID`に更新
-     - confidence = 70: `PARTIAL`または`DISPUTED`に更新（要確認）
+     - confidence = 70: `PARTIAL`に更新（部分一致のため、ユーザーが手動で異議を申し立てた場合に`DISPUTED`に変更可能）
      - confidence = 0: `DISPUTED`に更新、アラート生成（FR-015）
 
 **照合タイミング**:
@@ -271,10 +271,9 @@ export enum ReconciliationStatus {
    - 引落予定日が未来（RC003）
    - 複数の候補取引が存在（RC004）
 
-4. **サーバーエラー** (502 Bad Gateway / 503 Service Unavailable)
-   - 外部システム（銀行APIなど）の障害（RC002）
-   - データベース接続エラー（RC002）
-   - サービス一時利用不可（RC002）
+4. **サーバーエラー**
+   - **502 Bad Gateway / 503 Service Unavailable**: 外部システム（銀行APIなど）の障害（RC002）
+   - **500 Internal Server Error**: データベース接続エラーなど自サーバー内部の問題
 
 ### エラーコード
 
