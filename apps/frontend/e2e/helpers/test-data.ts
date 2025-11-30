@@ -208,7 +208,7 @@ export async function seedE2ETestData(): Promise<{
       description: '11月分給与',
       institutionId: institution.id,
       accountId: accounts[0].id,
-      status: 'COMPLETED',
+      status: 'completed',
     },
     {
       date: new Date(today.getFullYear(), today.getMonth(), 5).toISOString().split('T')[0],
@@ -221,7 +221,7 @@ export async function seedE2ETestData(): Promise<{
       description: 'スーパーマーケット',
       institutionId: institution.id,
       accountId: accounts[0].id,
-      status: 'COMPLETED',
+      status: 'completed',
     },
     {
       date: new Date(today.getFullYear(), today.getMonth(), 7).toISOString().split('T')[0],
@@ -234,7 +234,7 @@ export async function seedE2ETestData(): Promise<{
       description: '電車賃',
       institutionId: institution.id,
       accountId: accounts[0].id,
-      status: 'COMPLETED',
+      status: 'completed',
     },
     {
       date: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0],
@@ -247,7 +247,7 @@ export async function seedE2ETestData(): Promise<{
       description: 'レストラン',
       institutionId: institution.id,
       accountId: accounts[0].id,
-      status: 'COMPLETED',
+      status: 'completed',
     },
     {
       date: new Date(today.getFullYear(), today.getMonth(), 15).toISOString().split('T')[0],
@@ -260,7 +260,7 @@ export async function seedE2ETestData(): Promise<{
       description: '映画鑑賞',
       institutionId: institution.id,
       accountId: accounts[0].id,
-      status: 'COMPLETED',
+      status: 'completed',
     },
   ];
 
