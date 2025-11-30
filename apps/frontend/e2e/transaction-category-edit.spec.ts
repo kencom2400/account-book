@@ -3,9 +3,9 @@ import { test, expect, Page } from '@playwright/test';
 /**
  * FR-010: 費目の手動修正機能 E2Eテスト
  *
- * NOTE: このテストは TransactionList コンポーネントのE2Eテストです。
- * 現在、/transactions ページは実装されていないため、テストはスキップされています。
- * ページ実装後に test.skip を test に変更してテストを有効化してください。
+ * NOTE: このテストはテストデータのセットアップが未実装のため、スキップされています。
+ * 別Issueでテストデータセットアップを実装後に有効化してください。
+ * TODO: E2Eテスト用の取引データセットアップを実装 (別Issue)
  */
 
 test.describe.skip('取引カテゴリ編集機能', () => {
