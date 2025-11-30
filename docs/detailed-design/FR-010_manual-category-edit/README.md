@@ -397,8 +397,8 @@ CREATE TABLE transaction_category_change_history (
   - [ ] テストケース7件の実行確認
   - [ ] 必要に応じてテストの修正
 - [ ] ドキュメント更新
-  - [ ] 画面遷移図の作成 ✅ 完了
-  - [ ] README.mdの更新 ✅ 完了
+  - [x] 画面遷移図の作成 ✅ 完了
+  - [x] README.mdの更新 ✅ 完了
 
 ## 関連ドキュメント
 
