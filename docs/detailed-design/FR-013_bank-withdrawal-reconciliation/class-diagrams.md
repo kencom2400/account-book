@@ -369,12 +369,21 @@ classDiagram
         +number partial
     }
 
+    class DiscrepancyDto {
+        <<interface>>
+        +number amountDifference
+        +number dateDifference
+        +boolean descriptionMatch
+        +string reason
+    }
+
     ReconciliationController --> ReconcileCreditCardUseCase
     ReconciliationController --> ReconcileCreditCardRequestDto
     ReconciliationController --> ReconciliationResponseDto
     ReconciliationController --> ReconciliationListItemDto
     ReconciliationController --> ReconciliationResultDto
     ReconciliationController --> ReconciliationSummaryDto
+    ReconciliationResultDto --> DiscrepancyDto
 ```
 
 **クラス説明**:
@@ -417,6 +426,11 @@ classDiagram
 
 - **責務**: 照合サマリーのレスポンスデータ
 - **変換**: ReconciliationSummary Value Objectから変換
+
+#### DiscrepancyDto（interface）
+
+- **責務**: 不一致詳細のレスポンスデータ
+- **変換**: Discrepancy Value Objectから変換
 
 ---
 

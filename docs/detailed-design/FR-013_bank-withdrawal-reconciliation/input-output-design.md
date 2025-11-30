@@ -411,20 +411,21 @@ export enum ReconciliationStatus {
     }
   ],
   "timestamp": "2025-01-30T00:00:00.000Z",
-  "path": "/api/reconciliation/card"
+  "path": "/api/reconciliations"
 }
 ```
 
 ### HTTPステータスコード
 
-| ステータスコード | 説明                  | 使用例                                          |
-| ---------------- | --------------------- | ----------------------------------------------- |
-| 200              | OK                    | 正常なGET                                       |
-| 201              | Created               | 正常なPOST                                      |
-| 400              | Bad Request           | バリデーションエラー                            |
-| 404              | Not Found             | カード月別集計データが見つからない（RC001）     |
-| 422              | Unprocessable Entity  | 引落予定日が未来（RC003）、複数候補（RC004）    |
-| 500              | Internal Server Error | サーバーエラー、銀行取引データ取得失敗（RC002） |
+| ステータスコード | 説明                 | 使用例                                       |
+| ---------------- | -------------------- | -------------------------------------------- |
+| 200              | OK                   | 正常なGET                                    |
+| 201              | Created              | 正常なPOST                                   |
+| 400              | Bad Request          | バリデーションエラー                         |
+| 404              | Not Found            | カード月別集計データが見つからない（RC001）  |
+| 422              | Unprocessable Entity | 引落予定日が未来（RC003）、複数候補（RC004） |
+| 502              | Bad Gateway          | 外部サービスへの接続失敗（RC002）            |
+| 503              | Service Unavailable  | サービス一時利用不可（RC002）                |
 
 ### バリデーションエラー (400)
 
@@ -433,6 +434,7 @@ export enum ReconciliationStatus {
   "success": false,
   "statusCode": 400,
   "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
   "errors": [
     {
       "field": "cardId",
@@ -444,7 +446,9 @@ export enum ReconciliationStatus {
       "value": "2025-13",
       "message": "billingMonthはYYYY-MM形式である必要があります"
     }
-  ]
+  ],
+  "timestamp": "2025-01-30T00:00:00.000Z",
+  "path": "/api/reconciliations"
 }
 ```
 
@@ -456,25 +460,35 @@ export enum ReconciliationStatus {
   "statusCode": 404,
   "message": "カード請求データが見つかりません",
   "code": "RC001",
+  "errors": [],
   "cardId": "550e8400-e29b-41d4-a716-446655440000",
-  "billingMonth": "2025-01"
+  "billingMonth": "2025-01",
+  "timestamp": "2025-01-30T00:00:00.000Z",
+  "path": "/api/reconciliations"
 }
 ```
 
-### サーバーエラー (500 - RC002)
+### サーバーエラー (502/503 - RC002)
 
 ```json
 {
   "success": false,
-  "statusCode": 500,
-  "message": "サーバーエラーが発生しました",
+  "statusCode": 502,
+  "message": "外部サービスへの接続に失敗しました",
   "code": "RC002",
+  "errors": [],
   "cardId": "550e8400-e29b-41d4-a716-446655440000",
-  "billingMonth": "2025-01"
+  "billingMonth": "2025-01",
+  "timestamp": "2025-01-30T00:00:00.000Z",
+  "path": "/api/reconciliations"
 }
 ```
 
-**注意**: 空配列（[]）は正常な応答として扱い、照合対象がない場合は不一致（UNMATCHED）として処理します。RC002はデータベース接続失敗など予期しないエラーの場合のみ返します。
+**注意**:
+
+- 空配列（[]）は正常な応答として扱い、照合対象がない場合は不一致（UNMATCHED）として処理します
+- RC002は外部システム（銀行APIなど）の障害やデータベース接続失敗など、予期しないエラーの場合に返します
+- HTTPステータスコードは`502 Bad Gateway`（外部サービス障害）または`503 Service Unavailable`（サービス一時利用不可）を使用します
 
 ### 引落予定日が未来エラー (422 - RC003)
 
@@ -484,8 +498,11 @@ export enum ReconciliationStatus {
   "statusCode": 422,
   "message": "引落予定日が未来です。引落日到来後に再実行してください",
   "code": "RC003",
+  "errors": [],
   "paymentDate": "2025-02-27T00:00:00.000Z",
-  "currentDate": "2025-01-30T00:00:00.000Z"
+  "currentDate": "2025-01-30T00:00:00.000Z",
+  "timestamp": "2025-01-30T00:00:00.000Z",
+  "path": "/api/reconciliations"
 }
 ```
 
@@ -497,6 +514,7 @@ export enum ReconciliationStatus {
   "statusCode": 422,
   "message": "複数の候補取引が存在します。手動で選択してください",
   "code": "RC004",
+  "errors": [],
   "candidates": [
     {
       "id": "tx-001",
@@ -510,7 +528,9 @@ export enum ReconciliationStatus {
       "amount": 50000,
       "description": "カード引落"
     }
-  ]
+  ],
+  "timestamp": "2025-01-30T00:00:00.000Z",
+  "path": "/api/reconciliations"
 }
 ```
 
