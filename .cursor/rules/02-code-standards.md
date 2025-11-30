@@ -6626,3 +6626,190 @@ async delete(id: string): Promise<DeleteCategoryResponseDto> {
 - 将来の変更に強い（UseCaseの変更がControllerに自動反映）
 
 ---
+
+## 📚 セクション16: FR-012実装レビューから学んだ観点（Gemini PR#325）
+
+### 16.1 集計処理の冪等性確保
+
+**問題**: 集計APIを再実行すると、ユニーク制約違反でエラーが発生する。
+
+**解決策**: Upsert処理を実装
+
+```typescript
+// ❌ 常に新規作成（再実行でエラー）
+await this.aggregationRepository.save(summary);
+
+// ✅ 既存データをチェックしてUpsert
+const existing = await this.aggregationRepository.findByCardAndMonth(
+  summary.cardId,
+  summary.billingMonth
+);
+
+if (existing) {
+  // 既存データのIDを引き継いで更新
+  const updatedSummary = new MonthlyCardSummary(
+    existing.id, // 既存IDを使用
+    // ... 他のフィールド
+    existing.createdAt, // createdAtは保持
+    new Date() // updatedAtは更新
+  );
+  await this.aggregationRepository.save(updatedSummary);
+} else {
+  await this.aggregationRepository.save(summary);
+}
+```
+
+**教訓**:
+
+- 集計・バッチ処理は冪等性を確保する
+- ユニーク制約がある場合は必ずUpsert処理を実装
+- createdAt/updatedAtを適切に管理
+
+### 16.2 DIトークンのSymbol統一
+
+**問題**: 文字列リテラルをDIトークンとして使用すると、タイプミスやリファクタリングが困難。
+
+**解決策**: Symbolトークンを定義
+
+```typescript
+// ✅ tokens.ts
+export const AGGREGATION_REPOSITORY = Symbol('AggregationRepository');
+
+// ✅ UseCase
+@Inject(AGGREGATION_REPOSITORY)
+private readonly aggregationRepository: AggregationRepository,
+
+// ✅ Module
+{
+  provide: AGGREGATION_REPOSITORY,
+  useClass: AggregationTypeOrmRepository,
+}
+```
+
+**教訓**:
+
+- すべてのモジュールで`*.tokens.ts`ファイルを作成
+- DIトークンはSymbolで統一
+- タイプミスを防ぎ、リファクタリングが容易
+
+### 16.3 Controller層のアーキテクチャ違反
+
+**問題**: Controllerがリポジトリに直接アクセスしている（Onion Architecture違反）。
+
+**解決策**: 専用UseCaseを作成
+
+```typescript
+// ❌ Controllerからリポジトリへ直接アクセス
+@Controller()
+export class AggregationController {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async findAll() {
+    return this.aggregationRepository.findAll(); // 違反
+  }
+}
+
+// ✅ UseCase経由でアクセス
+@Injectable()
+export class FindAllSummariesUseCase {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async execute(): Promise<MonthlyCardSummary[]> {
+    return this.aggregationRepository.findAll();
+  }
+}
+
+@Controller()
+export class AggregationController {
+  constructor(private readonly findAllSummariesUseCase: FindAllSummariesUseCase) {}
+
+  async findAll() {
+    return this.findAllSummariesUseCase.execute();
+  }
+}
+```
+
+**教訓**:
+
+- Presentation層はInfrastructure層に直接依存しない
+- CRUD操作でも専用UseCaseを作成
+- ビジネスロジックをApplication層に集約
+- Onion Architectureの原則を厳守
+
+### 16.4 到達不能コードの削除
+
+**問題**: 条件分岐で必ず真になる条件がある場合、else節は到達不能。
+
+```typescript
+// ❌ 到達不能コード
+if (this.isLastDayOfMonth(closingDay)) {
+  const lastDay = this.getLastDayOfMonth(year, month);
+  if (day <= lastDay) {
+    // dayは必ずlastDay以下
+    return this.formatYearMonth(year, month);
+  } else {
+    // ここには到達しない
+    return this.formatYearMonth(year, month + 1);
+  }
+}
+
+// ✅ シンプルに
+if (this.isLastDayOfMonth(closingDay)) {
+  return this.formatYearMonth(year, month);
+}
+```
+
+**教訓**:
+
+- ロジックを単純化し、到達不能コードを削除
+- コードレビューで論理的な不整合を指摘
+
+### 16.5 適切なHTTP例外の使用
+
+**問題**: UseCase内で汎用`Error`をthrowすると、クライアントに500エラーが返る。
+
+**解決策**: NestJSのHTTP例外クラスを使用
+
+```typescript
+// ❌ 汎用Error（500エラー）
+throw new Error(`Credit card not found: ${cardId}`);
+
+// ✅ NotFoundException（404エラー）
+throw new NotFoundException(`Credit card not found: ${cardId}`);
+```
+
+**教訓**:
+
+- UseCaseでは適切なHTTP例外を使用
+- `NotFoundException`, `BadRequestException`, `ForbiddenException`等
+- クライアントに適切なステータスコードを返す
+
+### 16.6 一括保存によるパフォーマンス向上
+
+**問題**: ループ内で1件ずつ保存すると、I/Oがボトルネックになる。
+
+**解決策**: Promise.allで並列実行
+
+```typescript
+// ❌ 1件ずつ保存
+for (const summary of summaries) {
+  await this.aggregationRepository.save(summary);
+}
+
+// ✅ 一括保存（並列実行）
+await Promise.all(summaries.map((summary) => this.aggregationRepository.save(summary)));
+```
+
+**教訓**:
+
+- 複数件の保存は並列実行を検討
+- データベースI/Oを削減
+- パフォーマンス向上
+
+---
