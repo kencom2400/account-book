@@ -99,6 +99,104 @@ describe('AlertDetails Value Object', () => {
         );
       }).toThrow('Billing month is required');
     });
+
+    it('請求月の形式が不正な場合エラー', () => {
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '2025-13', // 無効な月
+          50000,
+          null,
+          null,
+          null,
+          null,
+          [],
+          null,
+        );
+      }).toThrow('Billing month must be in YYYY-MM format');
+
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '25-01', // 無効な形式
+          50000,
+          null,
+          null,
+          null,
+          null,
+          [],
+          null,
+        );
+      }).toThrow('Billing month must be in YYYY-MM format');
+    });
+
+    it('金額が負の値の場合エラー', () => {
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '2025-01',
+          -1000, // 負の値
+          null,
+          null,
+          null,
+          null,
+          [],
+          null,
+        );
+      }).toThrow('Expected amount must be non-negative');
+
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '2025-01',
+          50000,
+          -1000, // 負の値
+          null,
+          null,
+          null,
+          [],
+          null,
+        );
+      }).toThrow('Actual amount must be non-negative');
+    });
+
+    it('経過日数が負の値の場合エラー', () => {
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '2025-01',
+          50000,
+          null,
+          null,
+          null,
+          -1, // 負の値
+          [],
+          null,
+        );
+      }).toThrow('Days elapsed must be non-negative');
+    });
+
+    it('関連取引が配列でない場合エラー', () => {
+      expect(() => {
+        new AlertDetails(
+          'card-001',
+          'カード名',
+          '2025-01',
+          50000,
+          null,
+          null,
+          null,
+          null,
+          'not-an-array' as unknown as string[],
+          null,
+        );
+      }).toThrow('Related transactions must be an array');
+    });
   });
 
   describe('toPlain', () => {

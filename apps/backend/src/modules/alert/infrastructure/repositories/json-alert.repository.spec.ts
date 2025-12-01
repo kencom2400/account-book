@@ -227,5 +227,95 @@ describe('JsonAlertRepository', () => {
         CriticalAlertDeletionException,
       );
     });
+
+    it('存在しないアラートの削除はエラーにならない', async () => {
+      await expect(repository.delete('non-existent')).resolves.not.toThrow();
+    });
+  });
+
+  describe('findUnresolved', () => {
+    it('未解決のアラートを取得できる', async () => {
+      const alert1 = createMockAlert({ status: AlertStatus.UNREAD });
+      const alert2 = createMockAlert({
+        id: 'alert-002',
+        status: AlertStatus.READ,
+      });
+      const alert3 = createMockAlert({
+        id: 'alert-003',
+        status: AlertStatus.RESOLVED,
+        resolvedAt: new Date('2025-01-30'),
+        resolvedBy: 'user-001',
+      });
+      await repository.save(alert1);
+      await repository.save(alert2);
+      await repository.save(alert3);
+
+      const found = await repository.findUnresolved();
+
+      expect(found).toHaveLength(2);
+      expect(found.every((a) => a.status !== AlertStatus.RESOLVED)).toBe(true);
+    });
+  });
+
+  describe('findUnread', () => {
+    it('未読のアラートを取得できる', async () => {
+      const alert1 = createMockAlert({ status: AlertStatus.UNREAD });
+      const alert2 = createMockAlert({
+        id: 'alert-002',
+        status: AlertStatus.READ,
+      });
+      await repository.save(alert1);
+      await repository.save(alert2);
+
+      const found = await repository.findUnread();
+
+      expect(found).toHaveLength(1);
+      expect(found[0].status).toBe(AlertStatus.UNREAD);
+    });
+  });
+
+  describe('findAll - ページネーション', () => {
+    it('ページネーションが機能する', async () => {
+      const alerts = Array.from({ length: 5 }, (_, i) => {
+        const alert = createMockAlert();
+        alert.id = `alert-${String(i + 1).padStart(3, '0')}`;
+        return alert;
+      });
+
+      for (const alert of alerts) {
+        await repository.save(alert);
+      }
+
+      const page1 = await repository.findAll({ page: 1, limit: 2 });
+      const page2 = await repository.findAll({ page: 2, limit: 2 });
+
+      expect(page1).toHaveLength(2);
+      expect(page2).toHaveLength(2);
+      expect(page1[0].id).not.toBe(page2[0].id);
+    });
+  });
+
+  describe('findAll - 複合フィルター', () => {
+    it('複数のフィルターを組み合わせられる', async () => {
+      const alert1 = createMockAlert({
+        status: AlertStatus.UNREAD,
+        level: AlertLevel.WARNING,
+      });
+      const alert2 = createMockAlert({
+        id: 'alert-002',
+        status: AlertStatus.UNREAD,
+        level: AlertLevel.ERROR,
+      });
+      await repository.save(alert1);
+      await repository.save(alert2);
+
+      const found = await repository.findAll({
+        status: AlertStatus.UNREAD,
+        level: AlertLevel.WARNING,
+      });
+
+      expect(found).toHaveLength(1);
+      expect(found[0].level).toBe(AlertLevel.WARNING);
+    });
   });
 });

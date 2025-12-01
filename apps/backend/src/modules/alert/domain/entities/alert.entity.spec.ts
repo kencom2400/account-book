@@ -114,6 +114,161 @@ describe('Alert Entity', () => {
           createMockAlertActions(),
         );
       }).toThrow('ID is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          undefined as unknown as AlertType,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Type is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          undefined as unknown as AlertLevel,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Level is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          '',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Title is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          '',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Message is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          undefined as unknown as AlertDetails,
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Details is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          undefined as unknown as Date,
+          null,
+          null,
+          null,
+          createMockAlertActions(),
+        );
+      }).toThrow('Created at is required');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.UNREAD,
+          new Date(),
+          null,
+          null,
+          null,
+          undefined as unknown as AlertAction[],
+        );
+      }).toThrow('Actions must be an array');
+    });
+
+    it('解決済みアラートで解決情報が欠けている場合エラー', () => {
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.RESOLVED,
+          new Date(),
+          null, // resolvedAtがnull
+          'user-001',
+          'メモ',
+          createMockAlertActions(),
+        );
+      }).toThrow('Resolved at is required when status is RESOLVED');
+
+      expect(() => {
+        new Alert(
+          'alert-001',
+          AlertType.AMOUNT_MISMATCH,
+          AlertLevel.WARNING,
+          'タイトル',
+          'メッセージ',
+          createMockAlertDetails(),
+          AlertStatus.RESOLVED,
+          new Date(),
+          new Date(),
+          null, // resolvedByがnull
+          'メモ',
+          createMockAlertActions(),
+        );
+      }).toThrow('Resolved by is required when status is RESOLVED');
     });
   });
 
@@ -197,6 +352,25 @@ describe('Alert Entity', () => {
     });
   });
 
+  describe('addAction', () => {
+    it('アクションを追加できる', () => {
+      const alert = createMockAlert();
+      const newAction = new AlertAction(
+        'action-003',
+        '新しいアクション',
+        ActionType.VIEW_DETAILS,
+        false,
+      );
+
+      const updated = alert.addAction(newAction);
+
+      expect(updated.actions).toHaveLength(3);
+      expect(updated.actions[2].id).toBe('action-003');
+      // 元のオブジェクトは変更されていない（不変性）
+      expect(alert.actions).toHaveLength(2);
+    });
+  });
+
   describe('fromPlain', () => {
     it('プレーンオブジェクトから復元できる', () => {
       const alert = createMockAlert();
@@ -210,6 +384,23 @@ describe('Alert Entity', () => {
       expect(restored.status).toBe(alert.status);
       expect(restored.details.cardId).toBe(alert.details.cardId);
       expect(restored.actions).toHaveLength(alert.actions.length);
+    });
+
+    it('解決済みアラートを復元できる', () => {
+      const alert = createMockAlert({
+        status: AlertStatus.RESOLVED,
+        resolvedAt: new Date('2025-01-30'),
+        resolvedBy: 'user-001',
+        resolutionNote: '解決メモ',
+      });
+      const plain = alert.toPlain();
+
+      const restored = Alert.fromPlain(plain);
+
+      expect(restored.status).toBe(AlertStatus.RESOLVED);
+      expect(restored.resolvedAt).not.toBeNull();
+      expect(restored.resolvedBy).toBe('user-001');
+      expect(restored.resolutionNote).toBe('解決メモ');
     });
   });
 });
