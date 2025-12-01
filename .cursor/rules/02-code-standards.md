@@ -2430,6 +2430,7 @@ async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationRes
    ```
 
 4. **ログ出力**
+
    ```typescript
    this.logger.error('エラーメッセージ', error);
    ```
@@ -7665,6 +7666,42 @@ async updatePendingToProcessing(): Promise<{
 - コードの重複が削減される
 - 可読性と保守性が向上する
 - 新しいステータス遷移の追加が容易になる
+
+### 20.11 副作用を避けるための配列操作
+
+**問題**: `save`メソッドで、`loadFromFile`が返す配列を直接変更している。これは内部実装に依存しており、将来の実装変更時にバグの原因となる可能性がある。
+
+**解決策**:
+
+- 返された配列を直接変更するのではなく、新しい配列を作成してキャッシュを更新
+- スプレッド構文を使用して新しい配列を作成
+
+```typescript
+// ✅ 正しい実装
+async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
+  const records = await this.loadFromFile();
+
+  // ID重複チェック（履歴の不変性を保証）
+  const existingIndex = records.findIndex((r) => r.id === record.id);
+  if (existingIndex >= 0) {
+    throw new Error(`Record with ID ${record.id} already exists.`);
+  }
+
+  // 新しい記録を追加した新しい配列を作成（副作用を避ける）
+  const newRecords = [...records, record];
+
+  await this.saveToFile(newRecords);
+  this.cache = newRecords;
+
+  return record;
+}
+```
+
+**メリット**:
+
+- 副作用のないクリーンな実装
+- 内部実装の変更に影響されない
+- 意図が明確になる
 
 **重要なポイント**:
 
