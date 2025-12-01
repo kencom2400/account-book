@@ -265,14 +265,20 @@ describe('AlertController', () => {
 
   describe('deleteAlert', () => {
     it('正常にアラートを削除できる', async () => {
+      const alert = createMockAlert();
+      alertRepository.findById.mockResolvedValue(alert);
       alertRepository.delete.mockResolvedValue(undefined);
 
       await controller.deleteAlert('alert-001');
 
+      expect(alertRepository.findById).toHaveBeenCalledWith('alert-001');
       expect(alertRepository.delete).toHaveBeenCalledWith('alert-001');
     });
 
     it('CRITICALアラートは削除できない', async () => {
+      const alert = createMockAlert();
+      alert.level = AlertLevel.CRITICAL;
+      alertRepository.findById.mockResolvedValue(alert);
       alertRepository.delete.mockRejectedValue(
         new CriticalAlertDeletionException('alert-001'),
       );

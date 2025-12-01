@@ -101,8 +101,8 @@ describe('JsonAlertRepository', () => {
       const alert = createMockAlert();
       await repository.save(alert);
 
-      const updated = alert.markAsRead();
-      const saved = await repository.save(updated);
+      alert.markAsRead();
+      const saved = await repository.save(alert);
 
       expect(saved.status).toBe(AlertStatus.READ);
     });
@@ -175,7 +175,7 @@ describe('JsonAlertRepository', () => {
       await repository.save(alert1);
       await repository.save(alert2);
 
-      const found = await repository.findAll();
+      const found = await repository.findAll({});
 
       expect(found).toHaveLength(2);
     });
@@ -184,9 +184,9 @@ describe('JsonAlertRepository', () => {
       const alert1 = createMockAlert();
       const alert2 = createMockAlert();
       alert2.id = 'alert-002';
-      const readAlert = alert2.markAsRead();
       await repository.save(alert1);
-      await repository.save(readAlert);
+      alert2.markAsRead();
+      await repository.save(alert2);
 
       const found = await repository.findAll({ status: AlertStatus.UNREAD });
 
@@ -198,7 +198,9 @@ describe('JsonAlertRepository', () => {
       const alert = createMockAlert();
       await repository.save(alert);
 
-      const found = await repository.findAll({ level: AlertLevel.WARNING });
+      const found = await repository.findAll({
+        level: AlertLevel.WARNING,
+      });
 
       expect(found).toHaveLength(1);
       expect(found[0].level).toBe(AlertLevel.WARNING);
