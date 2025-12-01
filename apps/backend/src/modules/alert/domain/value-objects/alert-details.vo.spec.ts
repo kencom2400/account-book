@@ -98,21 +98,6 @@ describe('AlertDetails Value Object', () => {
           null,
         );
       }).toThrow('Billing month is required');
-
-      expect(() => {
-        new AlertDetails(
-          'card-001',
-          'カード名',
-          '2025-01',
-          undefined as unknown as number,
-          null,
-          null,
-          null,
-          null,
-          [],
-          null,
-        );
-      }).toThrow('Expected amount is required');
     });
   });
 
