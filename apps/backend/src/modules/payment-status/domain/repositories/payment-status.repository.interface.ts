@@ -1,4 +1,4 @@
-import { PaymentStatus } from '../../enums/payment-status.enum';
+import { PaymentStatus } from '../enums/payment-status.enum';
 import { PaymentStatusHistory } from '../entities/payment-status-history.entity';
 import { PaymentStatusRecord } from '../entities/payment-status-record.entity';
 
