@@ -68,7 +68,6 @@ classDiagram
         +findByCardSummaryId(cardSummaryId) Promise<PaymentStatusRecord|null>
         +findHistoryByCardSummaryId(cardSummaryId) Promise<PaymentStatusHistory>
         +findAllByStatus(status) Promise<PaymentStatusRecord[]>
-        +delete(id) Promise<void>
     }
 
     PaymentStatusRecord --> PaymentStatus
@@ -140,7 +139,6 @@ classDiagram
         -PaymentStatusRepository paymentStatusRepository
         -MonthlyCardSummaryRepository monthlyCardSummaryRepository
         -ReconciliationRepository reconciliationRepository
-        -PaymentStatusTransitionValidator validator
         +execute(dto) Promise<Result<PaymentStatusResponseDto>>
         -updateStatusAutomatically(cardSummaryId, trigger) Promise<PaymentStatusRecord>
         -updateStatusManually(cardSummaryId, newStatus, notes) Promise<PaymentStatusRecord>
@@ -165,12 +163,6 @@ classDiagram
         +updateProcessingToDisputed(reconciliationResult) Promise<void>
     }
 
-    class PaymentStatusTransitionValidator {
-        +validateTransition(from, to) boolean
-        +getAllowedTransitions(from) PaymentStatus[]
-        +isAutomaticTransition(from, to) boolean
-        -loadTransitionRules() PaymentStatusTransitionRule[]
-    }
 
     class UpdatePaymentStatusRequestDto {
         +string cardSummaryId
@@ -180,11 +172,10 @@ classDiagram
     }
 
     UpdatePaymentStatusUseCase --> PaymentStatusRepository
-    UpdatePaymentStatusUseCase --> PaymentStatusTransitionValidator
     UpdatePaymentStatusUseCase --> UpdatePaymentStatusRequestDto
+    UpdatePaymentStatusUseCase --> PaymentStatusRecord
     GetPaymentStatusHistoryUseCase --> PaymentStatusRepository
     PaymentStatusUpdateScheduler --> UpdatePaymentStatusUseCase
-    PaymentStatusTransitionValidator --> PaymentStatusTransitionRule
 ```
 
 **クラス説明**:
@@ -192,7 +183,8 @@ classDiagram
 #### UpdatePaymentStatusUseCase
 
 - **責務**: 支払いステータスの更新を実行する（手動・自動両対応）
-- **依存**: PaymentStatusRepository, MonthlyCardSummaryRepository, ReconciliationRepository, PaymentStatusTransitionValidator
+- **依存**: PaymentStatusRepository, MonthlyCardSummaryRepository, ReconciliationRepository
+- **注意**: 状態遷移の検証は`PaymentStatusRecord`エンティティの`canTransitionTo`メソッドを使用（ドメイン層に一元化）
 - **入力**: `UpdatePaymentStatusRequestDto`
 - **出力**: `Result<PaymentStatusResponseDto>`
 - **処理フロー**:
@@ -227,16 +219,7 @@ classDiagram
   - `updateProcessingToDisputed()`: PROCESSING → DISPUTED の更新（照合失敗時）
 - **スケジューリング**: NestJS Schedule（@nestjs/schedule）を使用
 
-#### PaymentStatusTransitionValidator
-
-- **責務**: ステータス遷移の妥当性を検証する
-- **主要メソッド**:
-  - `validateTransition(from, to)`: 遷移の妥当性を検証
-  - `getAllowedTransitions(from)`: 許可された遷移先ステータスを取得
-  - `isAutomaticTransition(from, to)`: 自動遷移かどうかを判定
-- **ビジネスルール**:
-  - 遷移ルールに基づいて検証
-  - 無効な遷移は即座に拒否
+**注意**: `PaymentStatusTransitionValidator`は削除され、状態遷移の検証ロジックは`PaymentStatusRecord`エンティティ（ドメイン層）に一元化されました。
 
 ---
 

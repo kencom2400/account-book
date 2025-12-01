@@ -399,20 +399,28 @@ export function PaymentStatusUpdateDialog({
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allowedTransitions, setAllowedTransitions] = useState<PaymentStatus[]>([]);
 
-  // 遷移可能なステータスを取得
-  const allowedTransitions = useMemo(() => {
-    const transitions: Record<PaymentStatus, PaymentStatus[]> = {
-      [PaymentStatus.PENDING]: [
-        PaymentStatus.PARTIAL,
-        PaymentStatus.CANCELLED,
-        PaymentStatus.MANUAL_CONFIRMED,
-      ],
-      [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
-      // その他のステータスは手動遷移不可
+  // 遷移可能なステータスをバックエンドから取得（Single Source of Truth）
+  useEffect(() => {
+    const fetchAllowedTransitions = async () => {
+      try {
+        // APIから遷移可能なステータスリストを取得
+        const response = await fetch(
+          `/api/payment-status/${cardSummaryId}/allowed-transitions`
+        );
+        const data = await response.json();
+        setAllowedTransitions(data.allowedTransitions || []);
+      } catch (err) {
+        console.error('Failed to fetch allowed transitions', err);
+        setAllowedTransitions([]);
+      }
     };
-    return transitions[currentStatus] ?? [];
-  }, [currentStatus]);
+
+    if (isOpen && cardSummaryId) {
+      fetchAllowedTransitions();
+    }
+  }, [isOpen, cardSummaryId, currentStatus]);
 
   const handleSubmit = async () => {
     if (!newStatus) {

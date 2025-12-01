@@ -16,12 +16,13 @@
 
 ### 支払いステータス管理 - FR-014
 
-| Method | Path                                         | 説明                     | 認証     |
-| ------ | -------------------------------------------- | ------------------------ | -------- |
-| PUT    | `/api/payment-status/:cardSummaryId`         | ステータスを手動更新     | 将来対応 |
-| GET    | `/api/payment-status/:cardSummaryId`         | 現在のステータスを取得   | 将来対応 |
-| GET    | `/api/payment-status/:cardSummaryId/history` | ステータス変更履歴を取得 | 将来対応 |
-| GET    | `/api/payment-status`                        | ステータス一覧を取得     | 将来対応 |
+| Method | Path                                                     | 説明                             | 認証     |
+| ------ | -------------------------------------------------------- | -------------------------------- | -------- |
+| PUT    | `/api/payment-status/:cardSummaryId`                     | ステータスを手動更新             | 将来対応 |
+| GET    | `/api/payment-status/:cardSummaryId`                     | 現在のステータスを取得           | 将来対応 |
+| GET    | `/api/payment-status/:cardSummaryId/history`             | ステータス変更履歴を取得         | 将来対応 |
+| GET    | `/api/payment-status/:cardSummaryId/allowed-transitions` | 遷移可能なステータスリストを取得 | 将来対応 |
+| GET    | `/api/payment-status`                                    | ステータス一覧を取得             | 将来対応 |
 
 ### 補足
 
@@ -65,7 +66,7 @@
 {
   "success": true,
   "data": {
-    "id": "9d1e8891-9647-62fg-c169-g29eb3e02cg9",
+    "id": "9d1e8891-9647-42f9-a169-929eb3e02c99",
     "cardSummaryId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
     "status": "MANUAL_CONFIRMED",
     "previousStatus": "DISPUTED",
@@ -143,7 +144,7 @@ export interface PaymentStatusResponseDto {
 {
   "success": true,
   "data": {
-    "id": "9d1e8891-9647-62fg-c169-g29eb3e02cg9",
+    "id": "9d1e8891-9647-42f9-a169-929eb3e02c99",
     "cardSummaryId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
     "status": "PROCESSING",
     "previousStatus": "PENDING",
@@ -182,7 +183,7 @@ export interface PaymentStatusResponseDto {
     "cardSummaryId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
     "statusChanges": [
       {
-        "id": "9d1e8891-9647-62fg-c169-g29eb3e02cg9",
+        "id": "9d1e8891-9647-42f9-a169-929eb3e02c99",
         "status": "MANUAL_CONFIRMED",
         "previousStatus": "DISPUTED",
         "updatedAt": "2025-01-27T10:30:00.000Z",
@@ -279,7 +280,7 @@ export interface PaymentStatusResponseDto {
   "success": true,
   "data": [
     {
-      "id": "9d1e8891-9647-62fg-c169-g29eb3e02cg9",
+      "id": "9d1e8891-9647-42f9-a169-929eb3e02c99",
       "cardSummaryId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
       "status": "PROCESSING",
       "updatedAt": "2025-01-27T00:00:00.000Z",
@@ -307,6 +308,45 @@ export interface PaymentStatusResponseDto {
 | status        | string | ステータス               |
 | updatedAt     | string | 更新日時（ISO8601）      |
 | updatedBy     | string | 更新者                   |
+
+---
+
+### GET /api/payment-status/:cardSummaryId/allowed-transitions
+
+遷移可能なステータスリストを取得します（フロントエンド用）。
+
+**Path Parameters:**
+
+| パラメータ    | 型     | 必須 | 説明         |
+| ------------- | ------ | ---- | ------------ |
+| cardSummaryId | string | ✅   | カード集計ID |
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "cardSummaryId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "currentStatus": "PENDING",
+    "allowedTransitions": ["PARTIAL", "CANCELLED", "MANUAL_CONFIRMED"]
+  }
+}
+```
+
+**Response Schema (AllowedTransitionsResponseDto):**
+
+| フィールド         | 型       | 説明                       |
+| ------------------ | -------- | -------------------------- |
+| cardSummaryId      | string   | カード集計ID（UUID）       |
+| currentStatus      | string   | 現在のステータス           |
+| allowedTransitions | string[] | 遷移可能なステータスリスト |
+
+**注意**: このエンドポイントは、フロントエンドで遷移可能なステータスを動的に取得するために使用します。バックエンドの`PaymentStatusRecord`エンティティの`getAllowedTransitions()`メソッドから取得した結果を返却します（Single Source of Truth）。
+
+**Error Responses:**
+
+- `404 Not Found`: ステータス記録が見つからない
 
 ---
 
@@ -490,7 +530,7 @@ export class UpdatePaymentStatusRequestDto {
 
 - 許可された遷移のみ実行可能
 - 無効な遷移の場合は400エラーを返す
-- 遷移ルールは`PaymentStatusTransitionValidator`で管理
+- 遷移ルールは`PaymentStatusRecord`エンティティ（ドメイン層）で管理
 
 ---
 

@@ -101,10 +101,11 @@ sequenceDiagram
     Batch->>StatusRepo: findAllByStatus(PENDING)
     StatusRepo-->>Batch: PaymentStatusRecord[]
 
-    loop 各PENDINGステータス記録
-        Batch->>SummaryRepo: findById(cardSummaryId)
-        SummaryRepo-->>Batch: MonthlyCardSummary
+    Note over Batch: N+1問題を回避: 一括取得
+    Batch->>SummaryRepo: findByIds(cardSummaryIds[])
+    SummaryRepo-->>Batch: MonthlyCardSummary[]
 
+    loop 各PENDINGステータス記録
         Batch->>Batch: 引落予定日-3日 <= 今日?
 
         alt 条件を満たす
@@ -120,10 +121,11 @@ sequenceDiagram
     Batch->>StatusRepo: findAllByStatus(PROCESSING)
     StatusRepo-->>Batch: PaymentStatusRecord[]
 
-    loop 各PROCESSINGステータス記録
-        Batch->>SummaryRepo: findById(cardSummaryId)
-        SummaryRepo-->>Batch: MonthlyCardSummary
+    Note over Batch: N+1問題を回避: 一括取得
+    Batch->>SummaryRepo: findByIds(cardSummaryIds[])
+    SummaryRepo-->>Batch: MonthlyCardSummary[]
 
+    loop 各PROCESSINGステータス記録
         Batch->>Batch: 引落予定日+7日 < 今日?
 
         alt 条件を満たす
@@ -208,6 +210,11 @@ export class PaymentStatusUpdateScheduler {
       return;
     }
 
+    // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
+    const cardSummaryIds = pendingRecords.map((r) => r.cardSummaryId);
+    const summaries = await this.summaryRepository.findByIds(cardSummaryIds);
+    const summaryMap = new Map(summaries.map((s) => [s.id, s]));
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -215,7 +222,7 @@ export class PaymentStatusUpdateScheduler {
 
     for (const record of pendingRecords) {
       try {
-        const summary = await this.summaryRepository.findById(record.cardSummaryId);
+        const summary = summaryMap.get(record.cardSummaryId);
 
         if (!summary) {
           this.logger.warn(`MonthlyCardSummary not found: ${record.cardSummaryId}`);
@@ -260,6 +267,11 @@ export class PaymentStatusUpdateScheduler {
       return;
     }
 
+    // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
+    const cardSummaryIds = processingRecords.map((r) => r.cardSummaryId);
+    const summaries = await this.summaryRepository.findByIds(cardSummaryIds);
+    const summaryMap = new Map(summaries.map((s) => [s.id, s]));
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -267,7 +279,7 @@ export class PaymentStatusUpdateScheduler {
 
     for (const record of processingRecords) {
       try {
-        const summary = await this.summaryRepository.findById(record.cardSummaryId);
+        const summary = summaryMap.get(record.cardSummaryId);
 
         if (!summary) {
           this.logger.warn(`MonthlyCardSummary not found: ${record.cardSummaryId}`);
@@ -311,10 +323,12 @@ export class PaymentStatusUpdateScheduler {
       await this.updatePendingToProcessing();
       await this.updateProcessingToOverdue();
 
+      // NOTE: update...メソッドから返される実際の件数を反映することが望ましい
+      // 現時点では簡易実装のため、処理件数は0として返す
       return {
-        success: true,
+        success: 0, // number型に修正
         failure: 0,
-        total: 0,
+        total: 0, // 処理件数を反映（将来的にupdate...メソッドから取得）
         duration: Date.now() - startTime,
         timestamp: new Date(),
       };

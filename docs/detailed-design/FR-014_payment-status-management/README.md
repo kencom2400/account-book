@@ -43,7 +43,6 @@
 │  - UpdatePaymentStatusUseCase           │
 │  - GetPaymentStatusHistoryUseCase       │
 │  - PaymentStatusUpdateScheduler         │
-│  - PaymentStatusTransitionValidator     │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────┴──────────────────────────┐
@@ -81,7 +80,7 @@
   - `UpdatePaymentStatusUseCase`: ステータス更新ユースケース（手動・自動）
   - `GetPaymentStatusHistoryUseCase`: ステータス履歴取得ユースケース
   - `PaymentStatusUpdateScheduler`: 日次バッチ処理のスケジューラー
-  - `PaymentStatusTransitionValidator`: ステータス遷移の妥当性検証
+  - **注意**: 状態遷移の検証は`PaymentStatusRecord`エンティティ（ドメイン層）で実施
 
 #### Domain Layer（ドメイン層）
 
@@ -128,7 +127,7 @@
 
 - Controller: `PaymentStatusController`
 - Use Case: `UpdatePaymentStatusUseCase`
-- Validator: `PaymentStatusTransitionValidator`
+- Entity: `PaymentStatusRecord`（状態遷移の検証を実施）
 
 **バリデーション**:
 
@@ -169,7 +168,7 @@
 #### PaymentStatusRecord
 
 ```typescript
-export interface PaymentStatusRecord {
+export class PaymentStatusRecord {
   id: string;
   cardSummaryId: string; // MonthlyCardSummaryのID
   status: PaymentStatus;
@@ -180,6 +179,11 @@ export interface PaymentStatusRecord {
   reconciliationId?: string; // 照合ID（FR-013）
   notes?: string; // ユーザー入力メモ
   createdAt: Date;
+
+  // 状態遷移の検証メソッド（ドメインロジック）
+  canTransitionTo(newStatus: PaymentStatus): boolean {
+    // 遷移ルールの検証ロジック
+  }
 }
 ```
 

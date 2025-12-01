@@ -39,7 +39,6 @@ sequenceDiagram
     participant Frontend as フロントエンド
     participant API as PaymentStatusController
     participant UC as UpdatePaymentStatusUseCase
-    participant Validator as PaymentStatusTransitionValidator
     participant SummaryRepo as MonthlyCardSummaryRepository
     participant StatusRepo as PaymentStatusRepository
     participant Entity as PaymentStatusRecord
@@ -70,12 +69,12 @@ sequenceDiagram
         UC->>UC: 初期ステータス（PENDING）を設定
     end
 
-    UC->>Validator: validateTransition(currentStatus, newStatus)
-    Validator->>Validator: 遷移ルールを確認
-    Validator-->>UC: isValid: boolean
+    UC->>Entity: canTransitionTo(newStatus)
+    Entity->>Entity: 遷移ルールを確認
+    Entity-->>UC: isValid: boolean
 
     alt 無効な遷移
-        Validator-->>UC: false
+        Entity-->>UC: false
         UC-->>API: Result.failure(InvalidStatusTransitionError)
         API-->>Frontend: 400 Bad Request<br/>{error: "無効なステータス遷移です"}
         Frontend-->>User: エラーメッセージ表示
@@ -158,7 +157,6 @@ sequenceDiagram
     participant UC as UpdatePaymentStatusUseCase
     participant SummaryRepo as MonthlyCardSummaryRepository
     participant StatusRepo as PaymentStatusRepository
-    participant Validator as PaymentStatusTransitionValidator
 
     Note over Scheduler: 毎日深夜0時実行
 
@@ -430,12 +428,11 @@ sequenceDiagram
     actor User
     participant API as Controller
     participant UC as UpdatePaymentStatusUseCase
-    participant Validator as PaymentStatusTransitionValidator
 
     User->>API: PUT /api/payment-status/:cardSummaryId<br/>{newStatus: "PENDING"}
     API->>UC: execute(dto)
     UC->>Validator: validateTransition(PAID, PENDING)
-    Validator->>Validator: 遷移ルールを確認
+    Entity->>Entity: canTransitionTo(newStatus) で遷移可否を検証
     Validator-->>UC: false
 
     UC->>UC: InvalidStatusTransitionError生成
@@ -526,7 +523,6 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Validator as PaymentStatusTransitionValidator
 
     Note over Validator: PENDING → PROCESSING<br/>条件: 引落予定日の3日前
     Note over Validator: PENDING → PARTIAL<br/>条件: 一部金額のみ引落

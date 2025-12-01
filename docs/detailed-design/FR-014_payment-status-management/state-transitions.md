@@ -598,38 +598,72 @@ export enum PaymentStatus {
 
 ### 遷移ルールの実装
 
+**注意**: 状態遷移の検証ロジックはドメイン層（`PaymentStatusRecord`エンティティ）に一元化されています。Application層の`PaymentStatusTransitionValidator`は削除し、UseCaseがエンティティのメソッドを直接呼び出して検証する設計とします。
+
 ```typescript
-// PaymentStatusTransitionValidator
-export class PaymentStatusTransitionValidator {
-  private readonly transitionRules: Map<PaymentStatus, PaymentStatus[]> = new Map([
-    [
-      PaymentStatus.PENDING,
-      [
+// PaymentStatusRecord Entity（ドメイン層）
+export class PaymentStatusRecord {
+  // ... プロパティ定義 ...
+
+  /**
+   * 遷移可能かどうかを検証（ドメインロジック）
+   */
+  public canTransitionTo(newStatus: PaymentStatus): boolean {
+    const allowedTransitions: Record<PaymentStatus, PaymentStatus[]> = {
+      [PaymentStatus.PENDING]: [
         PaymentStatus.PROCESSING,
         PaymentStatus.PARTIAL,
         PaymentStatus.CANCELLED,
         PaymentStatus.MANUAL_CONFIRMED,
       ],
-    ],
-    [PaymentStatus.PROCESSING, [PaymentStatus.PAID, PaymentStatus.DISPUTED, PaymentStatus.OVERDUE]],
-    [PaymentStatus.DISPUTED, [PaymentStatus.MANUAL_CONFIRMED]],
-    // その他の状態は終端状態（遷移不可）
-  ]);
+      [PaymentStatus.PROCESSING]: [
+        PaymentStatus.PAID,
+        PaymentStatus.DISPUTED,
+        PaymentStatus.OVERDUE,
+      ],
+      [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
+      // その他の状態は終端状態（遷移不可）
+      [PaymentStatus.PAID]: [],
+      [PaymentStatus.OVERDUE]: [],
+      [PaymentStatus.PARTIAL]: [],
+      [PaymentStatus.CANCELLED]: [],
+      [PaymentStatus.MANUAL_CONFIRMED]: [],
+    };
 
-  public validateTransition(from: PaymentStatus, to: PaymentStatus): boolean {
-    const allowedTransitions = this.transitionRules.get(from);
-    if (!allowedTransitions) {
-      return false; // 終端状態
-    }
-    return allowedTransitions.includes(to);
+    return allowedTransitions[this.status]?.includes(newStatus) ?? false;
   }
 
-  public getAllowedTransitions(from: PaymentStatus): PaymentStatus[] {
-    return this.transitionRules.get(from) ?? [];
+  /**
+   * 遷移可能なステータスリストを取得
+   */
+  public getAllowedTransitions(): PaymentStatus[] {
+    const allowedTransitions: Record<PaymentStatus, PaymentStatus[]> = {
+      [PaymentStatus.PENDING]: [
+        PaymentStatus.PROCESSING,
+        PaymentStatus.PARTIAL,
+        PaymentStatus.CANCELLED,
+        PaymentStatus.MANUAL_CONFIRMED,
+      ],
+      [PaymentStatus.PROCESSING]: [
+        PaymentStatus.PAID,
+        PaymentStatus.DISPUTED,
+        PaymentStatus.OVERDUE,
+      ],
+      [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
+      [PaymentStatus.PAID]: [],
+      [PaymentStatus.OVERDUE]: [],
+      [PaymentStatus.PARTIAL]: [],
+      [PaymentStatus.CANCELLED]: [],
+      [PaymentStatus.MANUAL_CONFIRMED]: [],
+    };
+
+    return allowedTransitions[this.status] ?? [];
   }
 
-  public isAutomaticTransition(from: PaymentStatus, to: PaymentStatus): boolean {
-    // 自動遷移の定義
+  /**
+   * 自動遷移かどうかを判定
+   */
+  public isAutomaticTransition(to: PaymentStatus): boolean {
     const automaticTransitions: Array<[PaymentStatus, PaymentStatus]> = [
       [PaymentStatus.PENDING, PaymentStatus.PROCESSING],
       [PaymentStatus.PROCESSING, PaymentStatus.PAID],
@@ -637,7 +671,7 @@ export class PaymentStatusTransitionValidator {
       [PaymentStatus.PROCESSING, PaymentStatus.OVERDUE],
     ];
 
-    return automaticTransitions.some(([f, t]) => f === from && t === to);
+    return automaticTransitions.some(([f, t]) => f === this.status && t === to);
   }
 }
 ```
