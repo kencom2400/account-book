@@ -34,7 +34,12 @@ describe('AlertService', () => {
       discrepancy,
     );
 
-    const summary = new ReconciliationSummary(1, isMatched ? 1 : 0, 0, 0);
+    const summary = new ReconciliationSummary(
+      1,
+      isMatched ? 1 : 0,
+      isMatched ? 0 : 1,
+      0,
+    );
 
     return new Reconciliation(
       'reconciliation-001',
