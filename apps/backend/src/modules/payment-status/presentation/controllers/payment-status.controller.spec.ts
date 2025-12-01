@@ -1,10 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-// @nestjs/swaggerのモック
-jest.mock('@nestjs/swagger', () => ({
-  ApiTags: () => () => {},
-  ApiOperation: () => () => {},
-  ApiResponse: () => () => {},
-}));
 import { PaymentStatusController } from './payment-status.controller';
 import { UpdatePaymentStatusUseCase } from '../../application/use-cases/update-payment-status.use-case';
 import { GetPaymentStatusHistoryUseCase } from '../../application/use-cases/get-payment-status-history.use-case';
