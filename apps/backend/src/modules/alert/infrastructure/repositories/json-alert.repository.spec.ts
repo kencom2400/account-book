@@ -250,6 +250,9 @@ describe('JsonAlertRepository', () => {
       await repository.save(alert2);
       await repository.save(alert3);
 
+      // キャッシュをクリア
+      (repository as unknown as { cache: Alert[] | null }).cache = null;
+
       const found = await repository.findUnresolved();
 
       expect(found).toHaveLength(2);
