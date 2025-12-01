@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UpdatePaymentStatusUseCase } from './update-payment-status.use-case';
 import type { PaymentStatusRepository } from '../../domain/repositories/payment-status.repository.interface';
 import { PAYMENT_STATUS_REPOSITORY } from '../../payment-status.tokens';
@@ -144,13 +144,13 @@ describe('UpdatePaymentStatusUseCase', () => {
       expect(paymentStatusRepository.save).toHaveBeenCalled();
     });
 
-    it('無効な遷移の場合はエラーを投げる', async () => {
+    it('無効な遷移の場合はBadRequestExceptionを投げる', async () => {
       aggregationRepository.findById.mockResolvedValue(mockSummary);
       paymentStatusRepository.findByCardSummaryId.mockResolvedValue(mockRecord);
 
       await expect(
         useCase.executeManually('summary-123', PaymentStatus.PAID, 'user'),
-      ).rejects.toThrow('Cannot transition from PENDING to PAID');
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

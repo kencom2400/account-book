@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
 import { AGGREGATION_REPOSITORY } from '../../../aggregation/aggregation.tokens';
+import { MonthlyCardSummary } from '../../../aggregation/domain/entities/monthly-card-summary.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import type { PaymentStatusRepository } from '../../domain/repositories/payment-status.repository.interface';
 import { PAYMENT_STATUS_REPOSITORY } from '../../payment-status.tokens';
@@ -72,84 +73,19 @@ export class PaymentStatusUpdateScheduler {
     failure: number;
     total: number;
   }> {
-    this.logger.log('Updating PENDING to PROCESSING...');
-
-    const pendingRecords = await this.statusRepository.findAllByStatus(
+    return this.processStatusUpdates(
       PaymentStatus.PENDING,
-    );
-
-    if (pendingRecords.length === 0) {
-      this.logger.log('No PENDING records found');
-      return { success: 0, failure: 0, total: 0 };
-    }
-
-    // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
-    const cardSummaryIds = pendingRecords.map((r) => r.cardSummaryId);
-    const summaries = await this.summaryRepository.findByIds(cardSummaryIds);
-    const summaryMap = new Map(summaries.map((s) => [s.id, s]));
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 並列処理用のタスクを作成
-    const updateTasks = pendingRecords
-      .map((record) => {
-        const summary = summaryMap.get(record.cardSummaryId);
-
-        if (!summary) {
-          this.logger.warn(
-            `MonthlyCardSummary not found: ${record.cardSummaryId}`,
-          );
-          return null;
-        }
-
-        // 引落予定日の3日前を計算
+      PaymentStatus.PROCESSING,
+      (summary) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const threeDaysBefore = new Date(summary.paymentDate);
         threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
         threeDaysBefore.setHours(0, 0, 0, 0);
-
-        // 今日が引落予定日の3日前以降かチェック
-        if (today >= threeDaysBefore) {
-          return {
-            cardSummaryId: record.cardSummaryId,
-            promise: this.updateUseCase.executeAutomatically(
-              record.cardSummaryId,
-              PaymentStatus.PROCESSING,
-              '引落予定日の3日前',
-            ),
-          };
-        }
-        return null;
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    // 並列処理を実行
-    const results = await Promise.allSettled(updateTasks.map((t) => t.promise));
-
-    let successCount = 0;
-    let failureCount = 0;
-
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        successCount++;
-      } else {
-        failureCount++;
-        this.logger.error(
-          `Failed to update status for ${updateTasks[index].cardSummaryId}`,
-          result.reason,
-        );
-      }
-    });
-
-    this.logger.log(
-      `PENDING → PROCESSING: ${successCount}/${pendingRecords.length} updated (${failureCount} failed)`,
+        return today >= threeDaysBefore;
+      },
+      '引落予定日の3日前',
     );
-
-    return {
-      success: successCount,
-      failure: failureCount,
-      total: pendingRecords.length,
-    };
   }
 
   /**
@@ -162,27 +98,51 @@ export class PaymentStatusUpdateScheduler {
     failure: number;
     total: number;
   }> {
-    this.logger.log('Updating PROCESSING to OVERDUE...');
-
-    const processingRecords = await this.statusRepository.findAllByStatus(
+    return this.processStatusUpdates(
       PaymentStatus.PROCESSING,
+      PaymentStatus.OVERDUE,
+      (summary) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const sevenDaysAfter = new Date(summary.paymentDate);
+        sevenDaysAfter.setDate(sevenDaysAfter.getDate() + 7);
+        sevenDaysAfter.setHours(0, 0, 0, 0);
+        return today > sevenDaysAfter;
+      },
+      '引落予定日+7日経過',
     );
+  }
 
-    if (processingRecords.length === 0) {
-      this.logger.log('No PROCESSING records found');
+  /**
+   * ステータス更新の共通処理
+   * @param fromStatus 更新元のステータス
+   * @param toStatus 更新先のステータス
+   * @param updateCondition 更新条件（MonthlyCardSummaryを受け取り、更新すべきかどうかを返す）
+   * @param reason ステータス変更理由
+   * @returns 更新結果（成功件数、失敗件数、総件数）
+   */
+  private async processStatusUpdates(
+    fromStatus: PaymentStatus,
+    toStatus: PaymentStatus,
+    updateCondition: (summary: MonthlyCardSummary) => boolean,
+    reason: string,
+  ): Promise<{ success: number; failure: number; total: number }> {
+    this.logger.log(`Updating ${fromStatus} to ${toStatus}...`);
+
+    const records = await this.statusRepository.findAllByStatus(fromStatus);
+
+    if (records.length === 0) {
+      this.logger.log(`No ${fromStatus} records found`);
       return { success: 0, failure: 0, total: 0 };
     }
 
     // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
-    const cardSummaryIds = processingRecords.map((r) => r.cardSummaryId);
+    const cardSummaryIds = records.map((r) => r.cardSummaryId);
     const summaries = await this.summaryRepository.findByIds(cardSummaryIds);
     const summaryMap = new Map(summaries.map((s) => [s.id, s]));
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     // 並列処理用のタスクを作成
-    const updateTasks = processingRecords
+    const updateTasks = records
       .map((record) => {
         const summary = summaryMap.get(record.cardSummaryId);
 
@@ -193,19 +153,14 @@ export class PaymentStatusUpdateScheduler {
           return null;
         }
 
-        // 引落予定日+7日を計算
-        const sevenDaysAfter = new Date(summary.paymentDate);
-        sevenDaysAfter.setDate(sevenDaysAfter.getDate() + 7);
-        sevenDaysAfter.setHours(0, 0, 0, 0);
-
-        // 今日が引落予定日+7日以降かチェック
-        if (today > sevenDaysAfter) {
+        // 更新条件をチェック
+        if (updateCondition(summary)) {
           return {
             cardSummaryId: record.cardSummaryId,
             promise: this.updateUseCase.executeAutomatically(
               record.cardSummaryId,
-              PaymentStatus.OVERDUE,
-              '引落予定日+7日経過',
+              toStatus,
+              reason,
             ),
           };
         }
@@ -222,8 +177,6 @@ export class PaymentStatusUpdateScheduler {
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         successCount++;
-        // 重要アラート生成（FR-015で実装）
-        // await this.alertService.generateOverdueAlert(updateTasks[index].cardSummaryId);
       } else {
         failureCount++;
         this.logger.error(
@@ -234,13 +187,13 @@ export class PaymentStatusUpdateScheduler {
     });
 
     this.logger.log(
-      `PROCESSING → OVERDUE: ${successCount}/${processingRecords.length} updated (${failureCount} failed)`,
+      `${fromStatus} → ${toStatus}: ${successCount}/${records.length} updated (${failureCount} failed)`,
     );
 
     return {
       success: successCount,
       failure: failureCount,
-      total: processingRecords.length,
+      total: records.length,
     };
   }
 

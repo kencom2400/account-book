@@ -84,19 +84,8 @@ export class PaymentStatusRecord {
       return false;
     }
 
-    // 終端状態からは遷移不可
-    const terminalStatuses = [
-      PaymentStatus.PAID,
-      PaymentStatus.OVERDUE,
-      PaymentStatus.PARTIAL,
-      PaymentStatus.CANCELLED,
-      PaymentStatus.MANUAL_CONFIRMED,
-    ];
-    if (terminalStatuses.includes(this.status)) {
-      return false;
-    }
-
     // 遷移ルールを静的メンバーから取得
+    // ALLOWED_TRANSITIONSに空配列が定義されている終端状態からの遷移は自動的にfalseと判定される
     const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
     return allowed.includes(newStatus);
   }

@@ -113,11 +113,10 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
    */
   async findAllByStatus(status: PaymentStatus): Promise<PaymentStatusRecord[]> {
     const records = await this.loadFromFile();
-    const matchingRecords = records.filter((r) => r.status === status);
 
-    // 各cardSummaryIdごとに最新の記録のみを返す
+    // 各cardSummaryIdごとに最新の記録をマップに格納
     const latestByCardSummary = new Map<string, PaymentStatusRecord>();
-    for (const record of matchingRecords) {
+    for (const record of records) {
       const existing = latestByCardSummary.get(record.cardSummaryId);
       if (
         !existing ||
@@ -127,7 +126,15 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
       }
     }
 
-    return Array.from(latestByCardSummary.values());
+    // 最新の記録の中から指定されたステータスのものをフィルタリング
+    const result: PaymentStatusRecord[] = [];
+    for (const record of latestByCardSummary.values()) {
+      if (record.status === status) {
+        result.push(record);
+      }
+    }
+
+    return result;
   }
 
   /**

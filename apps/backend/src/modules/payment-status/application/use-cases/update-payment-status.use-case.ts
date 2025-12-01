@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
 import { AGGREGATION_REPOSITORY } from '../../../aggregation/aggregation.tokens';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
@@ -123,7 +128,7 @@ export class UpdatePaymentStatusUseCase {
 
     // ステータス遷移の検証
     if (!currentRecord.canTransitionTo(newStatus)) {
-      throw new Error(
+      throw new BadRequestException(
         `Cannot transition from ${currentRecord.status} to ${newStatus}`,
       );
     }
