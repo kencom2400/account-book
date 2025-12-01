@@ -153,27 +153,33 @@ describe('AlertController', () => {
     it('正常にアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
       getAlertsUseCase.execute.mockResolvedValue(alerts);
+      alertRepository.findAll.mockResolvedValue(alerts);
 
       const result = await controller.getAlerts();
 
       expect(result.success).toBe(true);
       expect(result.data.alerts).toHaveLength(1);
       expect(result.data.total).toBe(1);
+      expect(result.data.unreadCount).toBe(1);
     });
 
     it('フィルター付きでアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
       getAlertsUseCase.execute.mockResolvedValue(alerts);
+      alertRepository.findAll.mockResolvedValue(alerts);
 
       const result = await controller.getAlerts(
-        AlertStatus.UNREAD,
-        AlertLevel.WARNING,
+        'UNREAD',
+        'WARNING',
+        undefined,
+        undefined,
+        undefined,
       );
 
       expect(result.success).toBe(true);
       expect(getAlertsUseCase.execute).toHaveBeenCalledWith({
-        status: AlertStatus.UNREAD,
-        level: AlertLevel.WARNING,
+        status: 'UNREAD',
+        level: 'WARNING',
       });
     });
   });
@@ -246,8 +252,8 @@ describe('AlertController', () => {
   describe('markAlertAsRead', () => {
     it('正常にアラートを既読にできる', async () => {
       const alert = createMockAlert();
-      const readAlert = alert.markAsRead();
-      markAlertAsReadUseCase.execute.mockResolvedValue(readAlert);
+      alert.markAsRead();
+      markAlertAsReadUseCase.execute.mockResolvedValue(alert);
 
       const result = await controller.markAlertAsRead('alert-001');
 
@@ -259,7 +265,7 @@ describe('AlertController', () => {
 
   describe('deleteAlert', () => {
     it('正常にアラートを削除できる', async () => {
-      alertRepository.delete.mockResolvedValue();
+      alertRepository.delete.mockResolvedValue(undefined);
 
       await controller.deleteAlert('alert-001');
 
