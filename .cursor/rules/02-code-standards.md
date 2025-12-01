@@ -7523,6 +7523,149 @@ export class PaymentStatusRecord {
 }
 ```
 
+### 20.7 リポジトリのfindAllByStatusメソッドのロジック修正 🔴 Critical
+
+**問題**: `findAllByStatus`メソッドで、まずステータスでフィルタリングしてから最新レコードを取得していると、過去のステータスが返される可能性がある。
+
+**解決策**:
+
+- まず全てのレコードから各`cardSummaryId`の最新レコードを特定
+- その後、最新レコードが指定されたステータスであるものをフィルタリング
+
+```typescript
+// ✅ 正しい実装
+async findAllByStatus(status: PaymentStatus): Promise<PaymentStatusRecord[]> {
+  const records = await this.loadFromFile();
+
+  // 各cardSummaryIdごとに最新の記録をマップに格納
+  const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+  for (const record of records) {
+    const existing = latestByCardSummary.get(record.cardSummaryId);
+    if (
+      !existing ||
+      record.updatedAt.getTime() > existing.updatedAt.getTime()
+    ) {
+      latestByCardSummary.set(record.cardSummaryId, record);
+    }
+  }
+
+  // 最新の記録の中から指定されたステータスのものをフィルタリング
+  const result: PaymentStatusRecord[] = [];
+  for (const record of latestByCardSummary.values()) {
+    if (record.status === status) {
+      result.push(record);
+    }
+  }
+
+  return result;
+}
+```
+
+**理由**:
+
+- ステータスで先にフィルタすると、すでにステータスが変更された請求の過去レコードが返される可能性がある
+- 最新レコードを先に特定することで、現在のステータスが指定されたステータスであるレコードのみを返せる
+
+### 20.8 無効なステータス遷移時の適切な例外処理
+
+**問題**: 無効なステータス遷移を試みた場合に、汎用の`Error`をスローすると、HTTP 500 Internal Server Errorが返ってしまう。
+
+**解決策**:
+
+- クライアントからの不正なリクエスト（無効な遷移）に起因するエラーであるため、`BadRequestException`（HTTP 400）をスローする
+
+```typescript
+// ✅ 正しい実装
+import { BadRequestException } from '@nestjs/common';
+
+if (!currentRecord.canTransitionTo(newStatus)) {
+  throw new BadRequestException(`Cannot transition from ${currentRecord.status} to ${newStatus}`);
+}
+```
+
+**理由**:
+
+- サーバー側の問題ではなく、クライアントからの不正なリクエストである
+- HTTP 400 Bad Requestが適切なステータスコード
+
+### 20.9 終端状態チェックの冗長性排除
+
+**問題**: `canTransitionTo`メソッド内で、`terminalStatuses`配列を用いた終端状態のチェックが冗長。
+
+**解決策**:
+
+- `ALLOWED_TRANSITIONS`マップでは、終端状態からの遷移先としてすでに空の配列(`[]`)が定義されている
+- 後続の `allowed.includes(newStatus)` のロジックで終端状態からの遷移は自動的に`false`と判定される
+- 冗長なチェックを削除
+
+```typescript
+// ✅ 正しい実装
+canTransitionTo(newStatus: PaymentStatus): boolean {
+  // 同じステータスへの遷移は不可
+  if (this.status === newStatus) {
+    return false;
+  }
+
+  // 遷移ルールを静的メンバーから取得
+  // ALLOWED_TRANSITIONSに空配列が定義されている終端状態からの遷移は自動的にfalseと判定される
+  const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+  return allowed.includes(newStatus);
+}
+```
+
+**メリット**:
+
+- コードがシンプルになる
+- 遷移ルールが一元管理されているという意図が明確になる
+
+### 20.10 バッチ処理の共通ロジック抽出
+
+**問題**: `updatePendingToProcessing`メソッドと`updateProcessingToOverdue`メソッドには、レコードの取得、関連データの取得、更新タスクの作成と実行といった共通のロジックが多く含まれている。
+
+**解決策**:
+
+- 共通処理をプライベートヘルパーメソッドに抽出
+- 更新条件を関数として受け取ることで、柔軟性を保つ
+
+```typescript
+// ✅ 正しい実装
+private async processStatusUpdates(
+  fromStatus: PaymentStatus,
+  toStatus: PaymentStatus,
+  updateCondition: (summary: MonthlyCardSummary) => boolean,
+  reason: string,
+): Promise<{ success: number; failure: number; total: number }> {
+  // 共通ロジック: レコード取得、関連データ取得、更新タスク作成と実行
+  // ...
+}
+
+async updatePendingToProcessing(): Promise<{
+  success: number;
+  failure: number;
+  total: number;
+}> {
+  return this.processStatusUpdates(
+    PaymentStatus.PENDING,
+    PaymentStatus.PROCESSING,
+    (summary) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const threeDaysBefore = new Date(summary.paymentDate);
+      threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+      threeDaysBefore.setHours(0, 0, 0, 0);
+      return today >= threeDaysBefore;
+    },
+    '引落予定日の3日前',
+  );
+}
+```
+
+**メリット**:
+
+- コードの重複が削減される
+- 可読性と保守性が向上する
+- 新しいステータス遷移の追加が容易になる
+
 **重要なポイント**:
 
 - 履歴データは不変であるべきで、更新ではなく常に新しいレコードとして追加する
