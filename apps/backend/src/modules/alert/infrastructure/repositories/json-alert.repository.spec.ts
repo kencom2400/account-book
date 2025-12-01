@@ -236,10 +236,9 @@ describe('JsonAlertRepository', () => {
   describe('findUnresolved', () => {
     it('未解決のアラートを取得できる', async () => {
       const alert1 = createMockAlert({ status: AlertStatus.UNREAD });
-      const alert2 = createMockAlert({
-        id: 'alert-002',
-        status: AlertStatus.READ,
-      });
+      const alert2 = createMockAlert({ status: AlertStatus.UNREAD });
+      alert2.id = 'alert-002';
+      alert2.markAsRead(); // READステータスに変更
       const alert3 = createMockAlert({
         id: 'alert-003',
         status: AlertStatus.RESOLVED,
@@ -247,8 +246,6 @@ describe('JsonAlertRepository', () => {
         resolvedBy: 'user-001',
       });
       await repository.save(alert1);
-      // alert2を保存する前に、ステータスをREADに設定
-      alert2.markAsRead();
       await repository.save(alert2);
       await repository.save(alert3);
 
@@ -257,7 +254,7 @@ describe('JsonAlertRepository', () => {
 
       const found = await repository.findUnresolved();
 
-      expect(found.length).toBeGreaterThanOrEqual(1);
+      expect(found.length).toBeGreaterThanOrEqual(2);
       expect(found.every((a) => a.status !== AlertStatus.RESOLVED)).toBe(true);
       // alert-001とalert-002が含まれていることを確認
       const ids = found.map((a) => a.id);
