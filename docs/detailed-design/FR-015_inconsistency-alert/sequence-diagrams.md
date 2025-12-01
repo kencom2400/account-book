@@ -374,8 +374,12 @@ sequenceDiagram
     RC->>RC: save(reconciliation)
 
     alt 照合結果が不一致（UNMATCHED）
-        RC->>CA: execute({reconciliationId, type: AMOUNT_MISMATCH})
+        RC->>CA: execute({reconciliationId})
         CA->>CA: アラート生成処理
+        CA->>AS: createAlertFromReconciliation(reconciliation)
+        AS->>AS: analyzeReconciliationResult(reconciliation)
+        AS-->>AS: AlertType.AMOUNT_MISMATCH
+        AS-->>CA: Alert
         CA->>AR: save(alert)
         AR-->>CA: saved alert
         CA-->>RC: Result.success(AlertResponseDto)

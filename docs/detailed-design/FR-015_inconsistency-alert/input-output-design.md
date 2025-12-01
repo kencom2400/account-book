@@ -469,10 +469,11 @@ export enum ActionType {
 
 ### CreateAlertRequestDto
 
-| フィールド       | ルール               | エラーメッセージ                                 |
-| ---------------- | -------------------- | ------------------------------------------------ |
-| reconciliationId | 必須、UUID形式       | "reconciliationIdはUUID形式である必要があります" |
-| type             | 必須、AlertType Enum | "typeは有効なAlertTypeである必要があります"      |
+| フィールド       | ルール         | エラーメッセージ                                 |
+| ---------------- | -------------- | ------------------------------------------------ |
+| reconciliationId | 必須、UUID形式 | "reconciliationIdはUUID形式である必要があります" |
+
+**補足**: `type`フィールドは不要です。`AlertService`が照合結果を分析してアラート種別を自動判定します。
 
 ### ResolveAlertRequestDto
 
