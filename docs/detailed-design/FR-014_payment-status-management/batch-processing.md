@@ -326,9 +326,9 @@ export class PaymentStatusUpdateScheduler {
       // NOTE: update...メソッドから返される実際の件数を反映することが望ましい
       // 現時点では簡易実装のため、処理件数は0として返す
       return {
-        success: 0, // number型に修正
+        success: 0,
         failure: 0,
-        total: 0, // 処理件数を反映（将来的にupdate...メソッドから取得）
+        total: 0,
         duration: Date.now() - startTime,
         timestamp: new Date(),
       };

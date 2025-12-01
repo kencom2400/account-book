@@ -208,7 +208,14 @@ export class PaymentStatusHistory {
 
   getStatusAt(date: Date): PaymentStatusRecord | null {
     // 指定日時点のステータスを取得
-    return this.statusChanges.find((record) => record.updatedAt <= date) || null;
+    // statusChangesはupdatedAt昇順でソートされていると仮定し、逆順にしてから検索します
+    // 指定日以前で最も新しいレコードを返す
+    return (
+      this.statusChanges
+        .slice()
+        .reverse()
+        .find((record) => record.updatedAt <= date) || null
+    );
   }
 }
 ```

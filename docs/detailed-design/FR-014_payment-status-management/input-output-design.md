@@ -216,7 +216,7 @@ export interface PaymentStatusResponseDto {
         "createdAt": "2025-01-27T00:00:00.000Z"
       },
       {
-        "id": "6a8b5568-6314-2fcd-833a-d06eb0e8zad6",
+        "id": "6a8b5568-6314-2fcd-833a-d06eb0e80ad6",
         "status": "PENDING",
         "previousStatus": null,
         "updatedAt": "2025-01-26T12:00:00.000Z",
