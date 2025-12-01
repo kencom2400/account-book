@@ -48,12 +48,14 @@ export class PaymentStatusUpdateScheduler {
 
     try {
       // PENDING → PROCESSING の更新
-      await this.updatePendingToProcessing();
+      const pendingResult = await this.updatePendingToProcessing();
 
       // PROCESSING → OVERDUE の更新
-      await this.updateProcessingToOverdue();
+      const overdueResult = await this.updateProcessingToOverdue();
 
-      this.logger.log('PaymentStatusUpdateBatch completed');
+      this.logger.log(
+        `PaymentStatusUpdateBatch completed: ${pendingResult.success + overdueResult.success} succeeded, ${pendingResult.failure + overdueResult.failure} failed`,
+      );
     } catch (error) {
       this.logger.error('PaymentStatusUpdateBatch failed', error);
       throw error;
@@ -63,8 +65,13 @@ export class PaymentStatusUpdateScheduler {
   /**
    * PENDING → PROCESSING の更新
    * 引落予定日の3日前の請求を抽出
+   * @returns 更新結果（成功件数、失敗件数、総件数）
    */
-  async updatePendingToProcessing(): Promise<void> {
+  async updatePendingToProcessing(): Promise<{
+    success: number;
+    failure: number;
+    total: number;
+  }> {
     this.logger.log('Updating PENDING to PROCESSING...');
 
     const pendingRecords = await this.statusRepository.findAllByStatus(
@@ -73,7 +80,7 @@ export class PaymentStatusUpdateScheduler {
 
     if (pendingRecords.length === 0) {
       this.logger.log('No PENDING records found');
-      return;
+      return { success: 0, failure: 0, total: 0 };
     }
 
     // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
@@ -84,17 +91,16 @@ export class PaymentStatusUpdateScheduler {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let updatedCount = 0;
-
-    for (const record of pendingRecords) {
-      try {
+    // 並列処理用のタスクを作成
+    const updateTasks = pendingRecords
+      .map((record) => {
         const summary = summaryMap.get(record.cardSummaryId);
 
         if (!summary) {
           this.logger.warn(
             `MonthlyCardSummary not found: ${record.cardSummaryId}`,
           );
-          continue;
+          return null;
         }
 
         // 引落予定日の3日前を計算
@@ -104,32 +110,58 @@ export class PaymentStatusUpdateScheduler {
 
         // 今日が引落予定日の3日前以降かチェック
         if (today >= threeDaysBefore) {
-          await this.updateUseCase.executeAutomatically(
-            record.cardSummaryId,
-            PaymentStatus.PROCESSING,
-            '引落予定日の3日前',
-          );
-
-          updatedCount++;
+          return {
+            cardSummaryId: record.cardSummaryId,
+            promise: this.updateUseCase.executeAutomatically(
+              record.cardSummaryId,
+              PaymentStatus.PROCESSING,
+              '引落予定日の3日前',
+            ),
+          };
         }
-      } catch (error) {
+        return null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    // 並列処理を実行
+    const results = await Promise.allSettled(updateTasks.map((t) => t.promise));
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successCount++;
+      } else {
+        failureCount++;
         this.logger.error(
-          `Failed to update status for ${record.cardSummaryId}`,
-          error,
+          `Failed to update status for ${updateTasks[index].cardSummaryId}`,
+          result.reason,
         );
       }
-    }
+    });
 
     this.logger.log(
-      `PENDING → PROCESSING: ${updatedCount}/${pendingRecords.length} updated`,
+      `PENDING → PROCESSING: ${successCount}/${pendingRecords.length} updated (${failureCount} failed)`,
     );
+
+    return {
+      success: successCount,
+      failure: failureCount,
+      total: pendingRecords.length,
+    };
   }
 
   /**
    * PROCESSING → OVERDUE の更新
    * 引落予定日+7日経過の請求を抽出
+   * @returns 更新結果（成功件数、失敗件数、総件数）
    */
-  async updateProcessingToOverdue(): Promise<void> {
+  async updateProcessingToOverdue(): Promise<{
+    success: number;
+    failure: number;
+    total: number;
+  }> {
     this.logger.log('Updating PROCESSING to OVERDUE...');
 
     const processingRecords = await this.statusRepository.findAllByStatus(
@@ -138,7 +170,7 @@ export class PaymentStatusUpdateScheduler {
 
     if (processingRecords.length === 0) {
       this.logger.log('No PROCESSING records found');
-      return;
+      return { success: 0, failure: 0, total: 0 };
     }
 
     // N+1問題を回避: 必要なMonthlyCardSummaryを一括取得
@@ -149,17 +181,16 @@ export class PaymentStatusUpdateScheduler {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let updatedCount = 0;
-
-    for (const record of processingRecords) {
-      try {
+    // 並列処理用のタスクを作成
+    const updateTasks = processingRecords
+      .map((record) => {
         const summary = summaryMap.get(record.cardSummaryId);
 
         if (!summary) {
           this.logger.warn(
             `MonthlyCardSummary not found: ${record.cardSummaryId}`,
           );
-          continue;
+          return null;
         }
 
         // 引落予定日+7日を計算
@@ -169,28 +200,48 @@ export class PaymentStatusUpdateScheduler {
 
         // 今日が引落予定日+7日以降かチェック
         if (today > sevenDaysAfter) {
-          await this.updateUseCase.executeAutomatically(
-            record.cardSummaryId,
-            PaymentStatus.OVERDUE,
-            '引落予定日+7日経過',
-          );
-
-          updatedCount++;
-
-          // 重要アラート生成（FR-015で実装）
-          // await this.alertService.generateOverdueAlert(record.cardSummaryId);
+          return {
+            cardSummaryId: record.cardSummaryId,
+            promise: this.updateUseCase.executeAutomatically(
+              record.cardSummaryId,
+              PaymentStatus.OVERDUE,
+              '引落予定日+7日経過',
+            ),
+          };
         }
-      } catch (error) {
+        return null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    // 並列処理を実行
+    const results = await Promise.allSettled(updateTasks.map((t) => t.promise));
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successCount++;
+        // 重要アラート生成（FR-015で実装）
+        // await this.alertService.generateOverdueAlert(updateTasks[index].cardSummaryId);
+      } else {
+        failureCount++;
         this.logger.error(
-          `Failed to update status for ${record.cardSummaryId}`,
-          error,
+          `Failed to update status for ${updateTasks[index].cardSummaryId}`,
+          result.reason,
         );
       }
-    }
+    });
 
     this.logger.log(
-      `PROCESSING → OVERDUE: ${updatedCount}/${processingRecords.length} updated`,
+      `PROCESSING → OVERDUE: ${successCount}/${processingRecords.length} updated (${failureCount} failed)`,
     );
+
+    return {
+      success: successCount,
+      failure: failureCount,
+      total: processingRecords.length,
+    };
   }
 
   /**
@@ -200,15 +251,17 @@ export class PaymentStatusUpdateScheduler {
     const startTime = Date.now();
 
     try {
-      await this.updatePendingToProcessing();
-      await this.updateProcessingToOverdue();
+      const pendingResult = await this.updatePendingToProcessing();
+      const overdueResult = await this.updateProcessingToOverdue();
 
-      // NOTE: update...メソッドから返される実際の件数を反映することが望ましい
-      // 現時点では簡易実装のため、処理件数は0として返す
+      const success = pendingResult.success + overdueResult.success;
+      const failure = pendingResult.failure + overdueResult.failure;
+      const total = pendingResult.total + overdueResult.total;
+
       return {
-        success: 0,
-        failure: 0,
-        total: 0,
+        success,
+        failure,
+        total,
         duration: Date.now() - startTime,
         timestamp: new Date(),
       };

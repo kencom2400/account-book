@@ -76,7 +76,7 @@ describe('JsonPaymentStatusRepository', () => {
       expect(saved.status).toBe(record.status);
     });
 
-    it('既存データを更新できる', async () => {
+    it('ID重複時はエラーをスローする（履歴の不変性を保証）', async () => {
       const record1 = createMockRecord(
         'record-001',
         'summary-123',
@@ -92,9 +92,10 @@ describe('JsonPaymentStatusRepository', () => {
         new Date('2025-01-02'),
       );
 
-      const saved = await repository.save(record2);
-
-      expect(saved.status).toBe(PaymentStatus.PROCESSING);
+      // 同じIDで保存しようとするとエラーがスローされる
+      await expect(repository.save(record2)).rejects.toThrow(
+        'Record with ID record-001 already exists.',
+      );
     });
 
     it('複数のレコードを保存できる', async () => {

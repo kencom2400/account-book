@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Put,
 } from '@nestjs/common';
@@ -151,7 +152,7 @@ export class PaymentStatusController {
       await this.paymentStatusRepository.findByCardSummaryId(cardSummaryId);
 
     if (!record) {
-      throw new Error(`Payment status not found: ${cardSummaryId}`);
+      throw new NotFoundException(`Payment status not found: ${cardSummaryId}`);
     }
 
     return {

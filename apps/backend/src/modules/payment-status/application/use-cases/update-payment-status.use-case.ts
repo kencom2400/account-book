@@ -35,34 +35,10 @@ export class UpdatePaymentStatusUseCase {
     updatedBy: 'system' | 'user',
     notes?: string,
   ): Promise<PaymentStatusRecord> {
-    // 請求データを取得
-    const summary = await this.aggregationRepository.findById(cardSummaryId);
-    if (!summary) {
-      throw new NotFoundException(
-        `Monthly card summary not found: ${cardSummaryId}`,
-      );
-    }
-
-    // 現在のステータス記録を取得
-    let currentRecord =
-      await this.paymentStatusRepository.findByCardSummaryId(cardSummaryId);
-
-    // ステータス記録が存在しない場合は初期ステータスを作成
-    if (!currentRecord) {
-      currentRecord = PaymentStatusRecord.createInitial(
-        cardSummaryId,
-        PaymentStatus.PENDING,
-        'system',
-        '初期ステータス',
-      );
-    }
-
-    // ステータス遷移の検証
-    if (!currentRecord.canTransitionTo(newStatus)) {
-      throw new Error(
-        `Cannot transition from ${currentRecord.status} to ${newStatus}`,
-      );
-    }
+    const currentRecord = await this.getValidRecordForTransition(
+      cardSummaryId,
+      newStatus,
+    );
 
     // ステータスを遷移
     const newRecord = currentRecord.transitionTo(
@@ -90,6 +66,38 @@ export class UpdatePaymentStatusUseCase {
     newStatus: PaymentStatus,
     reason: string,
     reconciliationId?: string,
+  ): Promise<PaymentStatusRecord> {
+    const currentRecord = await this.getValidRecordForTransition(
+      cardSummaryId,
+      newStatus,
+    );
+
+    // ステータスを遷移
+    const newRecord = currentRecord.transitionTo(
+      newStatus,
+      'system',
+      reason,
+      undefined,
+      reconciliationId,
+    );
+
+    // 保存
+    return await this.paymentStatusRepository.save(newRecord);
+  }
+
+  /**
+   * ステータス遷移のための有効なレコードを取得
+   * （共通ロジックの抽出）
+   *
+   * @param cardSummaryId カード集計ID
+   * @param newStatus 新しいステータス
+   * @returns 有効なステータス記録
+   * @throws NotFoundException 請求データが見つからない場合
+   * @throws Error ステータス遷移が不可能な場合
+   */
+  private async getValidRecordForTransition(
+    cardSummaryId: string,
+    newStatus: PaymentStatus,
   ): Promise<PaymentStatusRecord> {
     // 請求データを取得
     const summary = await this.aggregationRepository.findById(cardSummaryId);
@@ -120,16 +128,6 @@ export class UpdatePaymentStatusUseCase {
       );
     }
 
-    // ステータスを遷移
-    const newRecord = currentRecord.transitionTo(
-      newStatus,
-      'system',
-      reason,
-      undefined,
-      reconciliationId,
-    );
-
-    // 保存
-    return await this.paymentStatusRepository.save(newRecord);
+    return currentRecord;
   }
 }

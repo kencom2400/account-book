@@ -7,6 +7,32 @@ import { PaymentStatus } from '../enums/payment-status.enum';
  * 支払いステータスの変更履歴を保持し、ステータス遷移の妥当性を検証する
  */
 export class PaymentStatusRecord {
+  /**
+   * ステータス遷移ルール（一元管理）
+   */
+  private static readonly ALLOWED_TRANSITIONS: Record<
+    PaymentStatus,
+    PaymentStatus[]
+  > = {
+    [PaymentStatus.PENDING]: [
+      PaymentStatus.PROCESSING,
+      PaymentStatus.PARTIAL,
+      PaymentStatus.CANCELLED,
+      PaymentStatus.MANUAL_CONFIRMED,
+    ],
+    [PaymentStatus.PROCESSING]: [
+      PaymentStatus.PAID,
+      PaymentStatus.DISPUTED,
+      PaymentStatus.OVERDUE,
+    ],
+    [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
+    [PaymentStatus.PAID]: [],
+    [PaymentStatus.OVERDUE]: [],
+    [PaymentStatus.PARTIAL]: [],
+    [PaymentStatus.CANCELLED]: [],
+    [PaymentStatus.MANUAL_CONFIRMED]: [],
+  };
+
   constructor(
     public readonly id: string,
     public readonly cardSummaryId: string,
@@ -70,28 +96,8 @@ export class PaymentStatusRecord {
       return false;
     }
 
-    // 遷移ルールの定義
-    const allowedTransitions: Record<PaymentStatus, PaymentStatus[]> = {
-      [PaymentStatus.PENDING]: [
-        PaymentStatus.PROCESSING,
-        PaymentStatus.PARTIAL,
-        PaymentStatus.CANCELLED,
-        PaymentStatus.MANUAL_CONFIRMED,
-      ],
-      [PaymentStatus.PROCESSING]: [
-        PaymentStatus.PAID,
-        PaymentStatus.DISPUTED,
-        PaymentStatus.OVERDUE,
-      ],
-      [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
-      [PaymentStatus.PAID]: [],
-      [PaymentStatus.OVERDUE]: [],
-      [PaymentStatus.PARTIAL]: [],
-      [PaymentStatus.CANCELLED]: [],
-      [PaymentStatus.MANUAL_CONFIRMED]: [],
-    };
-
-    const allowed = allowedTransitions[this.status] || [];
+    // 遷移ルールを静的メンバーから取得
+    const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
     return allowed.includes(newStatus);
   }
 
@@ -101,27 +107,8 @@ export class PaymentStatusRecord {
    * @returns 遷移可能なステータスの配列
    */
   getAllowedTransitions(): PaymentStatus[] {
-    const allowedTransitions: Record<PaymentStatus, PaymentStatus[]> = {
-      [PaymentStatus.PENDING]: [
-        PaymentStatus.PROCESSING,
-        PaymentStatus.PARTIAL,
-        PaymentStatus.CANCELLED,
-        PaymentStatus.MANUAL_CONFIRMED,
-      ],
-      [PaymentStatus.PROCESSING]: [
-        PaymentStatus.PAID,
-        PaymentStatus.DISPUTED,
-        PaymentStatus.OVERDUE,
-      ],
-      [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
-      [PaymentStatus.PAID]: [],
-      [PaymentStatus.OVERDUE]: [],
-      [PaymentStatus.PARTIAL]: [],
-      [PaymentStatus.CANCELLED]: [],
-      [PaymentStatus.MANUAL_CONFIRMED]: [],
-    };
-
-    return allowedTransitions[this.status] || [];
+    // 遷移ルールを静的メンバーから取得
+    return PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
   }
 
   /**

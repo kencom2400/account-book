@@ -44,14 +44,14 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
   async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
     const records = await this.loadFromFile();
 
-    // 既存の記録を更新（同じIDの場合）
+    // ID重複チェック（履歴の不変性を保証）
     const existingIndex = records.findIndex((r) => r.id === record.id);
     if (existingIndex >= 0) {
-      records[existingIndex] = record;
-    } else {
-      // 新しい記録を追加
-      records.push(record);
+      throw new Error(`Record with ID ${record.id} already exists.`);
     }
+
+    // 新しい記録を追加
+    records.push(record);
 
     await this.saveToFile(records);
     this.cache = records;

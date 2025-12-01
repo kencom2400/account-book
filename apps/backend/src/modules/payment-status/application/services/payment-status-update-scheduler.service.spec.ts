@@ -301,6 +301,38 @@ describe('PaymentStatusUpdateScheduler', () => {
       expect(result.timestamp).toBeInstanceOf(Date);
     });
 
+    it('実際の更新結果を返す', async () => {
+      const record1 = createMockRecord(
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+      const summary1 = createMockSummary('summary-123', new Date('2025-01-27'));
+      const updatedRecord1 = createMockRecord(
+        'summary-123',
+        PaymentStatus.PROCESSING,
+        new Date('2025-01-24'),
+      );
+
+      const today = new Date('2025-01-24');
+      jest.useFakeTimers();
+      jest.setSystemTime(today);
+
+      statusRepository.findAllByStatus
+        .mockResolvedValueOnce([record1]) // PENDING
+        .mockResolvedValueOnce([]); // PROCESSING
+      summaryRepository.findByIds.mockResolvedValue([summary1]);
+      updateUseCase.executeAutomatically.mockResolvedValue(updatedRecord1);
+
+      const result = await scheduler.executeManually();
+
+      expect(result.success).toBe(1);
+      expect(result.failure).toBe(0);
+      expect(result.total).toBe(1);
+
+      jest.useRealTimers();
+    });
+
     it('エラーが発生した場合は例外を投げる', async () => {
       statusRepository.findAllByStatus.mockRejectedValue(
         new Error('Test error'),
