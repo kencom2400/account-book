@@ -207,21 +207,27 @@ sequenceDiagram
     Scheduler->>StatusRepo: findAllByStatus(PROCESSING)
     StatusRepo-->>Scheduler: PaymentStatusRecord[]
 
-    Scheduler->>Scheduler: 引落予定日+7日経過の請求を抽出<br/>filter(record => paymentDate + 7 days < today)
+    Note over Scheduler: N+1問題を回避: 一括取得
+    Scheduler->>SummaryRepo: findByIds(cardSummaryIds[])
+    SummaryRepo-->>Scheduler: MonthlyCardSummary[]
 
-    loop 各ステータス記録
-        Scheduler->>SummaryRepo: findById(cardSummaryId)
-        SummaryRepo-->>Scheduler: MonthlyCardSummary
+    loop 各PROCESSINGステータス記録
+        Scheduler->>Scheduler: 引落予定日+7日 < 今日?
 
         alt 引落予定日+7日経過
             Scheduler->>UC: execute({cardSummaryId, newStatus: OVERDUE, updatedBy: 'system', reason: '引落予定日+7日経過'})
 
-            UC->>StatusRepo: save(newRecord)
-            StatusRepo-->>UC: savedRecord
+            UC->>Entity: canTransitionTo(OVERDUE)
+            Entity->>Entity: 遷移ルールを確認
+            Entity-->>UC: isValid: boolean
 
-            UC-->>Scheduler: Result.success()
+            alt 有効な遷移
+                UC->>StatusRepo: save(newRecord)
+                StatusRepo-->>UC: savedRecord
+                UC-->>Scheduler: Result.success()
 
-            Note over Scheduler: 重要アラート生成（FR-015で対応）
+                Note over Scheduler: 重要アラート生成（FR-015で対応）
+            end
         end
     end
 

@@ -84,7 +84,8 @@ classDiagram
 - **責務**: 支払いステータスの記録を保持し、ステータス遷移の妥当性を検証する
 - **主要メソッド**:
   - `canTransitionTo(newStatus)`: 指定されたステータスへの遷移が可能か判定
-  - `isValidTransition(from, to)`: ステータス遷移の妥当性を検証
+  - `getAllowedTransitions()`: 遷移可能なステータスリストを取得
+  - `transitionTo(newStatus, updatedBy, reason?, notes?, reconciliationId?)`: ステータスを遷移（新しいインスタンスを返す）
 - **ビジネスルール**:
   - ステータス変更履歴は不変（immutable）
   - すべてのステータス変更は記録される
