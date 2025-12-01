@@ -260,15 +260,23 @@ describe('JsonPaymentStatusRepository', () => {
         PaymentStatus.PROCESSING,
         new Date('2025-01-02'),
       );
+      const record3 = createMockRecord(
+        'record-003',
+        'summary-456',
+        PaymentStatus.PENDING,
+        new Date('2025-01-03'),
+      );
 
       await repository.save(record1);
       await repository.save(record2);
+      await repository.save(record3);
 
       const found = await repository.findAllByStatus(PaymentStatus.PENDING);
 
-      // summary-123の最新はPROCESSINGなので、PENDINGのレコードは返されない
+      // summary-123の最新はPROCESSINGなので除外され、summary-456のPENDINGのみが返される
       // findAllByStatusは各cardSummaryIdの最新ステータスのみを返す
-      expect(found).toHaveLength(0);
+      expect(found).toHaveLength(1);
+      expect(found[0].cardSummaryId).toBe('summary-456');
     });
   });
 });
