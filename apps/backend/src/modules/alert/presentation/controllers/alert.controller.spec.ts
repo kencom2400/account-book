@@ -169,8 +169,8 @@ describe('AlertController', () => {
       alertRepository.findAll.mockResolvedValue(alerts);
 
       const result = await controller.getAlerts(
-        'UNREAD',
         'WARNING',
+        'UNREAD',
         undefined,
         undefined,
         undefined,
@@ -178,8 +178,13 @@ describe('AlertController', () => {
 
       expect(result.success).toBe(true);
       expect(getAlertsUseCase.execute).toHaveBeenCalledWith({
-        status: 'UNREAD',
         level: 'WARNING',
+        status: 'UNREAD',
+        type: undefined,
+        cardId: undefined,
+        billingMonth: undefined,
+        page: undefined,
+        limit: undefined,
       });
     });
   });
