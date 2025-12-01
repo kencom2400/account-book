@@ -42,6 +42,7 @@ sequenceDiagram
     participant SummaryRepo as MonthlyCardSummaryRepository
     participant StatusRepo as PaymentStatusRepository
     participant Entity as PaymentStatusRecord
+    participant Entity as PaymentStatusRecord
 
     User->>Frontend: ステータス変更ボタンをクリック
     Frontend->>Frontend: ステータス選択ダイアログを表示
@@ -157,29 +158,33 @@ sequenceDiagram
     participant UC as UpdatePaymentStatusUseCase
     participant SummaryRepo as MonthlyCardSummaryRepository
     participant StatusRepo as PaymentStatusRepository
+    participant Entity as PaymentStatusRecord
 
     Note over Scheduler: 毎日深夜0時実行
 
     Scheduler->>Scheduler: updatePendingToProcessing()
-    Scheduler->>SummaryRepo: findAll()
+    Scheduler->>StatusRepo: findAllByStatus(PENDING)
+    StatusRepo-->>Scheduler: PaymentStatusRecord[]
+
+    Note over Scheduler: N+1問題を回避: 一括取得
+    Scheduler->>SummaryRepo: findByIds(cardSummaryIds[])
     SummaryRepo-->>Scheduler: MonthlyCardSummary[]
 
-    Scheduler->>Scheduler: 引落予定日の3日前の請求を抽出<br/>filter(summary => paymentDate - 3 days <= today)
-
-    loop 各請求
-        Scheduler->>StatusRepo: findByCardSummaryId(cardSummaryId)
-        StatusRepo-->>Scheduler: PaymentStatusRecord | null
+    loop 各PENDINGステータス記録
+        Scheduler->>Scheduler: 引落予定日-3日 <= 今日?
 
         alt ステータスがPENDING
             Scheduler->>UC: execute({cardSummaryId, newStatus: PROCESSING, updatedBy: 'system', reason: '引落予定日の3日前'})
 
-            UC->>Validator: validateTransition(PENDING, PROCESSING)
-            Validator-->>UC: true
+            UC->>Entity: canTransitionTo(PROCESSING)
+            Entity->>Entity: 遷移ルールを確認
+            Entity-->>UC: isValid: boolean
 
-            UC->>StatusRepo: save(newRecord)
-            StatusRepo-->>UC: savedRecord
-
-            UC-->>Scheduler: Result.success()
+            alt 有効な遷移
+                UC->>StatusRepo: save(newRecord)
+                StatusRepo-->>UC: savedRecord
+                UC-->>Scheduler: Result.success()
+            end
         end
     end
 
@@ -194,6 +199,7 @@ sequenceDiagram
     participant UC as UpdatePaymentStatusUseCase
     participant SummaryRepo as MonthlyCardSummaryRepository
     participant StatusRepo as PaymentStatusRepository
+    participant Entity as PaymentStatusRecord
 
     Note over Scheduler: 毎日深夜0時実行
 
@@ -264,28 +270,30 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Recon as 照合処理（FR-013）
-    participant Scheduler as PaymentStatusUpdateScheduler
     participant UC as UpdatePaymentStatusUseCase
     participant ReconRepo as ReconciliationRepository
     participant StatusRepo as PaymentStatusRepository
+    participant Entity as PaymentStatusRecord
 
     Recon->>Recon: 照合処理実行
     Recon->>ReconRepo: findByCardSummaryId(cardSummaryId)
     ReconRepo-->>Recon: ReconciliationResult{status: SUCCESS}
 
-    Recon->>Scheduler: updateProcessingToPaid(cardSummaryId, reconciliationId)
+    Note over Recon: 照合成功時、直接UseCaseを呼び出し
 
-    Scheduler->>StatusRepo: findByCardSummaryId(cardSummaryId)
-    StatusRepo-->>Scheduler: PaymentStatusRecord{status: PROCESSING}
+    Recon->>UC: execute({cardSummaryId, newStatus: PAID, updatedBy: 'system', reason: '照合成功', reconciliationId})
 
-    alt ステータスがPROCESSING
-        Scheduler->>UC: execute({cardSummaryId, newStatus: PAID, updatedBy: 'system', reason: '照合成功', reconciliationId})
+    UC->>StatusRepo: findByCardSummaryId(cardSummaryId)
+    StatusRepo-->>UC: PaymentStatusRecord{status: PROCESSING}
 
+    UC->>Entity: canTransitionTo(PAID)
+    Entity->>Entity: 遷移ルールを確認
+    Entity-->>UC: isValid: boolean
+
+    alt 有効な遷移
         UC->>StatusRepo: save(newRecord)
         StatusRepo-->>UC: savedRecord
-
-        UC-->>Scheduler: Result.success()
-        Scheduler-->>Recon: ステータス更新完了
+        UC-->>Recon: Result.success()
     end
 ```
 
@@ -294,30 +302,32 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Recon as 照合処理（FR-013）
-    participant Scheduler as PaymentStatusUpdateScheduler
     participant UC as UpdatePaymentStatusUseCase
     participant ReconRepo as ReconciliationRepository
     participant StatusRepo as PaymentStatusRepository
+    participant Entity as PaymentStatusRecord
 
     Recon->>Recon: 照合処理実行
     Recon->>ReconRepo: findByCardSummaryId(cardSummaryId)
     ReconRepo-->>Recon: ReconciliationResult{status: FAILED}
 
-    Recon->>Scheduler: updateProcessingToDisputed(cardSummaryId, reconciliationId)
+    Note over Recon: 照合失敗時、直接UseCaseを呼び出し
 
-    Scheduler->>StatusRepo: findByCardSummaryId(cardSummaryId)
-    StatusRepo-->>Scheduler: PaymentStatusRecord{status: PROCESSING}
+    Recon->>UC: execute({cardSummaryId, newStatus: DISPUTED, updatedBy: 'system', reason: '照合失敗', reconciliationId})
 
-    alt ステータスがPROCESSING
-        Scheduler->>UC: execute({cardSummaryId, newStatus: DISPUTED, updatedBy: 'system', reason: '照合失敗', reconciliationId})
+    UC->>StatusRepo: findByCardSummaryId(cardSummaryId)
+    StatusRepo-->>UC: PaymentStatusRecord{status: PROCESSING}
 
+    UC->>Entity: canTransitionTo(DISPUTED)
+    Entity->>Entity: 遷移ルールを確認
+    Entity-->>UC: isValid: boolean
+
+    alt 有効な遷移
         UC->>StatusRepo: save(newRecord)
         StatusRepo-->>UC: savedRecord
+        UC-->>Recon: Result.success()
 
-        UC-->>Scheduler: Result.success()
-        Scheduler-->>Recon: ステータス更新完了
-
-        Note over Scheduler: アラート生成（FR-015で対応）
+        Note over Recon: アラート生成（FR-015で対応）
     end
 ```
 

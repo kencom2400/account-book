@@ -190,9 +190,26 @@ export class PaymentStatusRecord {
 #### PaymentStatusHistory
 
 ```typescript
-export interface PaymentStatusHistory {
+export class PaymentStatusHistory {
   cardSummaryId: string;
   statusChanges: PaymentStatusRecord[];
+
+  addStatusChange(record: PaymentStatusRecord): void {
+    // 履歴追加ロジック
+    this.statusChanges.push(record);
+  }
+
+  getLatestStatus(): PaymentStatus {
+    if (this.statusChanges.length === 0) {
+      throw new Error('No status changes found');
+    }
+    return this.statusChanges[this.statusChanges.length - 1].status;
+  }
+
+  getStatusAt(date: Date): PaymentStatusRecord | null {
+    // 指定日時点のステータスを取得
+    return this.statusChanges.find((record) => record.updatedAt <= date) || null;
+  }
 }
 ```
 

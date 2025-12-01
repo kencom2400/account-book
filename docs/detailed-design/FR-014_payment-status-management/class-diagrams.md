@@ -30,7 +30,8 @@ classDiagram
         +string? notes
         +Date createdAt
         +canTransitionTo(newStatus) boolean
-        +isValidTransition(from, to) boolean
+        +getAllowedTransitions() PaymentStatus[]
+        +transitionTo(newStatus, updatedBy, reason?, notes?, reconciliationId?) PaymentStatusRecord
     }
 
     class PaymentStatusHistory {
@@ -159,8 +160,7 @@ classDiagram
         +scheduleDailyUpdate() void
         +updatePendingToProcessing() Promise<void>
         +updateProcessingToOverdue() Promise<void>
-        +updateProcessingToPaid(reconciliationResult) Promise<void>
-        +updateProcessingToDisputed(reconciliationResult) Promise<void>
+        +executeManually() Promise<BatchResult>
     }
 
 
@@ -215,8 +215,8 @@ classDiagram
   - `scheduleDailyUpdate()`: 日次バッチ処理をスケジュール（毎日深夜0時実行）
   - `updatePendingToProcessing()`: PENDING → PROCESSING の更新（引落予定日の3日前）
   - `updateProcessingToOverdue()`: PROCESSING → OVERDUE の更新（引落予定日+7日経過）
-  - `updateProcessingToPaid()`: PROCESSING → PAID の更新（照合成功時）
-  - `updateProcessingToDisputed()`: PROCESSING → DISPUTED の更新（照合失敗時）
+  - `executeManually()`: 手動実行用メソッド（テスト・デバッグ用）
+- **注意**: 照合結果による更新（PROCESSING → PAID/DISPUTED）は、照合処理（FR-013）が直接`UpdatePaymentStatusUseCase`を呼び出す設計
 - **スケジューリング**: NestJS Schedule（@nestjs/schedule）を使用
 
 **注意**: `PaymentStatusTransitionValidator`は削除され、状態遷移の検証ロジックは`PaymentStatusRecord`エンティティ（ドメイン層）に一元化されました。
@@ -238,7 +238,6 @@ classDiagram
         +findByCardSummaryId(cardSummaryId) Promise<PaymentStatusRecord|null>
         +findHistoryByCardSummaryId(cardSummaryId) Promise<PaymentStatusHistory>
         +findAllByStatus(status) Promise<PaymentStatusRecord[]>
-        +delete(id) Promise<void>
         -loadFromFile() Promise<PaymentStatusRecord[]>
         -saveToFile(data) Promise<void>
         -loadHistoryFromFile() Promise<PaymentStatusHistory[]>
@@ -544,15 +543,16 @@ graph TD
 sequenceDiagram
     participant C as Controller
     participant U as UpdatePaymentStatusUseCase
-    participant V as PaymentStatusTransitionValidator
+    participant Entity as PaymentStatusRecord
     participant R as PaymentStatusRepository
     participant E as PaymentStatusRecord
 
     C->>U: execute(dto)
     U->>R: findByCardSummaryId(cardSummaryId)
     R-->>U: currentRecord
-    U->>V: validateTransition(currentStatus, newStatus)
-    V-->>U: isValid
+    U->>E: canTransitionTo(newStatus)
+    E->>E: 遷移ルールを確認
+    E-->>U: isValid
     alt isValid
         U->>E: create new record
         E-->>U: newRecord

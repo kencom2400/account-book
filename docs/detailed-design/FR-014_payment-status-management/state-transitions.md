@@ -683,26 +683,34 @@ export class PaymentStatusRecord {
 ### React での実装例
 
 ```typescript
-// カスタムフック例
-export function usePaymentStatusState(initialStatus: PaymentStatus) {
+// カスタムフック例（バックエンドをSingle Source of Truthとする設計）
+export function usePaymentStatusState(cardSummaryId: string, initialStatus: PaymentStatus) {
   const [status, setStatus] = useState<PaymentStatus>(initialStatus);
+  const [allowedTransitions, setAllowedTransitions] = useState<PaymentStatus[]>([]);
   const [error, setError] = useState<Error | null>(null);
+
+  // 遷移可能なステータスをバックエンドから取得
+  useEffect(() => {
+    const fetchAllowedTransitions = async () => {
+      try {
+        const response = await fetch(`/api/payment-status/${cardSummaryId}/allowed-transitions`);
+        const data = await response.json();
+        setAllowedTransitions(data.allowedTransitions || []);
+      } catch (err) {
+        console.error('Failed to fetch allowed transitions', err);
+        setAllowedTransitions([]);
+      }
+    };
+
+    fetchAllowedTransitions();
+  }, [cardSummaryId, status]);
 
   const canTransition = useCallback(
     (newStatus: PaymentStatus): boolean => {
-      const allowedTransitions: Record<PaymentStatus, PaymentStatus[]> = {
-        [PaymentStatus.PENDING]: [
-          PaymentStatus.PARTIAL,
-          PaymentStatus.CANCELLED,
-          PaymentStatus.MANUAL_CONFIRMED,
-        ],
-        [PaymentStatus.DISPUTED]: [PaymentStatus.MANUAL_CONFIRMED],
-        // その他の状態は手動遷移不可
-      };
-
-      return allowedTransitions[status]?.includes(newStatus) ?? false;
+      // バックエンドから取得した遷移可能なステータスリストを使用
+      return allowedTransitions.includes(newStatus);
     },
-    [status]
+    [allowedTransitions]
   );
 
   const updateStatus = useCallback(
@@ -718,6 +726,12 @@ export function usePaymentStatusState(initialStatus: PaymentStatus) {
           notes,
         });
         setStatus(response.data.status);
+        // ステータス更新後、遷移可能なステータスリストを再取得
+        const transitionsResponse = await fetch(
+          `/api/payment-status/${cardSummaryId}/allowed-transitions`
+        );
+        const transitionsData = await transitionsResponse.json();
+        setAllowedTransitions(transitionsData.allowedTransitions || []);
       } catch (err) {
         setError(err as Error);
         throw err;
@@ -728,6 +742,7 @@ export function usePaymentStatusState(initialStatus: PaymentStatus) {
 
   return {
     status,
+    allowedTransitions,
     error,
     canTransition,
     updateStatus,
