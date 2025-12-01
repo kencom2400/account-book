@@ -66,10 +66,18 @@ describe('AlertService', () => {
     });
 
     it('引落未検出のアラートを生成できる', () => {
-      const reconciliation = createMockReconciliation(
+      // 引落未検出の場合は、結果が空のReconciliationを作成
+      const summary = new ReconciliationSummary(0, 0, 0, 0);
+      const reconciliation = new Reconciliation(
+        'reconciliation-001',
+        'card-001',
+        '2025-01',
         ReconciliationStatus.UNMATCHED,
-        false,
-        0,
+        new Date('2025-01-30'),
+        [], // 結果が空 = 引落未検出
+        summary,
+        new Date('2025-01-30'),
+        new Date('2025-01-30'),
       );
 
       const alert = service.createAlertFromReconciliation(reconciliation);
@@ -131,10 +139,18 @@ describe('AlertService', () => {
     });
 
     it('引落未検出を検出できる', () => {
-      const reconciliation = createMockReconciliation(
+      // 引落未検出の場合は、結果が空のReconciliationを作成
+      const summary = new ReconciliationSummary(0, 0, 0, 0);
+      const reconciliation = new Reconciliation(
+        'reconciliation-001',
+        'card-001',
+        '2025-01',
         ReconciliationStatus.UNMATCHED,
-        false,
-        0,
+        new Date('2025-01-30'),
+        [], // 結果が空 = 引落未検出
+        summary,
+        new Date('2025-01-30'),
+        new Date('2025-01-30'),
       );
 
       const alertType = service['analyzeReconciliationResult'](reconciliation);
@@ -157,10 +173,18 @@ describe('AlertService', () => {
     });
 
     it('引落未検出はERRORレベル', () => {
-      const reconciliation = createMockReconciliation(
+      // 引落未検出の場合は、結果が空のReconciliationを作成
+      const summary = new ReconciliationSummary(0, 0, 0, 0);
+      const reconciliation = new Reconciliation(
+        'reconciliation-001',
+        'card-001',
+        '2025-01',
         ReconciliationStatus.UNMATCHED,
-        false,
-        0,
+        new Date('2025-01-30'),
+        [], // 結果が空 = 引落未検出
+        summary,
+        new Date('2025-01-30'),
+        new Date('2025-01-30'),
       );
 
       const alert = service.createAlertFromReconciliation(reconciliation);
