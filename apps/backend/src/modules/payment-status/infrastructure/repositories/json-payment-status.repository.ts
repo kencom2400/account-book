@@ -50,11 +50,11 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
       throw new Error(`Record with ID ${record.id} already exists.`);
     }
 
-    // 新しい記録を追加
-    records.push(record);
+    // 新しい記録を追加した新しい配列を作成（副作用を避ける）
+    const newRecords = [...records, record];
 
-    await this.saveToFile(records);
-    this.cache = records;
+    await this.saveToFile(newRecords);
+    this.cache = newRecords;
 
     return record;
   }
