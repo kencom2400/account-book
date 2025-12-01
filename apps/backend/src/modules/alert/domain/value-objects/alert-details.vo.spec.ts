@@ -104,7 +104,7 @@ describe('AlertDetails Value Object', () => {
           'card-001',
           'カード名',
           '2025-01',
-          null as unknown as number,
+          undefined as unknown as number,
           null,
           null,
           null,
