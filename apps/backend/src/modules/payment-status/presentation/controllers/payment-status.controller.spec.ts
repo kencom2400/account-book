@@ -80,10 +80,23 @@ describe('PaymentStatusController', () => {
         newStatus: PaymentStatus.MANUAL_CONFIRMED,
         notes: '手動で確認完了',
       };
-      const record = createMockRecord(
+      const baseRecord = createMockRecord(
         'summary-123',
         PaymentStatus.MANUAL_CONFIRMED,
         new Date(),
+      );
+      // notesを含むレコードを作成
+      const record = new PaymentStatusRecord(
+        baseRecord.id,
+        baseRecord.cardSummaryId,
+        baseRecord.status,
+        baseRecord.previousStatus,
+        baseRecord.updatedAt,
+        baseRecord.updatedBy,
+        baseRecord.reason,
+        baseRecord.reconciliationId,
+        '手動で確認完了',
+        baseRecord.createdAt,
       );
 
       updateUseCase.executeManually.mockResolvedValue(record);
