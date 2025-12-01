@@ -43,6 +43,22 @@ export class AggregationTypeOrmRepository implements AggregationRepository {
   }
 
   /**
+   * 複数のIDで集計データを一括取得
+   */
+  async findByIds(ids: string[]): Promise<MonthlyCardSummary[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const ormEntities = await this.repository
+      .createQueryBuilder('summary')
+      .where('summary.id IN (:...ids)', { ids })
+      .getMany();
+
+    return ormEntities.map((entity) => this.toDomain(entity));
+  }
+
+  /**
    * カードIDと請求月で集計データを取得
    */
   async findByCardAndMonth(
