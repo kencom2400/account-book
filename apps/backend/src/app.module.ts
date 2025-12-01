@@ -17,6 +17,7 @@ import { HealthModule } from './modules/health/health.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { AggregationModule } from './modules/aggregation/aggregation.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
     SyncModule,
     AggregationModule,
     ReconciliationModule,
+    PaymentStatusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
