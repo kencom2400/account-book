@@ -101,6 +101,9 @@
       "lcov",
       "json-summary"
     ],
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
+    }
   }
 }

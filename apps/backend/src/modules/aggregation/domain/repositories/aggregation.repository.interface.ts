@@ -18,6 +18,11 @@ export interface AggregationRepository {
   findById(id: string): Promise<MonthlyCardSummary | null>;
 
   /**
+   * 複数のIDで集計データを一括取得（N+1問題回避用）
+   */
+  findByIds(ids: string[]): Promise<MonthlyCardSummary[]>;
+
+  /**
    * カードIDと請求月で検索
    */
   findByCardAndMonth(

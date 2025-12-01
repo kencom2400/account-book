@@ -2430,6 +2430,7 @@ async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationRes
    ```
 
 4. **ログ出力**
+
    ```typescript
    this.logger.error('エラーメッセージ', error);
    ```
@@ -7324,6 +7325,391 @@ const month = firstDayOfNextMonth.getMonth();
 ---
 
 ## 19. 詳細設計時の重要な観点（Gemini PR#330レビューから学習）
+
+（既存の内容は省略）
+
+## 20. 実装時の重要な観点（Gemini PR#331レビューから学習）
+
+### 20.1 リポジトリの不変性保証
+
+**問題**: 履歴データを追記のみ（append-only）とする設計において、既存レコードの更新ロジックが含まれていると、データの不整合を招く危険性がある。
+
+**解決策**:
+
+- リポジトリの`save`メソッドで、ID重複時はエラーをスローする
+- 履歴は常に新しいIDを持つ新しいレコードとして記録する
+
+```typescript
+// ✅ 正しい実装
+async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
+  const records = await this.loadFromFile();
+
+  // ID重複チェック（履歴の不変性を保証）
+  const existingIndex = records.findIndex((r) => r.id === record.id);
+  if (existingIndex >= 0) {
+    throw new Error(`Record with ID ${record.id} already exists.`);
+  }
+
+  records.push(record);
+  await this.saveToFile(records);
+  return record;
+}
+```
+
+### 20.2 HTTPステータスコードの適切な使用
+
+**問題**: リソースが見つからない場合に汎用の`Error`をスローすると、HTTP 500 Internal Server Errorが返ってしまう。
+
+**解決策**:
+
+- リソースが見つからない場合は、NestJSの`NotFoundException`を使用してHTTP 404 Not Foundを返す
+- これにより、クライアントに適切なエラーレスポンスを提供できる
+
+```typescript
+// ✅ 正しい実装
+if (!record) {
+  throw new NotFoundException(`Payment status not found: ${cardSummaryId}`);
+}
+```
+
+### 20.3 バッチ処理の並列化
+
+**問題**: forループ内での逐次的な`await`により、多数のレコードを処理する場合に処理時間が長くなる。
+
+**解決策**:
+
+- `Promise.allSettled`を使用して並列処理を実装
+- 各更新処理を並列で実行しつつ、個別の成功・失敗をハンドリング
+- これにより、バッチ処理全体の実行時間を大幅に短縮できる
+
+```typescript
+// ✅ 正しい実装
+const updateTasks = records
+  .map((record) => {
+    // 更新条件をチェック
+    if (shouldUpdate(record)) {
+      return {
+        cardSummaryId: record.cardSummaryId,
+        promise: this.updateUseCase.executeAutomatically(...),
+      };
+    }
+    return null;
+  })
+  .filter((item): item is NonNullable<typeof item> => item !== null);
+
+const results = await Promise.allSettled(
+  updateTasks.map((t) => t.promise),
+);
+
+let successCount = 0;
+let failureCount = 0;
+
+results.forEach((result, index) => {
+  if (result.status === 'fulfilled') {
+    successCount++;
+  } else {
+    failureCount++;
+    this.logger.error(
+      `Failed to update status for ${updateTasks[index].cardSummaryId}`,
+      result.reason,
+    );
+  }
+});
+```
+
+### 20.4 バッチ処理結果の返却
+
+**問題**: 手動実行時の結果が分からず、デバッグやテストの際に不便。
+
+**解決策**:
+
+- バッチ処理メソッドが更新成功・失敗件数を返すように修正
+- `executeManually`でそれらを集計することで、より有用な情報を提供
+
+```typescript
+// ✅ 正しい実装
+async updatePendingToProcessing(): Promise<{
+  success: number;
+  failure: number;
+  total: number;
+}> {
+  // ... 処理 ...
+  return {
+    success: successCount,
+    failure: failureCount,
+    total: records.length,
+  };
+}
+
+async executeManually(): Promise<BatchResult> {
+  const pendingResult = await this.updatePendingToProcessing();
+  const overdueResult = await this.updateProcessingToOverdue();
+
+  return {
+    success: pendingResult.success + overdueResult.success,
+    failure: pendingResult.failure + overdueResult.failure,
+    total: pendingResult.total + overdueResult.total,
+    duration: Date.now() - startTime,
+    timestamp: new Date(),
+  };
+}
+```
+
+### 20.5 コードの重複排除（DRY原則）
+
+**問題**: 複数のメソッドで同じロジックが重複していると、将来のメンテナンス性が低下する。
+
+**解決策**:
+
+- 共通ロジックをプライベートメソッドとして抽出
+- 両方のメソッドから呼び出すことで、コードのDRY原則を保ち、可読性と保守性を向上
+
+```typescript
+// ✅ 正しい実装
+async executeManually(...): Promise<PaymentStatusRecord> {
+  const currentRecord = await this.getValidRecordForTransition(
+    cardSummaryId,
+    newStatus,
+  );
+  // ... 残りの処理 ...
+}
+
+async executeAutomatically(...): Promise<PaymentStatusRecord> {
+  const currentRecord = await this.getValidRecordForTransition(
+    cardSummaryId,
+    newStatus,
+  );
+  // ... 残りの処理 ...
+}
+
+private async getValidRecordForTransition(
+  cardSummaryId: string,
+  newStatus: PaymentStatus,
+): Promise<PaymentStatusRecord> {
+  // 共通ロジックをここに集約
+}
+```
+
+### 20.6 遷移ルールの一元管理
+
+**問題**: `canTransitionTo`メソッドと`getAllowedTransitions`メソッドの両方で、同じ遷移ルールオブジェクトが定義されており、コードが重複している。
+
+**解決策**:
+
+- 遷移ルールを`private static readonly`なクラスメンバーとして一元管理
+- 両方のメソッドからこの静的メンバーを参照するようにリファクタリング
+- これにより、保守性が向上し、将来のルール変更が容易になる
+
+```typescript
+// ✅ 正しい実装
+export class PaymentStatusRecord {
+  private static readonly ALLOWED_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
+    [PaymentStatus.PENDING]: [
+      PaymentStatus.PROCESSING,
+      PaymentStatus.PARTIAL,
+      PaymentStatus.CANCELLED,
+      PaymentStatus.MANUAL_CONFIRMED,
+    ],
+    // ... 他の遷移ルール ...
+  };
+
+  canTransitionTo(newStatus: PaymentStatus): boolean {
+    const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+    return allowed.includes(newStatus);
+  }
+
+  getAllowedTransitions(): PaymentStatus[] {
+    return PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+  }
+}
+```
+
+### 20.7 リポジトリのfindAllByStatusメソッドのロジック修正 🔴 Critical
+
+**問題**: `findAllByStatus`メソッドで、まずステータスでフィルタリングしてから最新レコードを取得していると、過去のステータスが返される可能性がある。
+
+**解決策**:
+
+- まず全てのレコードから各`cardSummaryId`の最新レコードを特定
+- その後、最新レコードが指定されたステータスであるものをフィルタリング
+
+```typescript
+// ✅ 正しい実装
+async findAllByStatus(status: PaymentStatus): Promise<PaymentStatusRecord[]> {
+  const records = await this.loadFromFile();
+
+  // 各cardSummaryIdごとに最新の記録をマップに格納
+  const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+  for (const record of records) {
+    const existing = latestByCardSummary.get(record.cardSummaryId);
+    if (
+      !existing ||
+      record.updatedAt.getTime() > existing.updatedAt.getTime()
+    ) {
+      latestByCardSummary.set(record.cardSummaryId, record);
+    }
+  }
+
+  // 最新の記録の中から指定されたステータスのものをフィルタリング
+  const result: PaymentStatusRecord[] = [];
+  for (const record of latestByCardSummary.values()) {
+    if (record.status === status) {
+      result.push(record);
+    }
+  }
+
+  return result;
+}
+```
+
+**理由**:
+
+- ステータスで先にフィルタすると、すでにステータスが変更された請求の過去レコードが返される可能性がある
+- 最新レコードを先に特定することで、現在のステータスが指定されたステータスであるレコードのみを返せる
+
+### 20.8 無効なステータス遷移時の適切な例外処理
+
+**問題**: 無効なステータス遷移を試みた場合に、汎用の`Error`をスローすると、HTTP 500 Internal Server Errorが返ってしまう。
+
+**解決策**:
+
+- クライアントからの不正なリクエスト（無効な遷移）に起因するエラーであるため、`BadRequestException`（HTTP 400）をスローする
+
+```typescript
+// ✅ 正しい実装
+import { BadRequestException } from '@nestjs/common';
+
+if (!currentRecord.canTransitionTo(newStatus)) {
+  throw new BadRequestException(`Cannot transition from ${currentRecord.status} to ${newStatus}`);
+}
+```
+
+**理由**:
+
+- サーバー側の問題ではなく、クライアントからの不正なリクエストである
+- HTTP 400 Bad Requestが適切なステータスコード
+
+### 20.9 終端状態チェックの冗長性排除
+
+**問題**: `canTransitionTo`メソッド内で、`terminalStatuses`配列を用いた終端状態のチェックが冗長。
+
+**解決策**:
+
+- `ALLOWED_TRANSITIONS`マップでは、終端状態からの遷移先としてすでに空の配列(`[]`)が定義されている
+- 後続の `allowed.includes(newStatus)` のロジックで終端状態からの遷移は自動的に`false`と判定される
+- 冗長なチェックを削除
+
+```typescript
+// ✅ 正しい実装
+canTransitionTo(newStatus: PaymentStatus): boolean {
+  // 同じステータスへの遷移は不可
+  if (this.status === newStatus) {
+    return false;
+  }
+
+  // 遷移ルールを静的メンバーから取得
+  // ALLOWED_TRANSITIONSに空配列が定義されている終端状態からの遷移は自動的にfalseと判定される
+  const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+  return allowed.includes(newStatus);
+}
+```
+
+**メリット**:
+
+- コードがシンプルになる
+- 遷移ルールが一元管理されているという意図が明確になる
+
+### 20.10 バッチ処理の共通ロジック抽出
+
+**問題**: `updatePendingToProcessing`メソッドと`updateProcessingToOverdue`メソッドには、レコードの取得、関連データの取得、更新タスクの作成と実行といった共通のロジックが多く含まれている。
+
+**解決策**:
+
+- 共通処理をプライベートヘルパーメソッドに抽出
+- 更新条件を関数として受け取ることで、柔軟性を保つ
+
+```typescript
+// ✅ 正しい実装
+private async processStatusUpdates(
+  fromStatus: PaymentStatus,
+  toStatus: PaymentStatus,
+  updateCondition: (summary: MonthlyCardSummary) => boolean,
+  reason: string,
+): Promise<{ success: number; failure: number; total: number }> {
+  // 共通ロジック: レコード取得、関連データ取得、更新タスク作成と実行
+  // ...
+}
+
+async updatePendingToProcessing(): Promise<{
+  success: number;
+  failure: number;
+  total: number;
+}> {
+  return this.processStatusUpdates(
+    PaymentStatus.PENDING,
+    PaymentStatus.PROCESSING,
+    (summary) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const threeDaysBefore = new Date(summary.paymentDate);
+      threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+      threeDaysBefore.setHours(0, 0, 0, 0);
+      return today >= threeDaysBefore;
+    },
+    '引落予定日の3日前',
+  );
+}
+```
+
+**メリット**:
+
+- コードの重複が削減される
+- 可読性と保守性が向上する
+- 新しいステータス遷移の追加が容易になる
+
+### 20.11 副作用を避けるための配列操作
+
+**問題**: `save`メソッドで、`loadFromFile`が返す配列を直接変更している。これは内部実装に依存しており、将来の実装変更時にバグの原因となる可能性がある。
+
+**解決策**:
+
+- 返された配列を直接変更するのではなく、新しい配列を作成してキャッシュを更新
+- スプレッド構文を使用して新しい配列を作成
+
+```typescript
+// ✅ 正しい実装
+async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
+  const records = await this.loadFromFile();
+
+  // ID重複チェック（履歴の不変性を保証）
+  const existingIndex = records.findIndex((r) => r.id === record.id);
+  if (existingIndex >= 0) {
+    throw new Error(`Record with ID ${record.id} already exists.`);
+  }
+
+  // 新しい記録を追加した新しい配列を作成（副作用を避ける）
+  const newRecords = [...records, record];
+
+  await this.saveToFile(newRecords);
+  this.cache = newRecords;
+
+  return record;
+}
+```
+
+**メリット**:
+
+- 副作用のないクリーンな実装
+- 内部実装の変更に影響されない
+- 意図が明確になる
+
+**重要なポイント**:
+
+- 履歴データは不変であるべきで、更新ではなく常に新しいレコードとして追加する
+- HTTPステータスコードは適切に使用し、クライアントに正確なエラー情報を提供する
+- バッチ処理は並列化することで、パフォーマンスを大幅に向上できる
+- コードの重複は積極的に排除し、DRY原則を遵守する
+- ビジネスルール（遷移ルールなど）は一元管理し、保守性を向上させる
 
 ### 19.1 リポジトリの不変性保証
 
