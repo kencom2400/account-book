@@ -109,7 +109,7 @@ describe('AlertService', () => {
         new Discrepancy(-2000, 0, false, '金額不一致'),
       );
 
-      const summary = new ReconciliationSummary(2, 0, 0, 0);
+      const summary = new ReconciliationSummary(2, 0, 2, 0);
 
       const reconciliation = new Reconciliation(
         'reconciliation-001',
@@ -215,7 +215,7 @@ describe('AlertService', () => {
         new Discrepancy(-2000, 0, false, '金額不一致'),
       );
 
-      const summary = new ReconciliationSummary(2, 0, 0, 0);
+      const summary = new ReconciliationSummary(2, 0, 2, 0);
 
       const reconciliation = new Reconciliation(
         'reconciliation-001',
