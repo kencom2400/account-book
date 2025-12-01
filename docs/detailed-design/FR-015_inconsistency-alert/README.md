@@ -85,7 +85,7 @@
 - **主なコンポーネント**:
   - `Alert`: アラートエンティティ
   - `AlertLevel`: アラートレベルEnum（INFO/WARNING/ERROR/CRITICAL）
-  - `AlertType`: アラート種別Enum（AMOUNT_MISMATCH/Payment_NOT_FOUND/OVERDUE/MULTIPLE_CANDIDATES）
+  - `AlertType`: アラート種別Enum（AMOUNT_MISMATCH/PAYMENT_NOT_FOUND/OVERDUE/MULTIPLE_CANDIDATES）
   - `AlertStatus`: アラートステータスEnum（UNREAD/READ/RESOLVED）
   - `AlertRepository`: アラートデータリポジトリインターフェース
 
@@ -197,10 +197,8 @@ export interface Alert {
   title: string;
   message: string;
   details: AlertDetails;
-  status: AlertStatus;
+  status: AlertStatus; // UNREAD/READ/RESOLVED（isRead/isResolvedはstatusから導出可能）
   createdAt: Date;
-  isRead: boolean;
-  isResolved: boolean;
   resolvedAt?: Date;
   resolvedBy?: string;
   resolutionNote?: string;
@@ -345,11 +343,15 @@ export enum ActionType {
 
 ### エラーコード
 
-| エラーコード | エラー内容       | HTTPステータス | 対処方法               |
-| ------------ | ---------------- | -------------- | ---------------------- |
-| AL001        | アラート生成失敗 | 500            | ログ記録して再試行     |
-| AL002        | 通知送信失敗     | 500            | バックグラウンドで再送 |
-| AL003        | アラート解決失敗 | 500            | データを再読み込み     |
+| エラーコード | エラー内容                 | HTTPステータス | 対処方法               |
+| ------------ | -------------------------- | -------------- | ---------------------- |
+| AL001        | アラートが見つからない     | 404            | アラートIDを確認       |
+| AL002        | 重複アラート生成エラー     | 422            | 既存のアラートを確認   |
+| AL003        | 既に解決済みのアラート     | 422            | アラート状態を確認     |
+| AL004        | CRITICALアラートは削除不可 | 422            | アーカイブのみ可能     |
+| AL005        | アラート生成失敗           | 500            | ログ記録して再試行     |
+| AL006        | 通知送信失敗               | 500            | バックグラウンドで再送 |
+| AL007        | アラート解決失敗           | 500            | データを再読み込み     |
 
 ## テスト方針
 

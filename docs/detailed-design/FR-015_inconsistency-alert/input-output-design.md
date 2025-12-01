@@ -70,9 +70,7 @@
         "level": "warning",
         "title": "クレジットカード引落額が一致しません",
         "status": "unread",
-        "createdAt": "2025-01-30T00:00:00.000Z",
-        "isRead": false,
-        "isResolved": false
+        "createdAt": "2025-01-30T00:00:00.000Z"
       }
     ],
     "total": 10,
@@ -91,16 +89,14 @@
 
 **AlertListItemDto:**
 
-| フィールド | 型      | 説明                |
-| ---------- | ------- | ------------------- |
-| id         | string  | アラートID（UUID）  |
-| type       | string  | アラートタイプ      |
-| level      | string  | アラートレベル      |
-| title      | string  | アラートタイトル    |
-| status     | string  | アラートステータス  |
-| createdAt  | string  | 作成日時（ISO8601） |
-| isRead     | boolean | 既読フラグ          |
-| isResolved | boolean | 解決済みフラグ      |
+| フィールド | 型     | 説明                                       |
+| ---------- | ------ | ------------------------------------------ |
+| id         | string | アラートID（UUID）                         |
+| type       | string | アラートタイプ                             |
+| level      | string | アラートレベル                             |
+| title      | string | アラートタイトル                           |
+| status     | string | アラートステータス（UNREAD/READ/RESOLVED） |
+| createdAt  | string | 作成日時（ISO8601）                        |
 
 ---
 
@@ -132,8 +128,6 @@
     },
     "status": "unread",
     "createdAt": "2025-01-30T00:00:00.000Z",
-    "isRead": false,
-    "isResolved": false,
     "resolvedAt": null,
     "resolvedBy": null,
     "resolutionNote": null,
@@ -163,22 +157,20 @@
 
 **Response Schema (AlertResponseDto):**
 
-| フィールド     | 型               | 説明                |
-| -------------- | ---------------- | ------------------- |
-| id             | string           | アラートID（UUID）  |
-| type           | string           | アラートタイプ      |
-| level          | string           | アラートレベル      |
-| title          | string           | アラートタイトル    |
-| message        | string           | アラートメッセージ  |
-| details        | AlertDetailsDto  | アラート詳細情報    |
-| status         | string           | アラートステータス  |
-| createdAt      | string           | 作成日時（ISO8601） |
-| isRead         | boolean          | 既読フラグ          |
-| isResolved     | boolean          | 解決済みフラグ      |
-| resolvedAt     | string \| null   | 解決日時（ISO8601） |
-| resolvedBy     | string \| null   | 解決者              |
-| resolutionNote | string \| null   | 解決理由            |
-| actions        | AlertActionDto[] | アクションリスト    |
+| フィールド     | 型               | 説明                                       |
+| -------------- | ---------------- | ------------------------------------------ |
+| id             | string           | アラートID（UUID）                         |
+| type           | string           | アラートタイプ                             |
+| level          | string           | アラートレベル                             |
+| title          | string           | アラートタイトル                           |
+| message        | string           | アラートメッセージ                         |
+| details        | AlertDetailsDto  | アラート詳細情報                           |
+| status         | string           | アラートステータス（UNREAD/READ/RESOLVED） |
+| createdAt      | string           | 作成日時（ISO8601）                        |
+| resolvedAt     | string \| null   | 解決日時（ISO8601、RESOLVED時のみ）        |
+| resolvedBy     | string \| null   | 解決者                                     |
+| resolutionNote | string \| null   | 解決理由                                   |
+| actions        | AlertActionDto[] | アクションリスト                           |
 
 **AlertDetailsDto:**
 
@@ -218,17 +210,20 @@
 
 ```json
 {
-  "reconciliationId": "reconciliation-001",
-  "type": "amount_mismatch"
+  "reconciliationId": "reconciliation-001"
 }
 ```
 
 **Request Schema (CreateAlertRequestDto):**
 
-| フィールド       | 型     | 必須 | 説明           | 制約           |
-| ---------------- | ------ | ---- | -------------- | -------------- |
-| reconciliationId | string | ✅   | 照合結果ID     | UUID形式       |
-| type             | string | ✅   | アラートタイプ | AlertType Enum |
+| フィールド       | 型     | 必須 | 説明       | 制約     |
+| ---------------- | ------ | ---- | ---------- | -------- |
+| reconciliationId | string | ✅   | 照合結果ID | UUID形式 |
+
+**補足**:
+
+- アラート種別（`type`）は`AlertService`が照合結果を分析して自動判定します
+- リクエストで`type`を指定する必要はありません
 
 **Response (201 Created):**
 
@@ -254,8 +249,6 @@
     },
     "status": "unread",
     "createdAt": "2025-01-30T00:00:00.000Z",
-    "isRead": false,
-    "isResolved": false,
     "actions": [
       {
         "id": "action-001",
@@ -319,8 +312,6 @@
     "level": "warning",
     "title": "クレジットカード引落額が一致しません",
     "status": "resolved",
-    "isRead": true,
-    "isResolved": true,
     "resolvedAt": "2025-01-30T12:00:00.000Z",
     "resolvedBy": "user",
     "resolutionNote": "手動で確認済み。ポイント利用が反映されていなかった。"
@@ -349,9 +340,7 @@
     "type": "amount_mismatch",
     "level": "warning",
     "title": "クレジットカード引落額が一致しません",
-    "status": "read",
-    "isRead": true,
-    "isResolved": false
+    "status": "read"
   }
 }
 ```
@@ -366,19 +355,14 @@
 
 アラートを削除します。
 
-**Response (200 OK):**
+**Response (204 No Content):**
 
-```json
-{
-  "success": true,
-  "message": "アラートを削除しました"
-}
-```
+レスポンスボディは空です。
 
 **Error Responses:**
 
 - `404 Not Found`: アラートが見つからない（AL001）
-- `422 Unprocessable Entity`: CRITICALアラートは削除不可（アーカイブのみ）
+- `422 Unprocessable Entity`: CRITICALアラートは削除不可（AL004、アーカイブのみ）
 
 ---
 
@@ -394,13 +378,11 @@ export interface Alert {
   title: string; // タイトル
   message: string; // メッセージ
   details: AlertDetails; // 詳細情報
-  status: AlertStatus; // ステータス
+  status: AlertStatus; // ステータス（UNREAD/READ/RESOLVED）
   createdAt: Date; // 作成日時
-  isRead: boolean; // 既読フラグ
-  isResolved: boolean; // 解決済みフラグ
-  resolvedAt?: Date; // 解決日時
-  resolvedBy?: string; // 解決者
-  resolutionNote?: string; // 解決理由
+  resolvedAt?: Date; // 解決日時（RESOLVED時のみ）
+  resolvedBy?: string; // 解決者（RESOLVED時のみ）
+  resolutionNote?: string; // 解決理由（RESOLVED時のみ）
   actions: AlertAction[]; // アクションリスト
 }
 ```
@@ -471,12 +453,15 @@ export enum ActionType {
 
 ### エラーコード一覧
 
-| エラーコード | HTTPステータス | 説明                       |
-| ------------ | -------------- | -------------------------- |
-| AL001        | 404            | アラートが見つからない     |
-| AL002        | 422            | 重複アラート生成エラー     |
-| AL003        | 422            | 既に解決済みのアラート     |
-| AL004        | 422            | CRITICALアラートは削除不可 |
+| エラーコード | HTTPステータス | 説明                       | 対処方法               |
+| ------------ | -------------- | -------------------------- | ---------------------- |
+| AL001        | 404            | アラートが見つからない     | アラートIDを確認       |
+| AL002        | 422            | 重複アラート生成エラー     | 既存のアラートを確認   |
+| AL003        | 422            | 既に解決済みのアラート     | アラート状態を確認     |
+| AL004        | 422            | CRITICALアラートは削除不可 | アーカイブのみ可能     |
+| AL005        | 500            | アラート生成失敗           | ログ記録して再試行     |
+| AL006        | 500            | 通知送信失敗               | バックグラウンドで再送 |
+| AL007        | 500            | アラート解決失敗           | データを再読み込み     |
 
 ---
 
@@ -508,10 +493,7 @@ export class CreateAlertRequestDto {
   @IsUUID()
   @IsNotEmpty()
   reconciliationId: string;
-
-  @IsEnum(AlertType)
-  @IsNotEmpty()
-  type: AlertType;
+  // 注意: typeはAlertServiceが照合結果を分析して自動判定するため、リクエストには含めない
 }
 
 // ResolveAlertRequestDto
@@ -539,13 +521,11 @@ export interface AlertResponseDto {
   title: string;
   message: string;
   details: AlertDetailsDto;
-  status: string;
+  status: string; // UNREAD/READ/RESOLVED
   createdAt: string;
-  isRead: boolean;
-  isResolved: boolean;
-  resolvedAt?: string | null;
-  resolvedBy?: string | null;
-  resolutionNote?: string | null;
+  resolvedAt?: string | null; // RESOLVED時のみ
+  resolvedBy?: string | null; // RESOLVED時のみ
+  resolutionNote?: string | null; // RESOLVED時のみ
   actions: AlertActionDto[];
 }
 
@@ -562,10 +542,8 @@ export interface AlertListItemDto {
   type: string;
   level: string;
   title: string;
-  status: string;
+  status: string; // UNREAD/READ/RESOLVED
   createdAt: string;
-  isRead: boolean;
-  isResolved: boolean;
 }
 
 // AlertDetailsDto

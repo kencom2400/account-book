@@ -24,11 +24,9 @@ classDiagram
         +string title
         +string message
         +AlertDetails details
-        +AlertStatus status
-        +Date createdAt
-        +boolean isRead
-        +boolean isResolved
-        +Date resolvedAt
+    +AlertStatus status
+    +Date createdAt
+    +Date resolvedAt
         +string resolvedBy
         +string resolutionNote
         +AlertAction[] actions
@@ -142,8 +140,8 @@ classDiagram
 
 - **責務**: アラート情報を保持し、アラートステータスを管理する
 - **主要メソッド**:
-  - `markAsRead()`: ステータスを「READ」に更新、`isRead`を`true`に設定
-  - `markAsResolved(resolvedBy, note)`: ステータスを「RESOLVED」に更新、`isResolved`を`true`に設定、解決情報を記録
+  - `markAsRead()`: ステータスを「READ」に更新
+  - `markAsResolved(resolvedBy, note)`: ステータスを「RESOLVED」に更新、解決情報を記録
   - `addAction(action)`: アクションを追加
 - **注意**: エンティティからDTOへの変換は、Application層のUseCaseまたはPresentation層のマッパーで行う（Onion Architecture原則遵守）
 - **ビジネスルール**:
@@ -231,6 +229,11 @@ classDiagram
         -toResponseDto(entity) AlertResponseDto
     }
 
+    note right of CreateAlertUseCase
+        アラート種別の判定はAlertServiceに委譲
+        UseCaseはreconciliationIdのみを受け取る
+    end note
+
     class GetAlertsUseCase {
         -AlertRepository alertRepository
         +execute(query) Promise<Result<AlertListResponseDto>>
@@ -251,6 +254,7 @@ classDiagram
 
     class AlertService {
         +createAlertFromReconciliation(reconciliation) Alert
+        +analyzeReconciliationResult(reconciliation) AlertType
         +determineAlertLevel(type, details) AlertLevel
         +buildAlertMessage(type, details) string
         +buildAlertActions(type) AlertAction[]
@@ -291,9 +295,11 @@ classDiagram
   1. 照合結果を取得（ReconciliationRepository）
   2. 重複アラートチェック（同じ照合結果に対するアラートが既に存在しないか）
   3. アラート生成（AlertService）
+     - `AlertService.createAlertFromReconciliation()`を呼び出し
+     - `AlertService`が照合結果を分析してアラート種別を自動判定
   4. アラートを保存（AlertRepository）
   5. エンティティをResponseDTOに変換して返却
-- **注意**: アラート生成ロジックは`AlertService`に委譲し、UseCaseは調整のみを行う
+- **注意**: アラート生成ロジックとアラート種別の判定は`AlertService`に委譲し、UseCaseは調整のみを行う
 
 #### GetAlertsUseCase
 
@@ -342,7 +348,7 @@ classDiagram
   - `buildOverdueAlert()`: 延滞アラートを構築
   - `buildMultipleCandidatesAlert()`: 複数候補アラートを構築
 - **ビジネスルール**:
-  - 照合結果のステータス（UNMATCHED）からアラートタイプを判定
+  - 照合結果を分析してアラートタイプを判定（`analyzeReconciliationResult()`）
   - アラートタイプに応じてレベルを決定
   - アラートタイプに応じてアクションを設定
 
@@ -451,8 +457,6 @@ classDiagram
         +AlertDetailsDto details
         +string status
         +string createdAt
-        +boolean isRead
-        +boolean isResolved
         +string resolvedAt
         +string resolvedBy
         +string resolutionNote
@@ -467,8 +471,6 @@ classDiagram
         +string title
         +string status
         +string createdAt
-        +boolean isRead
-        +boolean isResolved
     }
 
     class AlertListResponseDto {
@@ -553,6 +555,7 @@ classDiagram
 - **変換**: Alert Entityから変換
 - **日付形式**: ISO8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）
 - **特徴**: 一覧表示に必要な最小限の情報のみ（`details`、`actions`を省略）
+- **注意**: `isRead`と`isResolved`フィールドは削除。`status`フィールド（UNREAD/READ/RESOLVED）で状態を表現
 
 #### AlertListResponseDto（interface）
 
@@ -654,9 +657,13 @@ sequenceDiagram
 ### エラーハンドリング
 
 - カスタム例外クラスを定義
-  - `AlertNotFoundException`: アラートが見つからない（AL001）
-  - `DuplicateAlertException`: 重複アラート生成エラー（AL002）
-  - `AlertAlreadyResolvedException`: 既に解決済みのアラート（AL003）
+  - `AlertNotFoundException`: アラートが見つからない（AL001, 404 Not Found）
+  - `DuplicateAlertException`: 重複アラート生成エラー（AL002, 422 Unprocessable Entity）
+  - `AlertAlreadyResolvedException`: 既に解決済みのアラート（AL003, 422 Unprocessable Entity）
+  - `CriticalAlertDeletionException`: CRITICALアラートは削除不可（AL004, 422 Unprocessable Entity）
+  - `AlertGenerationException`: アラート生成失敗（AL005, 500 Internal Server Error）
+  - `NotificationSendException`: 通知送信失敗（AL006, 500 Internal Server Error）
+  - `AlertResolutionException`: アラート解決失敗（AL007, 500 Internal Server Error）
 - 適切なエラーメッセージを提供
 - エラーのロギング
 

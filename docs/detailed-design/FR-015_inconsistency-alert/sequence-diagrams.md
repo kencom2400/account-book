@@ -43,7 +43,7 @@ sequenceDiagram
 
     Note over RC,Entity: 照合処理完了後、不一致が検出された場合
 
-    RC->>CA: execute({reconciliationId, type: AMOUNT_MISMATCH})
+    RC->>CA: execute({reconciliationId})
 
     CA->>RR: findById(reconciliationId)
     RR-->>CA: Reconciliation{status: UNMATCHED, results: [...]}
@@ -54,6 +54,10 @@ sequenceDiagram
 
     alt 重複アラートが存在しない
         CA->>AS: createAlertFromReconciliation(reconciliation)
+
+        AS->>AS: analyzeReconciliationResult(reconciliation)
+        AS->>AS: 照合結果を分析してアラート種別を判定
+        AS-->>AS: AlertType.AMOUNT_MISMATCH
 
         AS->>AS: determineAlertLevel(AMOUNT_MISMATCH, details)
         AS-->>AS: AlertLevel.WARNING
@@ -90,7 +94,7 @@ sequenceDiagram
 
 1. **トリガー**
    - 照合処理（FR-013）完了後、照合結果のステータスが`UNMATCHED`の場合
-   - 照合処理から`CreateAlertUseCase`を呼び出し
+   - 照合処理から`CreateAlertUseCase`を呼び出し（`reconciliationId`のみを渡す）
 
 2. **照合結果取得**
    - 照合結果IDから照合データを取得
@@ -100,15 +104,19 @@ sequenceDiagram
    - 同じ照合結果に対するアラートが既に存在しないか確認
    - 既に存在する場合は新規生成しない
 
-4. **アラート生成**
+4. **アラート種別判定**
+   - `AlertService.analyzeReconciliationResult()`で照合結果を分析
+   - 照合結果のステータス、不一致詳細、経過日数等からアラート種別を自動判定
+
+5. **アラート生成**
    - `AlertService`でアラートタイプに応じたアラートを生成
    - アラートレベル、メッセージ、アクションを設定
 
-5. **永続化**
+6. **永続化**
    - アラートをJSON形式で保存
    - 既存データがある場合は上書き
 
-6. **レスポンス**
+7. **レスポンス**
    - ResponseDTO: `AlertResponseDto`
    - 照合処理に成功結果を返却
 
@@ -213,7 +221,6 @@ sequenceDiagram
     alt アラートが存在し、未解決
         UC->>Entity: markAsResolved(resolvedBy, resolutionNote)
         Entity->>Entity: status = RESOLVED
-        Entity->>Entity: isResolved = true
         Entity->>Entity: resolvedAt = now()
         Entity-->>UC: updated alert
 
@@ -272,12 +279,12 @@ sequenceDiagram
     participant API as AlertController
     participant UC as CreateAlertUseCase
 
-    User->>API: POST /api/alerts<br/>{reconciliationId: "invalid", type: "invalid_type"}
+    User->>API: POST /api/alerts<br/>{reconciliationId: "invalid"}
 
     API->>API: リクエスト検証
-    API->>API: バリデーションエラー検出<br/>- reconciliationId: UUID形式ではない<br/>- type: 無効なEnum値
+    API->>API: バリデーションエラー検出<br/>- reconciliationId: UUID形式ではない
 
-    API-->>User: 400 Bad Request<br/>{<br/>  statusCode: 400,<br/>  message: "Validation failed",<br/>  errors: [{<br/>    field: "reconciliationId",<br/>    message: "reconciliationIdはUUID形式である必要があります"<br/>  }, {<br/>    field: "type",<br/>    message: "typeは有効なAlertTypeである必要があります"<br/>  }]<br/>}
+    API-->>User: 400 Bad Request<br/>{<br/>  statusCode: 400,<br/>  message: "Validation failed",<br/>  errors: [{<br/>    field: "reconciliationId",<br/>    message: "reconciliationIdはUUID形式である必要があります"<br/>  }]<br/>}
 ```
 
 ### リソース未検出エラー (404 Not Found)
@@ -315,7 +322,7 @@ sequenceDiagram
     API->>UC: execute(id, dto)
 
     UC->>AR: findById(id)
-    AR-->>UC: Alert{isResolved: true}
+    AR-->>UC: Alert{status: RESOLVED}
 
     UC->>Entity: markAsResolved(...)
     Entity-->>UC: AlertAlreadyResolvedException
@@ -332,7 +339,7 @@ sequenceDiagram
     participant CA as CreateAlertUseCase
     participant AR as AlertRepository
 
-    RC->>CA: execute({reconciliationId, type})
+    RC->>CA: execute({reconciliationId})
 
     CA->>AR: findByReconciliationId(reconciliationId)
     AR-->>CA: Alert{id: "existing-alert-id"}
@@ -355,6 +362,7 @@ sequenceDiagram
     participant RC as ReconcileCreditCardUseCase
     participant RS as ReconciliationService
     participant CA as CreateAlertUseCase
+    participant AS as AlertService
     participant AR as AlertRepository
 
     RC->>RS: reconcilePayment(cardSummary, bankTransactions)
