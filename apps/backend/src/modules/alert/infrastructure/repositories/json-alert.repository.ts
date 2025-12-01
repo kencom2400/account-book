@@ -39,7 +39,7 @@ interface AlertJSON {
   actions: Array<{
     id: string;
     label: string;
-    action: ActionType;
+    action: string;
     isPrimary: boolean;
   }>;
 }
@@ -263,6 +263,10 @@ export class JsonAlertRepository implements AlertRepository {
       },
       createdAt: plain.createdAt.toISOString(),
       resolvedAt: plain.resolvedAt?.toISOString() ?? null,
+      actions: plain.actions.map((a) => ({
+        ...a,
+        action: a.action,
+      })),
     };
   }
 
@@ -291,7 +295,7 @@ export class JsonAlertRepository implements AlertRepository {
         AlertAction.fromPlain({
           id: a.id,
           label: a.label,
-          action: a.action,
+          action: a.action as ActionType,
           isPrimary: a.isPrimary,
         }),
       ),

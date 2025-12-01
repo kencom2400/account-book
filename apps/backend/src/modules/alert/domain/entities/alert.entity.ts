@@ -1,6 +1,7 @@
 import { AlertType } from '../enums/alert-type.enum';
 import { AlertLevel } from '../enums/alert-level.enum';
 import { AlertStatus } from '../enums/alert-status.enum';
+import { ActionType } from '../enums/action-type.enum';
 import { AlertDetails } from '../value-objects/alert-details.vo';
 import { AlertAction } from '../value-objects/alert-action.vo';
 
@@ -225,7 +226,14 @@ export class Alert {
       plain.resolvedAt,
       plain.resolvedBy,
       plain.resolutionNote,
-      plain.actions.map((a) => AlertAction.fromPlain(a)),
+      plain.actions.map((a) =>
+        AlertAction.fromPlain({
+          id: a.id,
+          label: a.label,
+          action: a.action as ActionType,
+          isPrimary: a.isPrimary,
+        }),
+      ),
     );
   }
 }
