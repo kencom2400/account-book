@@ -85,7 +85,7 @@ describe('AlertService', () => {
         'bank-tx-001',
         'card-summary-001',
         new Date('2025-02-27'),
-        new Discrepancy(-1000, '金額不一致'),
+        new Discrepancy(-1000, 0, false, '金額不一致'),
       );
       const result2 = new ReconciliationResult(
         false,
@@ -93,7 +93,7 @@ describe('AlertService', () => {
         'bank-tx-002',
         'card-summary-001',
         new Date('2025-02-27'),
-        new Discrepancy(-2000, '金額不一致'),
+        new Discrepancy(-2000, 0, false, '金額不一致'),
       );
 
       const summary = new ReconciliationSummary(2, 0, 0, 0);
@@ -175,7 +175,7 @@ describe('AlertService', () => {
         'bank-tx-001',
         'card-summary-001',
         new Date('2025-02-27'),
-        new Discrepancy(-1000, '金額不一致'),
+        new Discrepancy(-1000, 0, false, '金額不一致'),
       );
       const result2 = new ReconciliationResult(
         false,
@@ -183,7 +183,7 @@ describe('AlertService', () => {
         'bank-tx-002',
         'card-summary-001',
         new Date('2025-02-27'),
-        new Discrepancy(-2000, '金額不一致'),
+        new Discrepancy(-2000, 0, false, '金額不一致'),
       );
 
       const summary = new ReconciliationSummary(2, 0, 0, 0);
