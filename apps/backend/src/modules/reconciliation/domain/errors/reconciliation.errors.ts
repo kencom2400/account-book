@@ -69,3 +69,15 @@ export class MultipleCandidateError extends ReconciliationError {
     this.name = 'MultipleCandidateError';
   }
 }
+
+/**
+ * 照合結果が見つからないエラー
+ */
+export class ReconciliationNotFoundException extends ReconciliationError {
+  constructor(reconciliationId: string) {
+    super(`Reconciliation not found: ${reconciliationId}`, 'RC005', {
+      reconciliationId,
+    });
+    this.name = 'ReconciliationNotFoundException';
+  }
+}
