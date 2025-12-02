@@ -7,6 +7,7 @@ import {
   PaymentStatusRecord,
   type PaymentStatus,
 } from '@/lib/api/payment-status';
+import { formatDateTime } from '@/utils/date.utils';
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
   'PENDING',
@@ -38,13 +39,6 @@ export function PaymentStatusCard({
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [newStatus, setNewStatus] = useState<PaymentStatus>(currentStatus.status || 'PENDING');
   const [notes, setNotes] = useState('');
-
-  const formatDate = (date: Date | string | undefined): string => {
-    if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(d.getTime())) return '';
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
 
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -116,7 +110,7 @@ export function PaymentStatusCard({
           <div className="text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-gray-600">更新日時</span>
-              <span className="font-medium">{formatDate(currentStatus.updatedAt)}</span>
+              <span className="font-medium">{formatDateTime(currentStatus.updatedAt)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">更新者</span>

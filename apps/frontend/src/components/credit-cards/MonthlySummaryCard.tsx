@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { MonthlyCardSummary } from '@/lib/api/aggregation';
+import { formatDate } from '@/utils/date.utils';
 
 interface MonthlySummaryCardProps {
   summary: MonthlyCardSummary;
@@ -17,11 +18,6 @@ export function MonthlySummaryCard({
   summary,
   onViewDetails,
 }: MonthlySummaryCardProps): React.JSX.Element {
-  const formatDate = (date: Date | string): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  };
-
   return (
     <Card>
       <CardHeader>

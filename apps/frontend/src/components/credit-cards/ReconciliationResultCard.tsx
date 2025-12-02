@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReconciliationReport } from '@account-book/types';
+import { formatDate } from '@/utils/date.utils';
 
 interface ReconciliationResultCardProps {
   reconciliation: ReconciliationReport;
@@ -17,13 +18,6 @@ export function ReconciliationResultCard({
   reconciliation,
   onViewDetails,
 }: ReconciliationResultCardProps): React.JSX.Element {
-  const formatDate = (date: Date | string | undefined): string => {
-    if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(d.getTime())) return '';
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  };
-
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'MATCHED':
