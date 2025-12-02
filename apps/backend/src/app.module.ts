@@ -15,6 +15,10 @@ import { CreditCardModule } from './modules/credit-card/credit-card.module';
 import { SecuritiesModule } from './modules/securities/securities.module';
 import { HealthModule } from './modules/health/health.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { AggregationModule } from './modules/aggregation/aggregation.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
+import { AlertModule } from './modules/alert/alert.module';
 
 @Module({
   imports: [
@@ -37,6 +41,10 @@ import { SyncModule } from './modules/sync/sync.module';
     SecuritiesModule,
     HealthModule,
     SyncModule,
+    AggregationModule,
+    ReconciliationModule,
+    PaymentStatusModule,
+    AlertModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -61,3 +61,5 @@ export interface ISubcategoryRepository {
    */
   delete(id: string): Promise<void>;
 }
+
+export const SUB_CATEGORY_REPOSITORY = Symbol('ISubcategoryRepository');

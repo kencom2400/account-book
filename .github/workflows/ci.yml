@@ -196,12 +196,23 @@ jobs:
           MYSQL_DATABASE: account_book_test
           ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=
           CRYPTO_SALT: dGVzdC1zYWx0LTE2LWJ5dGVz
-        run: pnpm run test
+        run: |
+          # Backend unit tests with coverage
+          pnpm run test:cov --filter @account-book/backend
+          # Frontend unit tests with coverage
+          pnpm run test:cov --filter @account-book/frontend
+
+      # Note: カバレッジ閾値チェックは Issue #308 完了後に有効化
+      # 現在のカバレッジ: Backend 35.89%, Frontend 47.92%
+      # 目標カバレッジ: 60%以上
+      # - name: Check coverage threshold
+      #   run: |
+      #     echo "Coverage threshold check will be enabled after Issue #308"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./apps/backend/coverage/coverage-final.json
+          files: ./apps/backend/coverage/coverage-final.json,./apps/frontend/coverage/coverage-final.json
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false

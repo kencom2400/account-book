@@ -27,9 +27,13 @@ export interface Category {
   id: string;
   name: string;
   type: CategoryType;
-  parentId?: string;
-  icon?: string;
-  color?: string;
+  parentId?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  isSystemDefined?: boolean;
+  order?: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export enum TransactionStatus {

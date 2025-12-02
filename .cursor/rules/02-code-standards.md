@@ -22,6 +22,106 @@
 
 ---
 
+## 🚨 テスト作成の必須化（最重要ルール）
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  🚨 CRITICAL RULE - MUST FOLLOW 🚨                          ║
+║                                                              ║
+║  新規機能・バグ修正の実装時は、必ずテストを同時に作成する    ║
+║  テストなしでのPRマージは禁止                                 ║
+║  「後でテストを書く」は許可しない                             ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+### 絶対ルール: テストなしでの実装は禁止
+
+**原則として、このルールは全ての実装に適用されます。**
+
+#### ✅ 正しいワークフロー（TDD推奨）
+
+1. **テスト作成**: 実装前に失敗するテストを書く
+2. **実装**: テストをパスする最小限の実装
+3. **リファクタリング**: コード品質を向上
+4. **コミット**: 実装とテストを同時にコミット
+
+#### ⚠️ 許容されるワークフロー（同時実装）
+
+1. **実装とテストを並行**: 機能実装しながらテストも書く
+2. **同一PRに含める**: 実装とテストを同じPRでレビュー
+3. **コミット**: 実装commitとテストcommitを連続で行う
+
+#### ❌ 禁止されるワークフロー
+
+1. **実装のみでPR作成**: テストなしでPRを出す
+2. **「後でテストを書く」**: テストを別PRで対応
+3. **テストなしでマージ**: レビュアーがテストなしを許可
+
+### テスト作成の対象
+
+#### Backend
+
+| レイヤー            | 必須テスト  | 理由                         |
+| ------------------- | ----------- | ---------------------------- |
+| Domain Entity       | Unit        | ビジネスルールの検証         |
+| Domain Value Object | Unit        | バリデーションロジックの検証 |
+| Domain Service      | Unit        | ドメインロジックの検証       |
+| Application UseCase | Unit        | ユースケースのロジック検証   |
+| Controller          | E2E         | APIエンドポイントの動作確認  |
+| Repository実装      | Integration | データアクセスの検証         |
+
+#### Frontend
+
+| 対象           | 必須テスト | 理由                              |
+| -------------- | ---------- | --------------------------------- |
+| Component      | Unit       | UIロジックの検証                  |
+| Store          | Unit       | 状態管理ロジックの検証            |
+| API Client     | Unit       | APIリクエストの検証（モック使用） |
+| Utils          | Unit       | ユーティリティ関数の検証          |
+| ユーザーフロー | E2E        | 主要な画面遷移の検証              |
+
+### 例外ケース
+
+以下の場合のみ、テストなしでのマージを許可：
+
+1. **ドキュメント変更のみ**: `.md`ファイルの更新のみ
+2. **設定ファイル変更のみ**: `tsconfig.json`等の設定変更のみ
+3. **緊急のホットフィックス**: セキュリティ修正等（ただし、直後にテスト追加Issueを作成）
+
+### PR作成時のチェックリスト
+
+PRテンプレート（`.github/pull_request_template.md`）には以下のチェックリストが含まれています：
+
+- [ ] 新規追加/変更したすべてのコードに対応するテストを作成した
+- [ ] すべてのテストがパスすることを確認した
+- [ ] カバレッジレポートを確認し、追加コードがカバーされていることを確認した
+- [ ] E2Eテストが必要な場合は追加した
+- [ ] ローカルでの4ステップチェックを完了した
+  - [ ] `./scripts/test/lint.sh`
+  - [ ] `pnpm build`
+  - [ ] `./scripts/test/test.sh all`
+  - [ ] `./scripts/test/test-e2e.sh frontend`
+- [ ] テストなしでマージする場合、例外ケースに該当し、その理由を記載した
+
+**PR作成時は必ずこのチェックリストを確認し、すべての項目をチェックしてください。**
+
+### カバレッジ目標
+
+#### 現在のカバレッジ（2024年11月時点）
+
+- Backend Unit: 35.89%（目標: 80%）
+- Backend E2E: 1.23%（目標: 50%）
+- Frontend Unit: 47.92%（目標: 80%）
+
+#### 新規実装コードの目標
+
+- **Unit Test Coverage**: 80%以上
+- **E2E Test Coverage**: 主要フローを100%カバー
+
+**重要**: 既存コードのカバレッジは段階的に向上させますが、**新規実装コードは必ず80%以上のカバレッジを確保**してください。
+
+---
+
 ## 1. 型安全性のチェックリスト
 
 ### ❌ 絶対禁止事項
@@ -372,34 +472,64 @@ async execute(dto: UpdateDto): Promise<Result> {
 ```typescript
 // ✅ 良い例: データベーストランザクションで複数操作を1つに
 @Injectable()
-export class UpdateTransactionCategoryUseCase {
+export class UpdateTransactionSubcategoryUseCase {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
-    @Inject(HISTORY_REPOSITORY)
-    private readonly historyRepository: ITransactionCategoryChangeHistoryRepository,
+    @Inject(SUB_CATEGORY_REPOSITORY)
+    private readonly subcategoryRepository: ISubcategoryRepository,
   ) {}
 
   async execute(dto: UpdateDto): Promise<Result> {
-    // トランザクション外で検証を実行
-    const transaction = await this.transactionRepository.findById(dto.id);
+    // トランザクション外でエンティティの存在確認を並列実行
+    const [transaction, subcategory] = await Promise.all([
+      this.transactionRepository.findById(dto.transactionId),
+      this.subcategoryRepository.findById(dto.subcategoryId),
+    ]);
+
+    // 存在確認
     if (!transaction) {
-      throw new NotFoundException(`Transaction not found`);
+      throw new NotFoundException(
+        `Transaction not found with ID: ${dto.transactionId}`,
+      );
+    }
+    if (!subcategory) {
+      throw new NotFoundException(
+        `Subcategory not found with ID: ${dto.subcategoryId}`,
+      );
+    }
+
+    // データ整合性の検証（カテゴリタイプの一致）
+    if (transaction.category.type !== subcategory.categoryType) {
+      throw new BadRequestException(
+        `Subcategory with type ${subcategory.categoryType} cannot be assigned to a transaction with type ${transaction.category.type}.`,
+      );
     }
 
     // データベーストランザクションで複数操作をアトミックに実行
     return await this.dataSource.transaction(async (entityManager) => {
+      // トランザクション内で取引を再取得（競合状態の防止）
+      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+      const transactionOrm = await transactionRepo.findOne({
+        where: { id: dto.transactionId },
+      });
+
+      if (!transactionOrm) {
+        throw new NotFoundException(
+          `Transaction not found with ID: ${dto.transactionId} within transaction`,
+        );
+      }
+
       // 変更履歴を記録
       const historyRepo = entityManager.getRepository(HistoryOrmEntity);
       await historyRepo.save({ ... });
 
       // 取引を更新
-      const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
       await transactionRepo.save({ ... });
 
-      return updatedTransaction;
+      return result;
     });
   }
 }
@@ -411,6 +541,21 @@ export class UpdateTransactionCategoryUseCase {
 2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
 3. **エンティティマネージャー経由でリポジトリにアクセス**
 4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+5. **トランザクション内でのデータ取得は必ずentityManagerを使用**
+   - トランザクションに紐付いていないリポジトリを使用すると、ダーティリードなどの競合状態が発生する可能性
+   - トランザクションの一貫性を保証するため、トランザクション内でのデータ取得は`entityManager.getRepository()`を使用
+6. **トランザクション外での並列取得を活用**
+   - 複数のエンティティを取得する場合は`Promise.all`を使用して並列化することでパフォーマンスを改善
+   - ただし、トランザクション内での更新対象エンティティは必ず再取得する
+7. **データ整合性の検証**
+   - エンティティ間の関連性（例：カテゴリタイプの一致）を検証し、不整合の場合は`BadRequestException`をスロー
+   - 検証はトランザクション外で実行し、早期にエラーを返すことでパフォーマンスを向上
+8. **トランザクション内でのタイムスタンプ管理**
+   - トランザクション内で複数のタイムスタンプが必要な場合、トランザクション開始時に一度だけ`Date`オブジェクトを生成し、それを使い回す
+   - これにより、`changedAt`、`confirmedAt`、`updatedAt`などの間に意図しない時間のずれが生じるのを防ぐ
+9. **トランザクション内でのタイムスタンプ管理**
+   - トランザクション内で複数のタイムスタンプが必要な場合、トランザクション開始時に一度だけ`Date`オブジェクトを生成し、それを使い回す
+   - これにより、`changedAt`、`confirmedAt`、`updatedAt`などの間に意図しない時間のずれが生じるのを防ぐ
 
 #### リポジトリパターンの活用とトランザクション管理
 
@@ -517,6 +662,152 @@ await this.dataSource.transaction(async (entityManager) => {
 **リポジトリ実装のベストプラクティス**:
 
 3. **ヘルパーメソッドでコード重複を削減**
+
+#### ❌ 避けるべきパターン: コードの重複
+
+```typescript
+// ❌ 悪い例: 同じロジックが複数のUseCaseに重複
+export class GetSubcategoriesUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（50行以上）
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  private buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 同じ階層構造構築ロジック（50行以上）← 重複！
+  }
+}
+```
+
+**問題**:
+
+- 同じロジックが複数箇所に存在すると、メンテナンス性が低下
+- バグ修正や機能追加時に複数箇所を修正する必要がある
+- 将来のバグの原因となり得る
+
+#### ✅ 正しいパターン: 共通サービスに抽出
+
+```typescript
+// ✅ 良い例: 共通のDomain Serviceに抽出
+@Injectable()
+export class SubcategoryTreeBuilderService {
+  buildTree(subcategories: Subcategory[]): SubcategoryTreeItem[] {
+    // 階層構造構築ロジック（1箇所に集約）
+  }
+}
+
+export class GetSubcategoriesUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(): Promise<Result> {
+    const subcategories = await this.repository.findAll();
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+
+export class GetSubcategoriesByCategoryUseCase {
+  constructor(private readonly treeBuilderService: SubcategoryTreeBuilderService) {}
+
+  async execute(categoryType: CategoryType): Promise<Result> {
+    const subcategories = await this.repository.findByCategory(categoryType);
+    const tree = this.treeBuilderService.buildTree(subcategories);
+    return { subcategories: tree };
+  }
+}
+```
+
+**重要なポイント**:
+
+- **同じロジックが2箇所以上に存在する場合は、共通サービスに抽出する**
+- **Domain Service層に共通ロジックを配置**（Onion Architectureの原則に従う）
+- **コードの重複はメンテナンス性の低下に繋がるため、積極的にリファクタリングする**
+- **APIレスポンスの最適化**
+  - 空の配列やオプショナルなプロパティは、値が存在する場合にのみレスポンスに含める
+  - これにより、レスポンスのペイロードサイズを削減し、クリーンなAPIレスポンスになる
+  - 例：子要素を持たないノード（葉ノード）に対して空の`children`配列を含めない
+
+#### 4. **Controllerの責務とクリーンアーキテクチャ原則**
+
+#### ⚠️ 今後の改善課題: Controllerからリポジトリを直接呼び出さない
+
+Issue #296 / PR #312のGeminiレビューで指摘された、クリーンアーキテクチャの原則に関する今後の改善課題です。
+
+**現状の問題**:
+
+```typescript
+// ⚠️ 改善が必要: Controllerでリポジトリを直接呼び出している
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  // ユースケースで分類を実行
+  const classificationResult = await this.classifyUseCase.execute(dto);
+
+  // ⚠️ 問題: Controllerでリポジトリを直接呼び出して追加のエンティティを取得
+  const subcategory = await this.subcategoryRepository.findById(
+    classificationResult.subcategoryId
+  );
+
+  if (!subcategory) {
+    throw new NotFoundException(`Subcategory not found`);
+  }
+
+  // merchantName等の追加情報も同様に取得
+  const merchant = await this.merchantRepository.findById(
+    classificationResult.merchantId
+  );
+
+  return {
+    success: true,
+    data: {
+      subcategory,
+      confidence: classificationResult.confidence,
+      merchantName: merchant?.name,
+    },
+  };
+}
+```
+
+**問題点**:
+
+1. **クリーンアーキテクチャの原則違反**: Presentation層（Controller）がInfrastructure層（Repository）に直接依存
+2. **UseCaseの責務が不明確**: 必要なデータをすべて返すべきなのはUseCaseの責務
+3. **保守性の低下**: データ取得ロジックがControllerに漏れ、変更時の影響範囲が広い
+
+**理想的な設計**:
+
+```typescript
+// ✅ 理想: UseCaseがすべての必要なデータを返す
+export interface ClassificationResult {
+  subcategoryId: string;
+  subcategoryName: string;  // 👈 UseCaseで取得
+  categoryType: CategoryType;
+  confidence: number;
+  reason: ClassificationReason;
+  merchantId: string | null;
+  merchantName: string | null;  // 👈 UseCaseで取得
+}
+
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  // ✅ UseCaseがすべてのデータを返す
+  const result = await this.classifyUseCase.execute(dto);
+
+  // ✅ Controllerはデータの整形のみ
+  return {
+    success: true,
+    data: result,
+  };
+}
+```
+
+**対応方針**:
+
+- **現時点**: Phase 5（Presentation層実装）では、動作する実装を優先し、アーキテクチャ改善は保留
+- **今後**: FR-009のリファクタリングフェーズ（Phase 6以降）、または別途「技術的負債解消」Issueで対応
+- **優先度**: Medium（機能は正常に動作しているが、保守性向上のため改善推奨）
+
+**参考**: Issue #296 / PR #312 - Gemini指摘：クリーンアーキテクチャ原則の遵守
 
 ```typescript
 // ✅ リポジトリ実装でDRY原則を徹底
@@ -714,6 +1005,13 @@ export class TransactionModule {}
 - **トークンで提供されるクラスは、クラス名で再登録しない**
 - **依存性注入はトークン経由で行う**
 - **モジュール定義をシンプルに保つ**
+- **未使用の依存関係は削除する**
+  - インジェクトされているが使用されていない依存関係は、コードの理解を妨げる可能性があるため削除する
+  - 特に、`entityManager`から直接リポジトリを取得している場合は、不要なインジェクションを削除する
+- **DIトークンはSymbolを使用する**
+  - 将来的な名前の衝突を避け、一貫性を保つために、すべてのDIトークンは`Symbol`を使用する
+  - 文字列リテラルではなく、`Symbol('InterfaceName')`の形式で定義する
+  - 例：`export const REPOSITORY_TOKEN = Symbol('IRepository');`
 
 ### 3-2. Domain層の設計原則とパフォーマンス考慮
 
@@ -1998,7 +2296,150 @@ src/
 
 ---
 
-### 4-12. 不要な依存関係の削除
+### 4-12. NestJS Controllerでの適切なHTTPステータスコードの使用
+
+#### 🔴 重要: エラーの原因に応じた適切なステータスコードを返す
+
+Issue #296 / PR #312のGeminiレビューから学習した、エラーハンドリングにおける重要な原則です。
+
+**原則**: エラーの原因に応じて適切なHTTPステータスコードを返すこと
+
+- **クライアント起因のエラー**: 4xx系（Bad Request, Not Found, etc.）
+- **サーバー内部のエラー**: 5xx系（Internal Server Error, Service Unavailable, etc.）
+
+#### ❌ 避けるべきパターン: すべてのエラーを400で返す
+
+```typescript
+// ❌ 悪い例: 予期せぬエラーを400で返す
+@Post('classify')
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  try {
+    const result = await this.classifyUseCase.execute(dto);
+    return { success: true, data: result };
+  } catch (error) {
+    this.logger.error('分類処理に失敗しました', error);
+
+    if (error instanceof NotFoundException) {
+      throw error;
+    }
+
+    // ❌ 問題: サーバー内部のエラーも400で返している
+    throw new BadRequestException({
+      success: false,
+      error: {
+        code: 'CLASSIFICATION_FAILED',
+        message: '分類処理に失敗しました',
+      },
+    });
+  }
+}
+```
+
+**問題点**:
+
+1. **APIの仕様と実装の不一致**:
+   - APIドキュメント（Swagger）では500エラーを定義しているが、実際には400を返す
+   - クライアント側のエラーハンドリングが混乱する
+
+2. **エラーの原因が不明確**:
+   - 400（Bad Request）は「クライアントのリクエストが不正」を意味する
+   - サーバー内部のエラー（DB接続エラー、外部API障害等）は500を返すべき
+
+3. **監視・運用の問題**:
+   - 4xx系エラーはクライアント起因として扱われ、アラート対象外になる可能性
+   - 実際にはサーバー側の障害なのに、適切な監視ができない
+
+#### ✅ 正しいパターン: エラーの原因に応じたステータスコードを返す
+
+```typescript
+// ✅ 良い例: エラーの原因に応じて適切なステータスコードを返す
+import {
+  Controller,
+  Post,
+  Body,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+
+@Post('classify')
+@ApiResponse({ status: 200, description: '分類成功' })
+@ApiResponse({ status: 400, description: 'リクエストボディが不正' })
+@ApiResponse({ status: 404, description: 'サブカテゴリが見つからない' })
+@ApiResponse({ status: 500, description: '分類処理に失敗' }) // 👈 500の定義
+async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationResponseDto> {
+  try {
+    const result = await this.classifyUseCase.execute(dto);
+    return { success: true, data: result };
+  } catch (error) {
+    this.logger.error('分類処理に失敗しました', error);
+
+    // クライアント起因のエラーはそのままスロー（4xx系）
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException
+    ) {
+      throw error;
+    }
+
+    // ✅ 正しい: 予期せぬエラーは500で返す
+    throw new InternalServerErrorException({
+      success: false,
+      error: {
+        code: 'CLASSIFICATION_FAILED',
+        message: '分類処理に失敗しました',
+        details: error instanceof Error ? error.message : String(error),
+      },
+    });
+  }
+}
+```
+
+#### ✅ HTTPステータスコードの使い分け
+
+| ステータスコード          | 例外クラス                     | 使用すべき状況                         | 例                                       |
+| ------------------------- | ------------------------------ | -------------------------------------- | ---------------------------------------- |
+| 400 Bad Request           | `BadRequestException`          | リクエストボディのバリデーションエラー | 必須項目が欠けている、形式が不正         |
+| 404 Not Found             | `NotFoundException`            | リソースが存在しない                   | 指定されたIDのエンティティが見つからない |
+| 409 Conflict              | `ConflictException`            | リソースの競合                         | 重複登録、楽観的ロック違反               |
+| 500 Internal Server Error | `InternalServerErrorException` | サーバー内部のエラー                   | DB接続エラー、予期せぬ例外               |
+| 502 Bad Gateway           | `BadGatewayException`          | 外部APIからの不正なレスポンス          | 外部API呼び出しの失敗                    |
+| 503 Service Unavailable   | `ServiceUnavailableException`  | サービス一時停止                       | メンテナンス中、負荷超過                 |
+
+#### ✅ エラーハンドリングのチェックリスト
+
+1. **try-catch内での例外の種類を判定**
+
+   ```typescript
+   if (error instanceof NotFoundException) {
+     throw error; // 4xx系はそのまま
+   }
+   ```
+
+2. **予期せぬエラーは500で返す**
+
+   ```typescript
+   throw new InternalServerErrorException({...});
+   ```
+
+3. **@ApiResponse()でステータスコードを明示**
+
+   ```typescript
+   @ApiResponse({ status: 500, description: '分類処理に失敗' })
+   ```
+
+4. **ログ出力**
+
+   ```typescript
+   this.logger.error('エラーメッセージ', error);
+   ```
+
+**参考**: Issue #296 / PR #312 - Gemini指摘：エラーハンドリングでの適切なステータスコード使用
+
+---
+
+### 4-13. 不要な依存関係の削除
 
 #### 🟡 推奨: 使用していない依存関係は削除する
 
@@ -3265,6 +3706,79 @@ TS2564: Property 'data' has no initializer and is not definitely assigned in the
 | レスポンスDTO | `interface` | 型定義のみ         |
 
 **参考**: Issue #22 / PR #262 - Geminiレビュー対応でのCI失敗から学習
+
+#### Swagger/OpenAPI対応のDTO設計（⚠️ 例外ケース）
+
+**重要**: Issue #296 / PR #312のGeminiレビューから、Swagger/OpenAPIドキュメント生成においては、レスポンスDTOも`class`として定義すべき場合があることが判明しました。
+
+**Swagger対応が必要な場合（レスポンスDTOも`class`を使用）**:
+
+```typescript
+// ✅ Swagger対応: classで定義
+import { ApiProperty } from '@nestjs/swagger';
+
+export class SubcategoryResponseDto {
+  @ApiProperty({ description: 'サブカテゴリID', example: 'food_cafe' })
+  id: string = '';
+
+  @ApiProperty({ description: 'サブカテゴリ名', example: 'カフェ' })
+  name: string = '';
+
+  @ApiProperty({
+    description: '子サブカテゴリ',
+    type: () => [SubcategoryResponseDto],
+    required: false,
+  })
+  children?: SubcategoryResponseDto[];
+}
+```
+
+**理由**:
+
+1. **ネストされた構造の正確な表現**: 再帰的なDTO（`children`プロパティ等）の型定義に必須
+2. **`@ApiProperty()`デコレータの使用**: Swaggerドキュメントで詳細なメタデータを提供
+3. **OpenAPI仕様への正確な出力**: `interface`では型情報が失われる場合がある
+
+**対応方法（プロパティ初期化エラーの回避）**:
+
+```typescript
+// 方法1: デフォルト値を設定
+export class ClassificationResponseDto {
+  @ApiProperty()
+  success: boolean = false;
+
+  @ApiProperty()
+  data: ClassificationResultDto = new ClassificationResultDto();
+}
+
+// 方法2: オプショナルプロパティ（`!`を使用）
+export class ClassificationResponseDto {
+  @ApiProperty()
+  success!: boolean;
+
+  @ApiProperty()
+  data!: ClassificationResultDto;
+}
+```
+
+**判断基準**:
+
+| 条件                            | レスポンスDTOの型 | 理由                             |
+| ------------------------------- | ----------------- | -------------------------------- |
+| Swagger/OpenAPI生成が必要       | `class`           | `@ApiProperty()`デコレータが必須 |
+| ネストされた/再帰的な構造       | `class`           | 正確な型情報の表現               |
+| シンプルなレスポンス（内部API） | `interface`       | 型定義のみで十分                 |
+
+**重要な注意点**:
+
+- プロジェクト全体で**Swagger/OpenAPIドキュメントを生成する場合**は、**すべてのレスポンスDTOを`class`として定義**することを推奨
+- 一貫性を保つため、プロジェクト初期段階で方針を決定すること
+- Issue #296で学習: `interface`と`class`の混在により、Swaggerドキュメントの精度が低下
+
+**参考**:
+
+- Issue #296 / PR #312 - Gemini指摘：レスポンスDTOを`interface`から`class`に変更
+- Issue #22 / PR #262 - ビルドエラーから`interface`の使用を決定（Swagger非対応時）
 
 #### レスポンスDTOでの型の厳密化
 
@@ -4600,5 +5114,2974 @@ export class SubcategoryOrmEntity {
 3. **保守性**: デコレータ変更時に修正箇所が減る
 
 **学習元**: PR #301 Geminiレビュー指摘事項（Seed Runner）
+
+---
+
+## 3-13. TypeORMリポジトリテストのベストプラクティス
+
+**原則**: モックオブジェクトとアサーションを厳密にすることで、テストの信頼性を向上させる
+
+### Geminiレビュー指摘事項（Issue #308, PR #317）
+
+**指摘**: 「TypeORMリポジトリのテストについて、モックオブジェクトの作り方やアサーションをより厳密にすることで、テストの信頼性をさらに向上させられる」
+
+### 🎯 改善観点
+
+#### 1. モックの完全性を確保
+
+❌ **不十分なモック**
+
+```typescript
+// 一部のメソッドのみモック
+const mockRepository = {
+  save: jest.fn(),
+  findOne: jest.fn(),
+} as unknown as Repository<Entity>;
+```
+
+✅ **完全なモック**
+
+```typescript
+// 使用するすべてのメソッドを明示的にモック
+const mockRepository = {
+  save: jest.fn(),
+  findOne: jest.fn(),
+  find: jest.fn(),
+  delete: jest.fn(),
+  create: jest.fn((entity) => entity as OrmEntity),
+  // ... 使用する全メソッド
+} as unknown as jest.Mocked<Repository<OrmEntity>>;
+```
+
+**理由**:
+
+- 未定義のメソッドへのアクセスがエラーを引き起こす可能性がある
+- テストの意図が明確になる
+
+#### 2. アサーションの厳密化
+
+❌ **緩いアサーション**
+
+```typescript
+it('should create entity', async () => {
+  mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+  await repository.create(mockDomainEntity);
+
+  expect(mockRepository.save).toHaveBeenCalled(); // ❌ 引数を検証していない
+});
+```
+
+✅ **厳密なアサーション**
+
+```typescript
+it('should create entity', async () => {
+  mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+  const result = await repository.create(mockDomainEntity);
+
+  // ✅ 引数を詳細に検証
+  expect(mockRepository.save).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 'entity_1',
+      name: 'Test Entity',
+      // ... 重要なフィールドを検証
+    })
+  );
+
+  // ✅ 戻り値を検証
+  expect(result).toEqual(mockDomainEntity);
+  expect(result.id).toBe('entity_1');
+});
+```
+
+**理由**:
+
+- 正しいデータが渡されているかを確認できる
+- リグレッションを防げる
+
+#### 3. EntityManager使用時のテスト
+
+✅ **推奨パターン**
+
+```typescript
+describe('with EntityManager', () => {
+  it('should use provided EntityManager', async () => {
+    const mockManager = {
+      getRepository: jest.fn().mockReturnValue({
+        save: jest.fn().mockResolvedValue(mockOrmEntity),
+      }),
+    } as unknown as EntityManager;
+
+    await repository.create(mockDomainEntity, mockManager);
+
+    // EntityManagerが正しく使用されているか検証
+    expect(mockManager.getRepository).toHaveBeenCalledWith(OrmEntity);
+  });
+
+  it('should use default repository without EntityManager', async () => {
+    mockRepository.save.mockResolvedValue(mockOrmEntity);
+
+    await repository.create(mockDomainEntity);
+
+    // デフォルトリポジトリが使用されているか検証
+    expect(mockRepository.save).toHaveBeenCalled();
+  });
+});
+```
+
+**理由**:
+
+- EntityManagerの使用パターンを網羅的にテストできる
+- トランザクション処理の検証が可能
+
+#### 4. エラーケースのテスト
+
+✅ **必須のエラーテスト**
+
+```typescript
+describe('error handling', () => {
+  it('should throw error when entity not found', async () => {
+    mockRepository.findOne.mockResolvedValue(null);
+
+    await expect(repository.findById('non_existent')).rejects.toThrow('Entity not found');
+  });
+
+  it('should handle database errors', async () => {
+    mockRepository.save.mockRejectedValue(new Error('Database connection failed'));
+
+    await expect(repository.create(mockDomainEntity)).rejects.toThrow('Database connection failed');
+  });
+});
+```
+
+**理由**:
+
+- 異常系の動作を保証できる
+- エラーハンドリングの検証が可能
+
+#### 5. toDomain/toOrm変換のテスト
+
+✅ **推奨パターン**
+
+```typescript
+describe('entity conversion', () => {
+  it('should correctly convert ORM entity to Domain entity', async () => {
+    mockRepository.findOne.mockResolvedValue(mockOrmEntity);
+
+    const result = await repository.findById('entity_1');
+
+    // Domain entityのプロパティを詳細に検証
+    expect(result).toBeInstanceOf(DomainEntity);
+    expect(result?.id).toBe('entity_1');
+    expect(result?.name).toBe('Test Entity');
+    // ValueObjectの検証
+    expect(result?.credentials).toBeInstanceOf(EncryptedCredentials);
+  });
+
+  it('should correctly convert Domain entity to ORM entity', async () => {
+    await repository.create(mockDomainEntity);
+
+    // toOrm()の結果を検証
+    expect(mockRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // ORM entityの構造を検証
+        credentialsEncrypted: expect.any(String),
+        credentialsIv: expect.any(String),
+        credentialsAuthTag: expect.any(String),
+      })
+    );
+  });
+});
+```
+
+**理由**:
+
+- エンティティ変換ロジックの正確性を保証
+- ValueObjectの取り扱いを検証
+
+### 📋 チェックリスト
+
+TypeORMリポジトリのテストを作成する際は、以下を確認：
+
+- [ ] 使用するすべてのメソッドがモックされている
+- [ ] `toHaveBeenCalledWith()`で引数を詳細に検証している
+- [ ] 戻り値の型とプロパティを検証している
+- [ ] EntityManagerありなし両方のパターンをテストしている
+- [ ] エラーケース（not found, database error等）をテストしている
+- [ ] toDomain/toOrm変換の正確性をテストしている
+- [ ] ValueObjectの変換を検証している
+
+### 🎖️ 適用プロジェクト
+
+- **Issue #308**: バックエンド全モジュールで70%以上のユニットテストカバレッジ達成
+- **PR #317**: テストカバレッジ向上（73.89%達成）
+
+**学習元**: PR #317 Geminiレビュー指摘事項（TypeORM Repository Test Quality）
+
+---
+
+## 13. Geminiレビューから学んだ観点
+
+### 13-1. 型安全性の維持 🔴 Critical
+
+**学習元**: PR #259 - パフォーマンステストとチューニング
+
+#### ❌ 避けるべきパターン: モジュール全体でのルール緩和
+
+```javascript
+// eslint.config.mjs
+{
+  files: ['src/modules/health/**/*.ts'],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'warn',  // モジュール全体で緩和
+    '@typescript-eslint/no-unsafe-assignment': 'warn',
+  },
+}
+```
+
+**問題点**:
+
+- 意図しない`any`型の使用を見逃すリスク
+- モジュール全体の型安全性が低下
+- 将来的なリファクタリングが困難
+
+#### ✅ 正しいパターン: 必要な箇所でのみインライン無効化
+
+```typescript
+async checkConnection(apiAdapter: unknown): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = apiAdapter as any;
+  return await adapter.testConnection();
+}
+```
+
+**推奨アプローチ**:
+
+1. `unknown`型と型ガードを優先的に使用
+2. 本当に必要な箇所のみ`// eslint-disable-next-line`で個別対応
+3. `any`の代わりに`unknown`型を検討
+4. インターフェースを明確に定義
+
+---
+
+### 13-2. テストセレクターの一貫性 🟡 Medium
+
+#### ❌ 避けるべきパターン: クラス名との併用
+
+```typescript
+await page.waitForSelector('[data-testid="list"], .list-container');
+```
+
+**問題点**:
+
+- スタイリング変更でテストが壊れる
+- セレクターの一貫性がない
+
+#### ✅ 正しいパターン: data-testid優先
+
+```typescript
+await page.waitForSelector('[data-testid="list"]');
+```
+
+**利点**:
+
+- テストの堅牢性向上
+- スタイリング変更の影響を受けない
+- 意図が明確
+
+---
+
+### 13-3. ページネーションテストの前提条件 🔴 Critical
+
+#### ❌ 避けるべきパターン: 実装されていない機能のテスト
+
+```typescript
+describe('Pagination Performance', () => {
+  it('should fetch page 1', async () => {
+    await request(app).get('/api/institutions').query({ page: 1, limit: 20 });
+  });
+});
+```
+
+**問題点**:
+
+- APIがページネーションを実装していない
+- テストが常に失敗または誤った結果を返す
+
+#### ✅ 正しいパターン: 未実装機能は.skip
+
+```typescript
+describe.skip('Pagination Performance (Future Implementation)', () => {
+  // Note: InstitutionControllerにページネーション実装後に有効化
+  it('should fetch page 1', async () => {
+    await request(app).get('/api/institutions').query({ page: 1, limit: 20 });
+  });
+});
+```
+
+**推奨**:
+
+1. 実装されていない機能のテストは`.skip`
+2. コメントで実装予定を明記
+3. 実装完了後にテストを有効化
+
+---
+
+### 13-4. コード重複の回避とDRY原則 🔴 Critical
+
+**学習元**: PR #266 - カスタムプロンプト（@トリガー）の追加
+
+#### ❌ 避けるべきパターン: ルールファイルリストの重複
+
+```markdown
+<!-- start-task.md -->
+
+await Promise.all([
+read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
+read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
+// ... 全10ファイル
+]);
+
+<!-- inc-all-rules.md -->
+
+await Promise.all([
+read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
+read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
+// ... 全10ファイル（完全に同じリスト）
+]);
+```
+
+**問題点**:
+
+- ルールファイル追加時に2箇所を修正する必要
+- メンテナンス性の低下
+- 変更漏れのリスク
+
+#### ✅ 正しいパターン: 一元管理と再利用
+
+```markdown
+<!-- start-task.md -->
+
+### 0. すべてのルールファイルを再読込（最優先）
+
+**必ず最初に** `@inc-all-rules` を実行して、すべてのルールファイルを読み込んでください。
+```
+
+**利点**:
+
+- ルールファイルリストを一箇所で管理
+- 変更時の修正箇所が1つだけ
+- DRY原則の遵守
+
+---
+
+### 13-5. ドキュメントの可読性と一貫性 🟡 Medium
+
+#### ❌ 避けるべきパターン: 情報が分散したファイルリスト
+
+```markdown
+### 読込対象ファイル
+
+以下のファイルを順番に読み込んでください：
+
+1. ファイルA
+2. ファイルB
+
+### テンプレート
+
+- テンプレート1
+- テンプレート2
+
+### 追加リソース
+
+- リソース1
+```
+
+**問題点**:
+
+- ファイルリストが複数セクションに分散
+- 「順番に」の記述が並列読み込みの実装と矛盾
+- 可読性が低い
+
+#### ✅ 正しいパターン: 統合されたファイルリスト
+
+```markdown
+### 読込対象ファイル
+
+以下のファイルをすべて読み込んでください：
+
+- **ファイルA** - 説明
+- **ファイルB** - 説明
+- **テンプレート1** - 説明
+- **テンプレート2** - 説明
+- **リソース1** - 説明
+```
+
+**利点**:
+
+- すべての対象ファイルが一目で把握できる
+- 並列読み込みの実装と記述が一致
+- 可読性の向上
+
+---
+
+### 13-6. 命名規則の一貫性 🟡 Medium
+
+#### △ 不十分なパターン: 曖昧な命名規則
+
+```bash
+git checkout -b feature/issue-<番号>-<説明>
+```
+
+**問題点**:
+
+- `<説明>`が曖昧
+- 開発者によって異なるフォーマットになる
+- 自動化スクリプトとの不一致
+
+#### ✅ 正しいパターン: 明確な命名規則
+
+```bash
+git checkout -b feature/issue-<番号>-<Issueタイトルをケバブケースにした文字列>
+
+# 例:
+# Issue #267: "CI最適化: マークダウン変更時のスキップ"
+# → feature/issue-267-ci-optimization-skip-markdown-changes
+```
+
+**利点**:
+
+- 一貫したブランチ名
+- 自動化スクリプトとの整合性
+- 誰が作成しても同じ形式
+
+---
+
+### 13-7. ReactコンポーネントのJSX共通化とDRY原則 🟡 Medium
+
+**学習元**: PR #327 - FR-010: 費目の手動修正機能（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: 共通レイアウトの重複
+
+```typescript
+// ❌ 悪い例: 同じレイアウトコードが3回繰り返される
+export default function TransactionsPage(): React.JSX.Element {
+  // ...
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+        <div className="flex justify-center items-center py-12">
+          {/* ローディング表示 */}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+        {/* エラー表示 */}
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      {/* 正常表示 */}
+    </div>
+  );
+}
+```
+
+**問題点**:
+
+- 同じレイアウトコード（`<div className="container...">`と`<h1>`）が重複
+- レイアウト変更時に3箇所を修正する必要
+- メンテナンス性の低下
+
+#### ✅ 正しいパターン: 共通レイアウトコンポーネントの抽出
+
+```typescript
+// ✅ 良い例: 共通レイアウトをコンポーネント化
+export default function TransactionsPage(): React.JSX.Element {
+  // ...
+
+  // 共通レイアウトコンポーネント
+  const PageLayout = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      {children}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex justify-center items-center py-12">
+          {/* ローディング表示 */}
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageLayout>
+        {/* エラー表示 */}
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout>
+      {/* 正常表示 */}
+    </PageLayout>
+  );
+}
+```
+
+**利点**:
+
+- レイアウト変更が1箇所で完結
+- DRY原則の遵守
+- メンテナンス性の向上
+
+**推奨アプローチ**:
+
+1. 複数の状態（loading/error/success）で同じレイアウトを使用する場合は共通化
+2. コンポーネント内で`PageLayout`のようなヘルパーコンポーネントを定義
+3. 複数ページで使用する場合は、共通コンポーネントとして抽出
+
+---
+
+### 13-8. データフェッチングライブラリの導入検討 🟢 Low（将来改善）
+
+**学習元**: PR #327 - FR-010: 費目の手動修正機能（Geminiレビュー指摘）
+
+#### 現状のパターン: 手動でのデータフェッチング
+
+```typescript
+// 現状: useState + useEffect で手動実装
+export default function TransactionsPage(): React.JSX.Element {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTransactions = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTransactions();
+      setTransactions(data);
+    } catch (err) {
+      setError('取引データの取得に失敗しました。再読み込みしてください。');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTransactions();
+  }, [loadTransactions]);
+}
+```
+
+**現状の問題点**:
+
+- ローディング・エラー状態の管理が冗長
+- キャッシュ機能がない
+- 再フェッチ、リトライなどの機能を手動実装する必要
+
+#### 将来の改善案: データフェッチングライブラリの導入
+
+**検討対象**:
+
+- **SWR** (Stale-While-Revalidate)
+  - 軽量でNext.jsとの統合が容易
+  - 自動キャッシュ、再検証、エラーハンドリング
+- **React Query (TanStack Query)**
+  - より高機能（キャッシュ、同期、オプティミスティック更新）
+  - 複雑なデータフェッチング要件に対応
+
+**導入時の利点**:
+
+```typescript
+// 将来の改善例: SWRを使用
+import useSWR from 'swr';
+
+export default function TransactionsPage(): React.JSX.Element {
+  const { data: transactions, error, isLoading, mutate } = useSWR(
+    '/api/transactions',
+    getTransactions
+  );
+
+  if (isLoading) return <PageLayout><Loading /></PageLayout>;
+  if (error) return <PageLayout><Error error={error} /></PageLayout>;
+
+  return (
+    <PageLayout>
+      <TransactionList transactions={transactions} />
+    </PageLayout>
+  );
+}
+```
+
+**利点**:
+
+- コードの簡潔化
+- 自動キャッシュと再検証
+- エラーハンドリングの統一
+- リトライ、ポーリングなどの高度な機能
+
+**導入判断基準**:
+
+- ✅ **導入を検討**: 複数のページでデータフェッチングが必要な場合
+- ✅ **導入を検討**: リアルタイム更新が必要な場合
+- ⚠️ **現状維持**: 単一ページのみで、シンプルな要件の場合
+
+**注意点**:
+
+- プロジェクト全体の方針として検討が必要
+- 既存コードへの影響範囲を評価
+- チーム全体での合意が必要
+
+---
+
+## 14. Issue #279から学んだ教訓
+
+**学習元**: Issue #279 - FR-006: 未実装機能の実装、PR #285
+
+### 14-1. エラーメッセージの文字列依存は脆弱 🔴 Critical
+
+#### ❌ 脆弱な実装
+
+```typescript
+if (error instanceof Error && error.message === 'Transaction fetch was cancelled') {
+  // キャンセル処理
+}
+```
+
+**教訓**:
+
+- エラーメッセージが変更されるとロジックが壊れる
+- 文字列の完全一致が必要で、メンテナンスコストが高い
+
+#### ✅ 堅牢な実装: カスタムエラークラス
+
+```typescript
+export class CancellationError extends Error {
+  constructor(message: string = 'Operation was cancelled') {
+    super(message);
+    this.name = 'CancellationError';
+    Error.captureStackTrace?.(this, CancellationError);
+  }
+}
+
+// 判定（型安全）
+if (error instanceof CancellationError) {
+  // キャンセル処理
+}
+```
+
+**適用箇所**:
+
+- キャンセルエラー: `CancellationError`
+- バリデーションエラー: `ValidationError`
+- ネットワークエラー: `NetworkError`
+
+---
+
+### 14-2. 不要な依存関係は削除する 🟡 Medium
+
+#### ❌ 使用していない依存関係
+
+```typescript
+constructor(
+  @Inject(SYNC_HISTORY_REPOSITORY)
+  private readonly syncHistoryRepository: ISyncHistoryRepository,
+  @Inject(CREDIT_CARD_REPOSITORY)
+  private readonly creditCardRepository: ICreditCardRepository, // 使用していない
+  private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+) {}
+```
+
+**教訓**:
+
+- 子UseCaseに機能を委譲した場合、親からは不要な依存関係を削除
+- テストが複雑になる（不要なモックを作成する必要）
+- コードの意図が不明確になる
+
+#### ✅ 必要な依存関係のみ
+
+```typescript
+constructor(
+  @Inject(SYNC_HISTORY_REPOSITORY)
+  private readonly syncHistoryRepository: ISyncHistoryRepository,
+  private readonly fetchCreditCardTransactionsUseCase: FetchCreditCardTransactionsUseCase,
+) {}
+```
+
+**チェックリスト**:
+
+1. `this.xxxRepository` で検索して使用状況を確認
+2. 子UseCaseに機能が委譲されていないか確認
+3. テストを簡素化できるか確認
+
+---
+
+### 14-3. Enum値と使用箇所の型を統一する 🟡 Medium
+
+#### ❌ 型の不一致
+
+```typescript
+enum InstitutionType {
+  CREDIT_CARD = 'credit_card', // アンダースコア
+}
+type SyncTarget = 'credit-card'; // ハイフン
+
+// 変換関数が必要
+function convertInstitutionType(type: InstitutionType): 'credit-card' {
+  if (type === InstitutionType.CREDIT_CARD) {
+    return 'credit-card';
+  }
+  throw new Error(`Unsupported institution type: ${type}`);
+}
+```
+
+**教訓**:
+
+- 型の不一致は変換関数を必要とし、コードが複雑になる
+- バグの原因になる
+- 保守性が低い
+
+#### ✅ 統一された型
+
+```typescript
+enum InstitutionType {
+  CREDIT_CARD = 'credit-card', // ハイフンで統一
+}
+type SyncTarget = InstitutionType; // 直接使用可能
+
+// 変換関数は不要
+const target: SyncTarget = institution.type;
+```
+
+---
+
+### 14-4. 特定のエラーによるステータス上書き防止 🔴 Critical
+
+#### ❌ キャンセルエラーもFAILEDに上書きされる
+
+```typescript
+try {
+  await fetchData();
+} catch (error) {
+  // すべてのエラーがFAILEDになる
+  syncHistory = syncHistory.markAsFailed(error.message);
+}
+```
+
+**教訓**:
+
+- キャンセルエラーをFAILEDステータスで上書きすると、ステータスの整合性が失われる
+- ユーザーの意図的なキャンセル操作が「失敗」として記録される
+
+#### ✅ キャンセルエラーを判定して早期return
+
+```typescript
+try {
+  await fetchData();
+} catch (error) {
+  if (error instanceof CancellationError) {
+    // キャンセル処理（早期return）
+    syncHistory = syncHistory.markAsCancelled();
+    return { status: 'CANCELLED' };
+  }
+  // その他のエラーはFAILED
+  syncHistory = syncHistory.markAsFailed(error.message);
+}
+```
+
+---
+
+### 14-5. テストの動作確認を行わずに品質保証はできない ⚠️ Critical
+
+**学び**:
+
+> 「テストの動作確認を行わずに、品質担保ができているというのは、テストというものの概念を正しく理解できていないようにも思います。」
+>
+> — ユーザーフィードバック
+
+**教訓**:
+
+- テストコードを書いただけでは不十分
+- **必ずローカルで実行してパスすることを確認**
+- テストがパスして初めて品質保証ができる
+
+**実践**:
+
+```bash
+# テスト実行（必須）
+pnpm --filter @account-book/backend test sync-all-transactions.use-case.spec
+
+# 結果確認（必須）
+# ✅ Test Suites: 1 passed, 1 total
+# ✅ Tests: 11 passed, 11 total
+```
+
+**Push前チェックリスト**:
+
+1. ✅ Lintチェック: `./scripts/test/lint.sh`
+2. ✅ ビルドチェック: `pnpm build`
+3. ✅ **テスト実行**: `./scripts/test/test.sh all`（必須！）
+4. ✅ E2Eテスト: `./scripts/test/test-e2e.sh frontend`
+
+---
+
+### 14-6. テストの冗長性を排除する 🎯 Medium
+
+#### ❌ useCase.executeが2回呼び出される（非効率）
+
+```typescript
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(NotFoundException);
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  `Credit card not found with ID: ${creditCardId}`
+);
+```
+
+**教訓**:
+
+- 同じ処理を2回実行するのは非効率
+- 副作用のある処理の場合、予期しない動作を引き起こす可能性
+
+#### ✅ 一度の呼び出しで型とメッセージの両方を検証
+
+```typescript
+await expect(useCase.execute({ creditCardId })).rejects.toThrow(
+  new NotFoundException(`Credit card not found with ID: ${creditCardId}`)
+);
+```
+
+---
+
+### 14-7. Factory関数でテストデータ作成を簡潔に 🧪 Medium
+
+#### ✅ Factory関数の活用
+
+```typescript
+export function createTestCreditCard(overrides?: Partial<CreditCardEntity>) {
+  return new CreditCardEntity(
+    overrides?.id || 'cc_test_123',
+    overrides?.cardName || 'テストカード'
+    // ...デフォルト値
+  );
+}
+
+// テストで使用
+const creditCard = createTestCreditCard({ isConnected: true });
+```
+
+**教訓**:
+
+- テストデータの作成が簡潔になる
+- デフォルト値を一箇所で管理できる
+- テストの可読性が向上
+
+**適用例**:
+
+- `test/helpers/credit-card.factory.ts`
+- `test/helpers/securities.factory.ts`
+- `test/helpers/institution.factory.ts`
+
+---
+
+## 15. Gemini Code Assist レビューから学んだ観点（PR #320）
+
+### 15-1. データ不整合の早期発見：警告ログの重要性 🟡 Medium
+
+#### ❌ データ不整合が検知されない
+
+```typescript
+// 店舗IDがあるが、店舗が見つからない場合
+const merchantId = classification.getMerchantId();
+if (merchantId) {
+  const merchant = await this.merchantRepository.findById(merchantId);
+  if (merchant) {
+    merchantName = merchant.name;
+  }
+  // 店舗が見つからなくても何も記録されない
+}
+```
+
+**問題点**:
+
+- 分類器が返した`merchantId`に対応する店舗が存在しない場合、データ不整合が発生
+- この不整合が検知されず、デバッグが困難になる
+- 本番環境で気づかないままデータが蓄積される可能性
+
+#### ✅ Logger注入で警告を出力
+
+```typescript
+@Injectable()
+export class ClassifySubcategoryUseCase {
+  private readonly logger = new Logger(ClassifySubcategoryUseCase.name);
+
+  constructor(
+    private readonly classifierService: SubcategoryClassifierService,
+    @Inject(SUB_CATEGORY_REPOSITORY)
+    private readonly subcategoryRepository: ISubcategoryRepository,
+    @Inject(MERCHANT_REPOSITORY)
+    private readonly merchantRepository: IMerchantRepository
+  ) {}
+
+  async execute(dto: ClassifySubcategoryDto): Promise<ClassifySubcategoryResult> {
+    // ...
+
+    const merchantId = classification.getMerchantId();
+    if (merchantId) {
+      const merchant = await this.merchantRepository.findById(merchantId);
+      if (merchant) {
+        merchantName = merchant.name;
+      } else {
+        // データ不整合を警告ログで記録
+        this.logger.warn(
+          `Merchant with ID ${merchantId} not found, but was returned by classifier.`
+        );
+      }
+    }
+
+    // ...
+  }
+}
+```
+
+**効果**:
+
+- データ不整合の早期発見が可能
+- ログから問題のある分類パターンを特定できる
+- 分類器のトレーニングデータ改善に活用できる
+
+**チェックリスト**:
+
+1. 外部データソース（分類器、API等）が返すIDを信頼せず、必ず存在確認
+2. 期待されるデータが存在しない場合は警告ログを出力
+3. Logger注入を忘れずに
+
+---
+
+### 15-2. スプレッド構文でコードを簡潔に 🟢 Low
+
+#### ❌ 冗長なプロパティ列挙
+
+```typescript
+return {
+  subcategoryId: subcategory.id,
+  subcategoryName: subcategory.name,
+  categoryType: subcategory.categoryType,
+  parentId: subcategory.parentId,
+  displayOrder: subcategory.displayOrder,
+  icon: subcategory.icon,
+  color: subcategory.color,
+  isDefault: subcategory.isDefault,
+  isActive: subcategory.isActive,
+  confidence: classification.getConfidence().getValue(),
+  reason: classification.getReason(),
+  merchantId: merchantId || null,
+  merchantName,
+};
+```
+
+**問題点**:
+
+- プロパティを個別に代入していて冗長
+- 新しいプロパティ追加時に漏れが発生しやすい
+- 保守性が低い
+
+#### ✅ スプレッド構文と分割代入を活用
+
+```typescript
+// createdAt/updatedAtを除外し、id/nameをリネーム
+const { id, name, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = subcategory;
+
+return {
+  subcategoryId: id,
+  subcategoryName: name,
+  ...rest, // 残りのプロパティを一括展開
+  confidence: classification.getConfidence().getValue(),
+  reason: classification.getReason(),
+  merchantId: merchantId || null,
+  merchantName,
+};
+```
+
+**効果**:
+
+- コードが簡潔で可読性が向上
+- 新しいプロパティが自動的に含まれる
+- メンテナンス性が向上
+
+**チェックリスト**:
+
+1. 不要なプロパティ（`createdAt`, `updatedAt`等）を分割代入で除外
+2. リネームが必要なプロパティ（`id` → `subcategoryId`）は明示的に指定
+3. 残りは`...rest`で一括展開
+4. 未使用変数には`_`プレフィックスを付ける（ESLintエラー回避）
+
+---
+
+### 15-3. Geminiレビュー対応フロー
+
+**ルール**: Geminiからの指摘は必ず個別commit/pushで対応する
+
+**手順**:
+
+1. Geminiレビューコメントを確認
+2. 各指摘に対して個別に対応
+3. 各対応ごとにcommit（コミットメッセージに指摘内容を記載）
+4. push
+5. 全対応完了後、PRコメントで返信
+
+**コミットメッセージ例**:
+
+```bash
+refactor(category): Geminiレビュー対応
+
+1. 店舗が見つからない場合の警告ログ追加
+   - Merchant not foundの警告を出力
+   - データ不整合の早期発見が可能に
+
+2. 戻り値生成をスプレッド構文でリファクタリング
+   - createdAt/updatedAtを除外
+   - コードを簡潔に保守しやすく改善
+```
+
+---
+
+---
+
+## 16. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
+
+### 16-1. 認証設計の明確化 🔴 Critical
+
+#### ❌ 避けるべきパターン: 認証要件の曖昧な記述
+
+```markdown
+| エンドポイント         | 認証 |
+| ---------------------- | ---- |
+| POST /categories       | 不要 |
+| DELETE /categories/:id | 不要 |
+
+**注意**: 将来的にはユーザー認証を追加予定
+```
+
+**問題点**:
+
+- 開発時に認証不要と誤解される
+- セキュリティリスク（誰でもデータ操作可能）
+- 実装時の判断基準が不明確
+
+#### ✅ 正しいパターン: 認証方式と将来計画を明記
+
+```markdown
+| エンドポイント         | 認証             |
+| ---------------------- | ---------------- |
+| POST /categories       | 必要（将来対応） |
+| DELETE /categories/:id | 必要（将来対応） |
+
+**注意**: 現在は開発フェーズのため認証は実装しませんが、本番環境では必須となります。
+
+### 認証方式（将来実装予定）
+
+**認証タイプ**: JWT Bearer Token
+
+**実装例**:
+\`\`\`typescript
+@Controller('categories')
+@UseGuards(JwtAuthGuard) // 全エンドポイントで認証必須
+export class CategoryController {
+@Post()
+async create(@Request() req, @Body() dto: CreateCategoryDto) {
+const userId = req.user.id; // JWTから取得
+return this.createUseCase.execute(userId, dto);
+}
+}
+\`\`\`
+```
+
+**教訓**:
+
+- 認証要件は設計段階から明確に記載
+- 将来実装時の参考となる具体例を提供
+- セキュリティリスクを事前に認識
+
+---
+
+### 16-2. データモデル設計の整合性 🔴 Critical
+
+#### ❌ 避けるべきパターン: テーブル定義と実装方針の矛盾
+
+```sql
+CREATE TABLE categories (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL
+);
+```
+
+```markdown
+### 削除処理
+
+- 論理削除を実装する
+```
+
+**問題点**:
+
+- テーブル定義に論理削除用カラムがない
+- 実装時に混乱を招く
+- マイグレーションが必要になる
+
+#### ✅ 正しいパターン: テーブル定義に論理削除カラムを含める
+
+```sql
+CREATE TABLE categories (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true, -- 論理削除フラグ
+  deleted_at TIMESTAMP NULL, -- 論理削除日時
+  created_at TIMESTAMP NOT NULL,
+  INDEX idx_categories_is_active (is_active)
+);
+```
+
+```typescript
+interface CategoryEntity {
+  id: string;
+  name: string;
+  isActive: boolean; // 論理削除フラグ
+  deletedAt: Date | null; // 論理削除日時
+  createdAt: Date;
+}
+```
+
+**教訓**:
+
+- テーブル定義と実装方針を一致させる
+- 論理削除には専用カラムとインデックスが必要
+- ドメインモデルにも対応するプロパティを追加
+
+---
+
+### 16-3. API仕様の統一性 🟡 High
+
+#### ❌ 避けるべきパターン: リクエストボディとクエリパラメータの混在
+
+**class-diagrams.md**:
+
+```typescript
+class DeleteCategoryDto {
+  +string replacementCategoryId  // リクエストボディ
+}
+```
+
+**input-output-design.md**:
+
+```
+DELETE /api/categories/:id?replacementCategoryId=xxx  // クエリパラメータ
+```
+
+**問題点**:
+
+- 設計書間で仕様が矛盾
+- 実装時に判断が困難
+- フロントエンド・バックエンドで異なる実装になる可能性
+
+#### ✅ 正しいパターン: 全設計書で仕様を統一
+
+```markdown
+**注意**: `DeleteCategoryDto`は削除されました。
+削除時の代替費目IDはクエリパラメータで指定します。
+
+DELETE /api/categories/:id?replacementCategoryId=xxx
+```
+
+**教訓**:
+
+- APIの仕様は全設計書で統一
+- 変更時は関連する全ドキュメントを更新
+- RESTful APIの慣習に従う（DELETE時のクエリパラメータ推奨）
+
+---
+
+### 16-4. ユースケース設計の明確化 🟡 High
+
+#### ❌ 避けるべきパターン: 存在しないメソッドの呼び出し
+
+```typescript
+@Get(':id')
+async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+  // GetCategoriesUseCaseにexecuteById()メソッドは存在しない
+  const result = await this.getCategoriesUseCase.executeById(id);
+  return CategoryResponseDto.fromEntity(result);
+}
+```
+
+**問題点**:
+
+- 設計書に定義されていないメソッドを使用
+- 実装時にエラーが発生
+- クラス図との不整合
+
+#### ✅ 正しいパターン: 専用ユースケースを定義
+
+```typescript
+@Controller('categories')
+export class CategoryController {
+  constructor(
+    private readonly getCategoriesUseCase: GetCategoriesUseCase,
+    private readonly getCategoryByIdUseCase: GetCategoryByIdUseCase
+  ) {}
+
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+    const result = await this.getCategoryByIdUseCase.execute(id);
+    return CategoryResponseDto.fromEntity(result);
+  }
+}
+```
+
+**教訓**:
+
+- 単一責任の原則（SRP）に従う
+- 一覧取得と詳細取得は別ユースケースとして分離
+- 設計書間の整合性を保つ
+
+---
+
+### 16-5. バリデーションルールの柔軟性 🟢 Medium
+
+#### ❌ 避けるべきパターン: 制限的な正規表現
+
+```typescript
+// 6桁形式のみ許可
+color: string; // #RRGGBB
+regex: /^#[0-9A-F]{6}$/;
+```
+
+**問題点**:
+
+- 3桁形式（#RGB）が使えない
+- 8桁形式（#RRGGBBAA - アルファチャンネル付き）が使えない
+- テーブル定義（VARCHAR(20)）との不整合
+
+#### ✅ 正しいパターン: 複数形式をサポート
+
+```typescript
+/**
+ * カラーコードのバリデーション
+ * サポートする形式:
+ * - 3桁: #RGB (例: #F00 は #FF0000 と同義)
+ * - 6桁: #RRGGBB (例: #FF9800)
+ * - 8桁: #RRGGBBAA (例: #FF9800FF - アルファチャンネル付き)
+ */
+@Matches(/^#([0-9A-F]{3}|[0-9A-F]{6}|[0-9A-F]{8})$/, {
+  message: 'カラーコードは#RGB、#RRGGBB、または#RRGGBBAA形式で指定してください',
+})
+color: string;
+```
+
+**教訓**:
+
+- 一般的な形式をすべてサポート
+- テーブルカラムの定義と整合性を保つ
+- 将来の拡張性を考慮
+
+---
+
+### 16-6. パフォーマンス最適化の意識 🟢 Medium
+
+#### ❌ 避けるべきパターン: 不要なカラムの取得
+
+```typescript
+// 使用状況確認で全カラムを取得
+async checkCategoryUsage(categoryId: string) {
+  const transactions = await this.transactionRepository.query(
+    'SELECT * FROM transactions WHERE category_id = ?',
+    [categoryId]
+  );
+  return transactions.map(tx => tx.id); // IDのみ使用
+}
+```
+
+**問題点**:
+
+- 不要なデータを取得してメモリを消費
+- ネットワーク帯域の無駄
+- クエリパフォーマンスの低下
+
+#### ✅ 正しいパターン: 必要なカラムのみ取得
+
+```typescript
+// 必要なカラムのみ取得
+async checkCategoryUsage(categoryId: string) {
+  const transactionIds = await this.transactionRepository.query(
+    'SELECT id FROM transactions WHERE category_id = ? LIMIT 10',
+    [categoryId]
+  );
+  return transactionIds.map(row => row.id);
+}
+```
+
+**教訓**:
+
+- SELECT \* を避け、必要なカラムのみ指定
+- LIMIT句で取得件数を制限
+- メモリとネットワーク帯域を節約
+- クエリの意図が明確になる
+
+---
+
+## 17. 詳細設計書レビュー第2弾から学んだ観点（Issue #32 / PR #321）
+
+### 17-1. N+1問題の回避（API設計） 🔴 Critical
+
+**学習元**: Issue #32 / PR #321 - Geminiレビュー（FR-011 詳細設計書 第2弾）
+
+#### ❌ 避けるべきパターン: IDのみ返却 + 追加APIコール
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionIds: string[]; // IDのみ
+}
+```
+
+**UI表示**:
+
+```typescript
+// 各IDに対して追加APIコールが必要（N+1問題）
+const transactionDetails = await Promise.all(
+  transactionIds.map((id) => fetchTransactionDetail(id))
+);
+```
+
+**問題点**:
+
+- UI表示に必要な情報を取得するために複数のAPIコールが必要
+- N+1問題によるパフォーマンス低下
+- ネットワーク遅延の累積
+
+#### ✅ 正しいパターン: 表示に必要な情報を含める
+
+**API仕様**:
+
+```typescript
+interface CategoryUsageResponse {
+  isUsed: boolean;
+  usageCount: number;
+  transactionSamples: TransactionSample[]; // 詳細情報を含む
+}
+
+interface TransactionSample {
+  id: string;
+  date: string; // 表示用
+  description: string; // 表示用
+  amount: number; // 表示用
+}
+```
+
+**教訓**:
+
+- UI表示に必要な情報を事前に考慮
+- 1回のAPIコールで完結するよう設計
+- フロントエンドの実装を想定した設計
+
+---
+
+### 17-2. RESTful API設計の原則 🟡 High
+
+#### ❌ 避けるべきパターン: 冗長なエンドポイント
+
+```markdown
+DELETE /api/categories/:id
+POST /api/categories/batch-update
+```
+
+**問題点**:
+
+- 削除時の一括置換が別エンドポイントとして分離
+- APIの責務が不明確
+
+#### ✅ 正しいパターン: 単一エンドポイントで完結
+
+```markdown
+DELETE /api/categories/:id?replacementCategoryId=xxx
+```
+
+**教訓**:
+
+- RESTful な設計原則に従う
+- 関連する操作は単一エンドポイントで処理
+
+---
+
+### 17-3. 文字列正規化の明確化 🟡 High
+
+#### ❌ 避けるべきパターン: 曖昧なルール記述
+
+```markdown
+- 大文字小文字を区別しない
+- 例: 「ペット」と「ぺっと」は重複
+```
+
+**問題点**:
+
+- ひらがな/カタカナは大文字小文字の問題ではない
+- 実装時に混乱を招く
+
+#### ✅ 正しいパターン: NFKC正規化を明記
+
+```markdown
+- 文字の正規化後に比較（NFKC正規化）
+  - ひらがな/カタカナの統一
+  - 全角/半角の統一
+  - 大文字/小文字の統一
+```
+
+**教訓**:
+
+- 文字列比較のルールは具体的に記述
+- NFKC正規化などの技術用語を使用
+
+---
+
+### 17-4. Discriminated Union型の活用 🟢 Medium
+
+#### ❌ 避けるべきパターン: 曖昧なユニオン型
+
+```typescript
+interface ApiResponse {
+  success: boolean;
+  data?: SomeData;
+  error?: string;
+}
+```
+
+**問題点**:
+
+- \`success: true\` でも \`data\` が \`undefined\` の可能性
+- クライアント側でのハンドリングが複雑
+
+#### ✅ 正しいパターン: Discriminated Union型
+
+```typescript
+type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+interface SuccessResponse<T> {
+  success: true;
+  data: T; // 必ず存在
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string; // 必ず存在
+  message: string;
+  details?: object; // エラー詳細（任意）
+}
+```
+
+**教訓**:
+
+- Discriminated Union型で型安全性を確保
+- \`success\`フラグで型を判別
+
+---
+
+### 17-5. Markdownテーブルの正しい記法 🟢 Medium
+
+#### ❌ パイプ文字のエスケープ忘れ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}|[0-9A-F]{6})$\` |
+```
+
+#### ✅ パイプ文字をエスケープ
+
+```markdown
+| 正規表現 | \`^#([0-9A-F]{3}\\|[0-9A-F]{6})$\` |
+```
+
+**教訓**:
+
+- Markdownテーブル内では特殊文字をエスケープ
+- バックスラッシュ \`\\|\` を使用
+
+---
+
+## 18. Gemini Code Assist レビューから学んだ観点（PR #322 実装フェーズ）
+
+### 18-1. データベースクエリの最適化 🔴 High
+
+#### ❌ 複数回のDB呼び出し
+
+```typescript
+// 非効率：3回のDB呼び出し
+async execute(request: CreateCategoryRequest): Promise<CreateCategoryResponse> {
+  await this.checkDuplicate(request.name, request.type, request.parentId);
+  const order = await this.getNextOrder(request.type, request.parentId);
+  // ...
+}
+
+private async checkDuplicate(...) {
+  const categories = await this.repository.findByType(type); // 1回目
+}
+
+private async getNextOrder(...) {
+  const categories = await this.repository.findByType(type); // 2回目（重複）
+}
+```
+
+#### ✅ 1回のDB呼び出しに統合
+
+```typescript
+async execute(request: CreateCategoryRequest): Promise<CreateCategoryResponse> {
+  const { name, type, parentId } = request;
+
+  // 関連カテゴリを一度だけ取得し、重複チェックと順序計算を行う
+  const categories = await this.repository.findByType(type);
+  const siblings = categories.filter((c) => c.parentId === parentId);
+
+  // 重複チェック
+  const normalizedName = name.normalize('NFKC').toLowerCase();
+  const duplicate = siblings.find(
+    (c) => c.name.normalize('NFKC').toLowerCase() === normalizedName,
+  );
+  if (duplicate) {
+    throw new ConflictException(\`同名の費目が既に存在します: \${name}\`);
+  }
+
+  // 順序計算
+  const order = siblings.length > 0
+    ? Math.max(...siblings.map((c) => c.order)) + 1
+    : 0;
+  // ...
+}
+```
+
+**教訓**:
+
+- 複数のプライベートメソッドがそれぞれDBを呼び出す場合、統合を検討
+- 同じデータを複数回取得しない
+- 1回の取得で必要なロジックを全て実行
+
+---
+
+### 18-2. findAll() vs findByType() 🔴 High
+
+#### ❌ 全件取得（非効率）
+
+```typescript
+private async checkDuplicate(...): Promise<void> {
+  const categories = await this.repository.findAll(); // 全カテゴリ取得
+  // カテゴリ数が増えるとパフォーマンス低下
+}
+```
+
+#### ✅ 必要なデータのみ取得
+
+```typescript
+private async checkDuplicate(
+  name: string,
+  type: CategoryType,
+  parentId: string | null,
+  excludeId: string,
+): Promise<void> {
+  const categories = await this.repository.findByType(type); // タイプ別のみ
+  // ...
+}
+```
+
+**教訓**:
+
+- \`findAll()\`は最小限に使用
+- 可能な限り条件付きクエリ（\`findByType\`, \`findByParentId\`等）を使用
+- スケーラビリティを考慮したクエリ設計
+
+---
+
+### 18-3. テストの効率化 🟡 Medium
+
+#### ❌ 重複したexpect呼び出し
+
+```typescript
+await expect(useCase.execute(request)).rejects.toThrow(ConflictException);
+await expect(useCase.execute(request)).rejects.toThrow('同名の費目が既に存在します');
+// 問題：2回実行される、モック状態が影響
+```
+
+#### ✅ 1回の呼び出しで型とメッセージを検証
+
+```typescript
+await expect(useCase.execute(request)).rejects.toThrow(
+  new ConflictException('同名の費目が既に存在します')
+);
+// 1回の実行で型とメッセージの両方を検証
+```
+
+**教訓**:
+
+- 例外インスタンスを直接\`toThrow\`に渡す
+- テスト実行効率が向上
+- モック状態の管理が簡単
+
+---
+
+### 18-4. it.eachでテストケースをまとめる 🟡 Medium
+
+#### ❌ 同じロジックの繰り返し
+
+```typescript
+it('#RGB形式を受け入れる', async () => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name: 'RGB形式テスト', color: '#FFF' })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+
+it('#RRGGBB形式を受け入れる', async () => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name: 'RRGGBB形式テスト', color: '#FFFFFF' })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+```
+
+#### ✅ it.eachで簡潔に
+
+```typescript
+const testCases = [
+  { format: '#RGB', color: '#FFF', name: 'RGB形式テスト' },
+  { format: '#RRGGBB', color: '#FFFFFF', name: 'RRGGBB形式テスト' },
+  { format: '#RRGGBBAA', color: '#FFFFFFFF', name: 'RRGGBBAA形式テスト' },
+];
+
+it.each(testCases)('$format形式を受け入れる', async ({ color, name }) => {
+  const response = await request(app.getHttpServer())
+    .post('/categories')
+    .send({ name, type: CategoryType.EXPENSE, color })
+    .expect(201);
+  await request(app.getHttpServer()).delete(\`/categories/\${response.body.id}\`);
+});
+```
+
+**教訓**:
+
+- 同じロジックで異なるデータの場合は\`it.each\`を使用
+- コードの重複削減
+- テストケースの追加が容易
+
+---
+
+### 18-5. Controllerレスポンスの簡潔化 🟡 Medium
+
+#### ❌ 手動でレスポンス構築
+
+```typescript
+async delete(id: string): Promise<DeleteCategoryResponseDto> {
+  const result = await this.deleteCategoryUseCase.execute(id);
+  return {
+    success: true,
+    replacedCount: result.replacedCount,
+    message: result.message,
+  };
+}
+```
+
+#### ✅ UseCaseの返り値を直接返す
+
+```typescript
+async delete(id: string): Promise<DeleteCategoryResponseDto> {
+  return this.deleteCategoryUseCase.execute(id);
+}
+```
+
+**教訓**:
+
+- UseCaseの返り値型とControllerのレスポンス型が一致する場合は直接返す
+- コードの簡潔性向上
+- 将来の変更に強い（UseCaseの変更がControllerに自動反映）
+
+---
+
+## 📚 セクション16: FR-012実装レビューから学んだ観点（Gemini PR#325）
+
+### 16.1 集計処理の冪等性確保
+
+**問題**: 集計APIを再実行すると、ユニーク制約違反でエラーが発生する。
+
+**解決策**: Upsert処理を実装
+
+```typescript
+// ❌ 常に新規作成（再実行でエラー）
+await this.aggregationRepository.save(summary);
+
+// ✅ 既存データをチェックしてUpsert
+const existing = await this.aggregationRepository.findByCardAndMonth(
+  summary.cardId,
+  summary.billingMonth
+);
+
+if (existing) {
+  // 既存データのIDを引き継いで更新
+  const updatedSummary = new MonthlyCardSummary(
+    existing.id, // 既存IDを使用
+    // ... 他のフィールド
+    existing.createdAt, // createdAtは保持
+    new Date() // updatedAtは更新
+  );
+  await this.aggregationRepository.save(updatedSummary);
+} else {
+  await this.aggregationRepository.save(summary);
+}
+```
+
+**教訓**:
+
+- 集計・バッチ処理は冪等性を確保する
+- ユニーク制約がある場合は必ずUpsert処理を実装
+- createdAt/updatedAtを適切に管理
+
+### 16.2 DIトークンのSymbol統一
+
+**問題**: 文字列リテラルをDIトークンとして使用すると、タイプミスやリファクタリングが困難。
+
+**解決策**: Symbolトークンを定義
+
+```typescript
+// ✅ tokens.ts
+export const AGGREGATION_REPOSITORY = Symbol('AggregationRepository');
+
+// ✅ UseCase
+@Inject(AGGREGATION_REPOSITORY)
+private readonly aggregationRepository: AggregationRepository,
+
+// ✅ Module
+{
+  provide: AGGREGATION_REPOSITORY,
+  useClass: AggregationTypeOrmRepository,
+}
+```
+
+**教訓**:
+
+- すべてのモジュールで`*.tokens.ts`ファイルを作成
+- DIトークンはSymbolで統一
+- タイプミスを防ぎ、リファクタリングが容易
+
+### 16.3 Controller層のアーキテクチャ違反
+
+**問題**: Controllerがリポジトリに直接アクセスしている（Onion Architecture違反）。
+
+**解決策**: 専用UseCaseを作成
+
+```typescript
+// ❌ Controllerからリポジトリへ直接アクセス
+@Controller()
+export class AggregationController {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async findAll() {
+    return this.aggregationRepository.findAll(); // 違反
+  }
+}
+
+// ✅ UseCase経由でアクセス
+@Injectable()
+export class FindAllSummariesUseCase {
+  constructor(
+    @Inject(AGGREGATION_REPOSITORY)
+    private readonly aggregationRepository: AggregationRepository
+  ) {}
+
+  async execute(): Promise<MonthlyCardSummary[]> {
+    return this.aggregationRepository.findAll();
+  }
+}
+
+@Controller()
+export class AggregationController {
+  constructor(private readonly findAllSummariesUseCase: FindAllSummariesUseCase) {}
+
+  async findAll() {
+    return this.findAllSummariesUseCase.execute();
+  }
+}
+```
+
+**教訓**:
+
+- Presentation層はInfrastructure層に直接依存しない
+- CRUD操作でも専用UseCaseを作成
+- ビジネスロジックをApplication層に集約
+- Onion Architectureの原則を厳守
+
+### 16.4 到達不能コードの削除
+
+**問題**: 条件分岐で必ず真になる条件がある場合、else節は到達不能。
+
+```typescript
+// ❌ 到達不能コード
+if (this.isLastDayOfMonth(closingDay)) {
+  const lastDay = this.getLastDayOfMonth(year, month);
+  if (day <= lastDay) {
+    // dayは必ずlastDay以下
+    return this.formatYearMonth(year, month);
+  } else {
+    // ここには到達しない
+    return this.formatYearMonth(year, month + 1);
+  }
+}
+
+// ✅ シンプルに
+if (this.isLastDayOfMonth(closingDay)) {
+  return this.formatYearMonth(year, month);
+}
+```
+
+**教訓**:
+
+- ロジックを単純化し、到達不能コードを削除
+- コードレビューで論理的な不整合を指摘
+
+### 16.5 適切なHTTP例外の使用
+
+**問題**: UseCase内で汎用`Error`をthrowすると、クライアントに500エラーが返る。
+
+**解決策**: NestJSのHTTP例外クラスを使用
+
+```typescript
+// ❌ 汎用Error（500エラー）
+throw new Error(`Credit card not found: ${cardId}`);
+
+// ✅ NotFoundException（404エラー）
+throw new NotFoundException(`Credit card not found: ${cardId}`);
+```
+
+**教訓**:
+
+- UseCaseでは適切なHTTP例外を使用
+- `NotFoundException`, `BadRequestException`, `ForbiddenException`等
+- クライアントに適切なステータスコードを返す
+
+### 16.6 一括保存によるパフォーマンス向上
+
+**問題**: ループ内で1件ずつ保存すると、I/Oがボトルネックになる。
+
+**解決策**: Promise.allで並列実行
+
+```typescript
+// ❌ 1件ずつ保存
+for (const summary of summaries) {
+  await this.aggregationRepository.save(summary);
+}
+
+// ✅ 一括保存（並列実行）
+await Promise.all(summaries.map((summary) => this.aggregationRepository.save(summary)));
+```
+
+**教訓**:
+
+- 複数件の保存は並列実行を検討
+- データベースI/Oを削減
+- パフォーマンス向上
+
+---
+
+## 📚 セクション17: FR-012実装レビュー第2回から学んだ観点（Gemini PR#325）
+
+### 17.1 N+1クエリ問題とUpsertの重大なバグ
+
+**問題1 (N+1クエリ)**: ループ内でリポジトリ呼び出しを繰り返すとパフォーマンスが低下する。
+
+```typescript
+// ❌ N+1クエリ
+for (const summary of summaries) {
+  const existing = await this.aggregationRepository.findByCardAndMonth(
+    summary.cardId,
+    summary.billingMonth
+  );
+  // ...
+}
+```
+
+**問題2 (重大なバグ)**: 更新後のデータではなく、更新前のデータを返している。
+
+```typescript
+// ❌ 更新前のsummariesを返す（バグ）
+summaries.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summaries;
+```
+
+**解決策**: 一括取得してMap化、更新後の配列を返す
+
+```typescript
+// ✅ 一括取得してMap化
+const existingSummaries = await this.aggregationRepository.findByCard(
+  creditCard.id,
+  startMonth,
+  endMonth
+);
+const existingSummariesMap = new Map(existingSummaries.map((s) => [s.billingMonth, s]));
+
+const summariesToSave = summaries.map((summary) => {
+  const existing = existingSummariesMap.get(summary.billingMonth);
+  if (existing) {
+    // 更新
+    return new MonthlyCardSummary(/* ... */);
+  }
+  return summary;
+});
+
+// 一括保存
+await Promise.all(summariesToSave.map((s) => this.aggregationRepository.save(s)));
+
+// ✅ 更新後のデータを返す
+summariesToSave.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
+return summariesToSave;
+```
+
+**教訓**:
+
+- N+1問題はパフォーマンス劣化の主要因
+- 一括取得→Map化で解決
+- 更新後のデータを返す（クライアントが正しいデータを受け取る）
+- Upsert処理の返り値は特に注意
+
+### 17.2 useFactoryの冗長性
+
+**問題**: `@Injectable()`デコレータがあるのに、手動でファクトリを定義している。
+
+```typescript
+// ❌ 冗長
+{
+  provide: AggregateCardTransactionsUseCase,
+  useFactory: (
+    creditCardRepository: ICreditCardRepository,
+    // ...
+  ): AggregateCardTransactionsUseCase => {
+    return new AggregateCardTransactionsUseCase(
+      creditCardRepository,
+      // ...
+    );
+  },
+  inject: [
+    CREDIT_CARD_REPOSITORY,
+    // ...
+  ],
+}
+
+// ✅ シンプル（NestJSが自動解決）
+AggregateCardTransactionsUseCase,
+```
+
+**教訓**:
+
+- `@Injectable()`があればNestJSが自動でDI解決
+- 手動ファクトリは特別な初期化が必要な場合のみ
+- コードの簡潔性向上
+
+### 17.3 Dateの自動オーバーフロー処理活用
+
+**問題**: 年月計算を手動で実装すると複雑になる。
+
+```typescript
+// ❌ 複雑
+private formatYearMonth(year: number, month: number): string {
+  if (month > 11) {
+    const yearOffset = Math.floor(month / 12);
+    const actualMonth = month % 12;
+    return `${year + yearOffset}-${String(actualMonth + 1).padStart(2, '0')}`;
+  }
+  if (month < 0) {
+    // ... 複雑なロジック
+  }
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+// ✅ Dateの自動処理活用
+private formatYearMonth(year: number, month: number): string {
+  const date = new Date(year, month);
+  const formattedYear = date.getFullYear();
+  const formattedMonth = String(date.getMonth() + 1).padStart(2, '0');
+  return `${formattedYear}-${formattedMonth}`;
+}
+```
+
+**教訓**:
+
+- `new Date(year, month)`は自動でオーバーフロー・アンダーフロー処理
+- 標準APIの機能を最大限活用
+- コードが簡潔で可読性向上
+
+### 17.4 テストのモック整合性
+
+**問題**: 実装を変更したのに、テストのモックを更新し忘れる。
+
+```typescript
+// 実装で追加
+const existingSummaries = await this.aggregationRepository.findByCard(/* ... */);
+
+// ❌ テストでモック未定義
+// aggregationRepository.findByCard.mockResolvedValue([]);  // 追加忘れ
+
+// ✅ テストで追加
+aggregationRepository.findByCard.mockResolvedValue([]);
+```
+
+**教訓**:
+
+- リポジトリメソッドを追加したら、すべてのテストでモック追加
+- テスト失敗の原因が「モック未定義」になることが多い
+- 実装変更とテスト更新は常にセット
+
+### 17.5 ローカルチェックの徹底
+
+**問題**: Lint/Buildは通過しても、Testを忘れてCI失敗。
+
+**解決策**: 4ステップチェックを完全実行
+
+```bash
+# 1. Lint
+./scripts/test/lint.sh
+
+# 2. Build（重要！）
+pnpm build
+
+# 3. Unit Tests
+./scripts/test/test.sh all
+
+# 4. E2E Tests
+./scripts/test/test-e2e.sh frontend
+```
+
+**教訓**:
+
+- **Build**は特に重要（型エラーを検出）
+- すべてのチェックを自動化スクリプトで実行
+- CIで失敗すると時間損失が大きい
+
+---
+
+## 📚 セクション18: FR-012実装レビュー第3回（最終）から学んだ観点（Gemini PR#325）
+
+### 18.1 API設計：0件は例外ではなく正常
+
+**問題**: 取引が0件の場合に`NotFoundException`をスローしている。
+
+```typescript
+// ❌ 0件をエラー扱い
+if (transactions.length === 0) {
+  throw new NotFoundException('No transactions found for the specified period');
+}
+
+// ✅ 0件は正常、空配列を返す
+if (transactions.length === 0) {
+  return [];
+}
+```
+
+**教訓**:
+
+- **「データがない」は正常な状態**
+- クライアントが404エラーハンドリング不要
+- API設計として自然で使いやすい
+- 検索APIやリスト取得APIでは特に重要
+
+### 18.2 toPlain/fromPlainの活用（エンティティの保守性）
+
+**問題**: 長いコンストラクタ引数で更新すると、将来の変更に脆弱。
+
+```typescript
+// ❌ 引数14個、将来の変更に脆弱
+return new MonthlyCardSummary(
+  existing.id,
+  summary.cardId,
+  summary.cardName,
+  summary.billingMonth,
+  summary.closingDate,
+  summary.paymentDate,
+  summary.totalAmount,
+  summary.transactionCount,
+  summary.categoryBreakdown,
+  summary.transactionIds,
+  summary.netPaymentAmount,
+  summary.status,
+  existing.createdAt,
+  new Date()
+);
+
+// ✅ toPlain/fromPlainで簡潔かつ堅牢
+const plainSummary = summary.toPlain();
+return MonthlyCardSummary.fromPlain({
+  ...plainSummary,
+  id: existing.id,
+  createdAt: existing.createdAt,
+  updatedAt: new Date(),
+});
+```
+
+**教訓**:
+
+- エンティティに`toPlain/fromPlain`がある場合は積極活用
+- 引数の順番間違いを防止
+- フィールド追加時の変更箇所を最小化
+- コード可読性向上
+
+### 18.3 Value Objectのファクトリメソッド統一
+
+**問題**: VOを直接`new`で生成したり、`fromPlain`を使ったりで統一されていない。
+
+```typescript
+// ❌ 手動生成（一貫性欠如）
+const categoryBreakdown = ormEntity.categoryBreakdown.map(
+  (item) => new CategoryAmount(item.category, item.amount, item.count)
+);
+
+// 手動変換
+const categoryBreakdown = domain.categoryBreakdown.map((item) => ({
+  category: item.category,
+  amount: item.amount,
+  count: item.count,
+}));
+
+// ✅ 統一：VOのメソッド活用
+// ORM→Domain
+const categoryBreakdown = ormEntity.categoryBreakdown.map((item) => CategoryAmount.fromPlain(item));
+
+// Domain→Plain
+const categoryBreakdown = domain.categoryBreakdown.map((item) => item.toPlain());
+```
+
+**教訓**:
+
+- VOに`toPlain/fromPlain`がある場合は必ず使用
+- 変換ロジックをVOに集約
+- コード全体で一貫性を保つ
+- バリデーションもVOに集約されるため安全
+
+### 18.4 Date API活用の徹底
+
+**問題**: 翌月計算で手動の年月判定をしている。
+
+```typescript
+// ❌ 手動の年月判定
+const year = closingDate.getFullYear();
+const month = closingDate.getMonth();
+const nextMonth = month + 1;
+const nextYear = nextMonth > 11 ? year + 1 : year;
+const actualMonth = nextMonth > 11 ? 0 : nextMonth;
+
+// ✅ Date APIの自動処理活用
+const firstDayOfNextMonth = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, 1);
+const year = firstDayOfNextMonth.getFullYear();
+const month = firstDayOfNextMonth.getMonth();
+```
+
+**教訓**:
+
+- `Date`コンストラクタは自動でオーバーフロー処理
+- 12月→1月の年越しも自動
+- 手動計算は複雑でバグの温床
+- 標準APIを最大限活用
+
+### 18.5 全体的な学び：コードの一貫性と保守性
+
+**統一すべきパターン**:
+
+1. **変換ロジック**: エンティティ/VOのメソッドを使用
+2. **日付計算**: Date APIの自動処理を活用
+3. **API設計**: 0件は正常な結果として扱う
+4. **エラーハンドリング**: 適切なHTTP例外を使用
+
+**保守性向上のポイント**:
+
+- ファクトリメソッド/変換メソッドの積極活用
+- 手動変換の排除
+- 一貫したパターンの適用
+- 将来の変更に強い設計
+
+---
+
+## 19. 詳細設計時の重要な観点（Gemini PR#330レビューから学習）
+
+（既存の内容は省略）
+
+## 20. 実装時の重要な観点（Gemini PR#331レビューから学習）
+
+### 20.1 リポジトリの不変性保証
+
+**問題**: 履歴データを追記のみ（append-only）とする設計において、既存レコードの更新ロジックが含まれていると、データの不整合を招く危険性がある。
+
+**解決策**:
+
+- リポジトリの`save`メソッドで、ID重複時はエラーをスローする
+- 履歴は常に新しいIDを持つ新しいレコードとして記録する
+
+```typescript
+// ✅ 正しい実装
+async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
+  const records = await this.loadFromFile();
+
+  // ID重複チェック（履歴の不変性を保証）
+  const existingIndex = records.findIndex((r) => r.id === record.id);
+  if (existingIndex >= 0) {
+    throw new Error(`Record with ID ${record.id} already exists.`);
+  }
+
+  records.push(record);
+  await this.saveToFile(records);
+  return record;
+}
+```
+
+### 20.2 HTTPステータスコードの適切な使用
+
+**問題**: リソースが見つからない場合に汎用の`Error`をスローすると、HTTP 500 Internal Server Errorが返ってしまう。
+
+**解決策**:
+
+- リソースが見つからない場合は、NestJSの`NotFoundException`を使用してHTTP 404 Not Foundを返す
+- これにより、クライアントに適切なエラーレスポンスを提供できる
+
+```typescript
+// ✅ 正しい実装
+if (!record) {
+  throw new NotFoundException(`Payment status not found: ${cardSummaryId}`);
+}
+```
+
+### 20.3 バッチ処理の並列化
+
+**問題**: forループ内での逐次的な`await`により、多数のレコードを処理する場合に処理時間が長くなる。
+
+**解決策**:
+
+- `Promise.allSettled`を使用して並列処理を実装
+- 各更新処理を並列で実行しつつ、個別の成功・失敗をハンドリング
+- これにより、バッチ処理全体の実行時間を大幅に短縮できる
+
+```typescript
+// ✅ 正しい実装
+const updateTasks = records
+  .map((record) => {
+    // 更新条件をチェック
+    if (shouldUpdate(record)) {
+      return {
+        cardSummaryId: record.cardSummaryId,
+        promise: this.updateUseCase.executeAutomatically(...),
+      };
+    }
+    return null;
+  })
+  .filter((item): item is NonNullable<typeof item> => item !== null);
+
+const results = await Promise.allSettled(
+  updateTasks.map((t) => t.promise),
+);
+
+let successCount = 0;
+let failureCount = 0;
+
+results.forEach((result, index) => {
+  if (result.status === 'fulfilled') {
+    successCount++;
+  } else {
+    failureCount++;
+    this.logger.error(
+      `Failed to update status for ${updateTasks[index].cardSummaryId}`,
+      result.reason,
+    );
+  }
+});
+```
+
+### 20.4 バッチ処理結果の返却
+
+**問題**: 手動実行時の結果が分からず、デバッグやテストの際に不便。
+
+**解決策**:
+
+- バッチ処理メソッドが更新成功・失敗件数を返すように修正
+- `executeManually`でそれらを集計することで、より有用な情報を提供
+
+```typescript
+// ✅ 正しい実装
+async updatePendingToProcessing(): Promise<{
+  success: number;
+  failure: number;
+  total: number;
+}> {
+  // ... 処理 ...
+  return {
+    success: successCount,
+    failure: failureCount,
+    total: records.length,
+  };
+}
+
+async executeManually(): Promise<BatchResult> {
+  const pendingResult = await this.updatePendingToProcessing();
+  const overdueResult = await this.updateProcessingToOverdue();
+
+  return {
+    success: pendingResult.success + overdueResult.success,
+    failure: pendingResult.failure + overdueResult.failure,
+    total: pendingResult.total + overdueResult.total,
+    duration: Date.now() - startTime,
+    timestamp: new Date(),
+  };
+}
+```
+
+### 20.5 コードの重複排除（DRY原則）
+
+**問題**: 複数のメソッドで同じロジックが重複していると、将来のメンテナンス性が低下する。
+
+**解決策**:
+
+- 共通ロジックをプライベートメソッドとして抽出
+- 両方のメソッドから呼び出すことで、コードのDRY原則を保ち、可読性と保守性を向上
+
+```typescript
+// ✅ 正しい実装
+async executeManually(...): Promise<PaymentStatusRecord> {
+  const currentRecord = await this.getValidRecordForTransition(
+    cardSummaryId,
+    newStatus,
+  );
+  // ... 残りの処理 ...
+}
+
+async executeAutomatically(...): Promise<PaymentStatusRecord> {
+  const currentRecord = await this.getValidRecordForTransition(
+    cardSummaryId,
+    newStatus,
+  );
+  // ... 残りの処理 ...
+}
+
+private async getValidRecordForTransition(
+  cardSummaryId: string,
+  newStatus: PaymentStatus,
+): Promise<PaymentStatusRecord> {
+  // 共通ロジックをここに集約
+}
+```
+
+### 20.6 遷移ルールの一元管理
+
+**問題**: `canTransitionTo`メソッドと`getAllowedTransitions`メソッドの両方で、同じ遷移ルールオブジェクトが定義されており、コードが重複している。
+
+**解決策**:
+
+- 遷移ルールを`private static readonly`なクラスメンバーとして一元管理
+- 両方のメソッドからこの静的メンバーを参照するようにリファクタリング
+- これにより、保守性が向上し、将来のルール変更が容易になる
+
+```typescript
+// ✅ 正しい実装
+export class PaymentStatusRecord {
+  private static readonly ALLOWED_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
+    [PaymentStatus.PENDING]: [
+      PaymentStatus.PROCESSING,
+      PaymentStatus.PARTIAL,
+      PaymentStatus.CANCELLED,
+      PaymentStatus.MANUAL_CONFIRMED,
+    ],
+    // ... 他の遷移ルール ...
+  };
+
+  canTransitionTo(newStatus: PaymentStatus): boolean {
+    const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+    return allowed.includes(newStatus);
+  }
+
+  getAllowedTransitions(): PaymentStatus[] {
+    return PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+  }
+}
+```
+
+### 20.7 リポジトリのfindAllByStatusメソッドのロジック修正 🔴 Critical
+
+**問題**: `findAllByStatus`メソッドで、まずステータスでフィルタリングしてから最新レコードを取得していると、過去のステータスが返される可能性がある。
+
+**解決策**:
+
+- まず全てのレコードから各`cardSummaryId`の最新レコードを特定
+- その後、最新レコードが指定されたステータスであるものをフィルタリング
+
+```typescript
+// ✅ 正しい実装
+async findAllByStatus(status: PaymentStatus): Promise<PaymentStatusRecord[]> {
+  const records = await this.loadFromFile();
+
+  // 各cardSummaryIdごとに最新の記録をマップに格納
+  const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+  for (const record of records) {
+    const existing = latestByCardSummary.get(record.cardSummaryId);
+    if (
+      !existing ||
+      record.updatedAt.getTime() > existing.updatedAt.getTime()
+    ) {
+      latestByCardSummary.set(record.cardSummaryId, record);
+    }
+  }
+
+  // 最新の記録の中から指定されたステータスのものをフィルタリング
+  const result: PaymentStatusRecord[] = [];
+  for (const record of latestByCardSummary.values()) {
+    if (record.status === status) {
+      result.push(record);
+    }
+  }
+
+  return result;
+}
+```
+
+**理由**:
+
+- ステータスで先にフィルタすると、すでにステータスが変更された請求の過去レコードが返される可能性がある
+- 最新レコードを先に特定することで、現在のステータスが指定されたステータスであるレコードのみを返せる
+
+### 20.8 無効なステータス遷移時の適切な例外処理
+
+**問題**: 無効なステータス遷移を試みた場合に、汎用の`Error`をスローすると、HTTP 500 Internal Server Errorが返ってしまう。
+
+**解決策**:
+
+- クライアントからの不正なリクエスト（無効な遷移）に起因するエラーであるため、`BadRequestException`（HTTP 400）をスローする
+
+```typescript
+// ✅ 正しい実装
+import { BadRequestException } from '@nestjs/common';
+
+if (!currentRecord.canTransitionTo(newStatus)) {
+  throw new BadRequestException(`Cannot transition from ${currentRecord.status} to ${newStatus}`);
+}
+```
+
+**理由**:
+
+- サーバー側の問題ではなく、クライアントからの不正なリクエストである
+- HTTP 400 Bad Requestが適切なステータスコード
+
+### 20.9 終端状態チェックの冗長性排除
+
+**問題**: `canTransitionTo`メソッド内で、`terminalStatuses`配列を用いた終端状態のチェックが冗長。
+
+**解決策**:
+
+- `ALLOWED_TRANSITIONS`マップでは、終端状態からの遷移先としてすでに空の配列(`[]`)が定義されている
+- 後続の `allowed.includes(newStatus)` のロジックで終端状態からの遷移は自動的に`false`と判定される
+- 冗長なチェックを削除
+
+```typescript
+// ✅ 正しい実装
+canTransitionTo(newStatus: PaymentStatus): boolean {
+  // 同じステータスへの遷移は不可
+  if (this.status === newStatus) {
+    return false;
+  }
+
+  // 遷移ルールを静的メンバーから取得
+  // ALLOWED_TRANSITIONSに空配列が定義されている終端状態からの遷移は自動的にfalseと判定される
+  const allowed = PaymentStatusRecord.ALLOWED_TRANSITIONS[this.status] || [];
+  return allowed.includes(newStatus);
+}
+```
+
+**メリット**:
+
+- コードがシンプルになる
+- 遷移ルールが一元管理されているという意図が明確になる
+
+### 20.10 バッチ処理の共通ロジック抽出
+
+**問題**: `updatePendingToProcessing`メソッドと`updateProcessingToOverdue`メソッドには、レコードの取得、関連データの取得、更新タスクの作成と実行といった共通のロジックが多く含まれている。
+
+**解決策**:
+
+- 共通処理をプライベートヘルパーメソッドに抽出
+- 更新条件を関数として受け取ることで、柔軟性を保つ
+
+```typescript
+// ✅ 正しい実装
+private async processStatusUpdates(
+  fromStatus: PaymentStatus,
+  toStatus: PaymentStatus,
+  updateCondition: (summary: MonthlyCardSummary) => boolean,
+  reason: string,
+): Promise<{ success: number; failure: number; total: number }> {
+  // 共通ロジック: レコード取得、関連データ取得、更新タスク作成と実行
+  // ...
+}
+
+async updatePendingToProcessing(): Promise<{
+  success: number;
+  failure: number;
+  total: number;
+}> {
+  return this.processStatusUpdates(
+    PaymentStatus.PENDING,
+    PaymentStatus.PROCESSING,
+    (summary) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const threeDaysBefore = new Date(summary.paymentDate);
+      threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+      threeDaysBefore.setHours(0, 0, 0, 0);
+      return today >= threeDaysBefore;
+    },
+    '引落予定日の3日前',
+  );
+}
+```
+
+**メリット**:
+
+- コードの重複が削減される
+- 可読性と保守性が向上する
+- 新しいステータス遷移の追加が容易になる
+
+### 20.11 副作用を避けるための配列操作
+
+**問題**: `save`メソッドで、`loadFromFile`が返す配列を直接変更している。これは内部実装に依存しており、将来の実装変更時にバグの原因となる可能性がある。
+
+**解決策**:
+
+- 返された配列を直接変更するのではなく、新しい配列を作成してキャッシュを更新
+- スプレッド構文を使用して新しい配列を作成
+
+```typescript
+// ✅ 正しい実装
+async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
+  const records = await this.loadFromFile();
+
+  // ID重複チェック（履歴の不変性を保証）
+  const existingIndex = records.findIndex((r) => r.id === record.id);
+  if (existingIndex >= 0) {
+    throw new Error(`Record with ID ${record.id} already exists.`);
+  }
+
+  // 新しい記録を追加した新しい配列を作成（副作用を避ける）
+  const newRecords = [...records, record];
+
+  await this.saveToFile(newRecords);
+  this.cache = newRecords;
+
+  return record;
+}
+```
+
+**メリット**:
+
+- 副作用のないクリーンな実装
+- 内部実装の変更に影響されない
+- 意図が明確になる
+
+**重要なポイント**:
+
+- 履歴データは不変であるべきで、更新ではなく常に新しいレコードとして追加する
+- HTTPステータスコードは適切に使用し、クライアントに正確なエラー情報を提供する
+- バッチ処理は並列化することで、パフォーマンスを大幅に向上できる
+- コードの重複は積極的に排除し、DRY原則を遵守する
+- ビジネスルール（遷移ルールなど）は一元管理し、保守性を向上させる
+
+### 19.1 リポジトリの不変性保証
+
+**問題**: 履歴の不変性を保証する設計原則と、リポジトリインターフェースに`delete`メソッドが定義されている矛盾。
+
+**解決策**:
+
+- 履歴は追記のみ（append-only）で、削除・変更は不可という設計原則を徹底
+- リポジトリインターフェースから`delete`メソッドを削除
+- アーキテクチャレベルで不変性を保証
+
+**教訓**:
+
+- 設計原則とインターフェース定義の整合性を常に確認
+- 不変性を保証する場合は、削除メソッドを提供しない
+
+### 19.2 バッチ処理のN+1問題回避
+
+**問題**: ループ内で個別に`findById`を呼び出すことで、大量のレコード処理時に深刻なパフォーマンスボトルネックとなる。
+
+**解決策**:
+
+- 必要なデータを一括取得するリポジトリメソッドを設計
+- `findByIds(ids: string[])`のような一括取得メソッドを提供
+- ループ前に必要なデータをすべて取得し、Mapで管理
+
+**教訓**:
+
+- バッチ処理では必ずN+1問題を考慮
+- 一括取得メソッドの設計を優先
+- 大量データ処理時のパフォーマンスを事前に検討
+
+### 19.3 ドメインロジックの一元化
+
+**問題**: 状態遷移の検証ロジックがドメインエンティティとApplication層のバリデーターで重複。
+
+**解決策**:
+
+- 状態遷移ルールはドメインの関心事であるため、ドメイン層に一元化
+- Application層のバリデーターを削除
+- UseCaseがエンティティのメソッドを直接呼び出して検証
+
+**教訓**:
+
+- ドメインロジックはドメイン層に集約
+- Application層は調整ロジックのみ
+- ロジックの重複を避け、Single Source of Truthを維持
+
+### 19.4 フロントエンドとバックエンドの結合度低減
+
+**問題**: フロントエンドで遷移ルールがハードコードされており、バックエンドと二重管理となる。
+
+**解決策**:
+
+- バックエンドをSingle Source of Truthとする
+- 遷移可能なステータスリストを取得するAPIエンドポイントを提供
+- フロントエンドはAPIから動的に取得
+
+**教訓**:
+
+- ビジネスルールはバックエンドに集約
+- フロントエンドは表示ロジックのみ
+- API設計で動的なデータ取得を可能にする
+
+### 19.5 設計書の一貫性
+
+**問題**: `PaymentStatusRecord`が`interface`として定義されているが、`class-diagrams.md`では`class`として定義されている。
+
+**解決策**:
+
+- すべての設計書で定義を統一
+- DDDにおいてエンティティはデータと振る舞いをカプセル化するクラスとして実装
+- 設計書間の整合性を常に確認
+
+**教訓**:
+
+- 設計書間の一貫性を保つ
+- エンティティはクラスとして定義（振る舞いを含む）
+- 設計書レビュー時に整合性を確認
+
+### 19.6 データ形式の正確性
+
+**問題**: レスポンス例に無効なUUID形式が含まれている。
+
+**解決策**:
+
+- すべての例で有効な形式を使用
+- UUIDは16進数のみを含む形式を確認
+- 開発者の混乱を避けるため、正確な形式を提供
+
+**教訓**:
+
+- 設計書の例は正確な形式を使用
+- 開発者が混乱しないよう、有効なデータ形式を提供
+- レビュー時にデータ形式を確認
+
+### 19.7 インターフェースと実装の整合性
+
+**問題**: `executeManually`メソッドの返り値が`BatchResult`インターフェースの定義と一致していない。
+
+**解決策**:
+
+- インターフェース定義と実装の整合性を保つ
+- 型の不一致を修正
+- 実際の処理結果を反映する設計
+
+**教訓**:
+
+- インターフェース定義と実装の整合性を常に確認
+- 型の不一致は即座に修正
+- 実装例も正確な型を使用
+
+### 19.8 設計書間の一貫性確認
+
+**問題**: 複数の設計書間で定義が不整合（例：`PaymentStatusHistory`が`interface`と`class`で混在、`isValidTransition`メソッドが残存）。
+
+**解決策**:
+
+- すべての設計書で定義を統一
+- エンティティはクラスとして定義（振る舞いを含む）
+- 削除されたコンポーネントへの参照をすべて削除
+- 設計書レビュー時に整合性を確認
+
+**教訓**:
+
+- 設計書間の一貫性を保つ
+- 削除されたコンポーネントへの参照をすべて削除
+- メソッド名の統一（`isValidTransition` → `canTransitionTo`）
+- 設計書レビュー時に整合性チェックリストを使用
+
+### 19.9 責務の明確化と依存関係の最適化
+
+**問題**: 照合結果による更新フローで、`Recon`が`Scheduler`を呼び出している（責務が不自然）。
+
+**解決策**:
+
+- 照合処理は直接`UpdatePaymentStatusUseCase`を呼び出す設計に変更
+- `Scheduler`は日次バッチ処理のみを担当
+- 責務を明確に分離
+
+**教訓**:
+
+- 各コンポーネントの責務を明確に定義
+- 不自然な依存関係を避ける
+- 直接的な呼び出しを優先（中間層を介さない）
+
+### 19.10 メソッド実装の正確性
+
+**問題**: `getStatusAt`メソッドの実装で、指定日以前で最も新しいレコードを返すべきところ、最初に一致するレコード（最も古いもの）を返していた。
+
+**解決策**:
+
+- `statusChanges`が`updatedAt`昇順でソートされていると仮定
+- `slice().reverse().find()`を使用して、指定日以前で最も新しいレコードを取得
+
+**教訓**:
+
+- メソッドの実装ロジックを正確に検証
+- 時系列データの検索では、ソート順を考慮
+- 設計書の実装例も正確性を保つ
+
+### 19.11 設計書のクリーンさ
+
+**問題**: 実装例に修正作業の名残（コメント）が残っている。
+
+**解決策**:
+
+- 不要なコメントを削除
+- 設計意図を伝えるコメントのみを残す
+
+**教訓**:
+
+- 設計書は常にクリーンに保つ
+- 修正作業の名残を残さない
+- コメントは設計意図を伝えるもののみ
+
+### 19.12 エラーコード定義の設計書間統一（CRITICAL）
+
+**問題**: 複数の設計書（README.md、class-diagrams.md、input-output-design.md）でエラーコードの定義が矛盾していた。例：`AL001`が「アラート生成失敗(500)」と「アラートが見つからない(404)」で異なる定義。
+
+**解決策**:
+
+- すべての設計書でエラーコード、HTTPステータス、メッセージを統一
+- エラーコード一覧を1箇所に集約し、他の設計書から参照
+- 設計書レビュー時にエラーコード定義の整合性を確認
+
+**教訓**:
+
+- エラーコード定義は設計書間で完全に統一する
+- 実装前にすべての設計書でエラーコード定義を確認
+- エラーコードの変更時は、すべての設計書を同時に更新
+
+**学習元**: Issue #36 / PR #332 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.13 DTOの冗長性解消と状態管理の統一
+
+**問題**: `AlertListItemDto`と`AlertResponseDto`に`status`フィールドと`isRead`、`isResolved`フィールドが両方含まれており、データが冗長だった。
+
+**解決策**:
+
+- `status`フィールド（UNREAD/READ/RESOLVED）で状態を表現することに統一
+- `isRead`と`isResolved`フィールドを削除
+- クライアント側で`status`から`isRead`や`isResolved`を導出
+
+**教訓**:
+
+- DTOの設計では冗長なフィールドを避ける
+- 状態は1つのフィールドで表現し、導出可能な情報は含めない
+- APIレスポンスをシンプルにし、クライアント側での状態管理を容易にする
+
+**学習元**: Issue #36 / PR #332 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.14 アラート生成フローの責務分離改善
+
+**問題**: アラート生成フローで、`ReconcileCreditCardUseCase`が`type`を渡す設計になっていた。アラート種別の判定ロジックがアラートモジュール外に漏れていた。
+
+**解決策**:
+
+- `ReconcileCreditCardUseCase`は照合失敗を通知するのみ（`reconciliationId`のみを渡す）
+- `CreateAlertUseCase`が`reconciliationId`から照合結果を取得
+- `AlertService`が照合結果を分析してアラート種別を自動判定（`analyzeReconciliationResult()`メソッド）
+
+**教訓**:
+
+- 各モジュールの責務を明確に分離
+- 判定ロジックは該当モジュール内にカプセル化
+- 呼び出し側は判定結果を渡すのではなく、判定に必要な情報のみを渡す
+
+**学習元**: Issue #36 / PR #332 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.15 REST APIの標準的なレスポンスコード
+
+**問題**: `DELETE /api/alerts/:id`の成功レスポンスとして`200 OK`とメッセージボディを返していた。
+
+**解決策**:
+
+- DELETE操作が成功した場合は`204 No Content`をステータスコードとして返す
+- レスポンスボディは空にする
+
+**教訓**:
+
+- REST APIの標準的な慣例に従う
+- DELETE操作は`204 No Content`を使用
+- クライアントがボディをパースする必要がないようにする
+
+**学習元**: Issue #36 / PR #332 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.14 DI設定の一貫性とトークン使用
+
+**問題**: `AlertModule`で`AlertService`を`ALERT_SERVICE`トークンで提供していたが、`CreateAlertUseCase`で直接注入しようとしていた。
+
+**解決策**:
+
+- `AlertService`を直接プロバイドし、`ALERT_SERVICE`トークンは`useExisting`で提供（後方互換性のため）
+- または、すべての注入箇所でトークンを使用するように統一
+- テストコードと実装コードでDI設定を一致させる
+
+**教訓**:
+
+- DI設定はモジュールとUseCaseで一貫性を保つ
+- トークンを使用する場合は、すべての注入箇所で統一する
+- テストコードでも同じDI設定を使用する
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.15 エンティティの不変性（immutability）の一貫性
+
+**問題**: `Alert`エンティティで`markAsRead()`はミューテーション、`markAsResolved()`は不変（新しいインスタンスを返す）と一貫性がなかった。
+
+**解決策**:
+
+- すべての状態変更メソッドで不変性を保つ（新しいインスタンスを返す）
+- `markAsRead()`も`markAsResolved()`と同様に新しいインスタンスを返すように修正
+- UseCaseで新しいインスタンスを保存するように修正
+
+**教訓**:
+
+- エンティティの状態変更メソッドは一貫性を保つ
+- 不変性を保つことで副作用を予測しやすくする
+- テストコードでも不変性を考慮したアサーションを行う
+
+**学習元**: Issue #36 / PR #332, #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.16 リポジトリメソッドの効率性と責務分離
+
+**問題**: `AlertController`の`deleteAlert`メソッドで`findById`と`delete`を別々に呼び出していた。
+
+**解決策**:
+
+- `delete`メソッド内で存在確認と削除をまとめて行う
+- `delete`メソッドが`AlertNotFoundException`をスローするように修正
+- コントローラーからは`delete`を一度だけ呼び出す
+
+**教訓**:
+
+- リポジトリメソッドは単一の責務を持つ
+- 存在確認と操作をまとめることで効率性を向上
+- エラーハンドリングはリポジトリ層で行う
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.17 キャッシュの不変性を保つ
+
+**問題**: `JsonAlertRepository`の`findAll`メソッドで、キャッシュされた配列を直接ソートしていたため、キャッシュ自体が変更されてしまっていた。
+
+**解決策**:
+
+- フィルタリングやソートを行う前に配列のコピーを作成
+- `[...(await this.loadFromFile())]`のようにスプレッド演算子を使用
+- キャッシュの不変性を保つことで、後続のメソッド呼び出しに影響を与えない
+
+**教訓**:
+
+- キャッシュされたデータは不変として扱う
+- 配列操作（ソート、フィルタリング）を行う前にコピーを作成
+- 副作用を避けることで予測可能な動作を保つ
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.18 ドメインロジックの堅牢性とエラーハンドリング
+
+**問題**: `analyzeReconciliationResult`で`UNMATCHED`以外のステータスの照合結果に対してもアラートを生成してしまっていた。
+
+**解決策**:
+
+- `UNMATCHED`以外の場合はエラーをスローする
+- ドメインロジックの前提条件を明確にする
+- 呼び出し元で適切にエラーハンドリングを行う
+
+**教訓**:
+
+- ドメインロジックの前提条件を明確にする
+- 不正な状態の場合はエラーをスローして処理を中断
+- エラーメッセージで原因を明確に示す
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.19 数値の真偽値チェックとnullチェックの区別
+
+**問題**: `buildAlertMessage`メソッドで三項演算子を使用する際、`details.actualAmount ? ...` のように数値を直接真偽値として評価していたため、`0`が`false`と評価され、意図しない動作が発生していた。
+
+**解決策**:
+
+- 数値が`null`でないことを明確にチェックするために`!== null`を使用
+- `details.actualAmount !== null ? ... : '未検出'`のように修正
+- `details.discrepancy !== null ? ... : '計算不可'`も同様に修正
+
+**教訓**:
+
+- 数値の真偽値チェックとnullチェックを区別する
+- `0`は有効な値であるため、`null`チェックには`!== null`を使用
+- 三項演算子で数値を評価する場合は注意が必要
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
+
+### 19.20 E2Eテストのアサーション強化
+
+**問題**: E2Eテストで`expect([201, 404]).toContain(response.status)`のような曖昧なアサーションを使用していたため、テストの意図が不明確で、信頼性が低下していた。
+
+**解決策**:
+
+- テスト前に必要なデータを適切にセットアップ（シーディング）
+- 期待するステータスコードを1つに絞る
+- 各テストケースが単一のシナリオを検証するように分割
+- バリデーションエラーの場合は`400`を期待する
+
+**教訓**:
+
+- E2Eテストでは明確なアサーションを使用する
+- テストの前提条件を明確に設定する
+- 複数の結果を許容するアサーションは避ける
+
+**学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
 
 ---

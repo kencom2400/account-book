@@ -91,9 +91,29 @@ async function patch<T>(endpoint: string, body: unknown): Promise<T> {
 }
 
 /**
+ * HTTP PUTリクエスト
+ */
+async function put<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  const result = (await response.json()) as ApiResponse<T>;
+  return result.data;
+}
+
+/**
  * HTTP DELETEリクエスト
  */
-async function del(endpoint: string): Promise<void> {
+async function del<T>(endpoint: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'DELETE',
     headers: {
@@ -104,7 +124,9 @@ async function del(endpoint: string): Promise<void> {
   if (!response.ok) {
     await handleErrorResponse(response);
   }
-  await response.json();
+  
+  const result: unknown = await response.json();
+  return result as T;
 }
 
 /**
@@ -147,5 +169,6 @@ export const apiClient = {
   get,
   post,
   patch,
+  put,
   delete: del,
 };

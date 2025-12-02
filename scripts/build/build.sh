@@ -9,13 +9,17 @@ echo "プロジェクトビルド開始"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
+# Volta環境設定を読み込み
+source "$PROJECT_ROOT/scripts/setup/volta-env.sh"
+
+# pnpmコマンドの存在確認
+if ! check_volta_env; then
+  echo "❌ エラー: 必要なツールがインストールされていません"
+  echo "   詳細: README.mdを参照"
   exit 1
 fi
 

@@ -101,4 +101,18 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    // NestJS Swagger関連ファイルの設定
+    // 理由: @nestjs/swaggerのデコレータ（@ApiOperation, @ApiProperty等）が error 型として認識される
+    // これらのファイルに限定してno-unsafe-*ルールを緩和
+    files: [
+      '**/presentation/controllers/*.controller.ts',
+      '**/presentation/dto/*.dto.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
 );

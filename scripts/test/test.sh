@@ -1,21 +1,27 @@
 #!/bin/bash
 
 # テスト実行スクリプト
+# デフォルトでカバレッジ付きテストを実行（CIと同じ挙動）
 
 set -e
 
 echo "================================"
-echo "テスト実行開始"
+echo "テスト実行開始（カバレッジ付き）"
 echo "================================"
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
+
+# pnpmコマンドの存在確認
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "❌ エラー: pnpmコマンドが見つかりません"
+  echo "   Voltaとpnpmをインストールしてください"
+  echo "   詳細: README.mdを参照"
   exit 1
 fi
 
@@ -30,10 +36,10 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       pnpm test:e2e
     elif [ "$TEST_TYPE" = "all" ]; then
-      pnpm test
+      pnpm test:cov
       pnpm test:e2e
     else
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   frontend)
@@ -42,10 +48,10 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       pnpm test:e2e
     elif [ "$TEST_TYPE" = "all" ]; then
-      pnpm test
+      pnpm test:cov
       pnpm test:e2e
     else
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   all)
@@ -53,21 +59,22 @@ case $TARGET in
     if [ "$TEST_TYPE" = "e2e" ]; then
       ./scripts/test/test-e2e.sh all
     elif [ "$TEST_TYPE" = "all" ]; then
-      # ユニットテスト
-      echo "--- ユニットテスト ---"
+      # ユニットテスト（カバレッジ付き）
+      echo "--- ユニットテスト（カバレッジ付き） ---"
       cd apps/backend
-      pnpm test
+      pnpm test:cov
       cd ../frontend
-      pnpm test
+      pnpm test:cov
       # E2Eテスト
+      cd ../..
       ./scripts/test/test-e2e.sh all
     else
-      # ユニットテストのみ
+      # ユニットテストのみ（カバレッジ付き）
       cd apps/backend
-      pnpm test
+      pnpm test:cov
       echo ""
       cd ../frontend
-      pnpm test
+      pnpm test:cov
     fi
     ;;
   *)

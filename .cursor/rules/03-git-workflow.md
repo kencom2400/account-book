@@ -4,6 +4,84 @@
 
 ---
 
+## 🚨 絶対禁止事項（CRITICAL）
+
+```
+╔════════════════════════════════════════════════════════════╗
+║  🔴 CRITICAL RULES - MUST NEVER VIOLATE 🔴                ║
+║                                                            ║
+║  これらの行為は**絶対に禁止**です。                        ║
+║  違反すると重大な問題を引き起こします。                    ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+### ❌ mainブランチでの直接作業
+
+**禁止事項:**
+
+- mainブランチで直接コードを編集
+- mainブランチに直接コミット
+- mainブランチに直接push
+
+**正しい手順:**
+
+1. フィーチャーブランチを作成: `git checkout -b feat/XXX-description`
+2. フィーチャーブランチで作業
+3. フィーチャーブランチにコミット・push
+4. PRを作成してレビュー
+5. 承認後にmainにマージ
+
+**確認方法:**
+
+```bash
+# 現在のブランチを確認
+git branch
+
+# mainブランチにいる場合は即座にフィーチャーブランチを作成
+git checkout -b feat/XXX-description
+```
+
+---
+
+### ❌ PRなしでのmainへのマージ
+
+**禁止事項:**
+
+- PRを作成せずにmainブランチにマージ
+- `git merge`を使ってローカルでmainにマージ
+- mainブランチに直接push
+
+**正しい手順:**
+
+1. フィーチャーブランチにpush
+2. GitHub UIまたは`gh pr create`でPRを作成
+3. レビュー・承認を待つ
+4. GitHub UIで「Merge pull request」ボタンを押す
+5. ローカルでmainブランチを更新: `git checkout main && git pull`
+
+---
+
+### ❌ PRマージ前にIssueをDoneに変更
+
+**禁止事項:**
+
+- PR作成時にIssueをDoneに変更
+- PRレビュー中にIssueをDoneに変更
+- PRマージ前にIssueをDoneに変更
+
+**正しいタイミング:**
+
+- ✅ **PRがmainにマージされた後のみ** IssueをDoneに変更
+
+**実行コマンド:**
+
+```bash
+# PRマージ後のみ実行
+./scripts/github/projects/set-issue-done.sh <ISSUE_NUMBER>
+```
+
+---
+
 ## 🔴 重要: ターミナルコマンド実行時の権限設定
 
 **Git操作を含むターミナルコマンドは、必ず`required_permissions: ['all']`を指定してください。**
@@ -28,26 +106,26 @@
 // ✅ 正しい
 run_terminal_cmd({
   command: 'git commit -m "feat: 新機能実装"',
-  required_permissions: ["all"]
-})
+  required_permissions: ['all'],
+});
 
 // ✅ 正しい
 run_terminal_cmd({
   command: './scripts/github/workflow/start-task.sh',
-  required_permissions: ["all"]
-})
+  required_permissions: ['all'],
+});
 
 // ❌ エラーになる
 run_terminal_cmd({
   command: 'git commit -m "feat: 新機能実装"',
-  required_permissions: ["git_write"]  // pre-commitフックがエラー
-})
+  required_permissions: ['git_write'], // pre-commitフックがエラー
+});
 
 // ❌ エラーになる
 run_terminal_cmd({
   command: 'gh issue view 248',
-  required_permissions: ["network"]  // 証明書検証エラー
-})
+  required_permissions: ['network'], // 証明書検証エラー
+});
 ```
 
 **Issue #248の経験: サンドボックス環境では常にエラーが発生するため、最初から`all`権限で実行すること。**
@@ -168,17 +246,18 @@ git rebase origin/main
 // ✅ 正しい実行方法
 run_terminal_cmd({
   command: 'git commit -m "feat: 新機能実装"',
-  required_permissions: ["all"]
-})
+  required_permissions: ['all'],
+});
 
 // ❌ サンドボックスではpre-commitフックがエラーになる
 run_terminal_cmd({
   command: 'git commit -m "feat: 新機能実装"',
-  required_permissions: ["git_write"]  // これではpre-commitフックがエラーになる
-})
+  required_permissions: ['git_write'], // これではpre-commitフックがエラーになる
+});
 ```
 
 **理由:**
+
 - pre-commitフックがESLint/Prettierを実行
 - サンドボックス環境では`node_modules`へのアクセスに制限
 - `EPERM: operation not permitted`エラーが発生
@@ -347,6 +426,125 @@ run_terminal_cmd({
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
+### 🔴 絶対禁止事項: テスト未実行・失敗テストありでのpush
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  🔴 ABSOLUTE PROHIBITION - テスト失敗時のpush禁止 🔴        ║
+║                                                               ║
+║  以下の行為は絶対に禁止です：                                 ║
+║                                                               ║
+║  ❌ ローカルでテストを実行せずにpushする                      ║
+║  ❌ テストが失敗している状態でpushする                        ║
+║  ❌ 失敗したテストが1つでもある状態でpushする                ║
+║  ❌ 「一部のテストが失敗していても、他のテストがPASSしていればOK」 ║
+║  ❌ 「見込み」「多分大丈夫」という判断でpushする              ║
+║  ❌ CIで確認すればいいという考えでpushする                   ║
+║  ❌ 一部のテストだけ実行してpushする                          ║
+║  ❌ テストが失敗しているが「後で修正する」とpushする         ║
+║  ❌ 「別のテストファイルの失敗だから関係ない」とpushする     ║
+║                                                               ║
+║  ✅ ローカルですべてのテストがPASSするまでpush禁止            ║
+║  ✅ 実際にコマンドを実行して、すべてPASSしたことを確認        ║
+║  ✅ 失敗したテストは必ず修正してから再度チェック             ║
+║  ✅ テスト結果に「failed」が1つでもある場合はpush禁止        ║
+║  ✅ 失敗したテストを修正できない場合は、スキップして理由を明記 ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**🚨 重要: テスト結果の確認方法**
+
+```bash
+# テスト実行後、必ず結果を確認
+./scripts/test/test-e2e.sh frontend
+
+# 結果の確認ポイント:
+# ✅ "X passed" のみ → push OK
+# ❌ "X failed" が1つでもある → push禁止（必ず修正）
+# ⚠️ "X skipped" のみ → push OK（スキップは問題なし）
+# ❌ "X failed" と "X passed" が混在 → push禁止（failedを修正）
+```
+
+**失敗したテストの対応方法:**
+
+1. **修正する（推奨）**: 失敗原因を特定して修正
+2. **スキップする**: 修正できない場合は `test.skip()` を使用し、理由をコメントで明記
+3. **削除する**: 不要なテストの場合は削除（ただし、慎重に判断）
+
+**スキップする場合の例:**
+
+```typescript
+test.skip('取引データがない場合はメッセージを表示する', async () => {
+  // TODO: このテストは、データがない状態をシミュレートする必要がある
+  // 現在は、テストデータが投入されているため、このテストをスキップ
+  // 将来的には、テストデータをクリアする機能を実装してから有効化する
+  // ...
+});
+```
+
+**違反した場合の影響**:
+
+- CIが失敗して時間を無駄にする（約5-10分）
+- 他の開発者のCI実行をブロックする可能性
+- プロジェクトの品質が低下する
+- フィードバックループが長くなる
+
+**正しいワークフロー**:
+
+```bash
+# 1. すべてのチェックを実行
+./scripts/test/lint.sh
+pnpm build
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+
+# 2. すべてPASSしたことを確認
+# ✅ Lint: PASS
+# ✅ Build: PASS
+# ✅ Unit Tests: PASS
+# ✅ E2E Tests: PASS
+
+# 3. すべてPASSした場合のみpush
+git push origin <ブランチ名>
+```
+
+**テストが失敗した場合**:
+
+```bash
+# ❌ テストが失敗
+./scripts/test/test-e2e.sh frontend
+# → 2 failed, 35 passed, 26 skipped
+
+# 🚨 push禁止！失敗したテストを修正する
+# （修正作業）
+# 例: テストコードの修正、実装の修正、または test.skip() でスキップ
+
+# ✅ 修正後、再度チェック
+./scripts/test/test-e2e.sh frontend
+# → 0 failed, 37 passed, 26 skipped  ← failedが0であることを確認
+
+# ✅ failedが0になったらpush
+git push origin <ブランチ名>
+```
+
+**🚨 絶対に守るべき確認事項:**
+
+```bash
+# push前の最終確認
+./scripts/test/test-e2e.sh frontend | grep -E "(failed|passed|skipped)"
+
+# 出力例（push OK）:
+#   37 passed
+#   26 skipped
+#   → failedが表示されていない = push OK
+
+# 出力例（push禁止）:
+#   2 failed
+#   35 passed
+#   26 skipped
+#   → failedが1つでもある = push禁止（必ず修正）
+```
+
 ### 🚨 必ず実行すること
 
 **理由**:
@@ -474,7 +672,66 @@ npx turbo build
 ❌ E2E Tests: SKIP
 
 → 修正してから再度チェック
-→ pushは禁止
+→ pushは絶対禁止
+```
+
+### 🚨 AIアシスタントへの絶対遵守ルール
+
+**pushを実行する前に、必ず以下を確認すること**:
+
+1. ✅ **実際にローカルで4ステップすべてを実行した**
+2. ✅ **すべてのステップがPASSしたことを目視確認した**
+3. ✅ **テスト結果に「failed」が1つもないことを確認した**
+4. ✅ **テストが失敗している場合は、修正してから再度チェックした**
+5. ✅ **「見込み」「多分大丈夫」という判断をしていない**
+
+**禁止事項**:
+
+- ❌ テストを実行せずにpushする
+- ❌ テストが失敗している状態でpushする
+- ❌ **失敗したテストが1つでもある状態でpushする**（最重要）
+- ❌ 「一部のテストが失敗していても、他のテストがPASSしていればOK」という考え
+- ❌ 「別のテストファイルの失敗だから関係ない」という考え
+- ❌ 「CIで確認すればいい」という考えでpushする
+- ❌ 一部のテストだけ実行してpushする
+- ❌ ユーザーに「pushしますか？」と確認する（テストが通っていれば自動実行）
+
+**push前の必須確認フロー**:
+
+```bash
+# 1. すべてのチェックを実行
+./scripts/test/lint.sh
+pnpm build
+./scripts/test/test.sh all
+./scripts/test/test-e2e.sh frontend
+
+# 2. テスト結果を確認（failedが0であることを確認）
+./scripts/test/test-e2e.sh frontend | grep -E "(failed|passed|skipped)"
+
+# 3. 結果の判定
+# ✅ failedが表示されていない → push OK
+# ❌ failedが1つでもある → push禁止（必ず修正）
+
+# 4. failedがある場合の対応
+# - 失敗原因を特定
+# - 修正する（推奨）
+# - または test.skip() でスキップ（理由を明記）
+# - 再度テストを実行してfailedが0であることを確認
+
+# 5. failedが0になったらpush
+git push origin <ブランチ名>
+```
+
+**正しい判断フロー**:
+
+```
+1. 変更をコミット
+   ↓
+2. 4ステップチェックを実行
+   ↓
+3. すべてPASS？
+   ├─ YES → push実行
+   └─ NO  → 修正 → 2に戻る
 ```
 
 ### 例外: 一部スキップ可能な場合
@@ -775,6 +1032,82 @@ PR #<PR番号> に対するGeminiレビューの指摘<N>件について、す�
 ```
 
 **重要**: Issueへのコメントにより、Issue上でもGeminiレビュー対応の履歴が追跡できるようになる。
+
+---
+
+## 🔍 トラブルシューティング
+
+### 誤ってmainブランチで作業してしまった場合
+
+```bash
+# ステップ1: 現在の変更をstash
+git stash
+
+# ステップ2: フィーチャーブランチを作成
+git checkout -b feat/XXX-description
+
+# ステップ3: stashを適用
+git stash pop
+
+# ステップ4: コミット・push
+git add -A
+git commit -m "feat: ..."
+git push origin feat/XXX-description
+```
+
+---
+
+### 誤ってmainブランチにコミットしてしまった場合
+
+```bash
+# ステップ1: コミットを取り消す（まだpushしていない場合）
+git reset --soft 'HEAD^'
+
+# ステップ2: フィーチャーブランチを作成
+git checkout -b feat/XXX-description
+
+# ステップ3: 再度コミット
+git commit -m "feat: ..."
+
+# ステップ4: push
+git push origin feat/XXX-description
+```
+
+---
+
+### 誤ってmainブランチにpushしてしまった場合
+
+```bash
+# ⚠️ 警告: この操作は慎重に行ってください
+
+# ステップ1: mainブランチの現在の状態から、復旧用のブランチを作成
+git checkout -b feature/recover-my-work
+
+# ステップ2: mainブランチに切り替えて、コミットを巻き戻す
+git checkout main
+git reset --hard 'HEAD^'
+
+# ステップ3: force pushでリモートのmainブランチも巻き戻す
+git push origin main --force
+
+# ステップ4: 復旧用ブランチに切り替えて作業を続ける
+git checkout feature/recover-my-work
+# これで、このブランチから安全にPRを作成できます。
+```
+
+---
+
+### 誤ってIssueをDoneに変更してしまった場合
+
+```bash
+# ステップ1: IssueをIn Progressに戻す
+./scripts/github/projects/set-issue-in-progress.sh <ISSUE_NUMBER>
+
+# ステップ2: PR作成・レビュー・マージを進める
+
+# ステップ3: PRマージ後、改めてDoneに変更
+./scripts/github/projects/set-issue-done.sh <ISSUE_NUMBER>
+```
 
 ---
 

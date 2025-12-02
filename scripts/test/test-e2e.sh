@@ -13,13 +13,18 @@ echo "════════════════════════�
 echo ""
 
 # プロジェクトルートに移動
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
-# 環境をアクティベート
-if [ -f ".nodeenv/bin/activate" ]; then
-  source .nodeenv/bin/activate
-else
-  echo "⚠ .nodeenv が見つかりません。setup.sh を先に実行してください。"
+# Voltaを優先的に使用
+export PATH="$HOME/.volta/bin:$HOME/Library/pnpm:/opt/homebrew/bin:$HOME/.local/share/pnpm:$HOME/.npm-global/bin:$PATH"
+
+# pnpmコマンドの存在確認
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "❌ エラー: pnpmコマンドが見つかりません"
+  echo "   Voltaとpnpmをインストールしてください"
+  echo "   詳細: README.mdを参照"
   exit 1
 fi
 
@@ -95,6 +100,7 @@ case "$TEST_ENV" in
     export MYSQL_DATABASE="${MYSQL_DATABASE_TEST:-account_book_test}"
     ;;
   e2e)
+    export TEST_ENV="e2e"
     export MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
     export MYSQL_PORT="${MYSQL_PORT_E2E:-3326}"
     export MYSQL_USER="${MYSQL_USER_E2E:-account_book_e2e_user}"
