@@ -6530,6 +6530,41 @@ DELETE /api/categories/:id?replacementCategoryId=xxx
 - RESTful な設計原則に従う
 - 関連する操作は単一エンドポイントで処理
 
+#### ❌ 避けるべきパターン: 同じエンドポイントが異なるデータ構造を返す
+
+```typescript
+// クエリパラメータの有無で異なるデータ構造を返す
+GET /api/aggregation/card/monthly           // MonthlyCardSummaryListItemDto[]
+GET /api/aggregation/card/monthly?cardId=X // MonthlyCardSummaryResponseDto[]
+```
+
+**問題点**:
+
+- APIのクライアントにとって分かりにくい
+- 同じエンドポイントが異なる型を返すため、型安全性が低下
+- Swaggerの定義が複雑になる
+- 将来の保守性に影響を与える可能性がある
+
+#### ✅ 正しいパターン: エンドポイントを分割して一貫性を保つ
+
+```typescript
+// エンドポイントを分割して、それぞれが明確なデータ構造を返す
+GET /api/aggregation/card/monthly              // MonthlyCardSummaryListItemDto[]
+GET /api/aggregation/card/monthly/card/:cardId // MonthlyCardSummaryResponseDto[]
+```
+
+**教訓**:
+
+- エンドポイントごとに返すデータ構造を明確にする
+- クエリパラメータで動作を変えるのではなく、エンドポイントを分割する
+- APIの一貫性と予測可能性を保つ
+- Swaggerの定義が明確になる
+
+**代替案**:
+
+1. **常に詳細なDTOを返す**: すべてのエンドポイントで`MonthlyCardSummaryResponseDto[]`を返す
+2. **明示的なクエリパラメータ**: `view=detailed`のようなパラメータでデータ形式を指定
+
 ---
 
 ### 17-3. 文字列正規化の明確化 🟡 High

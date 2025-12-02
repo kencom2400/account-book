@@ -156,7 +156,7 @@ describe('Aggregation API Client', () => {
       const result = await aggregationApi.getByCardId(cardId);
 
       expect(mockApiClient.get).toHaveBeenCalledWith(
-        `/api/aggregation/card/monthly?cardId=${cardId}`
+        `/api/aggregation/card/monthly/card/${cardId}`
       );
       expect(result).toEqual(mockSummaries);
       expect(result).toHaveLength(2);

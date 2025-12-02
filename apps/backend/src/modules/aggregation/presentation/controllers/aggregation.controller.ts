@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Param,
   Post,
-  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
@@ -70,7 +69,6 @@ export class AggregationController {
   /**
    * GET /api/aggregation/card/monthly
    * 月別集計の一覧を取得
-   * クエリパラメータにcardIdが指定された場合は、そのカードの詳細サマリーを返す（N+1問題回避）
    */
   @Get()
   @ApiOperation({ summary: '月別集計の一覧を取得' })
@@ -79,30 +77,39 @@ export class AggregationController {
     description: '取得成功',
     type: [MonthlyCardSummaryListItemDto],
   })
-  @ApiResponse({
-    status: 200,
-    description: 'cardId指定時: カードの詳細サマリー取得成功',
-    type: [MonthlyCardSummaryResponseDto],
-  })
-  async findAll(@Query('cardId') cardId?: string): Promise<{
+  async findAll(): Promise<{
     success: boolean;
-    data: MonthlyCardSummaryListItemDto[] | MonthlyCardSummaryResponseDto[];
+    data: MonthlyCardSummaryListItemDto[];
   }> {
-    // cardIdが指定された場合は、そのカードの詳細サマリーを返す
-    if (cardId) {
-      const summaries = await this.findSummariesByCardIdUseCase.execute(cardId);
-      return {
-        success: true,
-        data: summaries.map((summary) => this.toResponseDto(summary)),
-      };
-    }
-
-    // cardIdが指定されていない場合は、全サマリーの一覧を返す
     const summaries = await this.findAllSummariesUseCase.execute();
 
     return {
       success: true,
       data: summaries.map((summary) => this.toListItemDto(summary)),
+    };
+  }
+
+  /**
+   * GET /api/aggregation/card/:cardId/monthly
+   * カードIDで月別集計の詳細を一括取得（N+1問題回避用）
+   */
+  @Get('card/:cardId')
+  @ApiOperation({ summary: 'カードIDで月別集計の詳細を一括取得' })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功',
+    type: [MonthlyCardSummaryResponseDto],
+  })
+  @ApiResponse({ status: 404, description: 'カードが見つからない' })
+  async findByCardId(@Param('cardId') cardId: string): Promise<{
+    success: boolean;
+    data: MonthlyCardSummaryResponseDto[];
+  }> {
+    const summaries = await this.findSummariesByCardIdUseCase.execute(cardId);
+
+    return {
+      success: true,
+      data: summaries.map((summary) => this.toResponseDto(summary)),
     };
   }
 

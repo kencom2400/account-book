@@ -72,7 +72,7 @@ export const aggregationApi = {
    */
   getByCardId: async (cardId: string): Promise<MonthlyCardSummary[]> => {
     return await apiClient.get<MonthlyCardSummary[]>(
-      `/api/aggregation/card/monthly?cardId=${cardId}`
+      `/api/aggregation/card/monthly/card/${cardId}`
     );
   },
 

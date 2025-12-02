@@ -167,14 +167,15 @@ describe('AggregationController', () => {
       expect(item).not.toHaveProperty('createdAt');
       expect(item).not.toHaveProperty('updatedAt');
     });
+  });
 
-    it('cardIdクエリパラメータが指定された場合、カードの詳細サマリーを返す', async () => {
+  describe('GET /api/aggregation/card/monthly/card/:cardId', () => {
+    it('カードIDで月別集計の詳細を一括取得できる', async () => {
       findByCardIdUseCase.execute.mockResolvedValue([mockSummary]);
 
-      const result = await controller.findAll('card-456');
+      const result = await controller.findByCardId('card-456');
 
       expect(findByCardIdUseCase.execute).toHaveBeenCalledWith('card-456');
-      expect(findAllUseCase.execute).not.toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('summary-123');
@@ -183,15 +184,26 @@ describe('AggregationController', () => {
       expect(result.data[0]).toHaveProperty('closingDate');
     });
 
-    it('cardIdが指定されていない場合、全サマリーの一覧を返す', async () => {
-      findAllUseCase.execute.mockResolvedValue([mockSummary]);
+    it('詳細レスポンスDTOにすべてのフィールドが含まれる', async () => {
+      findByCardIdUseCase.execute.mockResolvedValue([mockSummary]);
 
-      const result = await controller.findAll(undefined);
+      const result = await controller.findByCardId('card-456');
 
-      expect(findAllUseCase.execute).toHaveBeenCalled();
-      expect(findByCardIdUseCase.execute).not.toHaveBeenCalled();
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
+      const item = result.data[0];
+      expect(item).toHaveProperty('id');
+      expect(item).toHaveProperty('cardId');
+      expect(item).toHaveProperty('cardName');
+      expect(item).toHaveProperty('billingMonth');
+      expect(item).toHaveProperty('closingDate');
+      expect(item).toHaveProperty('paymentDate');
+      expect(item).toHaveProperty('totalAmount');
+      expect(item).toHaveProperty('transactionCount');
+      expect(item).toHaveProperty('categoryBreakdown');
+      expect(item).toHaveProperty('transactionIds');
+      expect(item).toHaveProperty('netPaymentAmount');
+      expect(item).toHaveProperty('status');
+      expect(item).toHaveProperty('createdAt');
+      expect(item).toHaveProperty('updatedAt');
     });
   });
 
