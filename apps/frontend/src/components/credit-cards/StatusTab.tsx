@@ -42,10 +42,10 @@ export function StatusTab({ monthlySummaries }: StatusTabProps): React.JSX.Eleme
         const statusRecords = await paymentStatusApi.getStatuses(summaryIds);
 
         // Mapに変換（cardSummaryIdをキーとして使用）
-        const recordsMap = new Map<string, PaymentStatusRecord>();
-        for (const record of statusRecords) {
-          recordsMap.set(record.cardSummaryId, record);
-        }
+        const recordsMap = statusRecords.reduce((map, record) => {
+          map.set(record.cardSummaryId, record);
+          return map;
+        }, new Map<string, PaymentStatusRecord>());
 
         setStatusRecords(recordsMap);
       } catch (err) {
