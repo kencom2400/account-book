@@ -2439,7 +2439,305 @@ async classify(@Body() dto: ClassificationRequestDto): Promise<ClassificationRes
 
 ---
 
-### 4-13. 不要な依存関係の削除
+### 4-13. フロントエンドでのエラーメッセージの動的取得
+
+#### 🟡 推奨: 固定文字列ではなく、APIからのエラーメッセージを表示する
+
+フロントエンドでエラー通知を表示する際は、固定のエラーメッセージではなく、APIから返されたエラーメッセージを優先的に表示することで、ユーザーにより詳細で具体的なエラー情報を提供できます。
+
+❌ **悪い例**: 固定文字列のエラーメッセージ
+
+```typescript
+try {
+  await aggregationApi.aggregate({ cardId, startMonth, endMonth });
+} catch (err) {
+  console.error('Failed to aggregate:', err);
+  // ❌ 固定文字列で、具体的なエラー原因が分からない
+  showErrorToast('error', '集計の実行に失敗しました');
+}
+```
+
+**問題点**:
+
+- APIから返された具体的なエラー情報が失われる
+- ユーザーがエラーの原因を把握できない
+- デバッグが困難になる
+
+✅ **良い例**: エラーメッセージを動的に取得
+
+```typescript
+try {
+  await aggregationApi.aggregate({ cardId, startMonth, endMonth });
+} catch (err) {
+  console.error('Failed to aggregate:', err);
+  // ✅ エラーメッセージがあればそれを表示、なければデフォルトメッセージ
+  const errorMessage = err instanceof Error ? err.message : '集計の実行に失敗しました';
+  showErrorToast('error', errorMessage);
+}
+```
+
+**利点**:
+
+- APIから返された具体的なエラー情報をユーザーに提供
+- エラーの原因を把握しやすくなる
+- デバッグが容易になる
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: Error型の判定
+const errorMessage = error instanceof Error ? error.message : 'デフォルトメッセージ';
+
+// パターン2: エラーオブジェクトのプロパティ確認
+const errorMessage = error?.message || 'デフォルトメッセージ';
+
+// パターン3: 型ガードを使用
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return '予期せぬエラーが発生しました';
+}
+```
+
+#### ✅ 適用箇所
+
+- **トースト通知**: `showErrorToast()`を使用する箇所
+- **エラーモーダル**: エラーダイアログを表示する箇所
+- **フォームバリデーション**: バリデーションエラーの表示
+
+#### 参考
+
+- **PR #340**: Geminiレビュー指摘（Issue #337）
+- **修正箇所**: AggregateButton.tsx, PaymentStatusCard.tsx
+- **学習元**: エラーハンドリングの一貫性とユーザー体験の向上
+
+---
+
+### 4-14. エラーメッセージ抽出ロジックの共通化
+
+#### 🟡 推奨: 重複するエラーメッセージ抽出ロジックを共通ユーティリティ関数に抽出
+
+複数のコンポーネントで同じエラーメッセージ抽出ロジックが重複している場合、共通のユーティリティ関数に抽出することで、コードの保守性を向上させることができます。
+
+❌ **悪い例**: 複数箇所で同じロジックが重複
+
+```typescript
+// AggregateButton.tsx
+try {
+  await aggregationApi.aggregate({ cardId, startMonth, endMonth });
+} catch (err) {
+  const errorMessage = err instanceof Error ? err.message : '集計の実行に失敗しました';
+  showErrorToast('error', errorMessage);
+}
+
+// PaymentStatusCard.tsx
+try {
+  await paymentStatusApi.updateStatus(cardSummaryId, { newStatus, notes });
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : 'ステータスの更新に失敗しました';
+  showErrorToast('error', errorMessage);
+}
+```
+
+**問題点**:
+
+- 同じロジックが複数箇所に存在し、保守性が低下
+- ロジックを変更する際に複数箇所を修正する必要がある
+- コードの重複が増える
+
+✅ **良い例**: 共通ユーティリティ関数に抽出
+
+```typescript
+// utils/error.utils.ts
+export function getErrorMessage(error: unknown, defaultMessage: string): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return defaultMessage;
+}
+
+// AggregateButton.tsx
+import { getErrorMessage } from '@/utils/error.utils';
+
+try {
+  await aggregationApi.aggregate({ cardId, startMonth, endMonth });
+} catch (err) {
+  const errorMessage = getErrorMessage(err, '集計の実行に失敗しました');
+  showErrorToast('error', errorMessage);
+}
+
+// PaymentStatusCard.tsx
+import { getErrorMessage } from '@/utils/error.utils';
+
+try {
+  await paymentStatusApi.updateStatus(cardSummaryId, { newStatus, notes });
+} catch (error) {
+  const errorMessage = getErrorMessage(error, 'ステータスの更新に失敗しました');
+  showErrorToast('error', errorMessage);
+}
+```
+
+**利点**:
+
+- ロジックが一箇所に集約され、保守性が向上
+- ロジックを変更する際に1箇所の修正で済む
+- コードの重複が削減される
+- テストが容易になる
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: シンプルなエラーメッセージ抽出
+export function getErrorMessage(error: unknown, defaultMessage: string): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return defaultMessage;
+}
+
+// パターン2: より詳細な型判定
+export function getErrorMessage(error: unknown, defaultMessage: string): string {
+  if (error instanceof Error) {
+    return error.message || defaultMessage;
+  }
+  if (typeof error === 'string' && error.length > 0) {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return defaultMessage;
+}
+```
+
+#### ✅ 適用箇所
+
+- **エラーメッセージ抽出**: 複数のコンポーネントで同じロジックが使用されている場合
+- **エラーハンドリング**: エラーオブジェクトから情報を抽出する処理
+- **バリデーション**: バリデーションエラーメッセージの取得
+
+#### 参考
+
+- **PR #340**: Geminiレビュー指摘（Issue #337）
+- **新規作成**: `apps/frontend/src/utils/error.utils.ts`
+- **修正箇所**: AggregateButton.tsx, PaymentStatusCard.tsx
+- **学習元**: コードの重複を避け、保守性を高める
+
+---
+
+### 4-15. エラーハンドリングでの複数エラー情報の保持
+
+#### 🟡 推奨: 複数のエラーが発生した場合、すべてのエラー情報を含むエラーをスローする
+
+エラーハンドリングで複数のエラーが発生する可能性がある場合（例: 作成失敗後に既存データ取得も失敗）、元のエラーをそのままスローするのではなく、すべてのエラー情報を含む新しいエラーをスローすることで、デバッグ時の原因特定を容易にします。
+
+❌ **悪い例**: 元のエラーをそのままスロー
+
+```typescript
+try {
+  institution = await createInstitution({ name: 'テスト銀行E2E', ... });
+} catch (error) {
+  try {
+    const existingInstitutions = await getInstitutions();
+    const existing = existingInstitutions.data.find((i) => i.name === 'テスト銀行E2E');
+    if (existing) {
+      institution = existing;
+    } else {
+      throw error; // ❌ 元のエラーのみ
+    }
+  } catch (fetchError) {
+    throw error; // ❌ 元のエラーのみ、fetchErrorの情報が失われる
+  }
+}
+```
+
+**問題点**:
+
+- `getInstitutions()`の失敗がテスト失敗の根本原因である可能性を隠蔽
+- デバッグ時に混乱を招く
+- エラーの原因特定が困難
+
+✅ **良い例**: 両方のエラー情報を含む新しいエラーをスロー
+
+```typescript
+try {
+  institution = await createInstitution({ name: 'テスト銀行E2E', ... });
+} catch (error) {
+  try {
+    const existingInstitutions = await getInstitutions();
+    const existing = existingInstitutions.data.find((i) => i.name === 'テスト銀行E2E');
+    if (existing) {
+      institution = existing;
+    } else {
+      throw error;
+    }
+  } catch (fetchError) {
+    // ✅ 両方のエラー情報を含む新しいエラーをスロー
+    console.error('  ❌ Failed to fetch existing institutions:', fetchError, 'Original error:', error);
+    throw new Error(
+      `Failed to fetch existing institutions after creation failed. Original: ${error instanceof Error ? error.message : String(error)}, Fetch: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`
+    );
+  }
+}
+```
+
+**利点**:
+
+- すべてのエラー情報が保持される
+- デバッグ時の原因特定が容易
+- エラーメッセージが明確になる
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: エラーメッセージを結合
+catch (fetchError) {
+  const originalMessage = error instanceof Error ? error.message : String(error);
+  const fetchMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+  throw new Error(`Failed to fetch after creation failed. Original: ${originalMessage}, Fetch: ${fetchMessage}`);
+}
+
+// パターン2: エラーオブジェクトに複数のエラーを保持
+catch (fetchError) {
+  const combinedError = new Error('Multiple errors occurred');
+  (combinedError as any).originalError = error;
+  (combinedError as any).fetchError = fetchError;
+  throw combinedError;
+}
+
+// パターン3: ログに詳細を出力してから新しいエラーをスロー
+catch (fetchError) {
+  console.error('Original error:', error);
+  console.error('Fetch error:', fetchError);
+  throw new Error('Failed to fetch existing data after creation failed. See logs for details.');
+}
+```
+
+#### ✅ 適用箇所
+
+- **フォールバック処理**: 作成失敗後に既存データ取得を試みる場合
+- **リトライ処理**: 複数回の試行が失敗した場合
+- **エラーチェーン**: エラーが連鎖的に発生する場合
+
+#### 参考
+
+- **PR #340**: Geminiレビュー指摘（Issue #337）
+- **修正箇所**: `apps/frontend/e2e/helpers/test-data.ts`
+- **学習元**: テスト失敗時の原因特定を容易にする
+
+---
+
+### 4-16. 不要な依存関係の削除
 
 #### 🟡 推奨: 使用していない依存関係は削除する
 

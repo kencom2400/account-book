@@ -7,6 +7,7 @@ import { ReconciliationListItem } from '@/lib/api/reconciliation';
 import type { ReconciliationReport } from '@account-book/types';
 import { ReconciliationStatus } from '@account-book/types';
 import { ReconciliationResultCard } from './ReconciliationResultCard';
+import { showErrorToast } from '@/components/notifications/ErrorToast';
 
 interface ReconciliationTabProps {
   cardId: string | null;
@@ -50,7 +51,7 @@ export function ReconciliationTab({ cardId }: ReconciliationTabProps): React.JSX
 
   const handleReconcile = async (): Promise<void> => {
     if (!cardId || !billingMonth) {
-      alert('請求月を選択してください');
+      showErrorToast('warning', '請求月を選択してください');
       return;
     }
 

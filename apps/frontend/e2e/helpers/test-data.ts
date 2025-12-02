@@ -215,16 +215,31 @@ export async function seedE2ETestData(): Promise<{
       },
     });
     console.log(`  ✅ Created institution: ${institution.name}`);
-  } catch (_error) {
+  } catch (error) {
     // 既に存在する場合は既存の金融機関を取得
-    console.log('  ℹ️  Institution already exists, fetching existing data...');
-    const existingInstitutions = await getInstitutions();
-    const existing = existingInstitutions.data.find((i) => i.name === 'テスト銀行E2E');
-    if (existing) {
-      institution = existing;
-      console.log(`  ✅ Using existing institution: ${institution.name}`);
-    } else {
-      throw new Error('Failed to find existing institution');
+    console.log('  ℹ️  Institution already exists or creation failed, fetching existing data...');
+    try {
+      const existingInstitutions = await getInstitutions();
+      const existing = existingInstitutions.data.find((i) => i.name === 'テスト銀行E2E');
+      if (existing) {
+        institution = existing;
+        console.log(`  ✅ Using existing institution: ${institution.name}`);
+      } else {
+        // 既存の金融機関が見つからない場合は、エラーを再スロー
+        console.error('  ❌ Failed to find existing institution:', error);
+        throw error;
+      }
+    } catch (fetchError) {
+      // 既存の金融機関の取得に失敗した場合、両方のエラー情報を含む新しいエラーをスロー
+      console.error(
+        '  ❌ Failed to fetch existing institutions:',
+        fetchError,
+        'Original error:',
+        error
+      );
+      throw new Error(
+        `Failed to fetch existing institutions after creation failed. Original: ${error instanceof Error ? error.message : String(error)}, Fetch: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`
+      );
     }
   }
 
