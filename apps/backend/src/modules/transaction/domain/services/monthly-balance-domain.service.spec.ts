@@ -38,9 +38,6 @@ describe('MonthlyBalanceDomainService', () => {
     service = module.get<MonthlyBalanceDomainService>(
       MonthlyBalanceDomainService,
     );
-    transactionDomainService = module.get<TransactionDomainService>(
-      TransactionDomainService,
-    );
   });
 
   describe('calculateBalance', () => {

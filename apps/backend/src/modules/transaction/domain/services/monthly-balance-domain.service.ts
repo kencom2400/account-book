@@ -55,22 +55,7 @@ export class MonthlyBalanceDomainService {
   aggregateByCategory(
     transactions: TransactionEntity[],
   ): Map<string, AggregationData> {
-    const result = new Map<string, AggregationData>();
-
-    for (const transaction of transactions) {
-      const categoryId = transaction.category.id;
-      const existing = result.get(categoryId) || {
-        total: 0,
-        count: 0,
-      };
-
-      existing.total += transaction.amount;
-      existing.count += 1;
-
-      result.set(categoryId, existing);
-    }
-
-    return result;
+    return this.aggregateBy(transactions, (t) => t.category.id);
   }
 
   /**
@@ -81,11 +66,24 @@ export class MonthlyBalanceDomainService {
   aggregateByInstitution(
     transactions: TransactionEntity[],
   ): Map<string, AggregationData> {
+    return this.aggregateBy(transactions, (t) => t.institutionId);
+  }
+
+  /**
+   * 汎用的な集計メソッド
+   * @param transactions 取引リスト
+   * @param keySelector キーを取得する関数
+   * @returns キーをキーとした集計データのMap
+   */
+  private aggregateBy(
+    transactions: TransactionEntity[],
+    keySelector: (transaction: TransactionEntity) => string,
+  ): Map<string, AggregationData> {
     const result = new Map<string, AggregationData>();
 
     for (const transaction of transactions) {
-      const institutionId = transaction.institutionId;
-      const existing = result.get(institutionId) || {
+      const key = keySelector(transaction);
+      const existing = result.get(key) || {
         total: 0,
         count: 0,
       };
@@ -93,7 +91,7 @@ export class MonthlyBalanceDomainService {
       existing.total += transaction.amount;
       existing.count += 1;
 
-      result.set(institutionId, existing);
+      result.set(key, existing);
     }
 
     return result;

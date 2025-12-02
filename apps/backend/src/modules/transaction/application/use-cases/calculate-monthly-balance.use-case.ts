@@ -96,25 +96,24 @@ export class CalculateMonthlyBalanceUseCase {
     year: number,
     month: number,
   ): Promise<MonthlyBalanceResponseDto> {
-    // 当月データ取得
-    const currentTransactions = await this.transactionRepository.findByMonth(
-      year,
-      month,
-    );
-
-    // 前月データ取得（比較用）
+    // 前月・前年同月の年月を事前に計算
     const { year: prevYear, month: prevMonth } = this.getPreviousMonth(
       year,
       month,
     );
-    const previousMonthTransactions =
-      await this.transactionRepository.findByMonth(prevYear, prevMonth);
-
-    // 前年同月データ取得（比較用）
     const { year: lastYearYear, month: lastYearMonth } =
       this.getSameMonthLastYear(year, month);
-    const sameMonthLastYearTransactions =
-      await this.transactionRepository.findByMonth(lastYearYear, lastYearMonth);
+
+    // 当月・前月・前年同月のデータを並列取得
+    const [
+      currentTransactions,
+      previousMonthTransactions,
+      sameMonthLastYearTransactions,
+    ] = await Promise.all([
+      this.transactionRepository.findByMonth(year, month),
+      this.transactionRepository.findByMonth(prevYear, prevMonth),
+      this.transactionRepository.findByMonth(lastYearYear, lastYearMonth),
+    ]);
 
     // 収支計算
     const currentBalance =
@@ -273,14 +272,19 @@ export class CalculateMonthlyBalanceUseCase {
     transactions: TransactionEntity[],
   ): CategoryBreakdown[] {
     const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    // カテゴリIDとカテゴリ名のマップを事前に作成（O(N)）
+    const categoryMap = new Map<string, string>();
+    for (const t of transactions) {
+      if (!categoryMap.has(t.category.id)) {
+        categoryMap.set(t.category.id, t.category.name);
+      }
+    }
+
     const breakdowns: CategoryBreakdown[] = [];
 
     for (const [categoryId, data] of aggregation.entries()) {
-      // カテゴリ名を取得（最初の取引から取得）
-      const categoryTransaction = transactions.find(
-        (t) => t.category.id === categoryId,
-      );
-      const categoryName = categoryTransaction?.category.name || '';
+      const categoryName = categoryMap.get(categoryId) || '';
 
       const percentage = total > 0 ? (Math.abs(data.total) / total) * 100 : 0;
 
