@@ -7311,7 +7311,7 @@ const status = await paymentStatusApi.getStatus(summaryId).catch(() => null);
 #### ✅ 正しいパターン: エラーログを記録
 
 ```typescript
-// ✅ エラーログを記録
+// ✅ エラーログを記録（IDを含める）
 const status = await paymentStatusApi.getStatus(summaryId).catch((err) => {
   console.error(`Failed to fetch status for summary ${summaryId}:`, err);
   return null;
@@ -7321,7 +7321,72 @@ const status = await paymentStatusApi.getStatus(summaryId).catch((err) => {
 **教訓**:
 
 - エラーは握りつぶさず、ログに記録する
+- ログには対象のIDを含めて、デバッグを容易にする
 - 開発中に問題を検知できるようにする
+
+### 18.8 共通ユーティリティ関数の抽出 🟡 Medium
+
+#### ❌ 避けるべきパターン: 同じ関数の重複定義
+
+```typescript
+// ❌ 複数のコンポーネントで同じ関数を重複定義
+// MonthlySummaryCard.tsx
+const formatDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+// ReconciliationResultCard.tsx
+const formatDate = (date: Date | string | undefined): string => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+// PaymentStatusCard.tsx
+const formatDate = (date: Date | string | undefined): string => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+```
+
+**問題点**:
+
+- コードの重複により保守性が低下
+- 日付フォーマットの変更時に複数箇所を修正する必要がある
+- 一貫性が保たれない可能性
+
+#### ✅ 正しいパターン: 共通ユーティリティに抽出
+
+```typescript
+// ✅ 共通ユーティリティファイルに抽出
+// utils/date.utils.ts
+export function formatDate(date: Date | string | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+export function formatDateTime(date: Date | string | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// 各コンポーネントからimportして使用
+import { formatDate } from '@/utils/date.utils';
+```
+
+**教訓**:
+
+- 重複する関数は共通ユーティリティに抽出
+- コードの再利用性と保守性が向上
+- 将来的な変更も一箇所で済む
 
 // ✅ 更新後のデータを返す
 summariesToSave.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
