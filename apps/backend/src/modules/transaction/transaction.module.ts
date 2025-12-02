@@ -1,16 +1,19 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransactionController } from './presentation/controllers/transaction.controller';
+import { AggregationController } from './presentation/controllers/aggregation.controller';
 import { TransactionTypeOrmRepository } from './infrastructure/repositories/transaction-typeorm.repository';
 import { TransactionCategoryChangeHistoryRepository } from './infrastructure/repositories/transaction-category-change-history.repository';
 import { TransactionOrmEntity } from './infrastructure/entities/transaction.orm-entity';
 import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/entities/transaction-category-change-history.orm-entity';
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
+import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
 import { CategoryClassificationService } from './domain/services/category-classification.service';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from './application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from './application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
+import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from './domain/repositories/transaction-category-change-history.repository.interface';
@@ -24,7 +27,7 @@ import { CategoryModule } from '../category/category.module';
     ]),
     forwardRef(() => CategoryModule),
   ],
-  controllers: [TransactionController],
+  controllers: [TransactionController, AggregationController],
   providers: [
     // Repository - TypeORM版を使用
     {
@@ -37,12 +40,14 @@ import { CategoryModule } from '../category/category.module';
     },
     // Domain Services
     TransactionDomainService,
+    MonthlyBalanceDomainService,
     CategoryClassificationService,
     // Use Cases
     CreateTransactionUseCase,
     GetTransactionsUseCase,
     UpdateTransactionCategoryUseCase,
     CalculateMonthlySummaryUseCase,
+    CalculateMonthlyBalanceUseCase,
     ClassifyTransactionUseCase,
   ],
   exports: [
