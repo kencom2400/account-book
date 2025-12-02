@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Category } from '@account-book/types';
 import { checkCategoryUsage } from '@/lib/api/categories';
+import { showErrorToast } from '@/components/notifications/ErrorToast';
 
 interface DeleteConfirmModalProps {
   category: Category;
@@ -42,7 +43,7 @@ export function DeleteConfirmModal({
 
   const handleConfirm = (): void => {
     if (isUsed && !replacementId) {
-      alert('代替費目を選択してください');
+      showErrorToast('warning', '代替費目を選択してください');
       return;
     }
     onConfirm(category.id, replacementId || undefined);
