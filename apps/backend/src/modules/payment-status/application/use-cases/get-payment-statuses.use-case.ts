@@ -28,8 +28,6 @@ export class GetPaymentStatusesUseCase {
       return new Map<string, PaymentStatusRecord>();
     }
 
-    return await this.paymentStatusRepository.findByCardSummaryIds(
-      cardSummaryIds,
-    );
+    return this.paymentStatusRepository.findByCardSummaryIds(cardSummaryIds);
   }
 }
