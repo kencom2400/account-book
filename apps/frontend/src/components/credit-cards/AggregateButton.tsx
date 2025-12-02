@@ -43,7 +43,8 @@ export function AggregateButton({ cardId, onAggregate }: AggregateButtonProps): 
       await onAggregate();
     } catch (err) {
       console.error('Failed to aggregate:', err);
-      showErrorToast('error', '集計の実行に失敗しました');
+      const errorMessage = err instanceof Error ? err.message : '集計の実行に失敗しました';
+      showErrorToast('error', errorMessage);
     } finally {
       setIsAggregating(false);
     }
