@@ -100,14 +100,13 @@ Related to #YYY
 ### GitHub CLIを使用したPR作成
 
 ```bash
-# ドラフトPRを作成
-gh pr create --draft \
+# 通常PRを作成（--draftフラグは使用しない）
+gh pr create \
   --title "<type>(<scope>): <subject>" \
   --body "$(cat .github/PULL_REQUEST_TEMPLATE.md)"
+```
 
-# ドラフトを解除してレビュー依頼
-gh pr ready <PR番号>
-````
+**重要**: PRは常に通常PRとして作成します。ドラフトPR（`--draft`フラグ）は使用しません。
 
 ---
 
@@ -185,3 +184,4 @@ gh pr ready <PR番号>
 ## 📚 参考
 
 - `.cursor/rules/03-git-workflow.md` - PR作成ルール
+````
