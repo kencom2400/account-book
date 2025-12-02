@@ -62,7 +62,7 @@ export function CreditCardManagementPage(): React.JSX.Element {
             const detail = await aggregationApi.getById(s.id);
             return detail;
           } catch (err) {
-            console.error('Failed to fetch summary detail:', err);
+            console.error(`Failed to fetch summary detail for id ${s.id}:`, err);
             return null;
           }
         });
