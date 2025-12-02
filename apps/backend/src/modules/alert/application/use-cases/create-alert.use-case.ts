@@ -4,6 +4,7 @@ import { AlertService } from '../../domain/services/alert.service';
 import type { AlertRepository } from '../../domain/repositories/alert.repository.interface';
 import type { ReconciliationRepository } from '../../../reconciliation/domain/repositories/reconciliation.repository.interface';
 import { DuplicateAlertException } from '../../domain/errors/alert.errors';
+import { ReconciliationNotFoundException } from '../../../reconciliation/domain/errors/reconciliation.errors';
 import { ALERT_REPOSITORY } from '../../alert.tokens';
 import { RECONCILIATION_REPOSITORY } from '../../../reconciliation/reconciliation.tokens';
 
@@ -29,7 +30,7 @@ export class CreateAlertUseCase {
       await this.reconciliationRepository.findById(reconciliationId);
 
     if (!reconciliation) {
-      throw new Error(`Reconciliation not found: ${reconciliationId}`);
+      throw new ReconciliationNotFoundException(reconciliationId);
     }
 
     // 2. 重複アラートチェック
