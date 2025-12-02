@@ -5752,6 +5752,187 @@ export default function TransactionsPage(): React.JSX.Element {
 
 ---
 
+### 13-9. コードの簡潔性と効率性 🟡 Medium
+
+**学習元**: PR #339 - 支払いステータスAPIのN+1問題を解消（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン1: 不要なawait
+
+```typescript
+// ❌ 悪い例: async関数から直接Promiseを返す場合、awaitは不要
+async execute(
+  cardSummaryIds: string[],
+): Promise<Map<string, PaymentStatusRecord>> {
+  if (cardSummaryIds.length === 0) {
+    return new Map<string, PaymentStatusRecord>();
+  }
+
+  return await this.paymentStatusRepository.findByCardSummaryIds(
+    cardSummaryIds,
+  );
+}
+```
+
+**問題点**:
+
+- `async`関数から直接Promiseを返す場合、`await`は不要
+- コードが冗長になる
+- パフォーマンスへの影響は微々たるものだが、コードの可読性が低下
+
+#### ✅ 正しいパターン1: awaitを削除
+
+```typescript
+// ✅ 良い例: awaitを削除して簡潔に
+async execute(
+  cardSummaryIds: string[],
+): Promise<Map<string, PaymentStatusRecord>> {
+  if (cardSummaryIds.length === 0) {
+    return new Map<string, PaymentStatusRecord>();
+  }
+
+  return this.paymentStatusRepository.findByCardSummaryIds(cardSummaryIds);
+}
+```
+
+**利点**:
+
+- コードが簡潔で可読性が向上
+- 意図が明確（Promiseを直接返す）
+
+---
+
+#### ❌ 避けるべきパターン2: 不要な中間変数とループ
+
+```typescript
+// ❌ 悪い例: 不要なresultマップと最後のループ
+async findByCardSummaryIds(
+  cardSummaryIds: string[],
+): Promise<Map<string, PaymentStatusRecord>> {
+  const records = await this.loadFromFile();
+  const result = new Map<string, PaymentStatusRecord>();
+  const targetIds = new Set(cardSummaryIds);
+
+  const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+  for (const record of records) {
+    if (!targetIds.has(record.cardSummaryId)) {
+      continue;
+    }
+
+    const existing = latestByCardSummary.get(record.cardSummaryId);
+    if (
+      !existing ||
+      record.updatedAt.getTime() > existing.updatedAt.getTime()
+    ) {
+      latestByCardSummary.set(record.cardSummaryId, record);
+    }
+  }
+
+  // 不要なループ: latestByCardSummaryをresultにコピー
+  for (const [cardSummaryId, record] of latestByCardSummary) {
+    result.set(cardSummaryId, record);
+  }
+
+  return result;
+}
+```
+
+**問題点**:
+
+- 空配列の場合の早期リターンがない
+- 不要な`result`マップと最後のループが存在
+- コードが冗長で効率が悪い
+
+#### ✅ 正しいパターン2: 早期リターンと直接返却
+
+```typescript
+// ✅ 良い例: 早期リターンを追加し、不要なループを削除
+async findByCardSummaryIds(
+  cardSummaryIds: string[],
+): Promise<Map<string, PaymentStatusRecord>> {
+  if (cardSummaryIds.length === 0) {
+    return new Map();
+  }
+
+  const records = await this.loadFromFile();
+  const targetIds = new Set(cardSummaryIds);
+
+  const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+  for (const record of records) {
+    if (!targetIds.has(record.cardSummaryId)) {
+      continue;
+    }
+
+    const existing = latestByCardSummary.get(record.cardSummaryId);
+    if (
+      !existing ||
+      record.updatedAt.getTime() > existing.updatedAt.getTime()
+    ) {
+      latestByCardSummary.set(record.cardSummaryId, record);
+    }
+  }
+
+  return latestByCardSummary; // 直接返却
+}
+```
+
+**利点**:
+
+- 空配列の場合の早期リターンで効率化
+- 不要な中間変数とループを削除
+- コードが簡潔で保守しやすい
+
+---
+
+#### ❌ 避けるべきパターン3: 命令的なfor...ofループ
+
+```typescript
+// ❌ 悪い例: 命令的なfor...ofループ
+const statusRecords = await paymentStatusApi.getStatuses(summaryIds);
+
+const recordsMap = new Map<string, PaymentStatusRecord>();
+for (const record of statusRecords) {
+  recordsMap.set(record.cardSummaryId, record);
+}
+
+setStatusRecords(recordsMap);
+```
+
+**問題点**:
+
+- 命令的な記述で可読性が低い
+- 関数型プログラミングのパターンに沿っていない
+
+#### ✅ 正しいパターン3: 宣言的なreduce
+
+```typescript
+// ✅ 良い例: 宣言的なreduceを使用
+const statusRecords = await paymentStatusApi.getStatuses(summaryIds);
+
+const recordsMap = statusRecords.reduce((map, record) => {
+  map.set(record.cardSummaryId, record);
+  return map;
+}, new Map<string, PaymentStatusRecord>());
+
+setStatusRecords(recordsMap);
+```
+
+**利点**:
+
+- 宣言的な記述で可読性が向上
+- 関数型プログラミングのパターンに沿っている
+- 意図が明確（配列からMapへの変換）
+
+**推奨アプローチ**:
+
+1. **async関数から直接Promiseを返す場合**: `await`を削除
+2. **空配列や空値の場合**: 早期リターンを追加
+3. **不要な中間変数やループ**: 削除して直接返却
+4. **配列からMapへの変換**: `reduce`を使用して宣言的に記述
+
+**参考**: PR #339 - Geminiレビュー指摘
+
+---
+
 ## 14. Issue #279から学んだ教訓
 
 **学習元**: Issue #279 - FR-006: 未実装機能の実装、PR #285
