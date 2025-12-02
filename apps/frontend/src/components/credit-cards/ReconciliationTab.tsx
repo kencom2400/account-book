@@ -177,20 +177,16 @@ export function ReconciliationTab({ cardId }: ReconciliationTabProps): React.JSX
                           <span className="text-sm text-gray-600">ステータス</span>
                           <span
                             className={`px-2 py-1 rounded text-xs ${
-                              reconciliation.status === ReconciliationStatus.MATCHED ||
-                              String(reconciliation.status) === 'matched'
+                              reconciliation.status === ReconciliationStatus.MATCHED
                                 ? 'bg-green-100 text-green-800'
-                                : reconciliation.status === ReconciliationStatus.UNMATCHED ||
-                                    String(reconciliation.status) === 'unmatched'
+                                : reconciliation.status === ReconciliationStatus.UNMATCHED
                                   ? 'bg-red-100 text-red-800'
                                   : 'bg-yellow-100 text-yellow-800'
                             }`}
                           >
-                            {reconciliation.status === ReconciliationStatus.MATCHED ||
-                            String(reconciliation.status) === 'matched'
+                            {reconciliation.status === ReconciliationStatus.MATCHED
                               ? '一致'
-                              : reconciliation.status === ReconciliationStatus.UNMATCHED ||
-                                  String(reconciliation.status) === 'unmatched'
+                              : reconciliation.status === ReconciliationStatus.UNMATCHED
                                 ? '不一致'
                                 : '部分一致'}
                           </span>
