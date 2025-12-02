@@ -4,6 +4,7 @@
  */
 
 import { CategoryAmount } from '@account-book/types';
+import { apiClient } from './client';
 
 /**
  * 月別集計詳細（APIレスポンス用）
@@ -24,7 +25,6 @@ export interface MonthlyCardSummary {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
-import { apiClient } from './client';
 
 /**
  * 集計リクエスト

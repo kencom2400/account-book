@@ -3,6 +3,8 @@
  * FR-014: 支払いステータス管理
  */
 
+import { apiClient } from './client';
+
 // PaymentStatusは文字列リテラル型として扱う
 type PaymentStatus =
   | 'PENDING'
@@ -13,7 +15,6 @@ type PaymentStatus =
   | 'DISPUTED'
   | 'CANCELLED'
   | 'MANUAL_CONFIRMED';
-import { apiClient } from './client';
 
 /**
  * ステータス更新リクエスト
