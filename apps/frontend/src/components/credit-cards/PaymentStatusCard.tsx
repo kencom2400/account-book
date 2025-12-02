@@ -74,7 +74,9 @@ export function PaymentStatusCard({
       }
     } catch (error) {
       console.error('Failed to update payment status:', error);
-      showErrorToast('error', 'ステータスの更新に失敗しました');
+      const errorMessage =
+        error instanceof Error ? error.message : 'ステータスの更新に失敗しました';
+      showErrorToast('error', errorMessage);
     } finally {
       setIsUpdating(false);
     }
