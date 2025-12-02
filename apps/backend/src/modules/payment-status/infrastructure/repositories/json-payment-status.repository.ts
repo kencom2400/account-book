@@ -95,13 +95,13 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
   async findByCardSummaryIds(
     cardSummaryIds: string[],
   ): Promise<Map<string, PaymentStatusRecord>> {
-    const records = await this.loadFromFile();
-    const result = new Map<string, PaymentStatusRecord>();
+    if (cardSummaryIds.length === 0) {
+      return new Map();
+    }
 
-    // 指定されたIDのセットを作成（高速検索のため）
+    const records = await this.loadFromFile();
     const targetIds = new Set(cardSummaryIds);
 
-    // 各cardSummaryIdごとに最新の記録をマップに格納
     const latestByCardSummary = new Map<string, PaymentStatusRecord>();
     for (const record of records) {
       if (!targetIds.has(record.cardSummaryId)) {
@@ -117,12 +117,7 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
       }
     }
 
-    // 結果をMapに格納
-    for (const [cardSummaryId, record] of latestByCardSummary) {
-      result.set(cardSummaryId, record);
-    }
-
-    return result;
+    return latestByCardSummary;
   }
 
   /**
