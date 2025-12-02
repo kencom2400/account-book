@@ -9,6 +9,7 @@ import {
 } from '@/lib/api/payment-status';
 import { formatDateTime } from '@/utils/date.utils';
 import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { getErrorMessage } from '@/utils/error.utils';
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
   'PENDING',
@@ -74,8 +75,7 @@ export function PaymentStatusCard({
       }
     } catch (error) {
       console.error('Failed to update payment status:', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'ステータスの更新に失敗しました';
+      const errorMessage = getErrorMessage(error, 'ステータスの更新に失敗しました');
       showErrorToast('error', errorMessage);
     } finally {
       setIsUpdating(false);

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { aggregationApi } from '@/lib/api/aggregation';
 import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { getErrorMessage } from '@/utils/error.utils';
 
 interface AggregateButtonProps {
   cardId: string | null;
@@ -43,7 +44,7 @@ export function AggregateButton({ cardId, onAggregate }: AggregateButtonProps): 
       await onAggregate();
     } catch (err) {
       console.error('Failed to aggregate:', err);
-      const errorMessage = err instanceof Error ? err.message : '集計の実行に失敗しました';
+      const errorMessage = getErrorMessage(err, '集計の実行に失敗しました');
       showErrorToast('error', errorMessage);
     } finally {
       setIsAggregating(false);
