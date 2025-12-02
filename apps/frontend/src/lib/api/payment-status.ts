@@ -80,10 +80,9 @@ export const paymentStatusApi = {
     }
 
     const summaryIds = cardSummaryIds.join(',');
-    const response = await apiClient.get<{ success: true; data: PaymentStatusRecord[] }>(
+    return apiClient.get<PaymentStatusRecord[]>(
       `/api/payment-status?summaryIds=${encodeURIComponent(summaryIds)}`
     );
-    return response.data;
   },
 
   /**
