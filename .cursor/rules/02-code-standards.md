@@ -5929,6 +5929,58 @@ setStatusRecords(recordsMap);
 3. **不要な中間変数やループ**: 削除して直接返却
 4. **配列からMapへの変換**: `reduce`を使用して宣言的に記述
 
+---
+
+#### ❌ 避けるべきパターン4: 順序が不定な配列返却
+
+```typescript
+// ❌ 悪い例: Mapから配列に変換する際、順序が不定
+const recordsMap = await this.getPaymentStatusesUseCase.execute(cardSummaryIds);
+
+const records = Array.from(recordsMap.values()).map((record) => toPaymentStatusResponseDto(record));
+
+return {
+  success: true,
+  data: records,
+};
+```
+
+**問題点**:
+
+- `Array.from(recordsMap.values())`はMapへの挿入順序に依存するため、順序が不定になる可能性がある
+- APIの応答が一貫しない
+- クライアント側での処理が不安定になる可能性
+
+#### ✅ 正しいパターン4: ソートで順序を保証
+
+```typescript
+// ✅ 良い例: cardSummaryIdでソートして順序を保証
+const recordsMap = await this.getPaymentStatusesUseCase.execute(cardSummaryIds);
+
+const records = Array.from(recordsMap.values())
+  .map(toPaymentStatusResponseDto)
+  .sort((a, b) => a.cardSummaryId.localeCompare(b.cardSummaryId));
+
+return {
+  success: true,
+  data: records,
+};
+```
+
+**利点**:
+
+- APIの応答が一貫する
+- クライアント側での処理が安定
+- テストが書きやすい（順序が予測可能）
+
+**推奨アプローチ**:
+
+1. **async関数から直接Promiseを返す場合**: `await`を削除
+2. **空配列や空値の場合**: 早期リターンを追加
+3. **不要な中間変数やループ**: 削除して直接返却
+4. **配列からMapへの変換**: `reduce`を使用して宣言的に記述
+5. **Mapから配列への変換**: 順序を保証するためにソートを追加
+
 **参考**: PR #339 - Geminiレビュー指摘
 
 ---
