@@ -3,7 +3,7 @@ import { CreateAlertUseCase } from './create-alert.use-case';
 import type { AlertRepository } from '../../domain/repositories/alert.repository.interface';
 import type { ReconciliationRepository } from '../../../reconciliation/domain/repositories/reconciliation.repository.interface';
 import { AlertService } from '../../domain/services/alert.service';
-import { ALERT_REPOSITORY } from '../../alert.tokens';
+import { ALERT_REPOSITORY, ALERT_SERVICE } from '../../alert.tokens';
 import { RECONCILIATION_REPOSITORY } from '../../../reconciliation/reconciliation.tokens';
 import { Alert } from '../../domain/entities/alert.entity';
 import { AlertType } from '../../domain/enums/alert-type.enum';
@@ -156,7 +156,7 @@ describe('CreateAlertUseCase', () => {
 
       reconciliationRepository.findById.mockResolvedValue(reconciliation);
       alertRepository.findByReconciliationId.mockResolvedValue(null);
-      const alertServiceInstance = module.get(AlertService);
+      const alertServiceInstance = module.get(ALERT_SERVICE);
       jest
         .spyOn(alertServiceInstance, 'createAlertFromReconciliation')
         .mockResolvedValue(alert);
