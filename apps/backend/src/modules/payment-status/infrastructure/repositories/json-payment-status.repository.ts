@@ -90,6 +90,42 @@ export class JsonPaymentStatusRepository implements PaymentStatusRepository {
   }
 
   /**
+   * 複数のカード集計IDで最新のステータス記録を一括取得
+   */
+  async findByCardSummaryIds(
+    cardSummaryIds: string[],
+  ): Promise<Map<string, PaymentStatusRecord>> {
+    const records = await this.loadFromFile();
+    const result = new Map<string, PaymentStatusRecord>();
+
+    // 指定されたIDのセットを作成（高速検索のため）
+    const targetIds = new Set(cardSummaryIds);
+
+    // 各cardSummaryIdごとに最新の記録をマップに格納
+    const latestByCardSummary = new Map<string, PaymentStatusRecord>();
+    for (const record of records) {
+      if (!targetIds.has(record.cardSummaryId)) {
+        continue;
+      }
+
+      const existing = latestByCardSummary.get(record.cardSummaryId);
+      if (
+        !existing ||
+        record.updatedAt.getTime() > existing.updatedAt.getTime()
+      ) {
+        latestByCardSummary.set(record.cardSummaryId, record);
+      }
+    }
+
+    // 結果をMapに格納
+    for (const [cardSummaryId, record] of latestByCardSummary) {
+      result.set(cardSummaryId, record);
+    }
+
+    return result;
+  }
+
+  /**
    * カード集計IDでステータス変更履歴を取得
    */
   async findHistoryByCardSummaryId(

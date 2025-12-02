@@ -28,6 +28,15 @@ export interface PaymentStatusRepository {
   ): Promise<PaymentStatusRecord | null>;
 
   /**
+   * 複数のカード集計IDで最新のステータス記録を一括取得
+   * @param cardSummaryIds カード集計IDの配列
+   * @returns カード集計IDをキーとしたMap（存在しないIDは含まれない）
+   */
+  findByCardSummaryIds(
+    cardSummaryIds: string[],
+  ): Promise<Map<string, PaymentStatusRecord>>;
+
+  /**
    * カード集計IDでステータス変更履歴を取得
    */
   findHistoryByCardSummaryId(

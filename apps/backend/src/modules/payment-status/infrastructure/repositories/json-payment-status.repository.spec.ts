@@ -281,4 +281,91 @@ describe('JsonPaymentStatusRepository', () => {
       expect(found[0].status).toBe(PaymentStatus.PENDING);
     });
   });
+
+  describe('findByCardSummaryIds', () => {
+    it('複数のカード集計IDで最新のレコードを一括取得できる', async () => {
+      const record1 = createMockRecord(
+        'record-001',
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+      const record2 = createMockRecord(
+        'record-002',
+        'summary-456',
+        PaymentStatus.PROCESSING,
+        new Date('2025-01-02'),
+      );
+      const record3 = createMockRecord(
+        'record-003',
+        'summary-789',
+        PaymentStatus.PAID,
+        new Date('2025-01-03'),
+      );
+
+      await repository.save(record1);
+      await repository.save(record2);
+      await repository.save(record3);
+
+      const found = await repository.findByCardSummaryIds([
+        'summary-123',
+        'summary-456',
+        'summary-789',
+      ]);
+
+      expect(found.size).toBe(3);
+      expect(found.get('summary-123')?.status).toBe(PaymentStatus.PENDING);
+      expect(found.get('summary-456')?.status).toBe(PaymentStatus.PROCESSING);
+      expect(found.get('summary-789')?.status).toBe(PaymentStatus.PAID);
+    });
+
+    it('同じカード集計IDで複数のレコードがある場合は最新のみを返す', async () => {
+      const record1 = createMockRecord(
+        'record-001',
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+      const record2 = createMockRecord(
+        'record-002',
+        'summary-123',
+        PaymentStatus.PROCESSING,
+        new Date('2025-01-02'),
+      );
+
+      await repository.save(record1);
+      await repository.save(record2);
+
+      const found = await repository.findByCardSummaryIds(['summary-123']);
+
+      expect(found.size).toBe(1);
+      expect(found.get('summary-123')?.status).toBe(PaymentStatus.PROCESSING);
+    });
+
+    it('存在しないカード集計IDは結果に含まれない', async () => {
+      const record1 = createMockRecord(
+        'record-001',
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+
+      await repository.save(record1);
+
+      const found = await repository.findByCardSummaryIds([
+        'summary-123',
+        'non-existent',
+      ]);
+
+      expect(found.size).toBe(1);
+      expect(found.get('summary-123')?.status).toBe(PaymentStatus.PENDING);
+      expect(found.has('non-existent')).toBe(false);
+    });
+
+    it('空の配列を渡した場合は空のMapを返す', async () => {
+      const found = await repository.findByCardSummaryIds([]);
+
+      expect(found.size).toBe(0);
+    });
+  });
 });

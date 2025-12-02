@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentStatusController } from './payment-status.controller';
 import { UpdatePaymentStatusUseCase } from '../../application/use-cases/update-payment-status.use-case';
 import { GetPaymentStatusHistoryUseCase } from '../../application/use-cases/get-payment-status-history.use-case';
+import { GetPaymentStatusesUseCase } from '../../application/use-cases/get-payment-statuses.use-case';
 import type { PaymentStatusRepository } from '../../domain/repositories/payment-status.repository.interface';
 import { PAYMENT_STATUS_REPOSITORY } from '../../payment-status.tokens';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
@@ -13,6 +14,7 @@ describe('PaymentStatusController', () => {
   let controller: PaymentStatusController;
   let updateUseCase: jest.Mocked<UpdatePaymentStatusUseCase>;
   let getHistoryUseCase: jest.Mocked<GetPaymentStatusHistoryUseCase>;
+  let getStatusesUseCase: jest.Mocked<GetPaymentStatusesUseCase>;
   let paymentStatusRepository: jest.Mocked<PaymentStatusRepository>;
 
   const createMockRecord = (
@@ -44,6 +46,10 @@ describe('PaymentStatusController', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<GetPaymentStatusHistoryUseCase>;
 
+    getStatusesUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<GetPaymentStatusesUseCase>;
+
     const mockPaymentStatusRepository: jest.Mocked<PaymentStatusRepository> = {
       save: jest.fn(),
       findById: jest.fn(),
@@ -62,6 +68,10 @@ describe('PaymentStatusController', () => {
         {
           provide: GetPaymentStatusHistoryUseCase,
           useValue: getHistoryUseCase,
+        },
+        {
+          provide: GetPaymentStatusesUseCase,
+          useValue: getStatusesUseCase,
         },
         {
           provide: PAYMENT_STATUS_REPOSITORY,
@@ -135,6 +145,67 @@ describe('PaymentStatusController', () => {
         'user',
         undefined,
       );
+    });
+  });
+
+  describe('GET /api/payment-status', () => {
+    it('複数のステータス記録を一括取得できる', async () => {
+      const record1 = createMockRecord(
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+      const record2 = createMockRecord(
+        'summary-456',
+        PaymentStatus.PROCESSING,
+        new Date('2025-01-02'),
+      );
+
+      const recordsMap = new Map<string, PaymentStatusRecord>();
+      recordsMap.set('summary-123', record1);
+      recordsMap.set('summary-456', record2);
+
+      getStatusesUseCase.execute.mockResolvedValue(recordsMap);
+
+      const result = await controller.getStatuses('summary-123,summary-456');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].cardSummaryId).toBe('summary-123');
+      expect(result.data[1].cardSummaryId).toBe('summary-456');
+      expect(getStatusesUseCase.execute).toHaveBeenCalledWith([
+        'summary-123',
+        'summary-456',
+      ]);
+    });
+
+    it('空のクエリパラメータの場合は空配列を返す', async () => {
+      const result = await controller.getStatuses('');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+      expect(getStatusesUseCase.execute).toHaveBeenCalledWith([]);
+    });
+
+    it('クエリパラメータに空白が含まれていても正常に動作する', async () => {
+      const record1 = createMockRecord(
+        'summary-123',
+        PaymentStatus.PENDING,
+        new Date('2025-01-01'),
+      );
+
+      const recordsMap = new Map<string, PaymentStatusRecord>();
+      recordsMap.set('summary-123', record1);
+
+      getStatusesUseCase.execute.mockResolvedValue(recordsMap);
+
+      const result = await controller.getStatuses('summary-123, , summary-456');
+
+      expect(result.success).toBe(true);
+      expect(getStatusesUseCase.execute).toHaveBeenCalledWith([
+        'summary-123',
+        'summary-456',
+      ]);
     });
   });
 
