@@ -7057,10 +7057,277 @@ const summariesToSave = summaries.map((summary) => {
 // 一括保存
 await Promise.all(summariesToSave.map((s) => this.aggregationRepository.save(s)));
 
+// 更新後の配列を返す
+return summariesToSave;
+```
+
+---
+
+## 📚 セクション18: クレジットカード管理画面実装レビューから学んだ観点（Gemini PR#304）
+
+### 18.1 フロントエンド側のN+1問題 🔴 Critical
+
+**学習元**: PR #304 - Geminiレビュー（Issue #113: クレジットカード管理画面）
+
+#### ❌ 避けるべきパターン: ループ内での個別APIコール
+
+```typescript
+// ❌ N+1問題: リスト取得後に各アイテムの詳細を個別に取得
+const summaries = await aggregationApi.getAll();
+const cardSummaries = summaries
+  .filter((s) => s.cardId === selectedCardId)
+  .map(async (s) => {
+    const detail = await aggregationApi.getById(s.id); // N回のAPIコール
+    return detail;
+  });
+const results = await Promise.all(cardSummaries);
+```
+
+**問題点**:
+
+- サマリーの数に比例してAPIリクエストが増加
+- ネットワーク遅延の累積
+- パフォーマンスの大幅な低下
+
+#### ✅ 正しいパターン: バックエンドAPIで一括取得
+
+**バックエンドAPI設計**:
+
+```typescript
+// ✅ カードIDでフィルタリングし、詳細情報を含めて一括返却
+GET /api/aggregation/card/monthly?cardId=card-1
+```
+
+**フロントエンド実装**:
+
+```typescript
+// ✅ 1回のAPIコールで必要なデータをすべて取得
+const summaries = await aggregationApi.getByCardId(selectedCardId);
+```
+
+**教訓**:
+
+- フロントエンドの実装を想定したAPI設計
+- 表示に必要な情報を1回のAPIコールで取得できるようにする
+- バックエンドAPIに適切なエンドポイントを追加
+
+### 18.2 コード重複の解消 🟡 Medium
+
+#### ❌ 避けるべきパターン: 同じロジックの重複
+
+```typescript
+// ❌ useEffectとonAggregateで同じロジックが重複
+useEffect(() => {
+  const fetchMonthlySummaries = async (): Promise<void> => {
+    // ... データ取得ロジック
+  };
+  void fetchMonthlySummaries();
+}, [selectedCardId]);
+
+// 別の場所で同じロジックが重複
+onAggregate={async () => {
+  // ... 同じデータ取得ロジック
+}}
+```
+
+**問題点**:
+
+- コードの重複により保守性が低下
+- 変更時に複数箇所を修正する必要がある
+- 一貫性が保たれない可能性
+
+#### ✅ 正しいパターン: useCallbackで関数化
+
+```typescript
+// ✅ useCallbackで関数としてカプセル化
+const fetchMonthlySummaries = useCallback(async (): Promise<void> => {
+  if (!selectedCardId) return;
+  // ... データ取得ロジック
+}, [selectedCardId]);
+
+useEffect(() => {
+  void fetchMonthlySummaries();
+}, [fetchMonthlySummaries]);
+
+// 同じ関数を再利用
+<AggregateButton cardId={selectedCardId} onAggregate={fetchMonthlySummaries} />
+```
+
+**教訓**:
+
+- 重複するロジックは`useCallback`で関数化
+- `useEffect`とイベントハンドラの両方から同じ関数を呼び出す
+- コードの再利用性と一貫性が向上
+
+### 18.3 import文の位置と型の重複 🟢 Low
+
+#### ❌ 避けるべきパターン: import文が型定義の後に来る
+
+```typescript
+// ❌ import文が型定義の後に来ている
+export interface MonthlyCardSummary {
+  // ...
+}
+import { apiClient } from './client';
+```
+
+**問題点**:
+
+- コードの可読性が低下
+- 一般的なコーディング規約に反する
+
+#### ✅ 正しいパターン: import文をファイル先頭に配置
+
+```typescript
+// ✅ import文をファイル先頭に配置
+import { apiClient } from './client';
+
+export interface MonthlyCardSummary {
+  // ...
+}
+```
+
+**教訓**:
+
+- すべてのimport文はファイルの先頭にまとめる
+- コードの可読性と一貫性を保つ
+
+### 18.4 型の重複定義の回避 🟡 Medium
+
+#### ❌ 避けるべきパターン: 同じ型の重複定義
+
+```typescript
+// ❌ APIファイルで定義されている型をコンポーネントで再定義
+// payment-status.ts
+type PaymentStatus = 'PENDING' | 'PAID' | ...;
+
+// PaymentStatusCard.tsx
+type PaymentStatus = 'PENDING' | 'PAID' | ...; // 重複！
+```
+
+**問題点**:
+
+- 型の一貫性が保たれない
+- 変更時に複数箇所を修正する必要がある
+
+#### ✅ 正しいパターン: 型をexportして再利用
+
+```typescript
+// ✅ APIファイルで型をexport
+// payment-status.ts
+export type PaymentStatus = 'PENDING' | 'PAID' | ...;
+
+// PaymentStatusCard.tsx
+import { type PaymentStatus } from '@/lib/api/payment-status';
+```
+
+**教訓**:
+
+- 型は一度定義してexportし、再利用する
+- 型の重複を避け、一貫性を保つ
+
+### 18.5 ハードコードされた選択肢の定数化 🟢 Low
+
+#### ❌ 避けるべきパターン: 選択肢がハードコードされている
+
+```typescript
+// ❌ 選択肢がハードコードされている
+<select>
+  {(['PENDING', 'PAID', ...] as PaymentStatus[]).map((status) => (
+    <option key={status} value={status}>{status}</option>
+  ))}
+</select>
+```
+
+**問題点**:
+
+- 型と同期が取れなくなる可能性
+- 保守性が低い
+
+#### ✅ 正しいパターン: 定数として定義
+
+```typescript
+// ✅ 定数として定義
+const PAYMENT_STATUSES: PaymentStatus[] = [
+  'PENDING',
+  'PROCESSING',
+  'PAID',
+  // ...
+];
+
+<select>
+  {PAYMENT_STATUSES.map((status) => (
+    <option key={status} value={status}>{status}</option>
+  ))}
+</select>
+```
+
+**教訓**:
+
+- 選択肢は定数として定義し、型と同期を保つ
+- 保守性が向上
+
+### 18.6 冗長な型チェックの簡略化 🟢 Low
+
+#### ❌ 避けるべきパターン: 冗長な型チェック
+
+```typescript
+// ❌ 冗長なString()比較
+reconciliation.status === ReconciliationStatus.MATCHED ||
+  String(reconciliation.status) === 'matched';
+```
+
+**問題点**:
+
+- コードが冗長で読みにくい
+- enumとの直接比較で十分
+
+#### ✅ 正しいパターン: enumとの直接比較
+
+```typescript
+// ✅ enumとの直接比較のみ
+reconciliation.status === ReconciliationStatus.MATCHED;
+```
+
+**教訓**:
+
+- enum型は直接比較する
+- 冗長な型変換は避ける
+
+### 18.7 エラーハンドリングの改善 🟡 Medium
+
+#### ❌ 避けるべきパターン: エラーを握りつぶす
+
+```typescript
+// ❌ エラーを握りつぶしてデバッグが困難
+const status = await paymentStatusApi.getStatus(summaryId).catch(() => null);
+```
+
+**問題点**:
+
+- デバッグが困難
+- 問題の早期発見ができない
+
+#### ✅ 正しいパターン: エラーログを記録
+
+```typescript
+// ✅ エラーログを記録
+const status = await paymentStatusApi.getStatus(summaryId).catch((err) => {
+  console.error(`Failed to fetch status for summary ${summaryId}:`, err);
+  return null;
+});
+```
+
+**教訓**:
+
+- エラーは握りつぶさず、ログに記録する
+- 開発中に問題を検知できるようにする
+
 // ✅ 更新後のデータを返す
 summariesToSave.sort((a, b) => a.billingMonth.localeCompare(b.billingMonth));
 return summariesToSave;
-```
+
+````
 
 **教訓**:
 
@@ -7094,7 +7361,7 @@ return summariesToSave;
 
 // ✅ シンプル（NestJSが自動解決）
 AggregateCardTransactionsUseCase,
-```
+````
 
 **教訓**:
 
