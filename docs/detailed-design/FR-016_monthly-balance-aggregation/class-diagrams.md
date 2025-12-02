@@ -66,8 +66,8 @@ classDiagram
         +number incomeDiff
         +number expenseDiff
         +number balanceDiff
-        +number incomeRate
-        +number expenseRate
+        +number incomeChangeRate
+        +number expenseChangeRate
     }
 
     class ITransactionRepository {
@@ -92,7 +92,7 @@ classDiagram
 - **主要メソッド**:
   - `isIncome()`: 収入取引かどうかを判定
   - `isExpense()`: 支出取引かどうかを判定
-  - `toJSON()`: JSON形式への変換
+  - `toJSON()`: JSON形式への変換（戻り値型: `TransactionJSONResponse` - 既存の型定義を使用）
 
 #### MonthlyBalanceDomainService（新規作成）
 
@@ -134,9 +134,9 @@ classDiagram
         +execute(year, month) Promise~MonthlyBalanceResponseDto~
         -getPreviousMonth(year, month) {year, month}
         -getSameMonthLastYear(year, month) {year, month}
-        -buildCategoryBreakdown(aggregation, transactions) CategoryBreakdown[]
-        -buildInstitutionBreakdown(aggregation, transactions) InstitutionBreakdown[]
-        -toTransactionDto(entity) TransactionDto
+        -buildCategoryBreakdown(aggregation Map~string, AggregationData~, transactions TransactionEntity[]) CategoryBreakdown[]
+        -buildInstitutionBreakdown(aggregation Map~string, AggregationData~, transactions TransactionEntity[]) InstitutionBreakdown[]
+        -toTransactionDto(entity TransactionEntity) TransactionDto
     }
 
     class MonthlyBalanceDomainService {
@@ -228,9 +228,9 @@ classDiagram
   - `execute(year, month)`: 月別収支集計を実行
   - `getPreviousMonth(year, month)`: 前月の年月を取得
   - `getSameMonthLastYear(year, month)`: 前年同月の年月を取得
-  - `buildCategoryBreakdown(aggregation, transactions)`: カテゴリ別内訳を構築
-  - `buildInstitutionBreakdown(aggregation, transactions)`: 金融機関別内訳を構築
-  - `toTransactionDto(entity)`: `TransactionEntity`を`TransactionDto`に変換（Onion Architecture原則）
+  - `buildCategoryBreakdown(aggregation: Map<string, AggregationData>, transactions: TransactionEntity[])`: カテゴリ別内訳を構築
+  - `buildInstitutionBreakdown(aggregation: Map<string, AggregationData>, transactions: TransactionEntity[])`: 金融機関別内訳を構築
+  - `toTransactionDto(entity: TransactionEntity)`: `TransactionEntity`を`TransactionDto`に変換（Onion Architecture原則）
 
 #### MonthlyBalanceResponseDto（新規作成）
 

@@ -216,8 +216,8 @@ interface MonthComparison {
   incomeDiff: number;
   expenseDiff: number;
   balanceDiff: number;
-  incomeRate: number; // 前月比%
-  expenseRate: number;
+  incomeChangeRate: number; // 前月比%
+  expenseChangeRate: number;
 }
 
 interface TransactionDto {

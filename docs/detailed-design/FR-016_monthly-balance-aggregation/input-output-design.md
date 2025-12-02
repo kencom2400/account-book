@@ -190,15 +190,15 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
         "incomeDiff": 20000,
         "expenseDiff": 10000,
         "balanceDiff": 10000,
-        "incomeRate": 7.14,
-        "expenseRate": 5.26
+        "incomeChangeRate": 7.14,
+        "expenseChangeRate": 5.26
       },
       "sameMonthLastYear": {
         "incomeDiff": 10000,
         "expenseDiff": 5000,
         "balanceDiff": 5000,
-        "incomeRate": 3.45,
-        "expenseRate": 2.56
+        "incomeChangeRate": 3.45,
+        "expenseChangeRate": 2.56
       }
     }
   }
@@ -255,13 +255,13 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
 
 **MonthComparison:**
 
-| フィールド  | 型     | 説明              |
-| ----------- | ------ | ----------------- |
-| incomeDiff  | number | 収入の増減額      |
-| expenseDiff | number | 支出の増減額      |
-| balanceDiff | number | 収支の増減額      |
-| incomeRate  | number | 収入の増減率（%） |
-| expenseRate | number | 支出の増減率（%） |
+| フィールド        | 型     | 説明              |
+| ----------------- | ------ | ----------------- |
+| incomeDiff        | number | 収入の増減額      |
+| expenseDiff       | number | 支出の増減額      |
+| balanceDiff       | number | 収支の増減額      |
+| incomeChangeRate  | number | 収入の増減率（%） |
+| expenseChangeRate | number | 支出の増減率（%） |
 
 **Error Responses:**
 
@@ -314,8 +314,8 @@ export interface MonthComparison {
   incomeDiff: number;
   expenseDiff: number;
   balanceDiff: number;
-  incomeRate: number;
-  expenseRate: number;
+  incomeChangeRate: number;
+  expenseChangeRate: number;
 }
 
 export interface TransactionDto {

@@ -85,14 +85,14 @@ sequenceDiagram
     DS-->>UC: BalanceResult<br/>{income: 280000, expense: 190000, balance: 90000}
 
     UC->>DS: calculateMonthComparison(currentBalance, previousBalance)
-    DS-->>UC: MonthComparison<br/>{incomeDiff: 20000, expenseDiff: 10000,<br/>balanceDiff: 10000, incomeRate: 7.14, expenseRate: 5.26}
+    DS-->>UC: MonthComparison<br/>{incomeDiff: 20000, expenseDiff: 10000,<br/>balanceDiff: 10000, incomeChangeRate: 7.14, expenseChangeRate: 5.26}
 
     Note over UC: 前年同月比計算
     UC->>DS: calculateBalance(sameMonthLastYearTransactions)
     DS-->>UC: BalanceResult<br/>{income: 290000, expense: 195000, balance: 95000}
 
     UC->>DS: calculateMonthComparison(currentBalance, lastYearBalance)
-    DS-->>UC: MonthComparison<br/>{incomeDiff: 10000, expenseDiff: 5000,<br/>balanceDiff: 5000, incomeRate: 3.45, expenseRate: 2.56}
+    DS-->>UC: MonthComparison<br/>{incomeDiff: 10000, expenseDiff: 5000,<br/>balanceDiff: 5000, incomeChangeRate: 3.45, expenseChangeRate: 2.56}
 
     Note over UC: DTO構築
     UC->>UC: buildCategoryBreakdown(aggregation, transactions)
