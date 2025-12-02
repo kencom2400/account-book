@@ -261,9 +261,7 @@ export function CreditCardManagementPage(): React.JSX.Element {
 
             {activeTab === 'reconciliation' && <ReconciliationTab cardId={selectedCardId} />}
 
-            {activeTab === 'status' && (
-              <StatusTab cardId={selectedCardId} monthlySummaries={monthlySummaries} />
-            )}
+            {activeTab === 'status' && <StatusTab monthlySummaries={monthlySummaries} />}
           </div>
         )}
       </div>

@@ -8,7 +8,6 @@ import { MonthlyCardSummary } from '@/lib/api/aggregation';
 import { PaymentStatusCard } from './PaymentStatusCard';
 
 interface StatusTabProps {
-  cardId: string | null;
   monthlySummaries: MonthlyCardSummary[];
 }
 
