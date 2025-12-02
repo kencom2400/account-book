@@ -7,12 +7,14 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.entity';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
 import { FindAllSummariesUseCase } from '../../application/use-cases/find-all-summaries.use-case';
 import { FindSummaryByIdUseCase } from '../../application/use-cases/find-summary-by-id.use-case';
+import { FindSummariesByCardIdUseCase } from '../../application/use-cases/find-summaries-by-card-id.use-case';
 import { DeleteSummaryUseCase } from '../../application/use-cases/delete-summary.use-case';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 import {
@@ -31,6 +33,7 @@ export class AggregationController {
     private readonly aggregateCardTransactionsUseCase: AggregateCardTransactionsUseCase,
     private readonly findAllSummariesUseCase: FindAllSummariesUseCase,
     private readonly findSummaryByIdUseCase: FindSummaryByIdUseCase,
+    private readonly findSummariesByCardIdUseCase: FindSummariesByCardIdUseCase,
     private readonly deleteSummaryUseCase: DeleteSummaryUseCase,
   ) {}
 
@@ -67,6 +70,7 @@ export class AggregationController {
   /**
    * GET /api/aggregation/card/monthly
    * 月別集計の一覧を取得
+   * クエリパラメータにcardIdが指定された場合は、そのカードの詳細サマリーを返す（N+1問題回避）
    */
   @Get()
   @ApiOperation({ summary: '月別集計の一覧を取得' })
@@ -75,10 +79,25 @@ export class AggregationController {
     description: '取得成功',
     type: [MonthlyCardSummaryListItemDto],
   })
-  async findAll(): Promise<{
+  @ApiResponse({
+    status: 200,
+    description: 'cardId指定時: カードの詳細サマリー取得成功',
+    type: [MonthlyCardSummaryResponseDto],
+  })
+  async findAll(@Query('cardId') cardId?: string): Promise<{
     success: boolean;
-    data: MonthlyCardSummaryListItemDto[];
+    data: MonthlyCardSummaryListItemDto[] | MonthlyCardSummaryResponseDto[];
   }> {
+    // cardIdが指定された場合は、そのカードの詳細サマリーを返す
+    if (cardId) {
+      const summaries = await this.findSummariesByCardIdUseCase.execute(cardId);
+      return {
+        success: true,
+        data: summaries.map((summary) => this.toResponseDto(summary)),
+      };
+    }
+
+    // cardIdが指定されていない場合は、全サマリーの一覧を返す
     const summaries = await this.findAllSummariesUseCase.execute();
 
     return {

@@ -68,6 +68,15 @@ export const aggregationApi = {
   },
 
   /**
+   * カードIDで月別集計の詳細を一括取得（N+1問題回避用）
+   */
+  getByCardId: async (cardId: string): Promise<MonthlyCardSummary[]> => {
+    return await apiClient.get<MonthlyCardSummary[]>(
+      `/api/aggregation/card/monthly?cardId=${cardId}`
+    );
+  },
+
+  /**
    * 月別集計の詳細を取得
    */
   getById: async (id: string): Promise<MonthlyCardSummary> => {

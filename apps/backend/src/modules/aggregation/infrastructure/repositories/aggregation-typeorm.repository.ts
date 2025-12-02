@@ -96,6 +96,18 @@ export class AggregationTypeOrmRepository implements AggregationRepository {
   }
 
   /**
+   * カードIDで集計データをすべて取得（N+1問題回避用）
+   */
+  async findAllByCardId(cardId: string): Promise<MonthlyCardSummary[]> {
+    const ormEntities = await this.repository.find({
+      where: { cardId },
+      order: { billingMonth: 'DESC' },
+    });
+
+    return ormEntities.map((entity) => this.toDomain(entity));
+  }
+
+  /**
    * すべての集計データを取得
    */
   async findAll(): Promise<MonthlyCardSummary[]> {

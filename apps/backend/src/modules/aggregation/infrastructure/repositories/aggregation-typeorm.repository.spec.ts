@@ -176,6 +176,30 @@ describe('AggregationTypeOrmRepository', () => {
     });
   });
 
+  describe('findAllByCardId', () => {
+    it('カードIDで集計データをすべて取得できる', async () => {
+      typeOrmRepository.find.mockResolvedValue([mockOrmEntity]);
+
+      const result = await repository.findAllByCardId('card-456');
+
+      expect(typeOrmRepository.find).toHaveBeenCalledWith({
+        where: { cardId: 'card-456' },
+        order: { billingMonth: 'DESC' },
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBeInstanceOf(MonthlyCardSummary);
+      expect(result[0]?.cardId).toBe('card-456');
+    });
+
+    it('該当するデータがない場合、空配列を返す', async () => {
+      typeOrmRepository.find.mockResolvedValue([]);
+
+      const result = await repository.findAllByCardId('non-existent-card');
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe('findAll', () => {
     it('すべての集計データを取得できる', async () => {
       typeOrmRepository.find.mockResolvedValue([mockOrmEntity]);

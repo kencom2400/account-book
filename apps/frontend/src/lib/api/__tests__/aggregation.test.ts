@@ -101,6 +101,68 @@ describe('Aggregation API Client', () => {
     });
   });
 
+  describe('getByCardId', () => {
+    it('カードIDで月別集計の詳細を一括取得できる', async () => {
+      const cardId = 'card-1';
+      const mockSummaries = [
+        {
+          id: 'summary-1',
+          cardId: 'card-1',
+          cardName: '楽天カード',
+          billingMonth: '2025-01',
+          closingDate: '2025-01-31T00:00:00.000Z',
+          paymentDate: '2025-02-27T00:00:00.000Z',
+          totalAmount: 50000,
+          transactionCount: 15,
+          categoryBreakdown: [
+            {
+              category: CategoryType.EXPENSE,
+              amount: 50000,
+              count: 15,
+            },
+          ],
+          transactionIds: ['tx-1', 'tx-2', 'tx-3'],
+          netPaymentAmount: 50000,
+          status: 'PENDING',
+          createdAt: '2025-01-31T00:00:00.000Z',
+          updatedAt: '2025-01-31T00:00:00.000Z',
+        },
+        {
+          id: 'summary-2',
+          cardId: 'card-1',
+          cardName: '楽天カード',
+          billingMonth: '2025-02',
+          closingDate: '2025-02-28T00:00:00.000Z',
+          paymentDate: '2025-03-27T00:00:00.000Z',
+          totalAmount: 60000,
+          transactionCount: 18,
+          categoryBreakdown: [
+            {
+              category: CategoryType.EXPENSE,
+              amount: 60000,
+              count: 18,
+            },
+          ],
+          transactionIds: ['tx-4', 'tx-5', 'tx-6'],
+          netPaymentAmount: 60000,
+          status: 'PAID',
+          createdAt: '2025-02-28T00:00:00.000Z',
+          updatedAt: '2025-02-28T00:00:00.000Z',
+        },
+      ];
+
+      mockApiClient.get.mockResolvedValue(mockSummaries);
+
+      const result = await aggregationApi.getByCardId(cardId);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        `/api/aggregation/card/monthly?cardId=${cardId}`
+      );
+      expect(result).toEqual(mockSummaries);
+      expect(result).toHaveLength(2);
+    });
+  });
+
   describe('getById', () => {
     it('月別集計の詳細を取得できる', async () => {
       const id = 'summary-1';

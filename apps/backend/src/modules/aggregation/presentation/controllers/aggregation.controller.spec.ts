@@ -6,6 +6,7 @@ import { CategoryAmount } from '../../domain/value-objects/category-amount.vo';
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
 import { FindAllSummariesUseCase } from '../../application/use-cases/find-all-summaries.use-case';
 import { FindSummaryByIdUseCase } from '../../application/use-cases/find-summary-by-id.use-case';
+import { FindSummariesByCardIdUseCase } from '../../application/use-cases/find-summaries-by-card-id.use-case';
 import { DeleteSummaryUseCase } from '../../application/use-cases/delete-summary.use-case';
 import { AggregationController } from './aggregation.controller';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
@@ -15,6 +16,7 @@ describe('AggregationController', () => {
   let aggregateUseCase: jest.Mocked<AggregateCardTransactionsUseCase>;
   let findAllUseCase: jest.Mocked<FindAllSummariesUseCase>;
   let findByIdUseCase: jest.Mocked<FindSummaryByIdUseCase>;
+  let findByCardIdUseCase: jest.Mocked<FindSummariesByCardIdUseCase>;
   let deleteUseCase: jest.Mocked<DeleteSummaryUseCase>;
 
   const mockSummary = new MonthlyCardSummary(
@@ -50,6 +52,10 @@ describe('AggregationController', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<FindSummaryByIdUseCase>;
 
+    findByCardIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<FindSummariesByCardIdUseCase>;
+
     deleteUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<DeleteSummaryUseCase>;
@@ -68,6 +74,10 @@ describe('AggregationController', () => {
         {
           provide: FindSummaryByIdUseCase,
           useValue: findByIdUseCase,
+        },
+        {
+          provide: FindSummariesByCardIdUseCase,
+          useValue: findByCardIdUseCase,
         },
         {
           provide: DeleteSummaryUseCase,
@@ -156,6 +166,32 @@ describe('AggregationController', () => {
       expect(item).not.toHaveProperty('transactionIds');
       expect(item).not.toHaveProperty('createdAt');
       expect(item).not.toHaveProperty('updatedAt');
+    });
+
+    it('cardIdクエリパラメータが指定された場合、カードの詳細サマリーを返す', async () => {
+      findByCardIdUseCase.execute.mockResolvedValue([mockSummary]);
+
+      const result = await controller.findAll('card-456');
+
+      expect(findByCardIdUseCase.execute).toHaveBeenCalledWith('card-456');
+      expect(findAllUseCase.execute).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('summary-123');
+      expect(result.data[0]).toHaveProperty('categoryBreakdown');
+      expect(result.data[0]).toHaveProperty('transactionIds');
+      expect(result.data[0]).toHaveProperty('closingDate');
+    });
+
+    it('cardIdが指定されていない場合、全サマリーの一覧を返す', async () => {
+      findAllUseCase.execute.mockResolvedValue([mockSummary]);
+
+      const result = await controller.findAll(undefined);
+
+      expect(findAllUseCase.execute).toHaveBeenCalled();
+      expect(findByCardIdUseCase.execute).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
     });
   });
 
