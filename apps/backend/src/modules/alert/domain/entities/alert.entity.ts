@@ -79,12 +79,26 @@ export class Alert {
 
   /**
    * アラートを既読にする
+   * 新しいインスタンスを返す（不変性を保つため）
    */
-  markAsRead(): void {
+  markAsRead(): Alert {
     if (this._status === AlertStatus.RESOLVED) {
       throw new Error('Cannot mark resolved alert as read');
     }
-    this._status = AlertStatus.READ;
+    return new Alert(
+      this.id,
+      this.type,
+      this.level,
+      this.title,
+      this.message,
+      this.details,
+      AlertStatus.READ,
+      this.createdAt,
+      this.resolvedAt,
+      this.resolvedBy,
+      this.resolutionNote,
+      this.actions,
+    );
   }
 
   /**

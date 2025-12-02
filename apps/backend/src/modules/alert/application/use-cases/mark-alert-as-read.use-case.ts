@@ -26,9 +26,9 @@ export class MarkAlertAsReadUseCase {
     }
 
     // 2. アラートを既読に更新
-    alert.markAsRead();
+    const readAlert = alert.markAsRead();
 
     // 3. アラートを保存
-    return await this.alertRepository.save(alert);
+    return await this.alertRepository.save(readAlert);
   }
 }
