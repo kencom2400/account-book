@@ -25,7 +25,7 @@ classDiagram
         +string message
         +AlertDetails details
     +AlertStatus status
-    +Date createdAt
+        +Date createdAt
     +Date resolvedAt
         +string resolvedBy
         +string resolutionNote

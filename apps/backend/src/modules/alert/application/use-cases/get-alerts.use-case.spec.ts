@@ -77,12 +77,12 @@ describe('GetAlertsUseCase', () => {
   describe('execute', () => {
     it('正常にアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
-      alertRepository.findAll.mockResolvedValue(alerts);
+      alertRepository.findAll.mockResolvedValue({ data: alerts, total: 1 });
 
       const result = await useCase.execute({});
 
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('alert-001');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('alert-001');
       expect(alertRepository.findAll).toHaveBeenCalledWith({});
     });
 

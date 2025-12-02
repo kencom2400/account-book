@@ -173,7 +173,7 @@ export class AlertService {
 
     switch (type) {
       case AlertType.AMOUNT_MISMATCH:
-        return `${cardName}の${billingMonth}分の引落額に差異があります。\n\n請求額: ¥${details.expectedAmount.toLocaleString()}\n引落額: ${details.actualAmount ? `¥${details.actualAmount.toLocaleString()}` : '未検出'}\n差額: ${details.discrepancy ? `¥${details.discrepancy.toLocaleString()}` : '計算不可'}`;
+        return `${cardName}の${billingMonth}分の引落額に差異があります。\n\n請求額: ¥${details.expectedAmount.toLocaleString()}\n引落額: ${details.actualAmount !== null ? `¥${details.actualAmount.toLocaleString()}` : '未検出'}\n差額: ${details.discrepancy !== null ? `¥${details.discrepancy.toLocaleString()}` : '計算不可'}`;
       case AlertType.PAYMENT_NOT_FOUND:
         return `${cardName}の${billingMonth}分の引落が検出されませんでした。\n\n請求額: ¥${details.expectedAmount.toLocaleString()}\n引落予定日: ${details.paymentDate ? details.paymentDate.toLocaleDateString() : '不明'}\n経過日数: ${details.daysElapsed ?? '不明'}日`;
       case AlertType.OVERDUE:
