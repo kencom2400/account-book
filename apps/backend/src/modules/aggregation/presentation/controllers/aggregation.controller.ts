@@ -90,17 +90,16 @@ export class AggregationController {
   }
 
   /**
-   * GET /api/aggregation/card/:cardId/monthly
+   * GET /api/aggregation/card/monthly/card/:cardId
    * カードIDで月別集計の詳細を一括取得（N+1問題回避用）
    */
   @Get('card/:cardId')
   @ApiOperation({ summary: 'カードIDで月別集計の詳細を一括取得' })
   @ApiResponse({
     status: 200,
-    description: '取得成功',
+    description: '取得成功（該当データがない場合は空配列を返す）',
     type: [MonthlyCardSummaryResponseDto],
   })
-  @ApiResponse({ status: 404, description: 'カードが見つからない' })
   async findByCardId(@Param('cardId') cardId: string): Promise<{
     success: boolean;
     data: MonthlyCardSummaryResponseDto[];
