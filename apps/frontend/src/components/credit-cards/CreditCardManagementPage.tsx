@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CreditCard } from '@account-book/types';
 import { MonthlyCardSummary } from '@/lib/api/aggregation';
 import { getCreditCards } from '@/lib/api/credit-cards';
@@ -50,34 +50,34 @@ export function CreditCardManagementPage(): React.JSX.Element {
     void fetchCreditCards();
   }, []);
 
-  useEffect(() => {
+  const fetchMonthlySummaries = useCallback(async (): Promise<void> => {
     if (!selectedCardId) return;
 
-    const fetchMonthlySummaries = async (): Promise<void> => {
-      try {
-        const summaries = await aggregationApi.getAll();
-        const cardSummaries = summaries
-          .filter((s) => s.cardId === selectedCardId)
-          .map(async (s) => {
-            try {
-              const detail = await aggregationApi.getById(s.id);
-              return detail;
-            } catch (err) {
-              console.error('Failed to fetch summary detail:', err);
-              return null;
-            }
-          });
-        const results = (await Promise.all(cardSummaries)).filter(
-          (s): s is MonthlyCardSummary => s !== null
-        );
-        setMonthlySummaries(results);
-      } catch (err) {
-        console.error('Failed to fetch monthly summaries:', err);
-      }
-    };
-
-    void fetchMonthlySummaries();
+    try {
+      const summaries = await aggregationApi.getAll();
+      const cardSummaries = summaries
+        .filter((s) => s.cardId === selectedCardId)
+        .map(async (s) => {
+          try {
+            const detail = await aggregationApi.getById(s.id);
+            return detail;
+          } catch (err) {
+            console.error('Failed to fetch summary detail:', err);
+            return null;
+          }
+        });
+      const results = (await Promise.all(cardSummaries)).filter(
+        (s): s is MonthlyCardSummary => s !== null
+      );
+      setMonthlySummaries(results);
+    } catch (err) {
+      console.error('Failed to fetch monthly summaries:', err);
+    }
   }, [selectedCardId]);
+
+  useEffect(() => {
+    void fetchMonthlySummaries();
+  }, [fetchMonthlySummaries]);
 
   if (loading) {
     return (
@@ -230,22 +230,7 @@ export function CreditCardManagementPage(): React.JSX.Element {
                       <p className="text-gray-600 mb-4">月別集計データがありません</p>
                       <AggregateButton
                         cardId={selectedCardId}
-                        onAggregate={async () => {
-                          if (!selectedCardId) return;
-                          try {
-                            const summaries = await aggregationApi.getAll();
-                            const cardSummaries = summaries
-                              .filter((s) => s.cardId === selectedCardId)
-                              .map(async (s) => {
-                                const detail = await aggregationApi.getById(s.id);
-                                return detail;
-                              });
-                            const results = await Promise.all(cardSummaries);
-                            setMonthlySummaries(results);
-                          } catch (err) {
-                            console.error('Failed to refresh summaries:', err);
-                          }
-                        }}
+                        onAggregate={fetchMonthlySummaries}
                       />
                     </CardContent>
                   </Card>
