@@ -101,8 +101,7 @@ export class CalculateMonthlyBalanceUseCase {
       year,
       month,
     );
-    const { year: lastYearYear, month: lastYearMonth } =
-      this.getSameMonthLastYear(year, month);
+    const { year: lastYear } = this.getSameMonthLastYear(year, month);
 
     // 当月・前月・前年同月のデータを並列取得
     const [
@@ -112,20 +111,29 @@ export class CalculateMonthlyBalanceUseCase {
     ] = await Promise.all([
       this.transactionRepository.findByMonth(year, month),
       this.transactionRepository.findByMonth(prevYear, prevMonth),
-      this.transactionRepository.findByMonth(lastYearYear, lastYearMonth),
+      this.transactionRepository.findByMonth(lastYear, month),
     ]);
 
     // 収支計算
     const currentBalance =
       this.monthlyBalanceDomainService.calculateBalance(currentTransactions);
 
-    // 収入・支出を分離
-    const incomeTransactions = currentTransactions.filter(
-      (t) => t.category.type === CategoryType.INCOME,
-    );
-    const expenseTransactions = currentTransactions.filter(
-      (t) => t.category.type === CategoryType.EXPENSE,
-    );
+    // 収入・支出を分離（1回の走査で効率的に分離）
+    const { incomeTransactions, expenseTransactions } =
+      currentTransactions.reduce(
+        (acc, t) => {
+          if (t.category.type === CategoryType.INCOME) {
+            acc.incomeTransactions.push(t);
+          } else if (t.category.type === CategoryType.EXPENSE) {
+            acc.expenseTransactions.push(t);
+          }
+          return acc;
+        },
+        {
+          incomeTransactions: [] as TransactionEntity[],
+          expenseTransactions: [] as TransactionEntity[],
+        },
+      );
 
     // カテゴリ別集計
     const incomeCategoryAggregation =
