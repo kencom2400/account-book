@@ -54,10 +54,6 @@ export class JsonAlertRepository implements AlertRepository {
   private readonly logger = new Logger(JsonAlertRepository.name);
   private cache: Alert[] | null = null;
 
-  constructor() {
-    void this.ensureDataDirectory();
-  }
-
   /**
    * アラートデータを保存
    */
