@@ -65,9 +65,10 @@ export class AlertService {
     const { status, results } = reconciliation;
 
     if (status !== ReconciliationStatus.UNMATCHED) {
-      // 基本的にUNMATCHED以外でアラートは作成されない想定だが、念のため
-      // 本来はエラーをスローするか、専用のタイプを返すのが望ましい
-      return AlertType.AMOUNT_MISMATCH;
+      // UNMATCHEDでない場合はアラートを生成しない
+      throw new Error(
+        `Alerts can only be created from UNMATCHED reconciliations. Status was: ${status}`,
+      );
     }
 
     const unmatchedResults = results.filter((r) => !r.isMatched);

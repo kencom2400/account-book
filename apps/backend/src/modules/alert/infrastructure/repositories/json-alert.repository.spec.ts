@@ -9,7 +9,10 @@ import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import { AlertDetails } from '../../domain/value-objects/alert-details.vo';
 import { AlertAction } from '../../domain/value-objects/alert-action.vo';
 import { ActionType } from '../../domain/enums/action-type.enum';
-import { CriticalAlertDeletionException } from '../../domain/errors/alert.errors';
+import {
+  CriticalAlertDeletionException,
+  AlertNotFoundException,
+} from '../../domain/errors/alert.errors';
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'alerts');
 const FILE_NAME = 'alerts.json';
@@ -188,8 +191,7 @@ describe('JsonAlertRepository', () => {
   describe('findAll', () => {
     it('すべてのアラートを取得できる', async () => {
       const alert1 = createMockAlert();
-      const alert2 = createMockAlert();
-      alert2.id = 'alert-002';
+      const alert2 = createMockAlert({ id: 'alert-002' });
       await repository.save(alert1);
       await repository.save(alert2);
 
@@ -259,17 +261,21 @@ describe('JsonAlertRepository', () => {
       );
     });
 
-    it('存在しないアラートの削除はエラーにならない', async () => {
-      await expect(repository.delete('non-existent')).resolves.not.toThrow();
+    it('存在しないアラートの削除はエラーをスローする', async () => {
+      await expect(repository.delete('non-existent')).rejects.toThrow(
+        AlertNotFoundException,
+      );
     });
   });
 
   describe('findUnresolved', () => {
     it('未解決のアラートを取得できる', async () => {
       const alert1 = createMockAlert({ status: AlertStatus.UNREAD });
-      const alert2 = createMockAlert({ status: AlertStatus.UNREAD });
-      alert2.id = 'alert-002';
-      alert2.markAsRead(); // READステータスに変更
+      const unreadAlert2 = createMockAlert({
+        id: 'alert-002',
+        status: AlertStatus.UNREAD,
+      });
+      const alert2 = unreadAlert2.markAsRead(); // READステータスに変更
       const alert3 = createMockAlert({
         id: 'alert-003',
         status: AlertStatus.RESOLVED,

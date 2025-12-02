@@ -8,7 +8,10 @@ import { AlertType } from '../../domain/enums/alert-type.enum';
 import { ActionType } from '../../domain/enums/action-type.enum';
 import type { AlertRepository } from '../../domain/repositories/alert.repository.interface';
 import { AlertAction } from '../../domain/value-objects/alert-action.vo';
-import { CriticalAlertDeletionException } from '../../domain/errors/alert.errors';
+import {
+  CriticalAlertDeletionException,
+  AlertNotFoundException,
+} from '../../domain/errors/alert.errors';
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'alerts');
 const FILE_NAME = 'alerts.json';
@@ -140,7 +143,8 @@ export class JsonAlertRepository implements AlertRepository {
     page?: number;
     limit?: number;
   }): Promise<{ data: Alert[]; total: number }> {
-    let alerts = await this.loadFromFile();
+    // キャッシュの不変性を保つために配列のコピーを作成
+    let alerts = [...(await this.loadFromFile())];
 
     // フィルタリング
     if (query.level) {
@@ -193,7 +197,7 @@ export class JsonAlertRepository implements AlertRepository {
     const alert = alerts.find((a) => a.id === id);
 
     if (!alert) {
-      return;
+      throw new AlertNotFoundException(id);
     }
 
     // CRITICALアラートは削除不可

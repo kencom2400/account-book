@@ -28,13 +28,18 @@ import { AGGREGATION_REPOSITORY } from '../aggregation/aggregation.tokens';
     MarkAlertAsReadUseCase,
     // Services
     {
-      provide: ALERT_SERVICE,
+      provide: AlertService,
       useFactory: (
         aggregationRepository: AggregationRepository,
       ): AlertService => {
         return new AlertService(aggregationRepository);
       },
       inject: [AGGREGATION_REPOSITORY],
+    },
+    // ALERT_SERVICEトークンも提供（後方互換性のため）
+    {
+      provide: ALERT_SERVICE,
+      useExisting: AlertService,
     },
     // Repositories
     {

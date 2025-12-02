@@ -242,12 +242,7 @@ export class AlertController {
   @ApiResponse({ status: 422, description: 'CRITICALアラート削除不可' })
   async deleteAlert(@Param('id') id: string): Promise<void> {
     try {
-      const alert = await this.alertRepository.findById(id);
-
-      if (!alert) {
-        throw new AlertNotFoundException(id);
-      }
-
+      // deleteメソッド内で存在確認と削除をまとめて行う
       await this.alertRepository.delete(id);
     } catch (error) {
       this.handleError(error);
