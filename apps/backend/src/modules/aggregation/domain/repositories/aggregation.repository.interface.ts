@@ -40,6 +40,11 @@ export interface AggregationRepository {
   ): Promise<MonthlyCardSummary[]>;
 
   /**
+   * カードIDで集計データをすべて取得（N+1問題回避用）
+   */
+  findAllByCardId(cardId: string): Promise<MonthlyCardSummary[]>;
+
+  /**
    * すべての集計データを取得
    */
   findAll(): Promise<MonthlyCardSummary[]>;

@@ -13,6 +13,7 @@ import { MonthlyCardSummary } from '../../domain/entities/monthly-card-summary.e
 import { AggregateCardTransactionsUseCase } from '../../application/use-cases/aggregate-card-transactions.use-case';
 import { FindAllSummariesUseCase } from '../../application/use-cases/find-all-summaries.use-case';
 import { FindSummaryByIdUseCase } from '../../application/use-cases/find-summary-by-id.use-case';
+import { FindSummariesByCardIdUseCase } from '../../application/use-cases/find-summaries-by-card-id.use-case';
 import { DeleteSummaryUseCase } from '../../application/use-cases/delete-summary.use-case';
 import { AggregateCardTransactionsRequestDto } from '../dto/aggregate-card-transactions.dto';
 import {
@@ -31,6 +32,7 @@ export class AggregationController {
     private readonly aggregateCardTransactionsUseCase: AggregateCardTransactionsUseCase,
     private readonly findAllSummariesUseCase: FindAllSummariesUseCase,
     private readonly findSummaryByIdUseCase: FindSummaryByIdUseCase,
+    private readonly findSummariesByCardIdUseCase: FindSummariesByCardIdUseCase,
     private readonly deleteSummaryUseCase: DeleteSummaryUseCase,
   ) {}
 
@@ -84,6 +86,29 @@ export class AggregationController {
     return {
       success: true,
       data: summaries.map((summary) => this.toListItemDto(summary)),
+    };
+  }
+
+  /**
+   * GET /api/aggregation/card/monthly/card/:cardId
+   * カードIDで月別集計の詳細を一括取得（N+1問題回避用）
+   */
+  @Get('card/:cardId')
+  @ApiOperation({ summary: 'カードIDで月別集計の詳細を一括取得' })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功（該当データがない場合は空配列を返す）',
+    type: [MonthlyCardSummaryResponseDto],
+  })
+  async findByCardId(@Param('cardId') cardId: string): Promise<{
+    success: boolean;
+    data: MonthlyCardSummaryResponseDto[];
+  }> {
+    const summaries = await this.findSummariesByCardIdUseCase.execute(cardId);
+
+    return {
+      success: true,
+      data: summaries.map((summary) => this.toResponseDto(summary)),
     };
   }
 

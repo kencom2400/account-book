@@ -54,22 +54,9 @@ export function CreditCardManagementPage(): React.JSX.Element {
     if (!selectedCardId) return;
 
     try {
-      const summaries = await aggregationApi.getAll();
-      const cardSummaries = summaries
-        .filter((s) => s.cardId === selectedCardId)
-        .map(async (s) => {
-          try {
-            const detail = await aggregationApi.getById(s.id);
-            return detail;
-          } catch (err) {
-            console.error(`Failed to fetch summary detail for id ${s.id}:`, err);
-            return null;
-          }
-        });
-      const results = (await Promise.all(cardSummaries)).filter(
-        (s): s is MonthlyCardSummary => s !== null
-      );
-      setMonthlySummaries(results);
+      // N+1問題を解消: カードIDで一括取得
+      const summaries = await aggregationApi.getByCardId(selectedCardId);
+      setMonthlySummaries(summaries);
     } catch (err) {
       console.error('Failed to fetch monthly summaries:', err);
     }

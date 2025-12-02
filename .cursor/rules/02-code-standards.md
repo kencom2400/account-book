@@ -6530,6 +6530,89 @@ DELETE /api/categories/:id?replacementCategoryId=xxx
 - RESTful な設計原則に従う
 - 関連する操作は単一エンドポイントで処理
 
+#### ❌ 避けるべきパターン: 同じエンドポイントが異なるデータ構造を返す
+
+```typescript
+// クエリパラメータの有無で異なるデータ構造を返す
+GET /api/aggregation/card/monthly           // MonthlyCardSummaryListItemDto[]
+GET /api/aggregation/card/monthly?cardId=X // MonthlyCardSummaryResponseDto[]
+```
+
+**問題点**:
+
+- APIのクライアントにとって分かりにくい
+- 同じエンドポイントが異なる型を返すため、型安全性が低下
+- Swaggerの定義が複雑になる
+- 将来の保守性に影響を与える可能性がある
+
+#### ✅ 正しいパターン: エンドポイントを分割して一貫性を保つ
+
+```typescript
+// エンドポイントを分割して、それぞれが明確なデータ構造を返す
+GET /api/aggregation/card/monthly              // MonthlyCardSummaryListItemDto[]
+GET /api/aggregation/card/monthly/card/:cardId // MonthlyCardSummaryResponseDto[]
+```
+
+**教訓**:
+
+- エンドポイントごとに返すデータ構造を明確にする
+- クエリパラメータで動作を変えるのではなく、エンドポイントを分割する
+- APIの一貫性と予測可能性を保つ
+- Swaggerの定義が明確になる
+
+**代替案**:
+
+1. **常に詳細なDTOを返す**: すべてのエンドポイントで`MonthlyCardSummaryResponseDto[]`を返す
+2. **明示的なクエリパラメータ**: `view=detailed`のようなパラメータでデータ形式を指定
+
+#### ❌ 避けるべきパターン: ドキュメントと実装の不整合
+
+```typescript
+/**
+ * GET /api/aggregation/card/:cardId/monthly  // ❌ 実装と不一致
+ * カードIDで月別集計の詳細を一括取得
+ */
+@Get('card/:cardId')  // 実際のパス: /api/aggregation/card/monthly/card/:cardId
+```
+
+**問題点**:
+
+- JSDocに記載されているエンドポイントパスが実装と一致しない
+- Swaggerの`@ApiResponse`で定義されているステータスコードが実際の動作と一致しない（例: 404を定義しているが、実際は空配列を返す）
+- Issue定義ファイルのエンドポイントパスが実装と一致しない
+- 開発者が混乱し、誤った理解をしてしまう可能性がある
+
+#### ✅ 正しいパターン: ドキュメントと実装の整合性を保つ
+
+```typescript
+/**
+ * GET /api/aggregation/card/monthly/card/:cardId  // ✅ 実装と一致
+ * カードIDで月別集計の詳細を一括取得（N+1問題回避用）
+ */
+@Get('card/:cardId')
+@ApiOperation({ summary: 'カードIDで月別集計の詳細を一括取得' })
+@ApiResponse({
+  status: 200,
+  description: '取得成功（該当データがない場合は空配列を返す）',  // ✅ 実際の動作を明記
+  type: [MonthlyCardSummaryResponseDto],
+})
+// ❌ 不要: @ApiResponse({ status: 404, ... })  // 実際には404を返さないため削除
+```
+
+**チェックポイント**:
+
+- [ ] JSDocのエンドポイントパスが実装と一致しているか
+- [ ] Swaggerの`@ApiResponse`が実際の動作と一致しているか（404を返さない場合は定義しない）
+- [ ] Issue定義ファイルのエンドポイントパスが実装と一致しているか
+- [ ] コントローラーのプレフィックスとメソッドのデコレーターを組み合わせた完全なパスを確認
+
+**教訓**:
+
+- ドキュメント（JSDoc、Swagger、Issue定義ファイル）と実装の整合性を常に保つ
+- エンドポイントパスは、コントローラーのプレフィックス + メソッドのデコレーターで決定される
+- 実際の動作と異なる`@ApiResponse`は定義しない（誤解を招く）
+- リスト取得APIで該当データがない場合は空配列を返すのが一般的（404は返さない）
+
 ---
 
 ### 17-3. 文字列正規化の明確化 🟡 High
