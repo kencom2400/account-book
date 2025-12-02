@@ -132,7 +132,7 @@ sequenceDiagram
    - `calculateBalance()`: 収入・支出・収支差額を計算
    - `aggregateByCategory()`: カテゴリID別に集計（キーは`categoryId`）
    - `aggregateByInstitution()`: 金融機関別に集計
-   - `calculateSavingsRate()`: 貯蓄率を計算
+   - `calculateSavingsRate()`: 貯蓄率を計算（incomeが0の場合は0を返す）
    - `calculateMonthComparison()`: 前月比・前年同月比を計算
 
 6. **レスポンス**

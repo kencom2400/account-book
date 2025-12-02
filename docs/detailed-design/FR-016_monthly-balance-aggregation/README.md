@@ -189,7 +189,7 @@ interface MonthlyBalanceSummary {
     transactions: TransactionDto[];
   };
   balance: number; // 収支差額 (income - expense)
-  savingsRate: number; // 貯蓄率 (balance / income * 100)
+  savingsRate: number; // 貯蓄率 (balance / income * 100)。incomeが0の場合は0を返す
   comparison: {
     previousMonth: MonthComparison | null;
     sameMonthLastYear: MonthComparison | null;
@@ -334,6 +334,7 @@ interface ErrorResponse {
 5. **計算ロジックの精度**
    - 金額は整数（円単位）で扱う（浮動小数点の計算誤差を避ける）
    - 割合計算時は適切な丸め処理を実施
+   - 貯蓄率計算: `income`が0の場合は0を返す（ゼロ除算エラーを避ける）
 
 6. **日付計算**
    - 閏年対応を考慮

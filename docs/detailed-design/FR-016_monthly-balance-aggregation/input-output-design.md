@@ -207,14 +207,14 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
 
 **Response Schema (MonthlyBalanceResponseDto):**
 
-| フィールド  | 型                   | 説明                              |
-| ----------- | -------------------- | --------------------------------- |
-| month       | string               | 月（YYYY-MM形式）                 |
-| income      | IncomeExpenseSummary | 収入サマリー                      |
-| expense     | IncomeExpenseSummary | 支出サマリー                      |
-| balance     | number               | 収支差額（income - expense）      |
-| savingsRate | number               | 貯蓄率（balance / income \* 100） |
-| comparison  | ComparisonData       | 比較データ（前月比・前年同月比）  |
+| フィールド  | 型                   | 説明                                                        |
+| ----------- | -------------------- | ----------------------------------------------------------- |
+| month       | string               | 月（YYYY-MM形式）                                           |
+| income      | IncomeExpenseSummary | 収入サマリー                                                |
+| expense     | IncomeExpenseSummary | 支出サマリー                                                |
+| balance     | number               | 収支差額（income - expense）                                |
+| savingsRate | number               | 貯蓄率（balance / income \* 100）。incomeが0の場合は0を返す |
+| comparison  | ComparisonData       | 比較データ（前月比・前年同月比）                            |
 
 **IncomeExpenseSummary:**
 

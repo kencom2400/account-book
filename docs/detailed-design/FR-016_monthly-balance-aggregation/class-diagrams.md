@@ -101,7 +101,7 @@ classDiagram
   - `calculateBalance(transactions)`: 収入・支出・収支差額を計算
   - `aggregateByCategory(transactions)`: カテゴリID別に集計（キーは`categoryId`）
   - `aggregateByInstitution(transactions)`: 金融機関別に集計
-  - `calculateSavingsRate(income, expense)`: 貯蓄率を計算
+  - `calculateSavingsRate(income, expense)`: 貯蓄率を計算（incomeが0の場合は0を返す）
   - `calculateMonthComparison(current, previous)`: 前月比を計算
   - `calculateChangeRate(previous, current)`: 増減率を計算
 
