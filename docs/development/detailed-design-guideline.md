@@ -356,6 +356,13 @@ docs/detailed-design/
   - バリデーションは手動のif文チェックではなく、`class-validator`と`ValidationPipe`を使用
   - DTOにバリデーションルールを定義し、コントローラーから分離
   - `transform: true`オプションにより、クエリパラメータの自動変換を活用
+- [ ] **クラス図の表現の明確性**
+  - レスポンスDTOは`interface`で定義するため、Mermaidのクラス図では`<<interface>>`ステレオタイプを使用して明示
+  - メソッドの引数型を明記（Mermaid構文上難しい場合は、メソッド説明で型を記載）
+  - 未定義の型（例: `TransactionJSONResponse`）は注釈で説明を追加
+- [ ] **プロパティ名の明確性**
+  - プロパティ名は意図が明確になるよう命名（例: `incomeRate` → `incomeChangeRate`）
+  - 「割合」と「増減率」を区別できる命名を推奨
 
 ---
 
