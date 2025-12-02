@@ -197,11 +197,12 @@ classDiagram
     }
 
     class MonthComparison {
+        <<interface>>
         +number incomeDiff
         +number expenseDiff
         +number balanceDiff
-        +number incomeRate
-        +number expenseRate
+        +number incomeChangeRate
+        +number expenseChangeRate
     }
 
     CalculateMonthlyBalanceUseCase --> ITransactionRepository
