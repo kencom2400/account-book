@@ -5,7 +5,7 @@ import type { AlertRepository } from '../../domain/repositories/alert.repository
 import type { ReconciliationRepository } from '../../../reconciliation/domain/repositories/reconciliation.repository.interface';
 import { DuplicateAlertException } from '../../domain/errors/alert.errors';
 import { ReconciliationNotFoundException } from '../../../reconciliation/domain/errors/reconciliation.errors';
-import { ALERT_REPOSITORY } from '../../alert.tokens';
+import { ALERT_REPOSITORY, ALERT_SERVICE } from '../../alert.tokens';
 import { RECONCILIATION_REPOSITORY } from '../../../reconciliation/reconciliation.tokens';
 
 /**
@@ -18,6 +18,7 @@ export class CreateAlertUseCase {
     private readonly alertRepository: AlertRepository,
     @Inject(RECONCILIATION_REPOSITORY)
     private readonly reconciliationRepository: ReconciliationRepository,
+    @Inject(ALERT_SERVICE)
     private readonly alertService: AlertService,
   ) {}
 
