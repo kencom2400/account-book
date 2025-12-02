@@ -106,7 +106,7 @@ gh pr create \
   --body "$(cat .github/PULL_REQUEST_TEMPLATE.md)"
 ```
 
-**重要**: PRは常に通常PRとして作成します。ドラフトPR（`--draft`フラグ）は使用しません。`
+**重要**: PRは常に通常PRとして作成します。ドラフトPR（`--draft`フラグ）は使用しません。
 
 ---
 
