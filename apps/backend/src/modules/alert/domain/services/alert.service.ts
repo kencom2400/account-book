@@ -62,36 +62,31 @@ export class AlertService {
    * 照合結果を分析してアラート種別を判定
    */
   analyzeReconciliationResult(reconciliation: Reconciliation): AlertType {
-    const status = reconciliation.status;
-    const results = reconciliation.results;
+    const { status, results } = reconciliation;
 
-    // 照合結果が不一致の場合
-    if (status === ReconciliationStatus.UNMATCHED) {
-      // 候補取引が複数ある場合は複数候補アラート
-      const unmatchedResults = results.filter((r) => !r.isMatched);
-      if (unmatchedResults.length > 1) {
-        return AlertType.MULTIPLE_CANDIDATES;
-      }
-
-      // 金額不一致をチェック
-      const firstResult = results[0];
-      if (
-        firstResult &&
-        !firstResult.isMatched &&
-        firstResult.discrepancy !== null
-      ) {
-        if (firstResult.discrepancy.amountDifference !== 0) {
-          return AlertType.AMOUNT_MISMATCH;
-        }
-      }
-
-      // 引落未検出をチェック（候補取引が0件）
-      if (unmatchedResults.length === 0) {
-        return AlertType.PAYMENT_NOT_FOUND;
-      }
+    if (status !== ReconciliationStatus.UNMATCHED) {
+      // 基本的にUNMATCHED以外でアラートは作成されない想定だが、念のため
+      // 本来はエラーをスローするか、専用のタイプを返すのが望ましい
+      return AlertType.AMOUNT_MISMATCH;
     }
 
-    // デフォルトは金額不一致
+    const unmatchedResults = results.filter((r) => !r.isMatched);
+
+    if (unmatchedResults.length === 0) {
+      return AlertType.PAYMENT_NOT_FOUND;
+    }
+
+    if (unmatchedResults.length > 1) {
+      return AlertType.MULTIPLE_CANDIDATES;
+    }
+
+    // unmatchedResults.length === 1 の場合
+    const unmatchedResult = unmatchedResults[0];
+    if (unmatchedResult.discrepancy?.amountDifference !== 0) {
+      return AlertType.AMOUNT_MISMATCH;
+    }
+
+    // その他の不一致要因（ここに来るケースは現状ないかもしれないが、将来の拡張のため）
     return AlertType.AMOUNT_MISMATCH;
   }
 

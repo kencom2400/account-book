@@ -33,6 +33,7 @@ import {
   AlertAlreadyResolvedException,
   CriticalAlertDeletionException,
 } from '../../domain/errors/alert.errors';
+import { ReconciliationNotFoundException } from '../../../reconciliation/domain/errors/reconciliation.errors';
 import { ALERT_REPOSITORY } from '../../alert.tokens';
 
 /**
@@ -257,7 +258,10 @@ export class AlertController {
    * エラーハンドリング
    */
   private handleError(error: unknown): never {
-    if (error instanceof AlertNotFoundException) {
+    if (
+      error instanceof AlertNotFoundException ||
+      error instanceof ReconciliationNotFoundException
+    ) {
       throw new NotFoundException({
         success: false,
         statusCode: 404,

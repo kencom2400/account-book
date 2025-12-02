@@ -276,16 +276,20 @@ describe('Alert Entity', () => {
     it('未読アラートを既読にできる', () => {
       const alert = createMockAlert({ status: AlertStatus.UNREAD });
 
-      alert.markAsRead();
+      const updated = alert.markAsRead();
 
-      expect(alert.status).toBe(AlertStatus.READ);
+      expect(updated.status).toBe(AlertStatus.READ);
+      // 元のオブジェクトは変更されていない（不変性）
+      expect(alert.status).toBe(AlertStatus.UNREAD);
     });
 
     it('既読アラートを既読にできる', () => {
       const alert = createMockAlert({ status: AlertStatus.READ });
 
-      alert.markAsRead();
+      const updated = alert.markAsRead();
 
+      expect(updated.status).toBe(AlertStatus.READ);
+      // 元のオブジェクトは変更されていない（不変性）
       expect(alert.status).toBe(AlertStatus.READ);
     });
 

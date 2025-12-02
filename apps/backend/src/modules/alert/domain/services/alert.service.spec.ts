@@ -32,6 +32,10 @@ describe('AlertService', () => {
     status: ReconciliationStatus,
     isMatched: boolean,
     amountDifference: number,
+    totalResults: number = 1,
+    matchedResults: number = 0,
+    unmatchedResults: number = 0,
+    partialResults: number = 0,
   ): Reconciliation => {
     const discrepancy =
       amountDifference !== 0
@@ -181,6 +185,10 @@ describe('AlertService', () => {
         ReconciliationStatus.UNMATCHED,
         false,
         -2000,
+        1, // totalResults
+        0, // matchedResults
+        1, // unmatchedResults
+        0, // partialResults
       );
 
       const alertType = service['analyzeReconciliationResult'](reconciliation);
@@ -210,14 +218,20 @@ describe('AlertService', () => {
   });
 
   describe('determineAlertLevel', () => {
-    it('金額不一致はWARNINGレベル', () => {
+    it('金額不一致はWARNINGレベル', async () => {
       const reconciliation = createMockReconciliation(
         ReconciliationStatus.UNMATCHED,
         false,
         -2000,
+        1, // totalResults
+        0, // matchedResults
+        1, // unmatchedResults
+        0, // partialResults
       );
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.level).toBe(AlertLevel.WARNING);
     });

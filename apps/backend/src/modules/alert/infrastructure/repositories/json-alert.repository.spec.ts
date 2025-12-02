@@ -42,7 +42,25 @@ describe('JsonAlertRepository', () => {
     }
   });
 
-  const createMockAlert = (): Alert => {
+  const createMockAlert = (
+    options: {
+      id?: string;
+      status?: AlertStatus;
+      level?: AlertLevel;
+      resolvedAt?: Date | null;
+      resolvedBy?: string | null;
+      resolutionNote?: string | null;
+    } = {},
+  ): Alert => {
+    const {
+      id = 'alert-001',
+      status = AlertStatus.UNREAD,
+      level = AlertLevel.WARNING,
+      resolvedAt = null,
+      resolvedBy = null,
+      resolutionNote = null,
+    } = options;
+
     const details = new AlertDetails(
       'card-001',
       '三井住友カード',
@@ -71,17 +89,17 @@ describe('JsonAlertRepository', () => {
     ];
 
     return new Alert(
-      'alert-001',
+      id,
       AlertType.AMOUNT_MISMATCH,
-      AlertLevel.WARNING,
+      level,
       'クレジットカード引落額が一致しません',
       '金額不一致が検出されました',
       details,
-      AlertStatus.UNREAD,
+      status,
       new Date('2025-01-30'),
-      null,
-      null,
-      null,
+      resolvedAt,
+      resolvedBy,
+      resolutionNote,
       actions,
     );
   };
@@ -101,8 +119,8 @@ describe('JsonAlertRepository', () => {
       const alert = createMockAlert();
       await repository.save(alert);
 
-      alert.markAsRead();
-      const saved = await repository.save(alert);
+      const readAlert = alert.markAsRead();
+      const saved = await repository.save(readAlert);
 
       expect(saved.status).toBe(AlertStatus.READ);
     });
@@ -177,21 +195,32 @@ describe('JsonAlertRepository', () => {
 
       const found = await repository.findAll({});
 
-      expect(found).toHaveLength(2);
+      expect(found.data).toHaveLength(2);
+      expect(found.total).toBe(2);
     });
 
     it('ステータスでフィルタリングできる', async () => {
-      const alert1 = createMockAlert();
-      const alert2 = createMockAlert();
-      alert2.id = 'alert-002';
+      const alert1 = createMockAlert({
+        id: 'alert-001',
+        status: AlertStatus.UNREAD,
+      });
+      const alert2 = createMockAlert({
+        id: 'alert-002',
+        status: AlertStatus.UNREAD,
+      });
+      const readAlert2 = alert2.markAsRead();
       await repository.save(alert1);
-      alert2.markAsRead();
-      await repository.save(alert2);
+      await repository.save(readAlert2);
 
-      const result = await repository.findAll({ status: AlertStatus.UNREAD });
+      // キャッシュをクリアしてファイルから再読み込みを強制
+      (repository as any).cache = null;
+
+      // UNREADでフィルタリング（alert1のみが該当）
+      const result = await repository.findAll({ status: 'unread' });
 
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
+      expect(result.data[0].id).toBe('alert-001');
       expect(result.data[0].status).toBe(AlertStatus.UNREAD);
     });
 
@@ -301,7 +330,7 @@ describe('JsonAlertRepository', () => {
       expect(page1.total).toBe(5);
       expect(page2.data).toHaveLength(2);
       expect(page2.total).toBe(5);
-      expect(page1[0].id).not.toBe(page2[0].id);
+      expect(page1.data[0].id).not.toBe(page2.data[0].id);
     });
   });
 
@@ -320,12 +349,13 @@ describe('JsonAlertRepository', () => {
       await repository.save(alert2);
 
       const found = await repository.findAll({
-        status: AlertStatus.UNREAD,
+        status: 'unread',
         level: AlertLevel.WARNING,
       });
 
-      expect(found).toHaveLength(1);
-      expect(found[0].level).toBe(AlertLevel.WARNING);
+      expect(found.data).toHaveLength(1);
+      expect(found.total).toBe(1);
+      expect(found.data[0].level).toBe(AlertLevel.WARNING);
     });
   });
 });

@@ -139,7 +139,7 @@ export class JsonAlertRepository implements AlertRepository {
     billingMonth?: string;
     page?: number;
     limit?: number;
-  }): Promise<Alert[]> {
+  }): Promise<{ data: Alert[]; total: number }> {
     let alerts = await this.loadFromFile();
 
     // フィルタリング
@@ -147,7 +147,7 @@ export class JsonAlertRepository implements AlertRepository {
       alerts = alerts.filter((a) => a.level === query.level);
     }
     if (query.status) {
-      alerts = alerts.filter((a) => a.status === query.status);
+      alerts = alerts.filter((a) => a.status.toString() === query.status);
     }
     if (query.type) {
       alerts = alerts.filter((a) => a.type === query.type);
@@ -164,6 +164,9 @@ export class JsonAlertRepository implements AlertRepository {
     // ソート（作成日時の降順）
     alerts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
+    // フィルタリング後の件数を保存（ページネーション前）
+    const filteredTotal = alerts.length;
+
     // ページネーション
     if (query.page && query.limit) {
       const start = (query.page - 1) * query.limit;
@@ -171,7 +174,15 @@ export class JsonAlertRepository implements AlertRepository {
       alerts = alerts.slice(start, end);
     }
 
-    return alerts;
+    return { data: alerts, total: filteredTotal };
+  }
+
+  /**
+   * 未読アラートの件数を取得
+   */
+  async countUnread(): Promise<number> {
+    const alerts = await this.loadFromFile();
+    return alerts.filter((a) => a.status === AlertStatus.UNREAD).length;
   }
 
   /**

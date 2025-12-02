@@ -18,13 +18,13 @@ import { ReconciliationResult } from '../../../reconciliation/domain/value-objec
 import { ReconciliationSummary } from '../../../reconciliation/domain/value-objects/reconciliation-summary.vo';
 import { Discrepancy } from '../../../reconciliation/domain/value-objects/discrepancy.vo';
 import { DuplicateAlertException } from '../../domain/errors/alert.errors';
+import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
+import { AGGREGATION_REPOSITORY } from '../../../aggregation/aggregation.tokens';
 
 describe('CreateAlertUseCase', () => {
   let useCase: CreateAlertUseCase;
   let alertRepository: jest.Mocked<AlertRepository>;
   let reconciliationRepository: jest.Mocked<ReconciliationRepository>;
-  let _alertService: AlertService;
-  let _aggregationRepository: jest.Mocked<AggregationRepository>;
 
   const createMockReconciliation = (): Reconciliation => {
     const result = new ReconciliationResult(
@@ -94,8 +94,10 @@ describe('CreateAlertUseCase', () => {
     );
   };
 
+  let module: TestingModule;
+
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         CreateAlertUseCase,
         {
@@ -133,7 +135,7 @@ describe('CreateAlertUseCase', () => {
           },
         },
         {
-          provide: ALERT_SERVICE,
+          provide: AlertService,
           useFactory: (aggRepo: AggregationRepository) => {
             return new AlertService(aggRepo);
           },
@@ -145,8 +147,6 @@ describe('CreateAlertUseCase', () => {
     useCase = module.get<CreateAlertUseCase>(CreateAlertUseCase);
     alertRepository = module.get(ALERT_REPOSITORY);
     reconciliationRepository = module.get(RECONCILIATION_REPOSITORY);
-    alertService = module.get(ALERT_SERVICE);
-    aggregationRepository = module.get(AGGREGATION_REPOSITORY);
   });
 
   describe('execute', () => {
@@ -156,6 +156,10 @@ describe('CreateAlertUseCase', () => {
 
       reconciliationRepository.findById.mockResolvedValue(reconciliation);
       alertRepository.findByReconciliationId.mockResolvedValue(null);
+      const alertServiceInstance = module.get(AlertService);
+      jest
+        .spyOn(alertServiceInstance, 'createAlertFromReconciliation')
+        .mockResolvedValue(alert);
       alertRepository.save.mockResolvedValue(alert);
 
       const result = await useCase.execute('reconciliation-001');

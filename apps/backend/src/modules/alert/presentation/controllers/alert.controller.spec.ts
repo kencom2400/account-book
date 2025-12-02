@@ -258,8 +258,8 @@ describe('AlertController', () => {
   describe('markAlertAsRead', () => {
     it('正常にアラートを既読にできる', async () => {
       const alert = createMockAlert();
-      alert.markAsRead();
-      markAlertAsReadUseCase.execute.mockResolvedValue(alert);
+      const readAlert = alert.markAsRead();
+      markAlertAsReadUseCase.execute.mockResolvedValue(readAlert);
 
       const result = await controller.markAlertAsRead('alert-001');
 
