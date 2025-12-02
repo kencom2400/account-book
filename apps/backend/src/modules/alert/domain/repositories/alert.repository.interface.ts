@@ -48,7 +48,12 @@ export interface AlertRepository {
     billingMonth?: string;
     page?: number;
     limit?: number;
-  }): Promise<Alert[]>;
+  }): Promise<{ data: Alert[]; total: number }>;
+
+  /**
+   * 未読アラートの件数を取得
+   */
+  countUnread(): Promise<number>;
 
   /**
    * アラートデータを削除

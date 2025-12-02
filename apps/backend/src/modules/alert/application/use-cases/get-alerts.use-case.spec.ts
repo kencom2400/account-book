@@ -88,14 +88,15 @@ describe('GetAlertsUseCase', () => {
 
     it('フィルター付きでアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
-      alertRepository.findAll.mockResolvedValue(alerts);
+      alertRepository.findAll.mockResolvedValue({ data: alerts, total: 1 });
 
       const result = await useCase.execute({
         status: 'UNREAD',
         level: 'WARNING',
       });
 
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(alertRepository.findAll).toHaveBeenCalledWith({
         status: 'UNREAD',
         level: 'WARNING',
@@ -103,11 +104,12 @@ describe('GetAlertsUseCase', () => {
     });
 
     it('空の結果を返すことができる', async () => {
-      alertRepository.findAll.mockResolvedValue([]);
+      alertRepository.findAll.mockResolvedValue({ data: [], total: 0 });
 
       const result = await useCase.execute({});
 
-      expect(result).toHaveLength(0);
+      expect(result.data).toHaveLength(0);
+      expect(result.total).toBe(0);
     });
   });
 });

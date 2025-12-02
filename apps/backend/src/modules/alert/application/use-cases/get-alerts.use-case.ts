@@ -24,7 +24,7 @@ export class GetAlertsUseCase {
     billingMonth?: string;
     page?: number;
     limit?: number;
-  }): Promise<Alert[]> {
+  }): Promise<{ data: Alert[]; total: number }> {
     return await this.alertRepository.findAll(query);
   }
 }

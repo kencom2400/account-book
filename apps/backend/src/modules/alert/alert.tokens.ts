@@ -5,3 +5,4 @@
  */
 
 export const ALERT_REPOSITORY = Symbol('AlertRepository');
+export const ALERT_SERVICE = Symbol('AlertService');

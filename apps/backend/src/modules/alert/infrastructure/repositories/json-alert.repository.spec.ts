@@ -188,22 +188,24 @@ describe('JsonAlertRepository', () => {
       alert2.markAsRead();
       await repository.save(alert2);
 
-      const found = await repository.findAll({ status: AlertStatus.UNREAD });
+      const result = await repository.findAll({ status: AlertStatus.UNREAD });
 
-      expect(found).toHaveLength(1);
-      expect(found[0].status).toBe(AlertStatus.UNREAD);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.data[0].status).toBe(AlertStatus.UNREAD);
     });
 
     it('レベルでフィルタリングできる', async () => {
       const alert = createMockAlert();
       await repository.save(alert);
 
-      const found = await repository.findAll({
+      const result = await repository.findAll({
         level: AlertLevel.WARNING,
       });
 
-      expect(found).toHaveLength(1);
-      expect(found[0].level).toBe(AlertLevel.WARNING);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.data[0].level).toBe(AlertLevel.WARNING);
     });
   });
 
@@ -295,8 +297,10 @@ describe('JsonAlertRepository', () => {
       const page1 = await repository.findAll({ page: 1, limit: 2 });
       const page2 = await repository.findAll({ page: 2, limit: 2 });
 
-      expect(page1).toHaveLength(2);
-      expect(page2).toHaveLength(2);
+      expect(page1.data).toHaveLength(2);
+      expect(page1.total).toBe(5);
+      expect(page2.data).toHaveLength(2);
+      expect(page2.total).toBe(5);
       expect(page1[0].id).not.toBe(page2[0].id);
     });
   });

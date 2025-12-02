@@ -7,12 +7,25 @@ import { ReconciliationStatus } from '../../../reconciliation/domain/enums/recon
 import { ReconciliationResult } from '../../../reconciliation/domain/value-objects/reconciliation-result.vo';
 import { ReconciliationSummary } from '../../../reconciliation/domain/value-objects/reconciliation-summary.vo';
 import { Discrepancy } from '../../../reconciliation/domain/value-objects/discrepancy.vo';
+import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
+import { MonthlyCardSummary } from '../../../aggregation/domain/entities/monthly-card-summary.entity';
+import { PaymentStatus } from '../../../aggregation/domain/enums/payment-status.enum';
 
 describe('AlertService', () => {
   let service: AlertService;
+  let aggregationRepository: jest.Mocked<AggregationRepository>;
 
   beforeEach(() => {
-    service = new AlertService();
+    aggregationRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByIds: jest.fn(),
+      findByCardAndMonth: jest.fn(),
+      findByCard: jest.fn(),
+      findAll: jest.fn(),
+      delete: jest.fn(),
+    };
+    service = new AlertService(aggregationRepository);
   });
 
   const createMockReconciliation = (
@@ -35,10 +48,10 @@ describe('AlertService', () => {
     );
 
     const summary = new ReconciliationSummary(
-      1,
-      isMatched ? 1 : 0,
-      isMatched ? 0 : 1,
-      0,
+      totalResults,
+      matchedResults,
+      unmatchedResults,
+      partialResults,
     );
 
     return new Reconciliation(
@@ -54,23 +67,50 @@ describe('AlertService', () => {
     );
   };
 
+  const createMockCardSummary = (): MonthlyCardSummary => {
+    return new MonthlyCardSummary(
+      'summary-001',
+      'card-001',
+      '三井住友カード',
+      '2025-01',
+      new Date('2025-01-31'),
+      new Date('2025-02-27'),
+      50000,
+      10,
+      [],
+      [],
+      50000,
+      PaymentStatus.PENDING,
+      new Date('2025-01-30'),
+      new Date('2025-01-30'),
+    );
+  };
+
   describe('createAlertFromReconciliation', () => {
-    it('金額不一致のアラートを生成できる', () => {
+    it('金額不一致のアラートを生成できる', async () => {
       const reconciliation = createMockReconciliation(
         ReconciliationStatus.UNMATCHED,
         false,
         -2000,
+        1,
+        0,
+        1,
+        0, // total, matched, unmatched, partial
       );
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.type).toBe(AlertType.AMOUNT_MISMATCH);
       expect(alert.level).toBe(AlertLevel.WARNING);
       expect(alert.status).toBe(AlertStatus.UNREAD);
       expect(alert.details.reconciliationId).toBe(reconciliation.id);
+      expect(alert.details.cardName).toBe('三井住友カード');
+      expect(alert.details.expectedAmount).toBe(50000);
     });
 
-    it('引落未検出のアラートを生成できる', () => {
+    it('引落未検出のアラートを生成できる', async () => {
       // 引落未検出の場合は、結果が空のReconciliationを作成
       const summary = new ReconciliationSummary(0, 0, 0, 0);
       const reconciliation = new Reconciliation(
@@ -84,14 +124,16 @@ describe('AlertService', () => {
         new Date('2025-01-30'),
         new Date('2025-01-30'),
       );
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.type).toBe(AlertType.PAYMENT_NOT_FOUND);
       expect(alert.level).toBe(AlertLevel.ERROR);
     });
 
-    it('複数候補のアラートを生成できる', () => {
+    it('複数候補のアラートを生成できる', async () => {
       const result1 = new ReconciliationResult(
         false,
         50,
@@ -123,7 +165,10 @@ describe('AlertService', () => {
         new Date('2025-01-30'),
       );
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
+
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.type).toBe(AlertType.MULTIPLE_CANDIDATES);
       expect(alert.level).toBe(AlertLevel.INFO);
@@ -177,7 +222,7 @@ describe('AlertService', () => {
       expect(alert.level).toBe(AlertLevel.WARNING);
     });
 
-    it('引落未検出はERRORレベル', () => {
+    it('引落未検出はERRORレベル', async () => {
       // 引落未検出の場合は、結果が空のReconciliationを作成
       const summary = new ReconciliationSummary(0, 0, 0, 0);
       const reconciliation = new Reconciliation(
@@ -191,13 +236,15 @@ describe('AlertService', () => {
         new Date('2025-01-30'),
         new Date('2025-01-30'),
       );
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.level).toBe(AlertLevel.ERROR);
     });
 
-    it('複数候補はINFOレベル', () => {
+    it('複数候補はINFOレベル', async () => {
       const result1 = new ReconciliationResult(
         false,
         50,
@@ -229,7 +276,10 @@ describe('AlertService', () => {
         new Date('2025-01-30'),
       );
 
-      const alert = service.createAlertFromReconciliation(reconciliation);
+      const cardSummary = createMockCardSummary();
+      aggregationRepository.findByCardAndMonth.mockResolvedValue(cardSummary);
+
+      const alert = await service.createAlertFromReconciliation(reconciliation);
 
       expect(alert.level).toBe(AlertLevel.INFO);
     });

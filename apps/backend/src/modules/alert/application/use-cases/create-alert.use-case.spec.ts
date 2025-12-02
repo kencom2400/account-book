@@ -23,6 +23,8 @@ describe('CreateAlertUseCase', () => {
   let useCase: CreateAlertUseCase;
   let alertRepository: jest.Mocked<AlertRepository>;
   let reconciliationRepository: jest.Mocked<ReconciliationRepository>;
+  let _alertService: AlertService;
+  let _aggregationRepository: jest.Mocked<AggregationRepository>;
 
   const createMockReconciliation = (): Reconciliation => {
     const result = new ReconciliationResult(
@@ -118,13 +120,33 @@ describe('CreateAlertUseCase', () => {
             delete: jest.fn(),
           },
         },
-        AlertService,
+        {
+          provide: AGGREGATION_REPOSITORY,
+          useValue: {
+            save: jest.fn(),
+            findById: jest.fn(),
+            findByIds: jest.fn(),
+            findByCardAndMonth: jest.fn(),
+            findByCard: jest.fn(),
+            findAll: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: ALERT_SERVICE,
+          useFactory: (aggRepo: AggregationRepository) => {
+            return new AlertService(aggRepo);
+          },
+          inject: [AGGREGATION_REPOSITORY],
+        },
       ],
     }).compile();
 
     useCase = module.get<CreateAlertUseCase>(CreateAlertUseCase);
     alertRepository = module.get(ALERT_REPOSITORY);
     reconciliationRepository = module.get(RECONCILIATION_REPOSITORY);
+    alertService = module.get(ALERT_SERVICE);
+    aggregationRepository = module.get(AGGREGATION_REPOSITORY);
   });
 
   describe('execute', () => {

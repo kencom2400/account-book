@@ -107,6 +107,7 @@ describe('AlertController', () => {
             findByCardAndMonth: jest.fn(),
             findAll: jest.fn(),
             delete: jest.fn(),
+            countUnread: jest.fn(),
           },
         },
       ],
@@ -152,8 +153,8 @@ describe('AlertController', () => {
   describe('getAlerts', () => {
     it('正常にアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
-      getAlertsUseCase.execute.mockResolvedValue(alerts);
-      alertRepository.findAll.mockResolvedValue(alerts);
+      getAlertsUseCase.execute.mockResolvedValue({ data: alerts, total: 1 });
+      alertRepository.countUnread.mockResolvedValue(1);
 
       const result = await controller.getAlerts();
 
@@ -165,8 +166,8 @@ describe('AlertController', () => {
 
     it('フィルター付きでアラート一覧を取得できる', async () => {
       const alerts = [createMockAlert()];
-      getAlertsUseCase.execute.mockResolvedValue(alerts);
-      alertRepository.findAll.mockResolvedValue(alerts);
+      getAlertsUseCase.execute.mockResolvedValue({ data: alerts, total: 1 });
+      alertRepository.countUnread.mockResolvedValue(1);
 
       const result = await controller.getAlerts(
         'WARNING',

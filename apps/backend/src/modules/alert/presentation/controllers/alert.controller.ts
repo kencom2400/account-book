@@ -20,7 +20,6 @@ import { ResolveAlertUseCase } from '../../application/use-cases/resolve-alert.u
 import { MarkAlertAsReadUseCase } from '../../application/use-cases/mark-alert-as-read.use-case';
 import type { AlertRepository } from '../../domain/repositories/alert.repository.interface';
 import { Alert } from '../../domain/entities/alert.entity';
-import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import {
   AlertResponseDto,
   AlertListResponseDto,
@@ -106,7 +105,7 @@ export class AlertController {
     success: boolean;
     data: AlertListResponseDto;
   }> {
-    const alerts = await this.getAlertsUseCase.execute({
+    const result = await this.getAlertsUseCase.execute({
       level,
       status,
       type,
@@ -116,16 +115,13 @@ export class AlertController {
       limit: limit ? parseInt(limit, 10) : undefined,
     });
 
-    const allAlerts = await this.alertRepository.findAll({});
-    const unreadCount = allAlerts.filter(
-      (a) => a.status === AlertStatus.UNREAD,
-    ).length;
+    const unreadCount = await this.alertRepository.countUnread();
 
     return {
       success: true,
       data: {
-        alerts: alerts.map((a) => this.toListItemDto(a)),
-        total: allAlerts.length,
+        alerts: result.data.map((a) => this.toListItemDto(a)),
+        total: result.total,
         unreadCount,
       },
     };

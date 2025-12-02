@@ -7,6 +7,7 @@ import { AlertAction } from '../value-objects/alert-action.vo';
 import { ActionType } from '../enums/action-type.enum';
 import { Reconciliation } from '../../../reconciliation/domain/entities/reconciliation.entity';
 import { ReconciliationStatus } from '../../../reconciliation/domain/enums/reconciliation-status.enum';
+import type { AggregationRepository } from '../../../aggregation/domain/repositories/aggregation.repository.interface';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -15,15 +16,18 @@ import { v4 as uuidv4 } from 'uuid';
  * アラート生成ロジックを担当
  */
 export class AlertService {
+  constructor(private readonly aggregationRepository: AggregationRepository) {}
   /**
    * 照合結果からアラートを生成
    */
-  createAlertFromReconciliation(reconciliation: Reconciliation): Alert {
+  async createAlertFromReconciliation(
+    reconciliation: Reconciliation,
+  ): Promise<Alert> {
     // 1. 照合結果を分析してアラート種別を判定
     const alertType = this.analyzeReconciliationResult(reconciliation);
 
     // 2. アラート詳細情報を構築
-    const details = this.buildAlertDetails(reconciliation);
+    const details = await this.buildAlertDetails(reconciliation);
 
     // 3. アラートレベルを決定
     const level = this.determineAlertLevel(alertType, details);
@@ -94,24 +98,32 @@ export class AlertService {
   /**
    * アラート詳細情報を構築
    */
-  private buildAlertDetails(reconciliation: Reconciliation): AlertDetails {
+  private async buildAlertDetails(
+    reconciliation: Reconciliation,
+  ): Promise<AlertDetails> {
     const firstResult = reconciliation.results[0];
     const discrepancy =
       firstResult && !firstResult.isMatched && firstResult.discrepancy !== null
         ? firstResult.discrepancy
         : null;
 
-    // カード情報と請求月は照合結果から取得
-    // 実際の実装では、MonthlyCardSummaryから取得する必要があります
-    // ここでは簡易実装として、照合結果から取得できる情報のみを使用
+    // MonthlyCardSummaryからカード名と請求額を取得
+    const cardSummary = await this.aggregationRepository.findByCardAndMonth(
+      reconciliation.cardId,
+      reconciliation.billingMonth,
+    );
+
+    const cardName = cardSummary?.cardName ?? '不明なカード';
+    const expectedAmount = cardSummary?.totalAmount ?? 0;
+
     return new AlertDetails(
       reconciliation.cardId,
-      'カード名', // TODO: 実際のカード名を取得
+      cardName,
       reconciliation.billingMonth,
-      reconciliation.summary.total, // TODO: 実際の請求額を取得
+      expectedAmount,
       null, // actualAmount
       discrepancy !== null ? discrepancy.amountDifference : null,
-      null, // paymentDate
+      cardSummary?.paymentDate ?? null, // paymentDate
       null, // daysElapsed
       firstResult && firstResult.bankTransactionId !== null
         ? [firstResult.bankTransactionId]

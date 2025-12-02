@@ -43,7 +43,7 @@ export class CreateAlertUseCase {
 
     // 3. アラート生成
     const alert =
-      this.alertService.createAlertFromReconciliation(reconciliation);
+      await this.alertService.createAlertFromReconciliation(reconciliation);
 
     // 4. アラートを保存
     return await this.alertRepository.save(alert);
