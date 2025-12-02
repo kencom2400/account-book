@@ -111,6 +111,32 @@ describe('MonthlyBalanceDomainService', () => {
       expect(result.incomeChangeRate).toBeCloseTo(11.11, 2);
       expect(result.expenseChangeRate).toBeCloseTo(14.29, 2);
     });
+
+    it('should handle previous income === 0 in calculateMonthComparison', () => {
+      const current = { income: 100000, expense: 80000, balance: 20000 };
+      const previous = { income: 0, expense: 70000, balance: -70000 };
+
+      const result = service.calculateMonthComparison(current, previous);
+
+      expect(result.incomeDiff).toBe(100000);
+      expect(result.expenseDiff).toBe(10000);
+      expect(result.balanceDiff).toBe(90000);
+      expect(result.incomeChangeRate).toBe(0); // previous.income === 0 の場合
+      expect(result.expenseChangeRate).toBeCloseTo(14.29, 2);
+    });
+
+    it('should handle previous expense === 0 in calculateMonthComparison', () => {
+      const current = { income: 100000, expense: 80000, balance: 20000 };
+      const previous = { income: 90000, expense: 0, balance: 90000 };
+
+      const result = service.calculateMonthComparison(current, previous);
+
+      expect(result.incomeDiff).toBe(10000);
+      expect(result.expenseDiff).toBe(80000);
+      expect(result.balanceDiff).toBe(-70000);
+      expect(result.incomeChangeRate).toBeCloseTo(11.11, 2);
+      expect(result.expenseChangeRate).toBe(0); // previous.expense === 0 の場合
+    });
   });
 
   describe('calculateChangeRate', () => {

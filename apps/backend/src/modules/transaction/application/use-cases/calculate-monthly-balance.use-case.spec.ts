@@ -177,5 +177,74 @@ describe('CalculateMonthlyBalanceUseCase', () => {
       );
       expect(result.income.transactions[0].categoryId).toBe('cat_1');
     });
+
+    it('should handle month !== 1 in getPreviousMonth', async () => {
+      const currentTransactions = [
+        createTransaction('tx_1', 100000, CategoryType.INCOME, 'cat_1'),
+      ];
+
+      repository.findByMonth.mockImplementation((year, month) => {
+        if (year === 2024 && month === 2)
+          return Promise.resolve(currentTransactions);
+        if (year === 2024 && month === 1) return Promise.resolve([]); // 前月（1月）
+        if (year === 2023 && month === 2) return Promise.resolve([]); // 前年同月（前年2月）
+        return Promise.resolve([]);
+      });
+
+      const result = await useCase.execute(2024, 2);
+
+      expect(result.month).toBe('2024-02');
+      // 前月は1月（2024, 1）になることを確認
+      expect(repository.findByMonth).toHaveBeenCalledWith(2024, 1);
+      // 前年同月は前年2月（2023, 2）になることを確認
+      expect(repository.findByMonth).toHaveBeenCalledWith(2023, 2);
+    });
+
+    it('should handle month === 1 in getPreviousMonth', async () => {
+      const currentTransactions = [
+        createTransaction('tx_1', 100000, CategoryType.INCOME, 'cat_1'),
+      ];
+
+      repository.findByMonth.mockImplementation((year, month) => {
+        if (year === 2024 && month === 1)
+          return Promise.resolve(currentTransactions);
+        if (year === 2023 && month === 12) return Promise.resolve([]); // 前月（前年12月）
+        if (year === 2023 && month === 1) return Promise.resolve([]); // 前年同月（前年1月）
+        return Promise.resolve([]);
+      });
+
+      const result = await useCase.execute(2024, 1);
+
+      expect(result.month).toBe('2024-01');
+      // 前月は前年12月（2023, 12）になることを確認
+      expect(repository.findByMonth).toHaveBeenCalledWith(2023, 12);
+      // 前年同月は前年1月（2023, 1）になることを確認
+      expect(repository.findByMonth).toHaveBeenCalledWith(2023, 1);
+    });
+
+    it('should calculate comparison with same month last year', async () => {
+      const currentTransactions = [
+        createTransaction('tx_1', 100000, CategoryType.INCOME, 'cat_1'),
+        createTransaction('tx_2', 50000, CategoryType.EXPENSE, 'cat_2'),
+      ];
+
+      const sameMonthLastYearTransactions = [
+        createTransaction('tx_3', 90000, CategoryType.INCOME, 'cat_1'),
+        createTransaction('tx_4', 40000, CategoryType.EXPENSE, 'cat_2'),
+      ];
+
+      repository.findByMonth.mockResolvedValueOnce(currentTransactions); // 当月
+      repository.findByMonth.mockResolvedValueOnce([]); // 前月
+      repository.findByMonth.mockResolvedValueOnce(
+        sameMonthLastYearTransactions,
+      ); // 前年同月
+
+      const result = await useCase.execute(2024, 1);
+
+      expect(result.comparison.sameMonthLastYear).not.toBeNull();
+      expect(result.comparison.sameMonthLastYear?.incomeDiff).toBe(10000);
+      expect(result.comparison.sameMonthLastYear?.expenseDiff).toBe(10000);
+      expect(result.comparison.sameMonthLastYear?.balanceDiff).toBe(0);
+    });
   });
 });
