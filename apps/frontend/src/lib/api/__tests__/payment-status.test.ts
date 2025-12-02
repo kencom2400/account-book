@@ -112,53 +112,51 @@ describe('Payment Status API Client', () => {
   describe('getStatuses', () => {
     it('複数のステータス記録を一括取得できる', async () => {
       const cardSummaryIds = ['summary-1', 'summary-2', 'summary-3'];
-      const mockResponse = {
-        success: true as const,
-        data: [
-          {
-            id: 'status-1',
-            cardSummaryId: 'summary-1',
-            status: 'PENDING' as const,
-            previousStatus: undefined,
-            updatedAt: '2025-01-30T00:00:00.000Z',
-            updatedBy: 'system' as const,
-            reason: '初期ステータス',
-            reconciliationId: undefined,
-            notes: undefined,
-          },
-          {
-            id: 'status-2',
-            cardSummaryId: 'summary-2',
-            status: 'PROCESSING' as const,
-            previousStatus: undefined,
-            updatedAt: '2025-01-31T00:00:00.000Z',
-            updatedBy: 'system' as const,
-            reason: '初期ステータス',
-            reconciliationId: undefined,
-            notes: undefined,
-          },
-          {
-            id: 'status-3',
-            cardSummaryId: 'summary-3',
-            status: 'PAID' as const,
-            previousStatus: undefined,
-            updatedAt: '2025-02-01T00:00:00.000Z',
-            updatedBy: 'user' as const,
-            reason: undefined,
-            reconciliationId: undefined,
-            notes: undefined,
-          },
-        ],
-      };
+      const mockData = [
+        {
+          id: 'status-1',
+          cardSummaryId: 'summary-1',
+          status: 'PENDING' as const,
+          previousStatus: undefined,
+          updatedAt: '2025-01-30T00:00:00.000Z',
+          updatedBy: 'system' as const,
+          reason: '初期ステータス',
+          reconciliationId: undefined,
+          notes: undefined,
+        },
+        {
+          id: 'status-2',
+          cardSummaryId: 'summary-2',
+          status: 'PROCESSING' as const,
+          previousStatus: undefined,
+          updatedAt: '2025-01-31T00:00:00.000Z',
+          updatedBy: 'system' as const,
+          reason: '初期ステータス',
+          reconciliationId: undefined,
+          notes: undefined,
+        },
+        {
+          id: 'status-3',
+          cardSummaryId: 'summary-3',
+          status: 'PAID' as const,
+          previousStatus: undefined,
+          updatedAt: '2025-02-01T00:00:00.000Z',
+          updatedBy: 'user' as const,
+          reason: undefined,
+          reconciliationId: undefined,
+          notes: undefined,
+        },
+      ];
 
-      mockApiClient.get.mockResolvedValue(mockResponse);
+      // apiClient.get<T>()は既にdataプロパティを返すため、直接データを返す
+      mockApiClient.get.mockResolvedValue(mockData);
 
       const result = await paymentStatusApi.getStatuses(cardSummaryIds);
 
       expect(mockApiClient.get).toHaveBeenCalledWith(
         '/api/payment-status?summaryIds=summary-1%2Csummary-2%2Csummary-3'
       );
-      expect(result).toEqual(mockResponse.data);
+      expect(result).toEqual(mockData);
       expect(result).toHaveLength(3);
     });
 
