@@ -39,7 +39,10 @@ export function StatusTab({ monthlySummaries }: StatusTabProps): React.JSX.Eleme
               continue;
             }
 
-            const status = await paymentStatusApi.getStatus(summaryId).catch(() => null);
+            const status = await paymentStatusApi.getStatus(summaryId).catch((err) => {
+              console.error(`Failed to fetch status for summary ${summaryId}:`, err);
+              return null;
+            });
 
             if (status) {
               records.set(summaryId, status);
