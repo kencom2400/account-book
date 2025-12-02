@@ -72,6 +72,20 @@ export const paymentStatusApi = {
   },
 
   /**
+   * 複数のカード集計IDに対応するステータス記録を一括取得
+   */
+  getStatuses: async (cardSummaryIds: string[]): Promise<PaymentStatusRecord[]> => {
+    if (cardSummaryIds.length === 0) {
+      return [];
+    }
+
+    const summaryIds = cardSummaryIds.join(',');
+    return apiClient.get<PaymentStatusRecord[]>(
+      `/api/payment-status?summaryIds=${encodeURIComponent(summaryIds)}`
+    );
+  },
+
+  /**
    * ステータス変更履歴を取得
    */
   getHistory: async (cardSummaryId: string): Promise<PaymentStatusHistory> => {

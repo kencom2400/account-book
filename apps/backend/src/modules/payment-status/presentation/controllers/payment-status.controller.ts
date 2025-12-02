@@ -7,9 +7,11 @@ import {
   NotFoundException,
   Param,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GetPaymentStatusHistoryUseCase } from '../../application/use-cases/get-payment-status-history.use-case';
+import { GetPaymentStatusesUseCase } from '../../application/use-cases/get-payment-statuses.use-case';
 import { UpdatePaymentStatusUseCase } from '../../application/use-cases/update-payment-status.use-case';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import type { PaymentStatusRepository } from '../../domain/repositories/payment-status.repository.interface';
@@ -33,6 +35,7 @@ export class PaymentStatusController {
   constructor(
     private readonly updatePaymentStatusUseCase: UpdatePaymentStatusUseCase,
     private readonly getPaymentStatusHistoryUseCase: GetPaymentStatusHistoryUseCase,
+    private readonly getPaymentStatusesUseCase: GetPaymentStatusesUseCase,
     @Inject(PAYMENT_STATUS_REPOSITORY)
     private readonly paymentStatusRepository: PaymentStatusRepository,
   ) {}
@@ -69,6 +72,40 @@ export class PaymentStatusController {
     return {
       success: true,
       data: toPaymentStatusResponseDto(record),
+    };
+  }
+
+  /**
+   * 複数のカード集計IDに対応するステータス記録を一括取得
+   */
+  @Get()
+  @ApiOperation({ summary: '複数のステータス記録を一括取得' })
+  @ApiResponse({
+    status: 200,
+    description: 'ステータス一括取得成功',
+  })
+  async getStatuses(
+    @Query('summaryIds') summaryIds: string,
+  ): Promise<{ success: true; data: PaymentStatusResponseDto[] }> {
+    // クエリパラメータを配列に変換（カンマ区切り）
+    const cardSummaryIds = summaryIds
+      ? summaryIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0)
+      : [];
+
+    const recordsMap =
+      await this.getPaymentStatusesUseCase.execute(cardSummaryIds);
+
+    // Mapを配列に変換し、cardSummaryIdでソート（順序を保証）
+    const records = Array.from(recordsMap.values())
+      .map(toPaymentStatusResponseDto)
+      .sort((a, b) => a.cardSummaryId.localeCompare(b.cardSummaryId));
+
+    return {
+      success: true,
+      data: records,
     };
   }
 

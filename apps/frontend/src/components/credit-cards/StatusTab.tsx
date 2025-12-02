@@ -27,32 +27,27 @@ export function StatusTab({ monthlySummaries }: StatusTabProps): React.JSX.Eleme
       try {
         setLoading(true);
         setError(null);
-        const records = new Map<string, PaymentStatusRecord>();
 
-        // 各月別集計のステータスを取得
-        for (const summary of monthlySummaries) {
-          try {
-            // 月別集計IDを取得
-            const summaryId = summary.id;
-            if (!summaryId) {
-              console.warn('Summary ID not found:', summary);
-              continue;
-            }
+        // 月別集計IDのリストを取得
+        const summaryIds = monthlySummaries
+          .map((summary) => summary.id)
+          .filter((id): id is string => id !== undefined && id !== null);
 
-            const status = await paymentStatusApi.getStatus(summaryId).catch((err) => {
-              console.error(`Failed to fetch status for summary ${summaryId}:`, err);
-              return null;
-            });
-
-            if (status) {
-              records.set(summaryId, status);
-            }
-          } catch (err) {
-            console.error('Failed to fetch status for summary:', err);
-          }
+        if (summaryIds.length === 0) {
+          setStatusRecords(new Map());
+          return;
         }
 
-        setStatusRecords(records);
+        // 一括取得でN+1問題を解消
+        const statusRecords = await paymentStatusApi.getStatuses(summaryIds);
+
+        // Mapに変換（cardSummaryIdをキーとして使用）
+        const recordsMap = statusRecords.reduce((map, record) => {
+          map.set(record.cardSummaryId, record);
+          return map;
+        }, new Map<string, PaymentStatusRecord>());
+
+        setStatusRecords(recordsMap);
       } catch (err) {
         setError('ステータス情報の取得に失敗しました');
         console.error('Failed to fetch status records:', err);
