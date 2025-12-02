@@ -252,10 +252,7 @@ export function CreditCardManagementPage(): React.JSX.Element {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {monthlySummaries.map((summary) => (
-                      <MonthlySummaryCard
-                        key={`${summary.cardId}-${summary.billingMonth}`}
-                        summary={summary}
-                      />
+                      <MonthlySummaryCard key={summary.id} summary={summary} />
                     ))}
                   </div>
                 )}
