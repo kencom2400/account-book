@@ -72,7 +72,7 @@ sequenceDiagram
     DS-->>UC: BalanceResult<br/>{income: 300000, expense: 200000, balance: 100000}
 
     UC->>DS: aggregateByCategory(currentTransactions)
-    DS-->>UC: Map<CategoryType, AggregationData>
+    DS-->>UC: Map<string, AggregationData><br/>(キーはcategoryId)
 
     UC->>DS: aggregateByInstitution(currentTransactions)
     DS-->>UC: Map<string, AggregationData>
@@ -130,7 +130,7 @@ sequenceDiagram
 
 5. **Domain Service 実行**
    - `calculateBalance()`: 収入・支出・収支差額を計算
-   - `aggregateByCategory()`: カテゴリ別に集計
+   - `aggregateByCategory()`: カテゴリID別に集計（キーは`categoryId`）
    - `aggregateByInstitution()`: 金融機関別に集計
    - `calculateSavingsRate()`: 貯蓄率を計算
    - `calculateMonthComparison()`: 前月比・前年同月比を計算

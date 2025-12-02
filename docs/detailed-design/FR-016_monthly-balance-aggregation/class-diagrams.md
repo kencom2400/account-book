@@ -44,7 +44,7 @@ classDiagram
 
     class MonthlyBalanceDomainService {
         +calculateBalance(transactions) BalanceResult
-        +aggregateByCategory(transactions) Map~CategoryType, AggregationData~
+        +aggregateByCategory(transactions) Map~string, AggregationData~
         +aggregateByInstitution(transactions) Map~string, AggregationData~
         +calculateSavingsRate(income, expense) number
         +calculateMonthComparison(current, previous) MonthComparison
@@ -99,7 +99,7 @@ classDiagram
 - **責務**: 月別収支集計のドメインロジック
 - **主要メソッド**:
   - `calculateBalance(transactions)`: 収入・支出・収支差額を計算
-  - `aggregateByCategory(transactions)`: カテゴリ別に集計
+  - `aggregateByCategory(transactions)`: カテゴリID別に集計（キーは`categoryId`）
   - `aggregateByInstitution(transactions)`: 金融機関別に集計
   - `calculateSavingsRate(income, expense)`: 貯蓄率を計算
   - `calculateMonthComparison(current, previous)`: 前月比を計算
@@ -140,7 +140,7 @@ classDiagram
 
     class MonthlyBalanceDomainService {
         +calculateBalance(transactions) BalanceResult
-        +aggregateByCategory(transactions) Map~CategoryType, AggregationData~
+        +aggregateByCategory(transactions) Map~string, AggregationData~
         +aggregateByInstitution(transactions) Map~string, AggregationData~
         +calculateSavingsRate(income, expense) number
         +calculateMonthComparison(current, previous) MonthComparison
