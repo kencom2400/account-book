@@ -136,6 +136,7 @@ classDiagram
         -getSameMonthLastYear(year, month) {year, month}
         -buildCategoryBreakdown(aggregation, transactions) CategoryBreakdown[]
         -buildInstitutionBreakdown(aggregation, transactions) InstitutionBreakdown[]
+        -toTransactionDto(entity) TransactionDto
     }
 
     class MonthlyBalanceDomainService {
@@ -160,7 +161,18 @@ classDiagram
         +number count
         +CategoryBreakdown[] byCategory
         +InstitutionBreakdown[] byInstitution
-        +TransactionEntity[] transactions
+        +TransactionDto[] transactions
+    }
+
+    class TransactionDto {
+        +string id
+        +string date
+        +number amount
+        +string categoryType
+        +string categoryId
+        +string institutionId
+        +string accountId
+        +string description
     }
 
     class CategoryBreakdown {
@@ -199,7 +211,9 @@ classDiagram
     MonthlyBalanceResponseDto --> ComparisonData
     IncomeExpenseSummary --> CategoryBreakdown
     IncomeExpenseSummary --> InstitutionBreakdown
+    IncomeExpenseSummary --> TransactionDto
     ComparisonData --> MonthComparison
+    CalculateMonthlyBalanceUseCase --> TransactionDto
 ```
 
 **クラス説明**:
@@ -216,6 +230,7 @@ classDiagram
   - `getSameMonthLastYear(year, month)`: 前年同月の年月を取得
   - `buildCategoryBreakdown(aggregation, transactions)`: カテゴリ別内訳を構築
   - `buildInstitutionBreakdown(aggregation, transactions)`: 金融機関別内訳を構築
+  - `toTransactionDto(entity)`: `TransactionEntity`を`TransactionDto`に変換（Onion Architecture原則）
 
 #### MonthlyBalanceResponseDto（新規作成）
 
@@ -226,6 +241,13 @@ classDiagram
 
 - **責務**: 収入または支出のサマリー情報
 - **型**: `interface`
+- **注意**: `TransactionEntity`ではなく`TransactionDto`を使用（Onion Architecture原則）
+
+#### TransactionDto（新規作成）
+
+- **責務**: 取引データのDTO（プレゼンテーション層用）
+- **型**: `interface`
+- **注意**: Domain層の`TransactionEntity`から変換して使用
 
 #### CategoryBreakdown（新規作成）
 
@@ -318,7 +340,18 @@ classDiagram
         +number count
         +CategoryBreakdown[] byCategory
         +InstitutionBreakdown[] byInstitution
-        +TransactionEntity[] transactions
+        +TransactionDto[] transactions
+    }
+
+    class TransactionDto {
+        +string id
+        +string date
+        +number amount
+        +string categoryType
+        +string categoryId
+        +string institutionId
+        +string accountId
+        +string description
     }
 
     class CategoryBreakdown {
@@ -356,6 +389,7 @@ classDiagram
     MonthlyBalanceResponseDto --> ComparisonData
     IncomeExpenseSummary --> CategoryBreakdown
     IncomeExpenseSummary --> InstitutionBreakdown
+    IncomeExpenseSummary --> TransactionDto
     ComparisonData --> MonthComparison
 ```
 

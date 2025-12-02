@@ -179,14 +179,14 @@ interface MonthlyBalanceSummary {
     count: number;
     byCategory: CategoryBreakdown[];
     byInstitution: InstitutionBreakdown[];
-    transactions: TransactionEntity[];
+    transactions: TransactionDto[];
   };
   expense: {
     total: number;
     count: number;
     byCategory: CategoryBreakdown[];
     byInstitution: InstitutionBreakdown[];
-    transactions: TransactionEntity[];
+    transactions: TransactionDto[];
   };
   balance: number; // 収支差額 (income - expense)
   savingsRate: number; // 貯蓄率 (balance / income * 100)
@@ -218,6 +218,17 @@ interface MonthComparison {
   balanceDiff: number;
   incomeRate: number; // 前月比%
   expenseRate: number;
+}
+
+interface TransactionDto {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string; // CategoryTypeの文字列値
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
 }
 ```
 

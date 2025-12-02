@@ -56,7 +56,7 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
     "month": "2025-01",
     "income": {
       "total": 300000,
-      "count": 2,
+      "count": 1,
       "byCategory": [
         {
           "categoryId": "cat-001",
@@ -140,6 +140,46 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
           "institutionId": "inst-002",
           "accountId": "acc-002",
           "description": "スーパー"
+        },
+        {
+          "id": "txn-003",
+          "date": "2025-01-15T00:00:00.000Z",
+          "amount": 30000,
+          "categoryType": "EXPENSE",
+          "categoryId": "cat-002",
+          "institutionId": "inst-002",
+          "accountId": "acc-002",
+          "description": "コンビニ"
+        },
+        {
+          "id": "txn-004",
+          "date": "2025-01-20T00:00:00.000Z",
+          "amount": 20000,
+          "categoryType": "EXPENSE",
+          "categoryId": "cat-002",
+          "institutionId": "inst-001",
+          "accountId": "acc-001",
+          "description": "外食"
+        },
+        {
+          "id": "txn-005",
+          "date": "2025-01-12T00:00:00.000Z",
+          "amount": 50000,
+          "categoryType": "EXPENSE",
+          "categoryId": "cat-003",
+          "institutionId": "inst-002",
+          "accountId": "acc-002",
+          "description": "電車代"
+        },
+        {
+          "id": "txn-006",
+          "date": "2025-01-18T00:00:00.000Z",
+          "amount": 50000,
+          "categoryType": "EXPENSE",
+          "categoryId": "cat-004",
+          "institutionId": "inst-001",
+          "accountId": "acc-001",
+          "description": "映画"
         }
       ]
     },
@@ -184,7 +224,7 @@ GET /api/aggregation/monthly-balance?year=2025&month=1
 | count         | number                 | 取引件数                 |
 | byCategory    | CategoryBreakdown[]    | カテゴリ別内訳           |
 | byInstitution | InstitutionBreakdown[] | 金融機関別内訳           |
-| transactions  | TransactionEntity[]    | 取引明細（必要に応じて） |
+| transactions  | TransactionDto[]       | 取引明細（必要に応じて） |
 
 **CategoryBreakdown:**
 
@@ -246,7 +286,7 @@ export interface IncomeExpenseSummary {
   count: number;
   byCategory: CategoryBreakdown[];
   byInstitution: InstitutionBreakdown[];
-  transactions: TransactionEntity[];
+  transactions: TransactionDto[];
 }
 
 export interface CategoryBreakdown {
@@ -276,6 +316,17 @@ export interface MonthComparison {
   balanceDiff: number;
   incomeRate: number;
   expenseRate: number;
+}
+
+export interface TransactionDto {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string; // CategoryTypeの文字列値
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
 }
 ```
 
