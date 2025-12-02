@@ -6,7 +6,7 @@
 import { apiClient } from './client';
 
 // PaymentStatusは文字列リテラル型として扱う
-type PaymentStatus =
+export type PaymentStatus =
   | 'PENDING'
   | 'PROCESSING'
   | 'PAID'

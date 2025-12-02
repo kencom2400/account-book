@@ -2,19 +2,22 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { PaymentStatusRecord } from '@/lib/api/payment-status';
+import {
+  paymentStatusApi,
+  PaymentStatusRecord,
+  type PaymentStatus,
+} from '@/lib/api/payment-status';
 
-// PaymentStatusは文字列リテラル型として扱う
-type PaymentStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'PAID'
-  | 'OVERDUE'
-  | 'PARTIAL'
-  | 'DISPUTED'
-  | 'CANCELLED'
-  | 'MANUAL_CONFIRMED';
-import { paymentStatusApi } from '@/lib/api/payment-status';
+const PAYMENT_STATUSES: PaymentStatus[] = [
+  'PENDING',
+  'PROCESSING',
+  'PAID',
+  'OVERDUE',
+  'PARTIAL',
+  'DISPUTED',
+  'CANCELLED',
+  'MANUAL_CONFIRMED',
+];
 
 interface PaymentStatusCardProps {
   cardSummaryId: string;
@@ -33,9 +36,7 @@ export function PaymentStatusCard({
 }: PaymentStatusCardProps): React.JSX.Element {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
-  const [newStatus, setNewStatus] = useState<PaymentStatus>(
-    (currentStatus.status as PaymentStatus) || 'PENDING'
-  );
+  const [newStatus, setNewStatus] = useState<PaymentStatus>(currentStatus.status || 'PENDING');
   const [notes, setNotes] = useState('');
 
   const formatDate = (date: Date | string | undefined): string => {
@@ -147,18 +148,7 @@ export function PaymentStatusCard({
                   onChange={(e) => setNewStatus(e.target.value as PaymentStatus)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {(
-                    [
-                      'PENDING',
-                      'PROCESSING',
-                      'PAID',
-                      'OVERDUE',
-                      'PARTIAL',
-                      'DISPUTED',
-                      'CANCELLED',
-                      'MANUAL_CONFIRMED',
-                    ] as PaymentStatus[]
-                  ).map((status) => (
+                  {PAYMENT_STATUSES.map((status) => (
                     <option key={status} value={status}>
                       {status}
                     </option>
