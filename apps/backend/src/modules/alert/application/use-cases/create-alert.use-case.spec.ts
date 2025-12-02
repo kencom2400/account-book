@@ -135,7 +135,7 @@ describe('CreateAlertUseCase', () => {
           },
         },
         {
-          provide: AlertService,
+          provide: ALERT_SERVICE,
           useFactory: (aggRepo: AggregationRepository) => {
             return new AlertService(aggRepo);
           },
