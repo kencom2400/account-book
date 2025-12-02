@@ -98,10 +98,10 @@ export class PaymentStatusController {
     const recordsMap =
       await this.getPaymentStatusesUseCase.execute(cardSummaryIds);
 
-    // Mapを配列に変換
-    const records = Array.from(recordsMap.values()).map((record) =>
-      toPaymentStatusResponseDto(record),
-    );
+    // Mapを配列に変換し、cardSummaryIdでソート（順序を保証）
+    const records = Array.from(recordsMap.values())
+      .map(toPaymentStatusResponseDto)
+      .sort((a, b) => a.cardSummaryId.localeCompare(b.cardSummaryId));
 
     return {
       success: true,
