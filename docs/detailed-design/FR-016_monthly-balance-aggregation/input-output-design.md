@@ -474,25 +474,43 @@ interface ErrorResponse {
 
 ### バリデーション実装例
 
+NestJSのベストプラクティスに従い、`class-validator`と`ValidationPipe`を使用したDTOによるバリデーションを推奨します。
+
 ```typescript
+// DTOにバリデーションルールを定義
+import { IsInt, Min, Max, Type } from 'class-validator';
+
+export class GetMonthlyBalanceDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1900)
+  year: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month: number;
+}
+
 // Controller側でのバリデーション
 @Get('monthly-balance')
+// main.tsでapp.useGlobalPipes(new ValidationPipe({ transform: true }))を適用
 async getMonthlyBalance(
-  @Query('year') year: number,
-  @Query('month') month: number,
+  @Query() query: GetMonthlyBalanceDto,
 ): Promise<MonthlyBalanceResponseDto> {
-  // バリデーション
-  if (!year || year < 1900) {
-    throw new BadRequestException('Year is required and must be >= 1900');
-  }
-  if (!month || month < 1 || month > 12) {
-    throw new BadRequestException('Month is required and must be between 1 and 12');
-  }
+  // バリデーションはValidationPipeによって自動的に実行される
 
   // UseCase実行
-  return await this.calculateMonthlyBalanceUseCase.execute(year, month);
+  return await this.calculateMonthlyBalanceUseCase.execute(query.year, query.month);
 }
 ```
+
+**補足**:
+
+- `ValidationPipe`は`main.ts`でグローバルに設定することを推奨
+- `transform: true`オプションにより、クエリパラメータが自動的に数値に変換される
+- バリデーションエラーは自動的に400 Bad Requestとして返される
 
 ---
 
