@@ -180,6 +180,9 @@ describe('PaymentStatusController', () => {
     });
 
     it('空のクエリパラメータの場合は空配列を返す', async () => {
+      const emptyMap = new Map<string, PaymentStatusRecord>();
+      getStatusesUseCase.execute.mockResolvedValue(emptyMap);
+
       const result = await controller.getStatuses('');
 
       expect(result.success).toBe(true);
