@@ -230,9 +230,16 @@ export async function seedE2ETestData(): Promise<{
         throw error;
       }
     } catch (fetchError) {
-      // 既存の金融機関の取得に失敗した場合も、元のエラーを再スロー
-      console.error('  ❌ Failed to fetch existing institutions:', fetchError);
-      throw error;
+      // 既存の金融機関の取得に失敗した場合、両方のエラー情報を含む新しいエラーをスロー
+      console.error(
+        '  ❌ Failed to fetch existing institutions:',
+        fetchError,
+        'Original error:',
+        error
+      );
+      throw new Error(
+        `Failed to fetch existing institutions after creation failed. Original: ${error instanceof Error ? error.message : String(error)}, Fetch: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`
+      );
     }
   }
 
