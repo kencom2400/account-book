@@ -143,7 +143,7 @@ sequenceDiagram
 
     UC-->>API: CategoryAggregationResponseDto[]<br/>([EXPENSE] - 要素1つの配列)
 
-    API-->>FE: 200 OK<br/>{CategoryAggregationResponseDto}
+    API-->>FE: 200 OK<br/>{CategoryAggregationResponseDto[]}
     FE-->>User: 支出カテゴリ集計レポート表示
 ```
 

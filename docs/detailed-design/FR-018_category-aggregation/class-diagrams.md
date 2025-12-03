@@ -80,6 +80,12 @@ classDiagram
         +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
     }
 
+    class ICategoryRepository {
+        <<interface>>
+        +findById(id) Promise<CategoryEntity | null>
+        +findByIds(ids) Promise<CategoryEntity[]>
+    }
+
     TransactionEntity --> CategoryType
     CategoryAggregationDomainService --> TransactionEntity
     CategoryAggregationDomainService --> CategoryAggregationResult
@@ -145,7 +151,6 @@ classDiagram
         +execute(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto[]>
         -buildSubcategorySummary(aggregation Map<string, SubcategoryAggregationData>, transactions TransactionEntity[]) SubcategorySummary[]
         -toTransactionDto(entity TransactionEntity) TransactionDto
-        -getCategoryName(categoryId) Promise<string>
     }
 
     class CategoryAggregationDomainService {
@@ -200,11 +205,6 @@ classDiagram
         +string month
         +number amount
         +number count
-    }
-
-    class ICategoryRepository {
-        <<interface>>
-        +findById(id) Promise<CategoryEntity | null>
     }
 
     CalculateCategoryAggregationUseCase --> ITransactionRepository

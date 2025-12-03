@@ -168,29 +168,21 @@ interface TransactionEntity {
 }
 ```
 
-#### CategoryAggregationSummary（Value Object - 新規作成）
+#### CategoryAggregationResult（Value Object - 新規作成）
 
 ```typescript
-interface CategoryAggregationSummary {
+interface CategoryAggregationResult {
   category: CategoryType;
-  period: {
-    start: Date;
-    end: Date;
-  };
   totalAmount: number;
   transactionCount: number;
-  subcategories: SubcategorySummary[];
   percentage: number; // 全体に占める割合
-  trend: TrendData;
 }
 
-interface SubcategorySummary {
-  subcategory: string; // サブカテゴリ名（費目名）
-  subcategoryId: string; // サブカテゴリID
+interface SubcategoryAggregationData {
+  subcategoryId: string; // サブカテゴリID（Domain層ではIDのみ）
   amount: number;
   count: number;
   percentage: number; // カテゴリ内での割合
-  topTransactions: TransactionDto[]; // 金額の大きい取引（最大5件）
 }
 
 interface TrendData {
@@ -202,19 +194,17 @@ interface MonthlyTrend {
   amount: number;
   count: number;
 }
-
-interface TransactionDto {
-  id: string;
-  date: string; // ISO8601形式
-  amount: number;
-  categoryType: string; // CategoryTypeの文字列値
-  categoryId: string;
-  categoryName: string; // サブカテゴリ名
-  institutionId: string;
-  accountId: string;
-  description: string;
-}
 ```
+
+**注意**: Domain層のValue Objectには、Application層で取得する情報（カテゴリ名など）は含めません。カテゴリ名はApplication層で`CategoryRepository`から取得してDTOに設定します。
+
+### レスポンスDTO（Presentation層）
+
+詳細は [入出力設計](./input-output-design.md) を参照。主要なDTOは以下の通りです：
+
+- `CategoryAggregationResponseDto`: カテゴリ別集計のレスポンスDTO
+- `SubcategorySummary`: サブカテゴリ別内訳のDTO（`categoryName`を含む）
+- `TransactionDto`: 取引情報のDTO（`categoryName`を含む）
 
 ## API仕様概要
 
