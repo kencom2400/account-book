@@ -95,13 +95,7 @@ export class CalculateCategoryAggregationUseCase {
     // categoryTypeが指定されている場合は該当カテゴリのみ、指定されていない場合は全カテゴリ
     const targetCategoryTypes = categoryType
       ? [categoryType]
-      : [
-          CategoryType.INCOME,
-          CategoryType.EXPENSE,
-          CategoryType.TRANSFER,
-          CategoryType.REPAYMENT,
-          CategoryType.INVESTMENT,
-        ];
+      : Object.values(CategoryType);
 
     const results: CategoryAggregationResponseDto[] = [];
 
@@ -123,8 +117,7 @@ export class CalculateCategoryAggregationUseCase {
       // 推移データ計算
       const trend = this.categoryAggregationDomainService.calculateTrend(
         transactions,
-        startDate,
-        endDate,
+        type,
       );
 
       // サブカテゴリ内訳構築
@@ -174,10 +167,17 @@ export class CalculateCategoryAggregationUseCase {
       categoryMap.set(category.id, category);
     }
 
-    // 該当カテゴリタイプの取引のみをフィルタリング
-    const filteredTransactions = transactions.filter(
-      (t) => t.category.type === categoryType,
-    );
+    // 該当カテゴリタイプの取引をサブカテゴリIDでグルーピング
+    const transactionsBySubcategory = new Map<string, TransactionEntity[]>();
+    transactions
+      .filter((t) => t.category.type === categoryType)
+      .forEach((t) => {
+        const subcategoryId = t.category.id;
+        if (!transactionsBySubcategory.has(subcategoryId)) {
+          transactionsBySubcategory.set(subcategoryId, []);
+        }
+        transactionsBySubcategory.get(subcategoryId)!.push(t);
+      });
 
     const result: SubcategoryAggregationResponseDto[] = [];
 
@@ -185,10 +185,8 @@ export class CalculateCategoryAggregationUseCase {
       const category = categoryMap.get(categoryId);
       const categoryName = category?.name || '';
 
-      // 該当サブカテゴリの取引を取得
-      const subcategoryTransactions = filteredTransactions.filter(
-        (t) => t.category.id === categoryId,
-      );
+      const subcategoryTransactions =
+        transactionsBySubcategory.get(categoryId) || [];
 
       // 上位取引を取得（最大5件）
       const topTransactions =

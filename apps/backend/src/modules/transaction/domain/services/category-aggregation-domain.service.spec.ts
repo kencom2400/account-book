@@ -122,7 +122,7 @@ describe('CategoryAggregationDomainService', () => {
   });
 
   describe('calculateTrend', () => {
-    it('should calculate monthly trend', () => {
+    it('should calculate monthly trend for specific category type', () => {
       const transactions = [
         createTransaction(
           '1',
@@ -141,61 +141,64 @@ describe('CategoryAggregationDomainService', () => {
         createTransaction(
           '3',
           30000,
+          CategoryType.EXPENSE,
+          'cat_2',
+          new Date('2025-01-25'),
+        ),
+        createTransaction(
+          '4',
+          20000,
           CategoryType.INCOME,
           'cat_1',
           new Date('2025-02-10'),
         ),
       ];
 
-      const result = service.calculateTrend(
-        transactions,
-        new Date('2025-01-01'),
-        new Date('2025-02-28'),
-      );
+      const result = service.calculateTrend(transactions, CategoryType.INCOME);
 
       expect(result.monthly).toHaveLength(2);
       expect(result.monthly[0].month).toBe('2025-01');
       expect(result.monthly[0].amount).toBe(150000);
       expect(result.monthly[0].count).toBe(2);
       expect(result.monthly[1].month).toBe('2025-02');
-      expect(result.monthly[1].amount).toBe(30000);
+      expect(result.monthly[1].amount).toBe(20000);
       expect(result.monthly[1].count).toBe(1);
     });
 
-    it('should filter transactions by date range', () => {
+    it('should filter transactions by category type', () => {
       const transactions = [
         createTransaction(
           '1',
           100000,
           CategoryType.INCOME,
           'cat_1',
-          new Date('2024-12-15'),
+          new Date('2025-01-15'),
         ),
         createTransaction(
           '2',
           50000,
-          CategoryType.INCOME,
-          'cat_1',
-          new Date('2025-01-15'),
+          CategoryType.EXPENSE,
+          'cat_2',
+          new Date('2025-01-20'),
         ),
         createTransaction(
           '3',
           30000,
-          CategoryType.INCOME,
-          'cat_1',
+          CategoryType.EXPENSE,
+          'cat_3',
           new Date('2025-02-15'),
         ),
       ];
 
-      const result = service.calculateTrend(
-        transactions,
-        new Date('2025-01-01'),
-        new Date('2025-01-31'),
-      );
+      const result = service.calculateTrend(transactions, CategoryType.EXPENSE);
 
-      expect(result.monthly).toHaveLength(1);
+      expect(result.monthly).toHaveLength(2);
       expect(result.monthly[0].month).toBe('2025-01');
       expect(result.monthly[0].amount).toBe(50000);
+      expect(result.monthly[0].count).toBe(1);
+      expect(result.monthly[1].month).toBe('2025-02');
+      expect(result.monthly[1].amount).toBe(30000);
+      expect(result.monthly[1].count).toBe(1);
     });
   });
 

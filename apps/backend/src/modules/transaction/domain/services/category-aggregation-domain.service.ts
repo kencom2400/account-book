@@ -138,24 +138,23 @@ export class CategoryAggregationDomainService {
 
   /**
    * 期間内の月次推移を計算
+   * @param transactions 取引リスト（既に期間でフィルタリング済み）
+   * @param categoryType カテゴリタイプ
    */
   calculateTrend(
     transactions: TransactionEntity[],
-    startDate: Date,
-    endDate: Date,
+    categoryType: CategoryType,
   ): TrendData {
-    const filteredTransactions = transactions.filter((t) => {
-      const transactionDate = new Date(t.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
+    const filteredTransactions = transactions.filter(
+      (t) => t.category.type === categoryType,
+    );
 
     // 月ごとに集計
     const monthlyMap = new Map<string, { amount: number; count: number }>();
 
     for (const transaction of filteredTransactions) {
-      const transactionDate = new Date(transaction.date);
-      const month = `${transactionDate.getFullYear()}-${String(
-        transactionDate.getMonth() + 1,
+      const month = `${transaction.date.getFullYear()}-${String(
+        transaction.date.getMonth() + 1,
       ).padStart(2, '0')}`;
 
       const existing = monthlyMap.get(month) || { amount: 0, count: 0 };
