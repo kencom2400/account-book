@@ -69,7 +69,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
           endDate: '2025-01-31',
@@ -109,7 +109,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
           endDate: '2025-01-31',
@@ -156,7 +156,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
           endDate: '2025-01-31',
@@ -174,7 +174,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
 
     it('存在しない費目IDの場合は空データを返す', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
           endDate: '2025-01-31',
@@ -206,7 +206,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
           endDate: '2025-01-31',
@@ -233,7 +233,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
 
     it('バリデーションエラー: startDateが必須', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           endDate: '2025-01-31',
         });
@@ -243,7 +243,7 @@ describe('Subcategory Aggregation API (e2e)', () => {
 
     it('バリデーションエラー: endDateが必須', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/subcategory')
+        .get('/api/api/aggregation/subcategory')
         .query({
           startDate: '2025-01-01',
         });
