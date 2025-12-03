@@ -289,25 +289,28 @@ classDiagram
 
     class CategoryRepository {
         -string dataDir
-        +findById(id) Promise~CategoryEntity | null~
-        -loadFromFile() Promise~CategoryEntity[]~
+        +findById(id) Promise<CategoryEntity | null>
+        +findByIds(ids) Promise<CategoryEntity[]>
+        -loadFromFile() Promise<CategoryEntity[]>
         -toEntity(json) CategoryEntity
     }
 
     class CategoryTypeOrmRepository {
-        -Repository~CategoryEntity~ repository
-        +findById(id) Promise~CategoryEntity | null~
+        -Repository<CategoryEntity> repository
+        +findById(id) Promise<CategoryEntity | null>
+        +findByIds(ids) Promise<CategoryEntity[]>
     }
 
     class ITransactionRepository {
         <<interface>>
-        +findByDateRange(start, end) Promise~TransactionEntity[]~
-        +findByCategoryType(categoryType, start, end) Promise~TransactionEntity[]~
+        +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
     }
 
     class ICategoryRepository {
         <<interface>>
-        +findById(id) Promise~CategoryEntity | null~
+        +findById(id) Promise<CategoryEntity | null>
+        +findByIds(ids) Promise<CategoryEntity[]>
     }
 
     TransactionRepository ..|> ITransactionRepository
@@ -337,12 +340,14 @@ classDiagram
 - **責務**: JSONファイルベースのカテゴリリポジトリ実装
 - **主要メソッド**:
   - `findById(id)`: IDでカテゴリを取得
+  - `findByIds(ids)`: IDの配列でカテゴリを一括取得（N+1問題対策）
 
 #### CategoryTypeOrmRepository（既存）
 
 - **責務**: TypeORMベースのカテゴリリポジトリ実装
 - **主要メソッド**:
   - `findById(id)`: IDでカテゴリを取得
+  - `findByIds(ids)`: IDの配列でカテゴリを一括取得（N+1問題対策）
 
 ---
 
