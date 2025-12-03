@@ -333,10 +333,10 @@ GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryTy
 
 **Period:**
 
-| フィールド | 型   | 説明   |
-| ---------- | ---- | ------ |
-| start      | Date | 開始日 |
-| end        | Date | 終了日 |
+| フィールド | 型     | 説明                  |
+| ---------- | ------ | --------------------- |
+| start      | string | 開始日（ISO8601形式） |
+| end        | string | 終了日（ISO8601形式） |
 
 **SubcategorySummary:**
 
@@ -399,8 +399,8 @@ export interface CategoryAggregationResponseDto {
 }
 
 export interface Period {
-  start: Date;
-  end: Date;
+  start: string; // ISO8601形式
+  end: string; // ISO8601形式
 }
 
 export interface SubcategorySummary {

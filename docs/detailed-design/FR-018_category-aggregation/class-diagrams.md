@@ -167,8 +167,8 @@ classDiagram
     }
 
     class Period {
-        +Date start
-        +Date end
+        +string start
+        +string end
     }
 
     class SubcategorySummary {
@@ -379,8 +379,8 @@ classDiagram
     }
 
     class Period {
-        +Date start
-        +Date end
+        +string start
+        +string end
     }
 
     class SubcategorySummary {
