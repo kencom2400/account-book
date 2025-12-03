@@ -44,7 +44,7 @@ classDiagram
 
     class CategoryAggregationDomainService {
         +aggregateByCategoryType(transactions, categoryType) CategoryAggregationResult
-        +aggregateBySubcategory(transactions, categoryType) Map~string, SubcategoryAggregationData~
+        +aggregateBySubcategory(transactions, categoryType) Map<string, SubcategoryAggregationData>
         +calculatePercentage(amount, total) number
         +calculateTrend(transactions, startDate, endDate) TrendData
         +getTopTransactions(transactions, limit) TransactionEntity[]
@@ -76,8 +76,8 @@ classDiagram
 
     class ITransactionRepository {
         <<interface>>
-        +findByDateRange(start, end) Promise~TransactionEntity[]~
-        +findByCategoryType(categoryType, start, end) Promise~TransactionEntity[]~
+        +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
     }
 
     TransactionEntity --> CategoryType
@@ -143,14 +143,14 @@ classDiagram
         -ICategoryRepository categoryRepository
         -CategoryAggregationDomainService domainService
         +execute(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto | CategoryAggregationResponseDto[]>
-        -buildSubcategorySummary(aggregation Map~string, SubcategoryAggregationData~, transactions TransactionEntity[]) SubcategorySummary[]
+        -buildSubcategorySummary(aggregation Map<string, SubcategoryAggregationData>, transactions TransactionEntity[]) SubcategorySummary[]
         -toTransactionDto(entity TransactionEntity) TransactionDto
-        -getCategoryName(categoryId) Promise~string~
+        -getCategoryName(categoryId) Promise<string>
     }
 
     class CategoryAggregationDomainService {
         +aggregateByCategoryType(transactions, categoryType) CategoryAggregationResult
-        +aggregateBySubcategory(transactions, categoryType) Map~string, SubcategoryAggregationData~
+        +aggregateBySubcategory(transactions, categoryType) Map<string, SubcategoryAggregationData>
         +calculatePercentage(amount, total) number
         +calculateTrend(transactions, startDate, endDate) TrendData
         +getTopTransactions(transactions, limit) TransactionEntity[]
@@ -204,7 +204,7 @@ classDiagram
 
     class ICategoryRepository {
         <<interface>>
-        +findById(id) Promise~CategoryEntity | null~
+        +findById(id) Promise<CategoryEntity | null>
     }
 
     CalculateCategoryAggregationUseCase --> ITransactionRepository
@@ -275,16 +275,16 @@ classDiagram
 classDiagram
     class TransactionRepository {
         -string dataDir
-        +findByDateRange(start, end) Promise~TransactionEntity[]~
-        +findByCategoryType(categoryType, start, end) Promise~TransactionEntity[]~
-        -loadFromFile(filePath) Promise~TransactionEntity[]~
+        +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
+        -loadFromFile(filePath) Promise<TransactionEntity[]>
         -toEntity(json) TransactionEntity
     }
 
     class TransactionTypeOrmRepository {
-        -Repository~TransactionEntity~ repository
-        +findByDateRange(start, end) Promise~TransactionEntity[]~
-        +findByCategoryType(categoryType, start, end) Promise~TransactionEntity[]~
+        -Repository<TransactionEntity> repository
+        +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
     }
 
     class CategoryRepository {
