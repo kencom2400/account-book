@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AggregationController } from './aggregation.controller';
 import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calculate-monthly-balance.use-case';
+import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 
 describe('AggregationController', () => {
@@ -37,6 +38,10 @@ describe('AggregationController', () => {
       providers: [
         {
           provide: CalculateMonthlyBalanceUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: CalculateCategoryAggregationUseCase,
           useValue: { execute: jest.fn() },
         },
       ],
