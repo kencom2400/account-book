@@ -55,16 +55,12 @@ sequenceDiagram
     DB-->>TRepo: TransactionEntity[]
     TRepo-->>UC: TransactionEntity[]
 
-    Note over UC: カテゴリ情報取得（階層構造構築用）<br/>取引データに含まれるカテゴリタイプを収集
-    UC->>UC: collectCategoryTypes(transactions)
-    UC->>UC: 取得したカテゴリタイプごとにカテゴリを取得
-    loop 各カテゴリタイプ
-        UC->>CRepo: findByCategoryType(categoryType)
-        CRepo->>DB: データ読み込み
-        DB-->>CRepo: CategoryEntity[]
-        CRepo-->>UC: CategoryEntity[]
-    end
-    UC->>UC: すべてのカテゴリを統合
+    Note over UC: カテゴリ情報取得（階層構造構築用）<br/>取引データに含まれるcategoryIdを収集
+    UC->>UC: collectCategoryIds(transactions)
+    UC->>CRepo: findByIds(categoryIds[])
+    CRepo->>DB: データ読み込み（一括取得）
+    DB-->>CRepo: CategoryEntity[]
+    CRepo-->>UC: CategoryEntity[]
 
     Note over UC: 費目別集計（階層構造を考慮）
     UC->>DS: aggregateHierarchy(transactions, categories)
@@ -120,12 +116,11 @@ sequenceDiagram
 
     API->>UC: execute(startDate, endDate, EXPENSE, undefined)
 
-    Note over UC: 期間内の取引データ取得（EXPENSEのみ）
-    UC->>TRepo: findByDateRange(2025-01-01, 2025-01-31)
-    TRepo->>DB: データ読み込み
-    DB-->>TRepo: TransactionEntity[] (全取引)
-    TRepo-->>UC: TransactionEntity[]
-    UC->>UC: EXPENSEのみフィルタリング
+    Note over UC: 期間内の取引データ取得（EXPENSEのみ）<br/>データベース層でフィルタリング
+    UC->>TRepo: findByCategoryType(EXPENSE, 2025-01-01, 2025-01-31)
+    TRepo->>DB: データ読み込み（EXPENSEのみ）
+    DB-->>TRepo: TransactionEntity[] (EXPENSEのみ)
+    TRepo-->>UC: TransactionEntity[] (EXPENSEのみ)
 
     Note over UC: カテゴリ情報取得（EXPENSEのみ）
     UC->>CRepo: findByCategoryType(EXPENSE)
