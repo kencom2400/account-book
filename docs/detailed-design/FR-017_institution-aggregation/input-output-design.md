@@ -207,7 +207,33 @@ GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 **TypeScript型定義:**
 
 ```typescript
+// カスタムバリデーター（フィールド間の相関チェック用）
+import {
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  Validate,
+} from 'class-validator';
+
+@ValidatorConstraint({ name: 'isEndDateAfterStartDate', async: false })
+export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInterface {
+  validate(endDate: string, args: ValidationArguments): boolean {
+    const object = args.object as GetInstitutionSummaryDto;
+    const startDate = object.startDate;
+    if (!startDate || !endDate) {
+      return true; // 必須チェックは @IsNotEmpty で行う
+    }
+    return new Date(startDate) <= new Date(endDate);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return 'endDate must be after or equal to startDate';
+  }
+}
+
 // Request DTO（class）
+import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional } from 'class-validator';
+
 export class GetInstitutionSummaryDto {
   @IsDateString()
   @IsNotEmpty()
@@ -215,6 +241,7 @@ export class GetInstitutionSummaryDto {
 
   @IsDateString()
   @IsNotEmpty()
+  @Validate(IsEndDateAfterStartDateConstraint)
   endDate: string;
 
   @IsArray()
@@ -319,8 +346,10 @@ export enum InstitutionType {
 }
 ```
 
-2. **リクエストされた金融機関が存在しない場合**:
-   - 空配列を返す
+2. **リクエストされた金融機関IDが存在しない場合**:
+   - 存在するIDのデータのみを返し、存在しないIDは警告などを出さずに無視する
+   - すべてのIDが存在しない場合は空配列を返す
+   - 例: `institutionIds=["inst-001", "inst-999"]` の場合、`inst-001`が存在すればそのデータを返し、`inst-999`が存在しなくてもエラーにせず無視する
 
 ```json
 {

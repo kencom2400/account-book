@@ -46,7 +46,8 @@ sequenceDiagram
     FE->>API: GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 
     API->>API: リクエスト検証<br/>(startDate, endDateの妥当性)
-    API->>UC: execute(2025-01-01, 2025-01-31, undefined)
+    API->>API: 日付文字列をDateオブジェクトに変換<br/>(new Date(query.startDate), new Date(query.endDate))
+    API->>UC: execute(new Date('2025-01-01'), new Date('2025-01-31'), undefined)
 
     Note over UC: 金融機関情報取得
     UC->>IRepo: findAll()
@@ -100,7 +101,8 @@ sequenceDiagram
     FE->>API: GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31&institutionIds=inst-001&institutionIds=inst-002
 
     API->>API: リクエスト検証<br/>(startDate, endDate, institutionIdsの妥当性)
-    API->>UC: execute(2025-01-01, 2025-01-31, ["inst-001", "inst-002"])
+    API->>API: 日付文字列をDateオブジェクトに変換<br/>(new Date(query.startDate), new Date(query.endDate))
+    API->>UC: execute(new Date('2025-01-01'), new Date('2025-01-31'), ["inst-001", "inst-002"])
 
     Note over UC: 指定された金融機関情報取得
     UC->>IRepo: findByIds(["inst-001", "inst-002"])
@@ -180,7 +182,9 @@ sequenceDiagram
     User->>FE: 金融機関別レポート画面を開く<br/>(2025-01-01 〜 2025-01-31を指定)
     FE->>API: GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 
-    API->>UC: execute(2025-01-01, 2025-01-31, undefined)
+    API->>API: リクエスト検証<br/>(startDate, endDateの妥当性)
+    API->>API: 日付文字列をDateオブジェクトに変換<br/>(new Date(query.startDate), new Date(query.endDate))
+    API->>UC: execute(new Date('2025-01-01'), new Date('2025-01-31'), undefined)
 
     UC->>IRepo: findAll()
     IRepo->>DB: データ読み込み
@@ -244,7 +248,9 @@ sequenceDiagram
     User->>FE: 金融機関別レポート画面を開く<br/>(2025-01-01 〜 2025-01-31を指定)
     FE->>API: GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 
-    API->>UC: execute(2025-01-01, 2025-01-31, undefined)
+    API->>API: リクエスト検証<br/>(startDate, endDateの妥当性)
+    API->>API: 日付文字列をDateオブジェクトに変換<br/>(new Date(query.startDate), new Date(query.endDate))
+    API->>UC: execute(new Date('2025-01-01'), new Date('2025-01-31'), undefined)
 
     UC->>TRepo: findByDateRange(2025-01-01, 2025-01-31)
     TRepo->>DB: データ読み込み

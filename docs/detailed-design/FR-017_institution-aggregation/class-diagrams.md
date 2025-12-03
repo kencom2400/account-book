@@ -370,11 +370,11 @@ classDiagram
     }
 
     class GetInstitutionSummaryDto {
-        +Date startDate
-        +Date endDate
+        +string startDate
+        +string endDate
         +string[] institutionIds
-        +validate() boolean
     }
+    note for GetInstitutionSummaryDto "バリデーションはclass-validatorデコレーターとValidationPipeで実行"
 
     class InstitutionSummaryResponseDto {
         +InstitutionSummaryDto[] institutions
