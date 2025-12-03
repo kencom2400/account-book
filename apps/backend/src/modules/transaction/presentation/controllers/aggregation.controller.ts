@@ -5,6 +5,9 @@ import { GetMonthlyBalanceDto } from '../dto/get-monthly-balance.dto';
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { CategoryAggregationResponseDto } from '../dto/get-category-aggregation.dto';
 import { GetCategoryAggregationQueryDto } from '../dto/get-category-aggregation.dto';
+import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
+import type { InstitutionSummaryResponseDto } from '../../application/use-cases/calculate-institution-summary.use-case';
+import { GetInstitutionSummaryDto } from '../dto/get-institution-summary.dto';
 
 /**
  * AggregationController
@@ -15,6 +18,7 @@ export class AggregationController {
   constructor(
     private readonly calculateMonthlyBalanceUseCase: CalculateMonthlyBalanceUseCase,
     private readonly calculateCategoryAggregationUseCase: CalculateCategoryAggregationUseCase,
+    private readonly calculateInstitutionSummaryUseCase: CalculateInstitutionSummaryUseCase,
   ) {}
 
   /**
@@ -52,6 +56,30 @@ export class AggregationController {
       new Date(query.startDate),
       new Date(query.endDate),
       query.categoryType,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 金融機関別集計情報を取得
+   * GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31&institutionIds=inst-001&includeTransactions=false
+   */
+  @Get('institution-summary')
+  async getInstitutionSummary(
+    @Query() query: GetInstitutionSummaryDto,
+  ): Promise<{
+    success: boolean;
+    data: InstitutionSummaryResponseDto;
+  }> {
+    const result = await this.calculateInstitutionSummaryUseCase.execute(
+      new Date(query.startDate),
+      new Date(query.endDate),
+      query.institutionIds,
+      query.includeTransactions ?? false,
     );
 
     return {

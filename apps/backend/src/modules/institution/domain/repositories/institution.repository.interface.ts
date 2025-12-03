@@ -12,6 +12,11 @@ export interface IInstitutionRepository {
   findById(id: string): Promise<InstitutionEntity | null>;
 
   /**
+   * 複数のIDで金融機関を取得
+   */
+  findByIds(ids: string[]): Promise<InstitutionEntity[]>;
+
+  /**
    * すべての金融機関を取得
    */
   findAll(): Promise<InstitutionEntity[]>;

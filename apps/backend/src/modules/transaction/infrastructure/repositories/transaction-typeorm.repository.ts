@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { TransactionOrmEntity } from '../entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
@@ -85,6 +85,31 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
   ): Promise<TransactionEntity[]> {
     const ormEntities: TransactionOrmEntity[] = await this.repository.find({
       where: {
+        date: Between(startDate, endDate),
+      },
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * 金融機関IDと期間で取引を取得
+   */
+  async findByInstitutionIdsAndDateRange(
+    institutionIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    if (institutionIds.length === 0) {
+      return [];
+    }
+
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: {
+        institutionId: In(institutionIds),
         date: Between(startDate, endDate),
       },
       order: { date: 'DESC' },

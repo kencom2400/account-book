@@ -118,6 +118,28 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * 金融機関IDと期間で取引を取得
+   */
+  async findByInstitutionIdsAndDateRange(
+    institutionIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    if (institutionIds.length === 0) {
+      return [];
+    }
+
+    const allTransactions = await this.findAll();
+    const institutionIdSet = new Set(institutionIds);
+    return allTransactions.filter(
+      (t) =>
+        institutionIdSet.has(t.institutionId) &&
+        t.date >= startDate &&
+        t.date <= endDate,
+    );
+  }
+
+  /**
    * 月で取引を取得
    */
   async findByMonth(year: number, month: number): Promise<TransactionEntity[]> {

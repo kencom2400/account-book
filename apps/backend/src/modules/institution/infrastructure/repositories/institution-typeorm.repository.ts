@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { InstitutionOrmEntity } from '../entities/institution.orm-entity';
 import { AccountOrmEntity } from '../entities/account.orm-entity';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
@@ -37,6 +37,26 @@ export class InstitutionTypeOrmRepository implements IInstitutionRepository {
     }
 
     return this.toDomain(ormEntity);
+  }
+
+  /**
+   * 複数のIDで金融機関を取得
+   */
+  async findByIds(ids: string[]): Promise<InstitutionEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const ormEntities: InstitutionOrmEntity[] =
+      await this.institutionRepository.find({
+        where: { id: In(ids) },
+        relations: ['accounts'],
+        order: { createdAt: 'ASC' },
+      });
+
+    return ormEntities.map((entity: InstitutionOrmEntity) =>
+      this.toDomain(entity),
+    );
   }
 
   /**

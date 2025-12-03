@@ -106,6 +106,19 @@ export class InstitutionRepository implements IInstitutionRepository {
   }
 
   /**
+   * 複数のIDで金融機関を取得
+   */
+  async findByIds(ids: string[]): Promise<InstitutionEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const institutions = await this.loadData();
+    const idSet = new Set(ids);
+    return institutions.filter((i) => idSet.has(i.id));
+  }
+
+  /**
    * すべての金融機関を取得
    */
   async findAll(): Promise<InstitutionEntity[]> {
