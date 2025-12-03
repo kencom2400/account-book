@@ -55,12 +55,11 @@ sequenceDiagram
     DB-->>TRepo: TransactionEntity[]
     TRepo-->>UC: TransactionEntity[]
 
-    Note over UC: カテゴリ情報取得（階層構造構築用）<br/>取引データに含まれるcategoryIdを収集
-    UC->>UC: collectCategoryIds(transactions)
-    UC->>CRepo: findByIds(categoryIds[])
-    CRepo->>DB: データ読み込み（一括取得）
-    DB-->>CRepo: CategoryEntity[]
-    CRepo-->>UC: CategoryEntity[]
+    Note over UC: カテゴリ情報取得（階層構造構築用）<br/>すべてのカテゴリを取得（N+1問題回避）
+    UC->>CRepo: findAll()
+    CRepo->>DB: データ読み込み（全カテゴリ）
+    DB-->>CRepo: CategoryEntity[] (全カテゴリ)
+    CRepo-->>UC: CategoryEntity[] (全カテゴリ)
 
     Note over UC: 費目別集計（階層構造を考慮）
     UC->>DS: aggregateHierarchy(transactions, categories)
@@ -129,9 +128,8 @@ sequenceDiagram
     UC->>DS: calculateTrend(transactions, startDate, endDate)
     DS-->>UC: TrendData
 
+    Note over UC: 階層構造構築とDTO変換<br/>既に取得したカテゴリ情報を再利用
     UC->>UC: buildHierarchy(aggregation, categories)
-    UC->>CRepo: findByIds(categoryIds[])
-    CRepo-->>UC: CategoryEntity[]
     UC->>UC: 階層構造を構築
 
     UC->>DS: getTopTransactions(transactions, 5)

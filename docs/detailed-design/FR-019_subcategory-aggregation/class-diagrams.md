@@ -90,6 +90,7 @@ classDiagram
 
     class ICategoryRepository {
         <<interface>>
+        +findAll() Promise<CategoryEntity[]>
         +findById(id) Promise<CategoryEntity | null>
         +findByIds(ids) Promise<CategoryEntity[]>
         +findByCategoryType(categoryType) Promise<CategoryEntity[]>
@@ -345,6 +346,7 @@ classDiagram
 
     class ICategoryRepository {
         <<interface>>
+        +findAll() Promise<CategoryEntity[]>
         +findById(id) Promise<CategoryEntity | null>
         +findByIds(ids) Promise<CategoryEntity[]>
         +findByCategoryType(categoryType) Promise<CategoryEntity[]>
@@ -381,6 +383,7 @@ classDiagram
 
 - **責務**: JSONファイルベースのカテゴリリポジトリ実装
 - **主要メソッド**:
+  - `findAll()`: すべてのカテゴリを取得（階層構造構築用、N+1問題回避）
   - `findById(id)`: IDでカテゴリを取得
   - `findByIds(ids)`: IDの配列でカテゴリを一括取得（N+1問題対策）
   - `findByCategoryType(categoryType)`: カテゴリタイプでカテゴリを取得（新規追加）
@@ -390,6 +393,7 @@ classDiagram
 
 - **責務**: TypeORMベースのカテゴリリポジトリ実装
 - **主要メソッド**:
+  - `findAll()`: すべてのカテゴリを取得（階層構造構築用、N+1問題回避）
   - `findById(id)`: IDでカテゴリを取得
   - `findByIds(ids)`: IDの配列でカテゴリを一括取得（N+1問題対策）
   - `findByCategoryType(categoryType)`: カテゴリタイプでカテゴリを取得（新規追加）
