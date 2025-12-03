@@ -9488,4 +9488,57 @@ async findByIds(ids: string[]): Promise<InstitutionEntity[]> {
 
 **学習元**: Issue #46 / PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
 
+### 21-5. UseCase内のデッドコードの削除
+
+**問題**: ドメインサービスがすべてのエンティティについて必ず初期化する場合、UseCase内での存在チェックは到達不能なコード（デッドコード）になる。
+
+**解決策**:
+
+- ドメインサービスの実装を確認し、必ず初期化されることが保証されている場合は、存在チェックを削除
+- 非nullアサーション（`!`）を使用してコードを簡潔化
+
+**実装例**:
+
+```typescript
+// ❌ デッドコード
+const aggregationData = institutionAggregation.get(institution.id);
+if (!aggregationData) {
+  // このブロックは到達不能
+  const emptyAggregationData: InstitutionAggregationData = { ... };
+  // ...
+  continue;
+}
+
+// ✅ 改善後
+// aggregateByInstitutionはすべての金融機関について必ず初期化するため、
+// aggregationDataは常に存在する（デッドコードを削除）
+const aggregationData = institutionAggregation.get(institution.id)!;
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+### 21-6. ドメインサービス内の一貫性の確保
+
+**問題**: 同じパターンの冗長なコードが複数のメソッドに存在する場合、一貫性を保つためにもすべて修正する必要がある。
+
+**解決策**:
+
+- 一つのメソッドで修正したパターンは、他のメソッドにも同様に適用する
+- コードレビュー時に一貫性を確認する
+
+**実装例**:
+
+```typescript
+// aggregateByAccountメソッドで修正済み
+const existing = result.get(transaction.accountId)!;
+
+// aggregateByInstitutionメソッドでも同様に修正
+// すべての金融機関で初期化されているため、existing は常に存在する
+const existing = result.get(transaction.institutionId)!;
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+**学習元**: Issue #46 / PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘 第2弾）
+
 ---

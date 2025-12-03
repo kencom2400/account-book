@@ -67,10 +67,8 @@ export class InstitutionAggregationDomainService {
         continue;
       }
 
-      const existing = result.get(transaction.institutionId);
-      if (!existing) {
-        continue;
-      }
+      // すべての金融機関で初期化されているため、existing は常に存在する
+      const existing = result.get(transaction.institutionId)!;
 
       existing.transactionCount += 1;
       existing.transactions.push(transaction);

@@ -131,28 +131,9 @@ export class CalculateInstitutionSummaryUseCase {
     const institutionSummaries: InstitutionSummaryDto[] = [];
 
     for (const institution of institutions) {
-      const aggregationData = institutionAggregation.get(institution.id);
-      if (!aggregationData) {
-        // 期間内に取引がない場合でも、0埋めデータとして返す
-        const emptyAggregationData: InstitutionAggregationData = {
-          totalIncome: 0,
-          totalExpense: 0,
-          periodBalance: 0,
-          transactionCount: 0,
-          transactions: [],
-        };
-        institutionSummaries.push(
-          this.buildInstitutionSummary(
-            institution,
-            emptyAggregationData,
-            institution.accounts,
-            includeTransactions,
-            startDate,
-            endDate,
-          ),
-        );
-        continue;
-      }
+      // aggregateByInstitutionはすべての金融機関について必ず初期化するため、
+      // aggregationDataは常に存在する（デッドコードを削除）
+      const aggregationData = institutionAggregation.get(institution.id)!;
 
       // 口座別に集計
       const accountAggregation =
