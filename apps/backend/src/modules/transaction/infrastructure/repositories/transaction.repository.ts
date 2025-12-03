@@ -118,6 +118,45 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * カテゴリタイプと期間で取引を取得
+   */
+  async findByCategoryType(
+    categoryType: CategoryType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    const allTransactions = await this.findAll();
+    return allTransactions.filter(
+      (t) =>
+        t.category.type === categoryType &&
+        t.date >= startDate &&
+        t.date <= endDate,
+    );
+  }
+
+  /**
+   * カテゴリIDの配列と期間で取引を取得
+   */
+  async findByCategoryIdsAndDateRange(
+    categoryIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    if (categoryIds.length === 0) {
+      return [];
+    }
+
+    const allTransactions = await this.findAll();
+    const categoryIdSet = new Set(categoryIds);
+    return allTransactions.filter(
+      (t) =>
+        categoryIdSet.has(t.category.id) &&
+        t.date >= startDate &&
+        t.date <= endDate,
+    );
+  }
+
+  /**
    * 金融機関IDと期間で取引を取得
    *
    * 注意: JSONファイルベースのリポジトリでは、リクエストごとにすべての取引データを
