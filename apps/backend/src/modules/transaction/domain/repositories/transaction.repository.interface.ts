@@ -31,6 +31,15 @@ export interface ITransactionRepository {
   findByDateRange(startDate: Date, endDate: Date): Promise<TransactionEntity[]>;
 
   /**
+   * 金融機関IDと期間で取引を取得
+   */
+  findByInstitutionIdsAndDateRange(
+    institutionIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]>;
+
+  /**
    * 月で取引を取得
    */
   findByMonth(year: number, month: number): Promise<TransactionEntity[]>;

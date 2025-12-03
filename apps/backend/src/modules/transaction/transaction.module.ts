@@ -9,6 +9,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/enti
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
 import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
 import { CategoryAggregationDomainService } from './domain/services/category-aggregation-domain.service';
+import { InstitutionAggregationDomainService } from './domain/services/institution-aggregation-domain.service';
 import { CategoryClassificationService } from './domain/services/category-classification.service';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from './application/use-cases/get-transactions.use-case';
@@ -16,10 +17,12 @@ import { UpdateTransactionCategoryUseCase } from './application/use-cases/update
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
 import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from './application/use-cases/calculate-category-aggregation.use-case';
+import { CalculateInstitutionSummaryUseCase } from './application/use-cases/calculate-institution-summary.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from './domain/repositories/transaction-category-change-history.repository.interface';
 import { CategoryModule } from '../category/category.module';
+import { InstitutionModule } from '../institution/institution.module';
 
 @Module({
   imports: [
@@ -28,6 +31,7 @@ import { CategoryModule } from '../category/category.module';
       TransactionCategoryChangeHistoryOrmEntity,
     ]),
     forwardRef(() => CategoryModule),
+    InstitutionModule,
   ],
   controllers: [TransactionController, AggregationController],
   providers: [
@@ -44,6 +48,7 @@ import { CategoryModule } from '../category/category.module';
     TransactionDomainService,
     MonthlyBalanceDomainService,
     CategoryAggregationDomainService,
+    InstitutionAggregationDomainService,
     CategoryClassificationService,
     // Use Cases
     CreateTransactionUseCase,
@@ -52,6 +57,7 @@ import { CategoryModule } from '../category/category.module';
     CalculateMonthlySummaryUseCase,
     CalculateMonthlyBalanceUseCase,
     CalculateCategoryAggregationUseCase,
+    CalculateInstitutionSummaryUseCase,
     ClassifyTransactionUseCase,
   ],
   exports: [

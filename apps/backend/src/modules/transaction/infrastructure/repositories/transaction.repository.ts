@@ -118,6 +118,34 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * 金融機関IDと期間で取引を取得
+   *
+   * 注意: JSONファイルベースのリポジトリでは、リクエストごとにすべての取引データを
+   * メモリにロードします。JSONファイルが非常に大きくなった場合、パフォーマンスに影響を
+   * 与える可能性があります。このリポジトリはテストや小規模な環境向けです。
+   * 大規模なデータセットを扱う場合は、TypeORMリポジトリ（TransactionTypeOrmRepository）を
+   * 使用することを推奨します。
+   */
+  async findByInstitutionIdsAndDateRange(
+    institutionIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    if (institutionIds.length === 0) {
+      return [];
+    }
+
+    const allTransactions = await this.findAll();
+    const institutionIdSet = new Set(institutionIds);
+    return allTransactions.filter(
+      (t) =>
+        institutionIdSet.has(t.institutionId) &&
+        t.date >= startDate &&
+        t.date <= endDate,
+    );
+  }
+
+  /**
    * 月で取引を取得
    */
   async findByMonth(year: number, month: number): Promise<TransactionEntity[]> {
