@@ -95,10 +95,11 @@ classDiagram
     }
 
     TransactionEntity --> CategoryType
-    TransactionEntity --> CategoryEntity : categoryId
+    TransactionEntity ..> CategoryEntity : categoryId (参照)
     CategoryEntity --> CategoryType
     CategoryEntity --> CategoryEntity : parentId
     SubcategoryAggregationDomainService --> TransactionEntity
+    SubcategoryAggregationDomainService --> CategoryEntity
     SubcategoryAggregationDomainService --> SubcategoryAggregationResult
     SubcategoryAggregationDomainService --> TrendData
     SubcategoryAggregationDomainService --> MonthlyTrend
@@ -164,7 +165,7 @@ classDiagram
         -ITransactionRepository transactionRepository
         -ICategoryRepository categoryRepository
         -SubcategoryAggregationDomainService domainService
-        +execute(startDate, endDate, categoryType?, itemId?) Promise<SubcategoryAggregationResponseDto[]>
+        +execute(startDate, endDate, categoryType?, itemId?) Promise<SubcategoryAggregationResponseDto>
         -buildHierarchy(aggregation Map<string, SubcategoryAggregationResult>, categories CategoryEntity[]) ExpenseItemSummary[]
         -toTransactionDto(entity TransactionEntity) TransactionDto
         -getCategoryName(categoryId string) string
@@ -248,7 +249,7 @@ classDiagram
 - **責務**: 費目別集計のユースケース実装
 - **依存**: `ITransactionRepository`, `ICategoryRepository`, `SubcategoryAggregationDomainService`
 - **入力**: `startDate: Date`, `endDate: Date`, `categoryType?: CategoryType`（オプション）, `itemId?: string`（オプション）
-- **出力**: `SubcategoryAggregationResponseDto[]`（費目ごとの配列、階層構造を含む）
+- **出力**: `SubcategoryAggregationResponseDto`（階層構造を含む単一オブジェクト）
 - **主要メソッド**:
   - `execute(startDate, endDate, categoryType?, itemId?)`: 費目別集計を実行（階層構造で返す）
   - `buildHierarchy(aggregation: Map<string, SubcategoryAggregationResult>, categories: CategoryEntity[])`: 階層構造を構築
