@@ -8,6 +8,9 @@ import { GetCategoryAggregationQueryDto } from '../dto/get-category-aggregation.
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import type { InstitutionSummaryResponseDto } from '../../application/use-cases/calculate-institution-summary.use-case';
 import { GetInstitutionSummaryDto } from '../dto/get-institution-summary.dto';
+import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
+import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
+import { GetSubcategoryAggregationQueryDto } from '../dto/get-subcategory-aggregation.dto';
 
 /**
  * AggregationController
@@ -19,6 +22,7 @@ export class AggregationController {
     private readonly calculateMonthlyBalanceUseCase: CalculateMonthlyBalanceUseCase,
     private readonly calculateCategoryAggregationUseCase: CalculateCategoryAggregationUseCase,
     private readonly calculateInstitutionSummaryUseCase: CalculateInstitutionSummaryUseCase,
+    private readonly calculateSubcategoryAggregationUseCase: CalculateSubcategoryAggregationUseCase,
   ) {}
 
   /**
@@ -80,6 +84,30 @@ export class AggregationController {
       new Date(query.endDate),
       query.institutionIds,
       query.includeTransactions ?? false,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 費目別集計情報を取得
+   * GET /api/aggregation/subcategory?startDate=2025-01-01&endDate=2025-01-31&categoryType=EXPENSE&itemId=cat-food
+   */
+  @Get('subcategory')
+  async getSubcategoryAggregation(
+    @Query() query: GetSubcategoryAggregationQueryDto,
+  ): Promise<{
+    success: boolean;
+    data: SubcategoryAggregationResponseDto;
+  }> {
+    const result = await this.calculateSubcategoryAggregationUseCase.execute(
+      new Date(query.startDate),
+      new Date(query.endDate),
+      query.categoryType,
+      query.itemId,
     );
 
     return {

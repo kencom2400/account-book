@@ -9,6 +9,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/enti
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
 import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
 import { CategoryAggregationDomainService } from './domain/services/category-aggregation-domain.service';
+import { SubcategoryAggregationDomainService } from './domain/services/subcategory-aggregation-domain.service';
 import { InstitutionAggregationDomainService } from './domain/services/institution-aggregation-domain.service';
 import { CategoryClassificationService } from './domain/services/category-classification.service';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
@@ -17,6 +18,7 @@ import { UpdateTransactionCategoryUseCase } from './application/use-cases/update
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
 import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from './application/use-cases/calculate-category-aggregation.use-case';
+import { CalculateSubcategoryAggregationUseCase } from './application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from './application/use-cases/calculate-institution-summary.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
@@ -48,6 +50,7 @@ import { InstitutionModule } from '../institution/institution.module';
     TransactionDomainService,
     MonthlyBalanceDomainService,
     CategoryAggregationDomainService,
+    SubcategoryAggregationDomainService,
     InstitutionAggregationDomainService,
     CategoryClassificationService,
     // Use Cases
@@ -57,6 +60,7 @@ import { InstitutionModule } from '../institution/institution.module';
     CalculateMonthlySummaryUseCase,
     CalculateMonthlyBalanceUseCase,
     CalculateCategoryAggregationUseCase,
+    CalculateSubcategoryAggregationUseCase,
     CalculateInstitutionSummaryUseCase,
     ClassifyTransactionUseCase,
   ],

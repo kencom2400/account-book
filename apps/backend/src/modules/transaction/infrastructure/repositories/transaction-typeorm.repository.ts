@@ -96,6 +96,52 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
   }
 
   /**
+   * カテゴリタイプと期間で取引を取得
+   */
+  async findByCategoryType(
+    categoryType: CategoryType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: {
+        categoryType,
+        date: Between(startDate, endDate),
+      },
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
+   * カテゴリIDの配列と期間で取引を取得
+   */
+  async findByCategoryIdsAndDateRange(
+    categoryIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    if (categoryIds.length === 0) {
+      return [];
+    }
+
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: {
+        categoryId: In(categoryIds),
+        date: Between(startDate, endDate),
+      },
+      order: { date: 'DESC' },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
    * 金融機関IDと期間で取引を取得
    */
   async findByInstitutionIdsAndDateRange(

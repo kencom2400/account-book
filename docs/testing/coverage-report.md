@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-01-30 12:00:00  
-> **コミット**: `51a2087`  
-> **ブランチ**: `feature/issue-333-alert-implementation`
+> **最終更新**: 2025-12-04 07:55:23  
+> **コミット**: `0844a24`  
+> **ブランチ**: `feature/issue-48-subcategory-aggregation-impl`
 
 ## 概要
 
@@ -18,9 +18,9 @@
 
 | テスト種類      | Lines  | Statements | Functions | Branches |
 | --------------- | ------ | ---------- | --------- | -------- |
-| Backend (Unit)  | 74.50% | 74.82%     | 74.32%    | 63.83%   |
-| Backend (E2E)   | 1.23%  | 1.23%      | 0.98%     | 2.00%    |
-| Frontend (Unit) | 41.44% | 41.44%     | 38.49%    | 40.04%   |
+| Backend (Unit)  | 77.73% | 72.54%     | 76.11%    | 61.48%   |
+| Backend (E2E)   | 4.73%  | 4.73%      | 3.68%     | 9.60%    |
+| Frontend (Unit) | 28.98% | 28.98%     | 30.45%    | 29.86%   |
 | Frontend (E2E)  | N/A    | N/A        | N/A       | N/A      |
 
 ## Backend モジュール別詳細
@@ -29,7 +29,6 @@
 
 | モジュール  | Lines  | Statements | Functions | Branches | 優先度 |
 | ----------- | ------ | ---------- | --------- | -------- | ------ |
-| alert       | 90.00% | 90.00%     | 95.00%    | 90.00%   | 🟢 Low |
 | category    | 60.48% | 60.48%     | 61.18%    | 50.00%   | 🟢 Low |
 | credit-card | 62.59% | 62.59%     | 45.96%    | 55.12%   | 🟢 Low |
 | health      | 82.17% | 82.17%     | 85.71%    | 61.26%   | 🟢 Low |
@@ -42,7 +41,6 @@
 
 | モジュール  | Lines | Statements | Functions | Branches |
 | ----------- | ----- | ---------- | --------- | -------- |
-| alert       | 0%    | 0%         | 0%        | 0%       |
 | category    | 0%    | 0%         | 0%        | 0%       |
 | credit-card | 0%    | 0%         | 0%        | 0%       |
 | health      | 0%    | 0%         | 0%        | 0%       |
@@ -58,10 +56,10 @@
 | モジュール | Lines  | Statements | Functions | Branches | 優先度    |
 | ---------- | ------ | ---------- | --------- | -------- | --------- |
 | app        | 0.00%  | 0.00%      | 0.00%     | 0.00%    | 🔴 High   |
-| components | 56.86% | 56.86%     | 52.26%    | 50.00%   | 🟢 Low    |
-| lib        | 18.46% | 18.46%     | 0.00%     | 5.26%    | 🔴 High   |
+| components | 37.18% | 37.18%     | 37.16%    | 37.31%   | 🟡 Medium |
+| lib        | 34.96% | 34.96%     | 29.82%    | 27.69%   | 🟡 Medium |
 | stores     | 43.14% | 43.14%     | 47.62%    | 7.14%    | 🟡 Medium |
-| utils      | 88.89% | 88.89%     | 100.00%   | 87.50%   | 🟢 Low    |
+| utils      | 14.04% | 14.04%     | 12.50%    | 18.92%   | 🔴 High   |
 
 ## 改善優先度
 
@@ -72,7 +70,7 @@
 **Frontend:**
 
 - app (Lines: 0.00%, Stmts: 0.00%, Funcs: 0.00%, Branches: 0.00%)
-- lib (Lines: 18.46%, Stmts: 18.46%, Funcs: 0.00%, Branches: 5.26%)
+- utils (Lines: 14.04%, Stmts: 14.04%, Funcs: 12.50%, Branches: 18.92%)
 
 ### 🟡 Medium Priority (30% ≤ カバレッジ < 50%)
 
@@ -80,13 +78,14 @@
 
 **Frontend:**
 
+- components (Lines: 37.18%, Stmts: 37.18%, Funcs: 37.16%, Branches: 37.31%)
+- lib (Lines: 34.96%, Stmts: 34.96%, Funcs: 29.82%, Branches: 27.69%)
 - stores (Lines: 43.14%, Stmts: 43.14%, Funcs: 47.62%, Branches: 7.14%)
 
 ### 🟢 Low Priority (カバレッジ ≥ 50%)
 
 **Backend:**
 
-- alert (Lines: 90.00%, Stmts: 90.00%, Funcs: 95.00%, Branches: 90.00%)
 - category (Lines: 60.48%, Stmts: 60.48%, Funcs: 61.18%, Branches: 50.00%)
 - credit-card (Lines: 62.59%, Stmts: 62.59%, Funcs: 45.96%, Branches: 55.12%)
 - health (Lines: 82.17%, Stmts: 82.17%, Funcs: 85.71%, Branches: 61.26%)
@@ -96,9 +95,6 @@
 - transaction (Lines: 67.91%, Stmts: 67.91%, Funcs: 60.31%, Branches: 66.67%)
 
 **Frontend:**
-
-- components (Lines: 56.86%, Stmts: 56.86%, Funcs: 52.26%, Branches: 50.00%)
-- utils (Lines: 88.89%, Stmts: 88.89%, Funcs: 100.00%, Branches: 87.50%)
 
 ## 詳細レポート
 

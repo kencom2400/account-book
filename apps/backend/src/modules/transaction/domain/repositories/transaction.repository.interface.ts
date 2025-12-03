@@ -1,4 +1,5 @@
 import { TransactionEntity } from '../entities/transaction.entity';
+import { CategoryType } from '@account-book/types';
 
 /**
  * Transaction Repositoryのインターフェース
@@ -29,6 +30,24 @@ export interface ITransactionRepository {
    * 期間で取引を取得
    */
   findByDateRange(startDate: Date, endDate: Date): Promise<TransactionEntity[]>;
+
+  /**
+   * カテゴリタイプと期間で取引を取得
+   */
+  findByCategoryType(
+    categoryType: CategoryType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]>;
+
+  /**
+   * カテゴリIDの配列と期間で取引を取得
+   */
+  findByCategoryIdsAndDateRange(
+    categoryIds: string[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]>;
 
   /**
    * 金融機関IDと期間で取引を取得
