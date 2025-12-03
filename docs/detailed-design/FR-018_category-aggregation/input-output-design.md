@@ -691,7 +691,7 @@ export class GetCategoryAggregationQueryDto {
 // main.tsでapp.useGlobalPipes(new ValidationPipe({ transform: true }))を適用
 async getCategoryAggregation(
   @Query() query: GetCategoryAggregationQueryDto,
-): Promise<CategoryAggregationResponseDto | CategoryAggregationResponseDto[]> {
+): Promise<CategoryAggregationResponseDto[]> {
   // バリデーションはValidationPipeによって自動的に実行される
 
   // UseCase実行
