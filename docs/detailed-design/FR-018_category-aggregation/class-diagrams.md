@@ -59,7 +59,6 @@ classDiagram
 
     class SubcategoryAggregationData {
         +string subcategoryId
-        +string subcategoryName
         +number amount
         +number count
         +number percentage
