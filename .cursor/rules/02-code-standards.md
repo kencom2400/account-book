@@ -6050,6 +6050,229 @@ export default function TransactionsPage(): React.JSX.Element {
 
 ---
 
+### 13-9. バリデーション実装とクラス図設計のベストプラクティス 🟡 Medium
+
+**学習元**: PR #345 - FR-017: 金融機関別集計機能の詳細設計書（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン1: フィールド間相関チェックでの`@ValidateIf`の誤用
+
+```typescript
+// ❌ 誤った実装例
+import { IsDateString, IsNotEmpty, ValidateIf } from 'class-validator';
+
+export class GetInstitutionSummaryDto {
+  @IsDateString()
+  @IsNotEmpty()
+  startDate: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  @ValidateIf((o) => {
+    if (o.startDate && o.endDate) {
+      return new Date(o.startDate) <= new Date(o.endDate);
+    }
+    return true;
+  })
+  endDate: string;
+}
+```
+
+**問題点**:
+
+- `@ValidateIf`は他のバリデーターを条件付きで実行するためのデコレーターであり、それ自体がバリデーションロジックを持つものではない
+- フィールド間の相関チェックには適さない
+- 期待通りに動作しない
+
+#### ✅ 正しいパターン: カスタムバリデーターを使用
+
+```typescript
+// ✅ 正しい実装例
+import {
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  Validate,
+} from 'class-validator';
+
+@ValidatorConstraint({ name: 'isEndDateAfterStartDate', async: false })
+export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInterface {
+  validate(endDate: string, args: ValidationArguments): boolean {
+    const object = args.object as GetInstitutionSummaryDto;
+    const startDate = object.startDate;
+    if (!startDate || !endDate) {
+      return true; // 必須チェックは @IsNotEmpty で行う
+    }
+    return new Date(startDate) <= new Date(endDate);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return 'endDate must be after or equal to startDate';
+  }
+}
+
+export class GetInstitutionSummaryDto {
+  @IsDateString()
+  @IsNotEmpty()
+  startDate: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  @Validate(IsEndDateAfterStartDateConstraint)
+  endDate: string;
+}
+```
+
+**利点**:
+
+- フィールド間の相関チェックが正しく動作する
+- エラーメッセージをカスタマイズできる
+- 再利用可能
+
+#### ❌ 避けるべきパターン2: 命名規則の曖昧さ
+
+```typescript
+// ❌ 曖昧な命名
+interface InstitutionSummary {
+  totalBalance: number; // 期間内の収支差額？現在の残高？
+  balance: number; // 期間内の収支差額？現在の残高？
+  currentBalance: number; // 現在の残高
+}
+```
+
+**問題点**:
+
+- `totalBalance`と`balance`が期間内の収支差額を指しているのか、現在の残高を指しているのか不明確
+- `currentBalance`と混同しやすい
+- 実装時の混乱を招く
+
+#### ✅ 正しいパターン: 明確な命名規則
+
+```typescript
+// ✅ 明確な命名
+interface InstitutionSummary {
+  periodBalance: number; // 期間内の収支差額（期間内の純増減額）
+  currentBalance: number; // 現在の残高（口座の実際の残高）
+}
+```
+
+**利点**:
+
+- 期間内の収支と現在の残高を明確に区別できる
+- 実装時の混乱を防ぐ
+- 可読性の向上
+
+**命名規則の推奨**:
+
+- `periodBalance`: 指定期間内の収支差額（期間内の純増減額）
+- `currentBalance`: 現在時点での残高（口座の実際の残高）
+- `netBalance`: 期間内の純増減額（`periodBalance`の別名として使用可）
+
+#### ❌ 避けるべきパターン3: チェックボックスの誤用
+
+```markdown
+- [x] 認証・認可の実装（将来対応）
+- [x] キャッシング戦略（将来対応：集計結果のキャッシュ）
+```
+
+**問題点**:
+
+- `[x]`は「実装済み」を意味するため、「将来対応」と矛盾する
+- 実装状態が不明確になる
+
+#### ✅ 正しいパターン: 未実装項目は`[ ]`を使用
+
+```markdown
+- [ ] 認証・認可の実装（将来対応）
+- [ ] キャッシング戦略（将来対応：集計結果のキャッシュ）
+```
+
+**利点**:
+
+- 実装状態が一目で明確
+- 「将来対応」の意図が明確
+
+#### ❌ 避けるべきパターン4: クラス図の重複定義
+
+```mermaid
+classDiagram
+    class CalculateInstitutionSummaryUseCase {
+        -InstitutionAggregationDomainService domainService
+    }
+
+    class InstitutionAggregationDomainService {
+        +aggregateByInstitution(...)
+        +aggregateByAccount(...)
+    }
+```
+
+**問題点**:
+
+- `InstitutionAggregationDomainService`はDomain層で定義されているため、Application層の図で再定義する必要がない
+- 将来的な変更時に不整合を生む原因となる
+
+#### ✅ 正しいパターン: 依存関係の線のみで示す
+
+```mermaid
+classDiagram
+    class CalculateInstitutionSummaryUseCase {
+        -InstitutionAggregationDomainService domainService
+    }
+
+    CalculateInstitutionSummaryUseCase --> InstitutionAggregationDomainService
+```
+
+**利点**:
+
+- クラス定義の重複を避けられる
+- 変更時の不整合を防げる
+- 図が簡潔になる
+
+#### ❌ 避けるべきパターン5: 設計書内の仕様不統一
+
+```markdown
+<!-- sequence-diagrams.md -->
+
+データが存在しない場合: すべて0の集計データを返す
+
+<!-- input-output-design.md -->
+
+データが存在しない場合: 空配列を返す
+```
+
+**問題点**:
+
+- 設計書内で仕様が矛盾している
+- 実装時の混乱を招く
+
+#### ✅ 正しいパターン: 仕様を明確化して統一
+
+```markdown
+**データが存在しない場合のレスポンス:**
+
+以下の2つのケースがあります：
+
+1. **リクエストされた金融機関が存在するが、期間内に取引がない場合**:
+   - 金融機関の情報を0埋めのデータとして返す
+   - フロントエンドは「処理されたがデータがなかった」と判断できる
+
+2. **リクエストされた金融機関が存在しない場合**:
+   - 空配列を返す
+```
+
+**利点**:
+
+- 仕様が明確になる
+- 実装時の混乱を防ぐ
+- すべての設計書で一貫性を保てる
+
+**推奨アプローチ**:
+
+1. 設計書作成時は、すべてのドキュメントで仕様を統一する
+2. レビュー時は、仕様の一貫性を確認する
+3. 仕様が複雑な場合は、ケースごとに明確に記載する
+
+---
+
 ## 14. コードの簡潔性と効率性 🟡 Medium
 
 **学習元**: PR #339 - 支払いステータスAPIのN+1問題を解消（Geminiレビュー指摘）
