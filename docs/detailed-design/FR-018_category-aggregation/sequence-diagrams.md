@@ -71,13 +71,13 @@ sequenceDiagram
 
         Note over UC: サブカテゴリ内訳構築
         UC->>UC: buildSubcategorySummary(aggregation, transactions)
-        loop 各サブカテゴリ
-            UC->>CRepo: findById(categoryId)
-            CRepo->>DB: データ読み込み
-            DB-->>CRepo: CategoryEntity
-            CRepo-->>UC: CategoryEntity
-            UC->>UC: getCategoryName(categoryId)
-        end
+        Note over UC: 必要なcategoryIdをすべて収集
+        UC->>UC: collectCategoryIds(aggregation)
+        UC->>CRepo: findByIds(categoryIds[])
+        CRepo->>DB: データ読み込み（一括取得）
+        DB-->>CRepo: CategoryEntity[]
+        CRepo-->>UC: CategoryEntity[]
+        UC->>UC: カテゴリ名をマッピング
 
         Note over UC: 主要取引取得
         UC->>DS: getTopTransactions(transactions, 5)
@@ -130,10 +130,13 @@ sequenceDiagram
     DS-->>UC: TrendData
 
     UC->>UC: buildSubcategorySummary(aggregation, transactions)
-    loop 各サブカテゴリ
-        UC->>CRepo: findById(categoryId)
-        CRepo-->>UC: CategoryEntity
-    end
+    Note over UC: 必要なcategoryIdをすべて収集
+    UC->>UC: collectCategoryIds(aggregation)
+    UC->>CRepo: findByIds(categoryIds[])
+    CRepo->>DB: データ読み込み（一括取得）
+    DB-->>CRepo: CategoryEntity[]
+    CRepo-->>UC: CategoryEntity[]
+    UC->>UC: カテゴリ名をマッピング
 
     UC->>DS: getTopTransactions(transactions, 5)
     DS-->>UC: TransactionEntity[]
