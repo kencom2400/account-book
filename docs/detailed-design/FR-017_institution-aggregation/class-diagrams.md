@@ -169,65 +169,17 @@ classDiagram
         -ITransactionRepository transactionRepository
         -IInstitutionRepository institutionRepository
         -InstitutionAggregationDomainService domainService
-        +execute(startDate, endDate, institutionIds) Promise~InstitutionSummaryResponseDto~
-        -buildInstitutionSummary(institution, aggregationData, accounts) InstitutionSummaryDto
+        +execute(startDate, endDate, institutionIds, includeTransactions) Promise~InstitutionSummaryResponseDto~
+        -buildInstitutionSummary(institution, aggregationData, accounts, includeTransactions) InstitutionSummaryDto
         -buildAccountSummary(account, aggregationData) AccountSummaryDto
         -toTransactionDto(entity TransactionEntity) TransactionDto
-    }
-
-    class InstitutionSummaryResponseDto {
-        +InstitutionSummaryDto[] institutions
-    }
-
-    class InstitutionSummaryDto {
-        +string institutionId
-        +string institutionName
-        +InstitutionType institutionType
-        +Period period
-        +AccountSummaryDto[] accounts
-        +number totalIncome
-        +number totalExpense
-        +number periodBalance
-        +number currentBalance
-        +number transactionCount
-        +TransactionDto[] transactions
-    }
-
-    class AccountSummaryDto {
-        +string accountId
-        +string accountName
-        +number income
-        +number expense
-        +number periodBalance
-        +number currentBalance
-        +number transactionCount
-    }
-
-    class Period {
-        +Date start
-        +Date end
-    }
-
-    class TransactionDto {
-        +string id
-        +string date
-        +number amount
-        +string categoryType
-        +string categoryId
-        +string institutionId
-        +string accountId
-        +string description
     }
 
     CalculateInstitutionSummaryUseCase --> ITransactionRepository
     CalculateInstitutionSummaryUseCase --> IInstitutionRepository
     CalculateInstitutionSummaryUseCase --> InstitutionAggregationDomainService
     CalculateInstitutionSummaryUseCase --> InstitutionSummaryResponseDto
-    InstitutionSummaryResponseDto --> InstitutionSummaryDto
-    InstitutionSummaryDto --> AccountSummaryDto
-    InstitutionSummaryDto --> Period
-    InstitutionSummaryDto --> TransactionDto
-    CalculateInstitutionSummaryUseCase --> TransactionDto
+    note for CalculateInstitutionSummaryUseCase "DTOの定義はPresentation層を参照"
 ```
 
 **クラス説明**:
@@ -236,40 +188,15 @@ classDiagram
 
 - **責務**: 金融機関別集計のユースケース実装
 - **依存**: `ITransactionRepository`, `IInstitutionRepository`, `InstitutionAggregationDomainService`
-- **入力**: `startDate: Date`, `endDate: Date`, `institutionIds?: string[]`（未指定の場合は全機関）
+- **入力**: `startDate: Date`, `endDate: Date`, `institutionIds?: string[]`（未指定の場合は全機関）, `includeTransactions?: boolean`（デフォルト: false）
 - **出力**: `InstitutionSummaryResponseDto`
 - **主要メソッド**:
-  - `execute(startDate, endDate, institutionIds?)`: 金融機関別集計を実行
-  - `buildInstitutionSummary(institution, aggregationData, accounts)`: 金融機関別サマリーを構築
+  - `execute(startDate, endDate, institutionIds?, includeTransactions?)`: 金融機関別集計を実行
+  - `buildInstitutionSummary(institution, aggregationData, accounts, includeTransactions)`: 金融機関別サマリーを構築
   - `buildAccountSummary(account, aggregationData)`: 口座別サマリーを構築
   - `toTransactionDto(entity: TransactionEntity)`: `TransactionEntity`を`TransactionDto`に変換（Onion Architecture原則）
 
-#### InstitutionSummaryResponseDto（新規作成）
-
-- **責務**: 金融機関別集計のレスポンスDTO
-- **型**: `interface`（レスポンスはinterface）
-
-#### InstitutionSummaryDto（新規作成）
-
-- **責務**: 金融機関別のサマリー情報
-- **型**: `interface`
-- **注意**: `TransactionEntity`ではなく`TransactionDto`を使用（Onion Architecture原則）
-
-#### AccountSummaryDto（新規作成）
-
-- **責務**: 口座別のサマリー情報
-- **型**: `interface`
-
-#### Period（新規作成）
-
-- **責務**: 集計期間を表現
-- **型**: `interface`
-
-#### TransactionDto（新規作成）
-
-- **責務**: 取引データのDTO（プレゼンテーション層用）
-- **型**: `interface`
-- **注意**: Domain層の`TransactionEntity`から変換して使用
+**注意**: DTOの定義はPresentation層のクラス図を参照してください。Application層では依存関係のみを示します。
 
 ---
 

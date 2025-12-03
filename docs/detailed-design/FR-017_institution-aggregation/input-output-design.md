@@ -36,17 +36,19 @@
 
 **Query Parameters:**
 
-| パラメータ     | 型       | 必須 | デフォルト | 説明                                  |
-| -------------- | -------- | ---- | ---------- | ------------------------------------- |
-| startDate      | string   | ✅   | -          | 集計開始日（ISO8601形式: YYYY-MM-DD） |
-| endDate        | string   | ✅   | -          | 集計終了日（ISO8601形式: YYYY-MM-DD） |
-| institutionIds | string[] | ❌   | 全機関     | 金融機関IDの配列（複数選択可）        |
+| パラメータ          | 型       | 必須 | デフォルト | 説明                                  |
+| ------------------- | -------- | ---- | ---------- | ------------------------------------- |
+| startDate           | string   | ✅   | -          | 集計開始日（ISO8601形式: YYYY-MM-DD） |
+| endDate             | string   | ✅   | -          | 集計終了日（ISO8601形式: YYYY-MM-DD） |
+| institutionIds      | string[] | ❌   | 全機関     | 金融機関IDの配列（複数選択可）        |
+| includeTransactions | boolean  | ❌   | false      | レスポンスに取引明細を含めるかどうか  |
 
 **Request Example:**
 
 ```
 GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31&institutionIds=inst-001&institutionIds=inst-002
+GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31&includeTransactions=true
 ```
 
 **Response (200 OK):**
@@ -232,7 +234,14 @@ export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInt
 }
 
 // Request DTO（class）
-import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsArray,
+  IsString,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class GetInstitutionSummaryDto {
   @IsDateString()
@@ -248,6 +257,10 @@ export class GetInstitutionSummaryDto {
   @IsString({ each: true })
   @IsOptional()
   institutionIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  includeTransactions?: boolean;
 }
 
 // Response DTO（interface）
@@ -504,12 +517,13 @@ interface ErrorResponse {
 
 ### Query Parameters
 
-| パラメータ     | ルール                          | エラーメッセージ                                          |
-| -------------- | ------------------------------- | --------------------------------------------------------- |
-| startDate      | 必須、ISO8601形式（YYYY-MM-DD） | "Start date is required and must be in YYYY-MM-DD format" |
-| endDate        | 必須、ISO8601形式（YYYY-MM-DD） | "End date is required and must be in YYYY-MM-DD format"   |
-| startDate      | 開始日 <= 終了日                | "Start date must be before or equal to end date"          |
-| institutionIds | 任意、文字列配列                | "Institution IDs must be an array of strings"             |
+| パラメータ          | ルール                          | エラーメッセージ                                          |
+| ------------------- | ------------------------------- | --------------------------------------------------------- |
+| startDate           | 必須、ISO8601形式（YYYY-MM-DD） | "Start date is required and must be in YYYY-MM-DD format" |
+| endDate             | 必須、ISO8601形式（YYYY-MM-DD） | "End date is required and must be in YYYY-MM-DD format"   |
+| startDate           | 開始日 <= 終了日                | "Start date must be before or equal to end date"          |
+| institutionIds      | 任意、文字列配列                | "Institution IDs must be an array of strings"             |
+| includeTransactions | 任意、boolean値                 | "includeTransactions must be a boolean value"             |
 
 ### バリデーション実装例
 
@@ -536,7 +550,7 @@ export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInt
 }
 
 // DTOにバリデーションルールを定義
-import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class GetInstitutionSummaryDto {
   @IsDateString()
@@ -552,6 +566,10 @@ export class GetInstitutionSummaryDto {
   @IsString({ each: true })
   @IsOptional()
   institutionIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  includeTransactions?: boolean;
 }
 
 // Controller側でのバリデーション
