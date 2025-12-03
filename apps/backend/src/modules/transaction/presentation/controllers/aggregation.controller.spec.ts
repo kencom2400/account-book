@@ -6,6 +6,7 @@ import { CalculateSubcategoryAggregationUseCase } from '../../application/use-ca
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
 import { InstitutionType } from '@account-book/types';
 
 describe('AggregationController', () => {
@@ -13,6 +14,7 @@ describe('AggregationController', () => {
   let module: TestingModule;
   let calculateMonthlyBalanceUseCase: jest.Mocked<CalculateMonthlyBalanceUseCase>;
   let calculateCategoryAggregationUseCase: jest.Mocked<CalculateCategoryAggregationUseCase>;
+  let calculateSubcategoryAggregationUseCase: jest.Mocked<CalculateSubcategoryAggregationUseCase>;
   let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
@@ -66,6 +68,9 @@ describe('AggregationController', () => {
     calculateMonthlyBalanceUseCase = module.get(CalculateMonthlyBalanceUseCase);
     calculateCategoryAggregationUseCase = module.get(
       CalculateCategoryAggregationUseCase,
+    );
+    calculateSubcategoryAggregationUseCase = module.get(
+      CalculateSubcategoryAggregationUseCase,
     );
     calculateInstitutionSummaryUseCase = module.get(
       CalculateInstitutionSummaryUseCase,
@@ -270,6 +275,117 @@ describe('AggregationController', () => {
         new Date('2024-01-31'),
         undefined,
         false,
+      );
+    });
+  });
+
+  describe('getSubcategoryAggregation', () => {
+    it('should return subcategory aggregation data', async () => {
+      const mockResponse: SubcategoryAggregationResponseDto = {
+        items: [
+          {
+            itemName: 'Food',
+            itemCode: 'cat-food',
+            itemId: 'cat-food',
+            parent: null,
+            totalAmount: 50000,
+            transactionCount: 2,
+            averageAmount: 25000,
+            budget: null,
+            budgetUsage: null,
+            children: [],
+            monthlyTrend: [{ month: '2025-01', amount: 50000, count: 2 }],
+            topTransactions: [],
+          },
+        ],
+        period: {
+          start: '2025-01-01T00:00:00.000Z',
+          end: '2025-01-31T23:59:59.999Z',
+        },
+        totalAmount: 50000,
+        totalTransactionCount: 2,
+      };
+
+      calculateSubcategoryAggregationUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.getSubcategoryAggregation({
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResponse);
+      expect(
+        calculateSubcategoryAggregationUseCase.execute,
+      ).toHaveBeenCalledWith(
+        new Date('2025-01-01'),
+        new Date('2025-01-31'),
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should call use case with categoryType parameter', async () => {
+      const mockResponse: SubcategoryAggregationResponseDto = {
+        items: [],
+        period: {
+          start: '2025-01-01T00:00:00.000Z',
+          end: '2025-01-31T23:59:59.999Z',
+        },
+        totalAmount: 0,
+        totalTransactionCount: 0,
+      };
+
+      calculateSubcategoryAggregationUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getSubcategoryAggregation({
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+        categoryType: 'EXPENSE',
+      });
+
+      expect(
+        calculateSubcategoryAggregationUseCase.execute,
+      ).toHaveBeenCalledWith(
+        new Date('2025-01-01'),
+        new Date('2025-01-31'),
+        'EXPENSE',
+        undefined,
+      );
+    });
+
+    it('should call use case with itemId parameter', async () => {
+      const mockResponse: SubcategoryAggregationResponseDto = {
+        items: [],
+        period: {
+          start: '2025-01-01T00:00:00.000Z',
+          end: '2025-01-31T23:59:59.999Z',
+        },
+        totalAmount: 0,
+        totalTransactionCount: 0,
+      };
+
+      calculateSubcategoryAggregationUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getSubcategoryAggregation({
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+        itemId: 'cat-food',
+      });
+
+      expect(
+        calculateSubcategoryAggregationUseCase.execute,
+      ).toHaveBeenCalledWith(
+        new Date('2025-01-01'),
+        new Date('2025-01-31'),
+        undefined,
+        'cat-food',
       );
     });
   });
