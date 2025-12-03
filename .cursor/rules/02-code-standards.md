@@ -6271,6 +6271,130 @@ classDiagram
 2. レビュー時は、仕様の一貫性を確認する
 3. 仕様が複雑な場合は、ケースごとに明確に記載する
 
+#### ❌ 避けるべきパターン6: 設計書内の型定義の不整合
+
+```typescript
+// ❌ 悪い例: 同じDTOが2箇所で定義されているが内容が異なる
+// 「TypeScript型定義」セクション
+export class GetInstitutionSummaryDto {
+  @IsDateString()
+  @IsNotEmpty()
+  endDate: string; // カスタムバリデーターが付与されていない
+}
+
+// 「バリデーション実装例」セクション
+export class GetInstitutionSummaryDto {
+  @IsDateString()
+  @IsNotEmpty()
+  @Validate(IsEndDateAfterStartDateConstraint) // カスタムバリデーターが付与されている
+  endDate: string;
+}
+```
+
+**問題点**:
+
+- 同じDTOが複数箇所で定義されているが内容が異なる
+- 実装時の混乱を招く
+- どちらが正しいか判断できない
+
+#### ✅ 正しいパターン: 型定義を一箇所に集約
+
+```typescript
+// ✅ 正しい例: カスタムバリデーターの定義も含めて完全な型定義を記載
+// カスタムバリデーター（フィールド間の相関チェック用）
+@ValidatorConstraint({ name: 'isEndDateAfterStartDate', async: false })
+export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInterface {
+  // ... 実装
+}
+
+// Request DTO（class）
+export class GetInstitutionSummaryDto {
+  @IsDateString()
+  @IsNotEmpty()
+  startDate: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  @Validate(IsEndDateAfterStartDateConstraint) // カスタムバリデーターを付与
+  endDate: string;
+}
+```
+
+**利点**:
+
+- 型定義が一箇所に集約され、一貫性が保たれる
+- 実装時の混乱を防げる
+- レビュー時に確認しやすい
+
+#### ❌ 避けるべきパターン7: クラス図と実装の不整合
+
+```mermaid
+classDiagram
+    class GetInstitutionSummaryDto {
+        +Date startDate
+        +Date endDate
+        +string[] institutionIds
+        +validate() boolean  // ❌ 実装では存在しないメソッド
+    }
+```
+
+**問題点**:
+
+- クラス図に実装されていないメソッドが記載されている
+- NestJSの標準的な実装方法（デコレーターによるバリデーション）と異なる
+- 実装と乖離を生む
+
+#### ✅ 正しいパターン: 実装に合わせたクラス図
+
+```mermaid
+classDiagram
+    class GetInstitutionSummaryDto {
+        +string startDate
+        +string endDate
+        +string[] institutionIds
+    }
+    note for GetInstitutionSummaryDto "バリデーションはclass-validatorデコレーターとValidationPipeで実行"
+```
+
+**利点**:
+
+- 実装と一致する
+- NestJSの標準的な実装方法を反映
+- 誤解を防げる
+
+#### ❌ 避けるべきパターン8: シーケンス図の型の不正確さ
+
+```mermaid
+sequenceDiagram
+    API->>UC: execute(2025-01-01, 2025-01-31, undefined)  // ❌ 文字列として渡されている
+```
+
+**問題点**:
+
+- 実際の実装では`Date`オブジェクトが渡されるが、図では文字列として表現されている
+- 実装時の混乱を招く
+
+#### ✅ 正しいパターン: 正確な型を表現
+
+```mermaid
+sequenceDiagram
+    API->>API: 日付文字列をDateオブジェクトに変換<br/>(new Date(query.startDate), new Date(query.endDate))
+    API->>UC: execute(new Date('2025-01-01'), new Date('2025-01-31'), undefined)
+```
+
+**利点**:
+
+- 実際の実装を正確に表現
+- 型変換の処理も明示できる
+- 実装時の混乱を防げる
+
+**推奨アプローチ**:
+
+1. 設計書内の型定義は一箇所に集約し、完全な定義を記載する
+2. クラス図は実装に合わせ、存在しないメソッドを記載しない
+3. シーケンス図では正確な型を表現し、型変換処理も明示する
+4. レビュー時は、設計書内の整合性を確認する
+
 ---
 
 ## 14. コードの簡潔性と効率性 🟡 Medium
