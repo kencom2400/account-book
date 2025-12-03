@@ -37,7 +37,7 @@ classDiagram
         +string id
         +string name
         +CategoryType categoryType
-        +string parentId
+        +string? parentId
         +string code
         +Date createdAt
         +Date updatedAt
@@ -85,6 +85,7 @@ classDiagram
         +findByDateRange(start, end) Promise<TransactionEntity[]>
         +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
+        +findByCategoryIdsAndDateRange(categoryIds, start, end) Promise<TransactionEntity[]>
     }
 
     class ICategoryRepository {
@@ -303,6 +304,7 @@ classDiagram
         +findByDateRange(start, end) Promise<TransactionEntity[]>
         +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
+        +findByCategoryIdsAndDateRange(categoryIds, start, end) Promise<TransactionEntity[]>
         -loadFromFile(filePath) Promise<TransactionEntity[]>
         -toEntity(json) TransactionEntity
     }
@@ -312,6 +314,7 @@ classDiagram
         +findByDateRange(start, end) Promise<TransactionEntity[]>
         +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
+        +findByCategoryIdsAndDateRange(categoryIds, start, end) Promise<TransactionEntity[]>
     }
 
     class CategoryRepository {
@@ -337,6 +340,7 @@ classDiagram
         +findByDateRange(start, end) Promise<TransactionEntity[]>
         +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
+        +findByCategoryIdsAndDateRange(categoryIds, start, end) Promise<TransactionEntity[]>
     }
 
     class ICategoryRepository {
@@ -362,6 +366,7 @@ classDiagram
   - `findByDateRange(start, end)`: 期間で取引を取得
   - `findByCategoryType(categoryType, start, end)`: カテゴリタイプと期間で取引を取得（新規追加）
   - `findByCategoryId(categoryId, start, end)`: 費目IDと期間で取引を取得（新規追加）
+  - `findByCategoryIdsAndDateRange(categoryIds, start, end)`: カテゴリIDの配列と期間で取引を取得（新規追加、パフォーマンス最適化）
 
 #### TransactionTypeOrmRepository（既存を拡張）
 
@@ -370,6 +375,7 @@ classDiagram
   - `findByDateRange(start, end)`: 期間で取引を取得
   - `findByCategoryType(categoryType, start, end)`: カテゴリタイプと期間で取引を取得（新規追加）
   - `findByCategoryId(categoryId, start, end)`: 費目IDと期間で取引を取得（新規追加）
+  - `findByCategoryIdsAndDateRange(categoryIds, start, end)`: カテゴリIDの配列と期間で取引を取得（新規追加、パフォーマンス最適化）
 
 #### CategoryRepository（既存を拡張）
 
