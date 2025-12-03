@@ -192,18 +192,22 @@ sequenceDiagram
     DB-->>TRepo: [] (空配列)
     TRepo-->>UC: [] (空配列)
 
-    Note over UC: データが存在しない場合も<br/>正常な応答として処理
+    Note over UC: 金融機関が存在するが期間内に取引がない場合も<br/>正常な応答として処理（0埋めデータを返す）
     UC->>DS: aggregateByInstitution([], institutions)
     DS-->>UC: Map<string, InstitutionAggregationData><br/>(すべて0の集計データ)
 
-    UC-->>API: InstitutionSummaryResponseDto<br/>{institutions: [{...totalIncome: 0, totalExpense: 0, ...}]}
+    UC-->>API: InstitutionSummaryResponseDto<br/>{institutions: [{...totalIncome: 0, totalExpense: 0, periodBalance: 0, ...}]}
 
     API-->>FE: 200 OK<br/>{InstitutionSummaryResponseDto}
-    FE->>FE: UI更新<br/>(「データがありません」メッセージ表示)
-    FE-->>User: 空データ表示
+    FE->>FE: UI更新<br/>(「期間内に取引がありません」メッセージ表示)
+    FE-->>User: 0埋めデータ表示
 ```
 
-**重要**: データが存在しない場合でも、500エラーではなく200 OKで空データを返す。これは正常なシナリオの一つとして扱う。
+**重要**:
+
+- 金融機関が存在するが期間内に取引がない場合：0埋めのデータを返す（フロントエンドは「処理されたがデータがなかった」と判断できる）
+- 金融機関自体が存在しない場合：空配列を返す
+- どちらの場合でも、500エラーではなく200 OKで返す。これは正常なシナリオの一つとして扱う。
 
 ---
 

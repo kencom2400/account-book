@@ -198,7 +198,7 @@ interface InstitutionSummary {
   accounts: AccountSummary[];
   totalIncome: number;
   totalExpense: number;
-  totalBalance: number; // 収支差額 (totalIncome - totalExpense)
+  periodBalance: number; // 期間内の収支差額 (totalIncome - totalExpense)
   currentBalance: number; // 現在の残高（全口座の合計）
   transactionCount: number;
   transactions: TransactionDto[]; // 必要に応じて
@@ -209,11 +209,17 @@ interface AccountSummary {
   accountName: string;
   income: number;
   expense: number;
-  balance: number; // 収支差額
+  periodBalance: number; // 期間内の収支差額 (income - expense)
   currentBalance: number; // 現在の残高
   transactionCount: number;
 }
 ```
+
+**命名規則の説明**:
+
+- `periodBalance`: 指定期間内の収支差額（期間内の純増減額）
+- `currentBalance`: 現在時点での残高（口座の実際の残高）
+- この命名により、期間内の収支と現在の残高を明確に区別できる
 
 ## API仕様概要
 
@@ -227,7 +233,7 @@ interface AccountSummary {
 
 ## セキュリティ考慮事項
 
-- [x] 認証・認可の実装（将来対応）
+- [ ] 認証・認可の実装（将来対応）
 - [x] 入力値のバリデーション（日付範囲の妥当性チェック）
 - [x] SQLインジェクション対策（パラメータ化クエリ使用）
 - [ ] XSS対策（フロントエンド側で対応）

@@ -78,7 +78,7 @@ classDiagram
     class InstitutionAggregationData {
         +number totalIncome
         +number totalExpense
-        +number balance
+        +number periodBalance
         +number transactionCount
         +TransactionEntity[] transactions
     }
@@ -86,7 +86,7 @@ classDiagram
     class AccountAggregationData {
         +number income
         +number expense
-        +number balance
+        +number periodBalance
         +number transactionCount
         +TransactionEntity[] transactions
     }
@@ -175,13 +175,6 @@ classDiagram
         -toTransactionDto(entity TransactionEntity) TransactionDto
     }
 
-    class InstitutionAggregationDomainService {
-        +aggregateByInstitution(transactions, institutions) Map~string, InstitutionAggregationData~
-        +aggregateByAccount(transactions, accounts) Map~string, AccountAggregationData~
-        +calculateInstitutionBalance(income, expense) number
-        +filterByInstitutionIds(transactions, institutionIds) TransactionEntity[]
-    }
-
     class InstitutionSummaryResponseDto {
         +InstitutionSummaryDto[] institutions
     }
@@ -194,7 +187,7 @@ classDiagram
         +AccountSummaryDto[] accounts
         +number totalIncome
         +number totalExpense
-        +number totalBalance
+        +number periodBalance
         +number currentBalance
         +number transactionCount
         +TransactionDto[] transactions
@@ -205,7 +198,7 @@ classDiagram
         +string accountName
         +number income
         +number expense
-        +number balance
+        +number periodBalance
         +number currentBalance
         +number transactionCount
     }
@@ -395,7 +388,7 @@ classDiagram
         +AccountSummaryDto[] accounts
         +number totalIncome
         +number totalExpense
-        +number totalBalance
+        +number periodBalance
         +number currentBalance
         +number transactionCount
         +TransactionDto[] transactions
@@ -406,7 +399,7 @@ classDiagram
         +string accountName
         +number income
         +number expense
-        +number balance
+        +number periodBalance
         +number currentBalance
         +number transactionCount
     }

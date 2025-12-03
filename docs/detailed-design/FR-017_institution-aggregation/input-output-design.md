@@ -70,14 +70,14 @@ GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
             "accountName": "普通預金",
             "income": 300000,
             "expense": 100000,
-            "balance": 200000,
+            "periodBalance": 200000,
             "currentBalance": 1500000,
             "transactionCount": 5
           }
         ],
         "totalIncome": 300000,
         "totalExpense": 100000,
-        "totalBalance": 200000,
+        "periodBalance": 200000,
         "currentBalance": 1500000,
         "transactionCount": 5,
         "transactions": [
@@ -117,14 +117,14 @@ GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
             "accountName": "メインカード",
             "income": 0,
             "expense": 150000,
-            "balance": -150000,
+            "periodBalance": -150000,
             "currentBalance": 0,
             "transactionCount": 3
           }
         ],
         "totalIncome": 0,
         "totalExpense": 150000,
-        "totalBalance": -150000,
+        "periodBalance": -150000,
         "currentBalance": 0,
         "transactionCount": 3,
         "transactions": [
@@ -162,22 +162,22 @@ GET /api/aggregation/institution-summary?startDate=2025-01-01&endDate=2025-01-31
 | accounts         | AccountSummaryDto[] | 口座別サマリー配列                              |
 | totalIncome      | number              | 収入合計                                        |
 | totalExpense     | number              | 支出合計                                        |
-| totalBalance     | number              | 収支差額（totalIncome - totalExpense）          |
+| periodBalance    | number              | 期間内の収支差額（totalIncome - totalExpense）  |
 | currentBalance   | number              | 現在の残高（全口座の合計）                      |
 | transactionCount | number              | 取引件数                                        |
 | transactions     | TransactionDto[]    | 取引明細（必要に応じて）                        |
 
 **AccountSummaryDto:**
 
-| フィールド       | 型     | 説明                         |
-| ---------------- | ------ | ---------------------------- |
-| accountId        | string | 口座ID                       |
-| accountName      | string | 口座名                       |
-| income           | number | 収入合計                     |
-| expense          | number | 支出合計                     |
-| balance          | number | 収支差額（income - expense） |
-| currentBalance   | number | 現在の残高                   |
-| transactionCount | number | 取引件数                     |
+| フィールド       | 型     | 説明                                 |
+| ---------------- | ------ | ------------------------------------ |
+| accountId        | string | 口座ID                               |
+| accountName      | string | 口座名                               |
+| income           | number | 収入合計                             |
+| expense          | number | 支出合計                             |
+| periodBalance    | number | 期間内の収支差額（income - expense） |
+| currentBalance   | number | 現在の残高                           |
+| transactionCount | number | 取引件数                             |
 
 **Period:**
 
@@ -236,7 +236,7 @@ export interface InstitutionSummaryDto {
   accounts: AccountSummaryDto[];
   totalIncome: number;
   totalExpense: number;
-  totalBalance: number;
+  periodBalance: number;
   currentBalance: number;
   transactionCount: number;
   transactions: TransactionDto[];
@@ -247,7 +247,7 @@ export interface AccountSummaryDto {
   accountName: string;
   income: number;
   expense: number;
-  balance: number;
+  periodBalance: number;
   currentBalance: number;
   transactionCount: number;
 }
@@ -277,6 +277,51 @@ export enum InstitutionType {
 
 **データが存在しない場合のレスポンス:**
 
+以下の2つのケースがあります：
+
+1. **リクエストされた金融機関が存在するが、期間内に取引がない場合**:
+   - 金融機関の情報を0埋めのデータとして返す（`totalIncome: 0`, `totalExpense: 0`, `periodBalance: 0`など）
+   - フロントエンドは「処理されたがデータがなかった」と判断できる
+
+```json
+{
+  "success": true,
+  "data": {
+    "institutions": [
+      {
+        "institutionId": "inst-001",
+        "institutionName": "メインバンク",
+        "institutionType": "BANK",
+        "period": {
+          "start": "2025-01-01T00:00:00.000Z",
+          "end": "2025-01-31T23:59:59.999Z"
+        },
+        "accounts": [
+          {
+            "accountId": "acc-001",
+            "accountName": "普通預金",
+            "income": 0,
+            "expense": 0,
+            "periodBalance": 0,
+            "currentBalance": 1000000,
+            "transactionCount": 0
+          }
+        ],
+        "totalIncome": 0,
+        "totalExpense": 0,
+        "periodBalance": 0,
+        "currentBalance": 1000000,
+        "transactionCount": 0,
+        "transactions": []
+      }
+    ]
+  }
+}
+```
+
+2. **リクエストされた金融機関が存在しない場合**:
+   - 空配列を返す
+
 ```json
 {
   "success": true,
@@ -286,7 +331,7 @@ export enum InstitutionType {
 }
 ```
 
-**重要**: データが存在しない場合でも、500エラーではなく200 OKで空配列を返す。これは正常なシナリオの一つとして扱う。
+**重要**: どちらの場合でも、500エラーではなく200 OKで返す。これは正常なシナリオの一つとして扱う。
 
 ---
 
@@ -442,8 +487,27 @@ interface ErrorResponse {
 NestJSのベストプラクティスに従い、`class-validator`と`ValidationPipe`を使用したDTOによるバリデーションを推奨します。
 
 ```typescript
+// カスタムバリデーター（フィールド間の相関チェック用）
+import { ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments, Validate } from 'class-validator';
+
+@ValidatorConstraint({ name: 'isEndDateAfterStartDate', async: false })
+export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInterface {
+  validate(endDate: string, args: ValidationArguments): boolean {
+    const object = args.object as GetInstitutionSummaryDto;
+    const startDate = object.startDate;
+    if (!startDate || !endDate) {
+      return true; // 必須チェックは @IsNotEmpty で行う
+    }
+    return new Date(startDate) <= new Date(endDate);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return 'endDate must be after or equal to startDate';
+  }
+}
+
 // DTOにバリデーションルールを定義
-import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional, ValidateIf } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsArray, IsString, IsOptional } from 'class-validator';
 
 export class GetInstitutionSummaryDto {
   @IsDateString()
@@ -452,12 +516,7 @@ export class GetInstitutionSummaryDto {
 
   @IsDateString()
   @IsNotEmpty()
-  @ValidateIf((o) => {
-    if (o.startDate && o.endDate) {
-      return new Date(o.startDate) <= new Date(o.endDate);
-    }
-    return true;
-  })
+  @Validate(IsEndDateAfterStartDateConstraint)
   endDate: string;
 
   @IsArray()
@@ -488,7 +547,7 @@ async getInstitutionSummary(
 - `ValidationPipe`は`main.ts`でグローバルに設定することを推奨
 - `transform: true`オプションにより、クエリパラメータが自動的に適切な型に変換される
 - バリデーションエラーは自動的に400 Bad Requestとして返される
-- 開始日と終了日の比較は、カスタムバリデーターまたは`ValidateIf`デコレーターを使用
+- 開始日と終了日の比較は、カスタムバリデーター（`@ValidatorConstraint`）を使用する
 
 ---
 
@@ -514,6 +573,6 @@ async getInstitutionSummary(
 
 - [x] レスポンスDTOは`interface`で定義されている（classではない）
 - [x] リクエストDTOは`class`で定義されている
-- [x] データが存在しない場合の処理が明確（200 OKで空配列を返す）
+- [x] データが存在しない場合の処理が明確（金融機関が存在する場合は0埋めデータ、存在しない場合は空配列を返す）
 - [x] エラーレスポンスは共通形式に準拠している
 - [x] HTTPステータスコードが適切に使い分けられている
