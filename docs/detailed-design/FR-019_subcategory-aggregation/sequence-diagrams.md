@@ -55,11 +55,16 @@ sequenceDiagram
     DB-->>TRepo: TransactionEntity[]
     TRepo-->>UC: TransactionEntity[]
 
-    Note over UC: カテゴリ情報取得（階層構造構築用）
-    UC->>CRepo: findByCategoryType(EXPENSE)
-    CRepo->>DB: データ読み込み
-    DB-->>CRepo: CategoryEntity[]
-    CRepo-->>UC: CategoryEntity[]
+    Note over UC: カテゴリ情報取得（階層構造構築用）<br/>取引データに含まれるカテゴリタイプを収集
+    UC->>UC: collectCategoryTypes(transactions)
+    UC->>UC: 取得したカテゴリタイプごとにカテゴリを取得
+    loop 各カテゴリタイプ
+        UC->>CRepo: findByCategoryType(categoryType)
+        CRepo->>DB: データ読み込み
+        DB-->>CRepo: CategoryEntity[]
+        CRepo-->>UC: CategoryEntity[]
+    end
+    UC->>UC: すべてのカテゴリを統合
 
     Note over UC: 費目別集計（階層構造を考慮）
     UC->>DS: aggregateHierarchy(transactions, categories)
