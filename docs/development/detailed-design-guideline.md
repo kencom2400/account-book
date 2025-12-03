@@ -714,6 +714,34 @@ flowchart TD
 3. **既存の図を参考**: FR-001-005の図を参考にする
 4. **Mermaidドキュメント**: [公式ドキュメント](https://mermaid.js.org/)を参照
 
+### ジェネリクス表記の標準化
+
+Mermaidクラス図でジェネリクスを表現する際は、TypeScriptコードとの一貫性を保つため、標準的な`<>`記法を使用します。
+
+**✅ 推奨:**
+
+```mermaid
+classDiagram
+    class UseCase {
+        +execute() Promise<ResponseDto[]>
+    }
+```
+
+**❌ 非推奨:**
+
+```mermaid
+classDiagram
+    class UseCase {
+        +execute() Promise~ResponseDto[]~
+    }
+```
+
+**理由:**
+
+- TypeScriptコードとの一貫性が取れる
+- より一般的で可読性が高い
+- Mermaidの標準的な記法に準拠
+
 ---
 
 ## よくある質問
