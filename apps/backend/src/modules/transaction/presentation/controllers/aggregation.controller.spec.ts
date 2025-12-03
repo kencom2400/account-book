@@ -3,10 +3,13 @@ import { AggregationController } from './aggregation.controller';
 import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
+import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
 
 describe('AggregationController', () => {
   let controller: AggregationController;
+  let module: TestingModule;
   let calculateMonthlyBalanceUseCase: jest.Mocked<CalculateMonthlyBalanceUseCase>;
+  let calculateCategoryAggregationUseCase: jest.Mocked<CalculateCategoryAggregationUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
     month: '2024-01',
@@ -33,7 +36,7 @@ describe('AggregationController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [AggregationController],
       providers: [
         {
@@ -49,6 +52,9 @@ describe('AggregationController', () => {
 
     controller = module.get<AggregationController>(AggregationController);
     calculateMonthlyBalanceUseCase = module.get(CalculateMonthlyBalanceUseCase);
+    calculateCategoryAggregationUseCase = module.get(
+      CalculateCategoryAggregationUseCase,
+    );
   });
 
   describe('getMonthlyBalance', () => {
@@ -83,6 +89,61 @@ describe('AggregationController', () => {
       expect(calculateMonthlyBalanceUseCase.execute).toHaveBeenCalledWith(
         2025,
         12,
+      );
+    });
+  });
+
+  describe('getCategoryAggregation', () => {
+    it('should return category aggregation data', async () => {
+      const mockResponse: CategoryAggregationResponseDto[] = [
+        {
+          categoryType: 'EXPENSE' as const,
+          startDate: '2025-01-01',
+          endDate: '2025-01-31',
+          totalAmount: 80000,
+          transactionCount: 2,
+          subcategories: [],
+          percentage: 80,
+          trend: {
+            monthly: [{ month: '2025-01', amount: 80000, count: 2 }],
+          },
+        },
+      ];
+
+      calculateCategoryAggregationUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.getCategoryAggregation({
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+        categoryType: 'EXPENSE',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResponse);
+      expect(calculateCategoryAggregationUseCase.execute).toHaveBeenCalledWith(
+        new Date('2025-01-01'),
+        new Date('2025-01-31'),
+        'EXPENSE',
+      );
+    });
+
+    it('should call use case with correct parameters when categoryType is not provided', async () => {
+      const mockResponse: CategoryAggregationResponseDto[] = [];
+      calculateCategoryAggregationUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getCategoryAggregation({
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
+
+      expect(calculateCategoryAggregationUseCase.execute).toHaveBeenCalledWith(
+        new Date('2025-01-01'),
+        new Date('2025-01-31'),
+        undefined,
       );
     });
   });

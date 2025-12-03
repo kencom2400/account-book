@@ -11,58 +11,12 @@ import {
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { CategoryType } from '@account-book/types';
 import type { CategoryEntity } from '../../../category/domain/entities/category.entity';
-
-/**
- * TransactionDto
- * プレゼンテーション層用のDTO
- */
-export interface TransactionDto {
-  id: string;
-  date: string; // ISO8601形式
-  amount: number;
-  categoryType: string; // CategoryTypeの文字列値
-  categoryId: string;
-  institutionId: string;
-  accountId: string;
-  description: string;
-}
-
-/**
- * SubcategoryAggregationResponseDto
- */
-export interface SubcategoryAggregationResponseDto {
-  categoryId: string;
-  categoryName: string;
-  amount: number;
-  count: number;
-  percentage: number;
-  topTransactions: TransactionDto[];
-}
-
-/**
- * TrendDataResponseDto
- */
-export interface TrendDataResponseDto {
-  monthly: Array<{
-    month: string; // YYYY-MM
-    amount: number;
-    count: number;
-  }>;
-}
-
-/**
- * CategoryAggregationResponseDto
- */
-export interface CategoryAggregationResponseDto {
-  categoryType: CategoryType;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
-  totalAmount: number;
-  transactionCount: number;
-  subcategories: SubcategoryAggregationResponseDto[];
-  percentage: number;
-  trend: TrendDataResponseDto;
-}
+import type {
+  TransactionDto,
+  SubcategoryAggregationResponseDto,
+  TrendDataResponseDto,
+  CategoryAggregationResponseDto,
+} from '../../presentation/dto/get-category-aggregation.dto';
 
 /**
  * CalculateCategoryAggregationUseCase
@@ -92,45 +46,58 @@ export class CalculateCategoryAggregationUseCase {
       endDate,
     );
 
+    // 全体の合計金額を一度だけ計算（割合計算用）
+    const allTotalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    // カテゴリタイプ別に取引をグルーピング（パフォーマンス改善）
+    const transactionsByCategoryType = new Map<
+      CategoryType,
+      TransactionEntity[]
+    >();
+    for (const transaction of transactions) {
+      const type = transaction.category.type;
+      if (!transactionsByCategoryType.has(type)) {
+        transactionsByCategoryType.set(type, []);
+      }
+      transactionsByCategoryType.get(type)!.push(transaction);
+    }
+
     // categoryTypeが指定されている場合は該当カテゴリのみ、指定されていない場合は全カテゴリ
     const targetCategoryTypes = categoryType
       ? [categoryType]
-      : [
-          CategoryType.INCOME,
-          CategoryType.EXPENSE,
-          CategoryType.TRANSFER,
-          CategoryType.REPAYMENT,
-          CategoryType.INVESTMENT,
-        ];
+      : Object.values(CategoryType);
 
     const results: CategoryAggregationResponseDto[] = [];
 
     for (const type of targetCategoryTypes) {
+      // グルーピング済みの取引リストを取得
+      const filteredTransactions = transactionsByCategoryType.get(type) || [];
+
       // カテゴリ別集計
       const aggregationResult =
         this.categoryAggregationDomainService.aggregateByCategoryType(
-          transactions,
+          filteredTransactions,
           type,
+          allTotalAmount,
         );
 
       // サブカテゴリ別集計
       const subcategoryAggregation =
         this.categoryAggregationDomainService.aggregateBySubcategory(
-          transactions,
+          filteredTransactions,
           type,
         );
 
       // 推移データ計算
       const trend = this.categoryAggregationDomainService.calculateTrend(
-        transactions,
-        startDate,
-        endDate,
+        filteredTransactions,
+        type,
       );
 
       // サブカテゴリ内訳構築
       const subcategories = await this.buildSubcategoryAggregation(
         subcategoryAggregation,
-        transactions,
+        filteredTransactions,
         type,
       );
 
@@ -174,10 +141,17 @@ export class CalculateCategoryAggregationUseCase {
       categoryMap.set(category.id, category);
     }
 
-    // 該当カテゴリタイプの取引のみをフィルタリング
-    const filteredTransactions = transactions.filter(
-      (t) => t.category.type === categoryType,
-    );
+    // 該当カテゴリタイプの取引をサブカテゴリIDでグルーピング
+    const transactionsBySubcategory = new Map<string, TransactionEntity[]>();
+    transactions
+      .filter((t) => t.category.type === categoryType)
+      .forEach((t) => {
+        const subcategoryId = t.category.id;
+        if (!transactionsBySubcategory.has(subcategoryId)) {
+          transactionsBySubcategory.set(subcategoryId, []);
+        }
+        transactionsBySubcategory.get(subcategoryId)!.push(t);
+      });
 
     const result: SubcategoryAggregationResponseDto[] = [];
 
@@ -185,10 +159,8 @@ export class CalculateCategoryAggregationUseCase {
       const category = categoryMap.get(categoryId);
       const categoryName = category?.name || '';
 
-      // 該当サブカテゴリの取引を取得
-      const subcategoryTransactions = filteredTransactions.filter(
-        (t) => t.category.id === categoryId,
-      );
+      const subcategoryTransactions =
+        transactionsBySubcategory.get(categoryId) || [];
 
       // 上位取引を取得（最大5件）
       const topTransactions =

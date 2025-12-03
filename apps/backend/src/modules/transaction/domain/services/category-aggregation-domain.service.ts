@@ -46,23 +46,17 @@ export interface MonthlyTrend {
 export class CategoryAggregationDomainService {
   /**
    * 指定したカテゴリタイプで集計
+   * @param transactions フィルタリング済みの取引リスト（該当カテゴリタイプのみ）
+   * @param categoryType カテゴリタイプ
+   * @param allTotalAmount 全体の合計金額（割合計算用）
    */
   aggregateByCategoryType(
     transactions: TransactionEntity[],
     categoryType: CategoryType,
+    allTotalAmount: number,
   ): CategoryAggregationResult {
-    const filteredTransactions = transactions.filter(
-      (t) => t.category.type === categoryType,
-    );
-
-    const totalAmount = filteredTransactions.reduce(
-      (sum, t) => sum + t.amount,
-      0,
-    );
-    const transactionCount = filteredTransactions.length;
-
-    // 全体の合計金額を計算（割合計算用）
-    const allTotalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const transactionCount = transactions.length;
     const percentage = this.calculatePercentage(totalAmount, allTotalAmount);
 
     return {
@@ -138,24 +132,23 @@ export class CategoryAggregationDomainService {
 
   /**
    * 期間内の月次推移を計算
+   * @param transactions 取引リスト（既に期間でフィルタリング済み）
+   * @param categoryType カテゴリタイプ
    */
   calculateTrend(
     transactions: TransactionEntity[],
-    startDate: Date,
-    endDate: Date,
+    categoryType: CategoryType,
   ): TrendData {
-    const filteredTransactions = transactions.filter((t) => {
-      const transactionDate = new Date(t.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
+    const filteredTransactions = transactions.filter(
+      (t) => t.category.type === categoryType,
+    );
 
     // 月ごとに集計
     const monthlyMap = new Map<string, { amount: number; count: number }>();
 
     for (const transaction of filteredTransactions) {
-      const transactionDate = new Date(transaction.date);
-      const month = `${transactionDate.getFullYear()}-${String(
-        transactionDate.getMonth() + 1,
+      const month = `${transaction.date.getFullYear()}-${String(
+        transaction.date.getMonth() + 1,
       ).padStart(2, '0')}`;
 
       const existing = monthlyMap.get(month) || { amount: 0, count: 0 };

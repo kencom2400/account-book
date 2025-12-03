@@ -3,7 +3,7 @@ import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calc
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import { GetMonthlyBalanceDto } from '../dto/get-monthly-balance.dto';
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
-import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import type { CategoryAggregationResponseDto } from '../dto/get-category-aggregation.dto';
 import { GetCategoryAggregationQueryDto } from '../dto/get-category-aggregation.dto';
 
 /**
