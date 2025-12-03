@@ -11,58 +11,12 @@ import {
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { CategoryType } from '@account-book/types';
 import type { CategoryEntity } from '../../../category/domain/entities/category.entity';
-
-/**
- * TransactionDto
- * プレゼンテーション層用のDTO
- */
-export interface TransactionDto {
-  id: string;
-  date: string; // ISO8601形式
-  amount: number;
-  categoryType: string; // CategoryTypeの文字列値
-  categoryId: string;
-  institutionId: string;
-  accountId: string;
-  description: string;
-}
-
-/**
- * SubcategoryAggregationResponseDto
- */
-export interface SubcategoryAggregationResponseDto {
-  categoryId: string;
-  categoryName: string;
-  amount: number;
-  count: number;
-  percentage: number;
-  topTransactions: TransactionDto[];
-}
-
-/**
- * TrendDataResponseDto
- */
-export interface TrendDataResponseDto {
-  monthly: Array<{
-    month: string; // YYYY-MM
-    amount: number;
-    count: number;
-  }>;
-}
-
-/**
- * CategoryAggregationResponseDto
- */
-export interface CategoryAggregationResponseDto {
-  categoryType: CategoryType;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
-  totalAmount: number;
-  transactionCount: number;
-  subcategories: SubcategoryAggregationResponseDto[];
-  percentage: number;
-  trend: TrendDataResponseDto;
-}
+import type {
+  TransactionDto,
+  SubcategoryAggregationResponseDto,
+  TrendDataResponseDto,
+  CategoryAggregationResponseDto,
+} from '../../presentation/dto/get-category-aggregation.dto';
 
 /**
  * CalculateCategoryAggregationUseCase
@@ -92,6 +46,22 @@ export class CalculateCategoryAggregationUseCase {
       endDate,
     );
 
+    // 全体の合計金額を一度だけ計算（割合計算用）
+    const allTotalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    // カテゴリタイプ別に取引をグルーピング（パフォーマンス改善）
+    const transactionsByCategoryType = new Map<
+      CategoryType,
+      TransactionEntity[]
+    >();
+    for (const transaction of transactions) {
+      const type = transaction.category.type;
+      if (!transactionsByCategoryType.has(type)) {
+        transactionsByCategoryType.set(type, []);
+      }
+      transactionsByCategoryType.get(type)!.push(transaction);
+    }
+
     // categoryTypeが指定されている場合は該当カテゴリのみ、指定されていない場合は全カテゴリ
     const targetCategoryTypes = categoryType
       ? [categoryType]
@@ -100,30 +70,34 @@ export class CalculateCategoryAggregationUseCase {
     const results: CategoryAggregationResponseDto[] = [];
 
     for (const type of targetCategoryTypes) {
+      // グルーピング済みの取引リストを取得
+      const filteredTransactions = transactionsByCategoryType.get(type) || [];
+
       // カテゴリ別集計
       const aggregationResult =
         this.categoryAggregationDomainService.aggregateByCategoryType(
-          transactions,
+          filteredTransactions,
           type,
+          allTotalAmount,
         );
 
       // サブカテゴリ別集計
       const subcategoryAggregation =
         this.categoryAggregationDomainService.aggregateBySubcategory(
-          transactions,
+          filteredTransactions,
           type,
         );
 
       // 推移データ計算
       const trend = this.categoryAggregationDomainService.calculateTrend(
-        transactions,
+        filteredTransactions,
         type,
       );
 
       // サブカテゴリ内訳構築
       const subcategories = await this.buildSubcategoryAggregation(
         subcategoryAggregation,
-        transactions,
+        filteredTransactions,
         type,
       );
 

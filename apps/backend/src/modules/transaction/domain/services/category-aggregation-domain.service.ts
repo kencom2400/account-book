@@ -46,23 +46,17 @@ export interface MonthlyTrend {
 export class CategoryAggregationDomainService {
   /**
    * 指定したカテゴリタイプで集計
+   * @param transactions フィルタリング済みの取引リスト（該当カテゴリタイプのみ）
+   * @param categoryType カテゴリタイプ
+   * @param allTotalAmount 全体の合計金額（割合計算用）
    */
   aggregateByCategoryType(
     transactions: TransactionEntity[],
     categoryType: CategoryType,
+    allTotalAmount: number,
   ): CategoryAggregationResult {
-    const filteredTransactions = transactions.filter(
-      (t) => t.category.type === categoryType,
-    );
-
-    const totalAmount = filteredTransactions.reduce(
-      (sum, t) => sum + t.amount,
-      0,
-    );
-    const transactionCount = filteredTransactions.length;
-
-    // 全体の合計金額を計算（割合計算用）
-    const allTotalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const transactionCount = transactions.length;
     const percentage = this.calculatePercentage(totalAmount, allTotalAmount);
 
     return {

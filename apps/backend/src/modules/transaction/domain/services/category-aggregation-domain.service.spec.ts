@@ -41,16 +41,25 @@ describe('CategoryAggregationDomainService', () => {
 
   describe('aggregateByCategoryType', () => {
     it('should aggregate transactions by category type', () => {
-      const transactions = [
+      const allTransactions = [
         createTransaction('1', 100000, CategoryType.INCOME, 'cat_1'),
         createTransaction('2', 50000, CategoryType.EXPENSE, 'cat_2'),
         createTransaction('3', 30000, CategoryType.EXPENSE, 'cat_3'),
         createTransaction('4', 20000, CategoryType.INCOME, 'cat_1'),
       ];
 
+      const incomeTransactions = allTransactions.filter(
+        (t) => t.category.type === CategoryType.INCOME,
+      );
+      const allTotalAmount = allTransactions.reduce(
+        (sum, t) => sum + t.amount,
+        0,
+      );
+
       const result = service.aggregateByCategoryType(
-        transactions,
+        incomeTransactions,
         CategoryType.INCOME,
+        allTotalAmount,
       );
 
       expect(result.category).toBe(CategoryType.INCOME);
@@ -61,10 +70,12 @@ describe('CategoryAggregationDomainService', () => {
 
     it('should return 0 percentage when total is 0', () => {
       const transactions: TransactionEntity[] = [];
+      const allTotalAmount = 0;
 
       const result = service.aggregateByCategoryType(
         transactions,
         CategoryType.INCOME,
+        allTotalAmount,
       );
 
       expect(result.totalAmount).toBe(0);
