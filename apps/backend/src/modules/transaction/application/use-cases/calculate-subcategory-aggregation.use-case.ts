@@ -42,14 +42,19 @@ export class CalculateSubcategoryAggregationUseCase {
     // カテゴリ情報を取得（取引取得前に取得して再利用）
     let categories: CategoryEntity[];
     if (itemId) {
-      // 特定費目IDが指定された場合、該当カテゴリとその子カテゴリのみ取得
-      const category = await this.categoryRepository.findById(itemId);
+      // 特定費目IDが指定された場合、該当カテゴリとそのすべての子孫カテゴリを取得
+      // findByIdとfindByParentIdは互いに依存していないため、Promise.allで並列実行
+      const [category] = await Promise.all([
+        this.categoryRepository.findById(itemId),
+        this.categoryRepository.findByParentId(itemId),
+      ]);
       if (!category) {
         // 存在しない場合は空データを返す（200 OK）
         return this.createEmptyResponse(startDate, endDate);
       }
-      const children = await this.categoryRepository.findByParentId(itemId);
-      categories = [category, ...children];
+      // すべての子孫カテゴリを再帰的に取得
+      const allDescendants = await this.getAllDescendantCategories(itemId);
+      categories = [category, ...allDescendants];
     } else if (categoryType) {
       // 特定カテゴリタイプが指定された場合
       categories = await this.categoryRepository.findByType(categoryType);
@@ -84,24 +89,37 @@ export class CalculateSubcategoryAggregationUseCase {
       );
     }
 
+    // 全体の合計金額を計算（aggregateHierarchyに渡すため）
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    // カテゴリIDごとの取引をマッピング（一度だけ作成して再利用）
+    const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
+    for (const transaction of transactions) {
+      const categoryId = transaction.category.id;
+      if (!transactionsByCategoryId.has(categoryId)) {
+        transactionsByCategoryId.set(categoryId, []);
+      }
+      transactionsByCategoryId.get(categoryId)!.push(transaction);
+    }
+
     // 費目別集計（階層構造を考慮）
     const aggregationResults =
       this.subcategoryAggregationDomainService.aggregateHierarchy(
-        transactions,
+        transactionsByCategoryId,
         categories,
+        totalAmount,
       );
 
     // 階層構造を構築してDTOに変換
     const items = this.buildHierarchy(
       aggregationResults,
       categories,
-      transactions,
+      transactionsByCategoryId,
       startDate,
       endDate,
     );
 
-    // 全体の合計金額と取引件数を計算
-    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    // 全体の取引件数を計算
     const totalTransactionCount = transactions.length;
 
     return {
@@ -121,7 +139,7 @@ export class CalculateSubcategoryAggregationUseCase {
   private buildHierarchy(
     aggregationResults: SubcategoryAggregationResult[],
     categories: CategoryEntity[],
-    transactions: TransactionEntity[],
+    transactionsByCategoryId: Map<string, TransactionEntity[]>,
     startDate: Date,
     endDate: Date,
   ): ExpenseItemSummary[] {
@@ -129,16 +147,6 @@ export class CalculateSubcategoryAggregationUseCase {
     const categoryMap = new Map<string, CategoryEntity>();
     for (const category of categories) {
       categoryMap.set(category.id, category);
-    }
-
-    // カテゴリIDごとの取引をマッピング
-    const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
-    for (const transaction of transactions) {
-      const categoryId = transaction.category.id;
-      if (!transactionsByCategoryId.has(categoryId)) {
-        transactionsByCategoryId.set(categoryId, []);
-      }
-      transactionsByCategoryId.get(categoryId)!.push(transaction);
     }
 
     // 階層構造を再帰的に構築
@@ -203,6 +211,31 @@ export class CalculateSubcategoryAggregationUseCase {
       accountId: entity.accountId,
       description: entity.description,
     };
+  }
+
+  /**
+   * 指定されたカテゴリIDのすべての子孫カテゴリを再帰的に取得
+   * @param parentId 親カテゴリID
+   * @returns すべての子孫カテゴリの配列
+   */
+  private async getAllDescendantCategories(
+    parentId: string,
+  ): Promise<CategoryEntity[]> {
+    const allDescendants: CategoryEntity[] = [];
+    const queue: string[] = [parentId];
+
+    while (queue.length > 0) {
+      const currentParentId = queue.shift()!;
+      const children =
+        await this.categoryRepository.findByParentId(currentParentId);
+      allDescendants.push(...children);
+      // 子カテゴリのIDをキューに追加して、さらにその子孫を取得
+      for (const child of children) {
+        queue.push(child.id);
+      }
+    }
+
+    return allDescendants;
   }
 
   /**

@@ -68,7 +68,21 @@ describe('SubcategoryAggregationDomainService', () => {
         createTransaction('3', 20000, CategoryType.EXPENSE, 'cat_1'),
       ];
 
-      const result = service.aggregateBySubcategory(transactions);
+      // カテゴリIDごとにグループ化
+      const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
+      for (const transaction of transactions) {
+        const categoryId = transaction.category.id;
+        if (!transactionsByCategoryId.has(categoryId)) {
+          transactionsByCategoryId.set(categoryId, []);
+        }
+        transactionsByCategoryId.get(categoryId)!.push(transaction);
+      }
+
+      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      const result = service.aggregateBySubcategory(
+        transactionsByCategoryId,
+        totalAmount,
+      );
 
       expect(result.size).toBe(2);
       expect(result.get('cat_1')?.totalAmount).toBe(70000);
@@ -80,9 +94,12 @@ describe('SubcategoryAggregationDomainService', () => {
     });
 
     it('should return empty map when no transactions', () => {
-      const transactions: TransactionEntity[] = [];
+      const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
 
-      const result = service.aggregateBySubcategory(transactions);
+      const result = service.aggregateBySubcategory(
+        transactionsByCategoryId,
+        0,
+      );
 
       expect(result.size).toBe(0);
     });
@@ -93,7 +110,21 @@ describe('SubcategoryAggregationDomainService', () => {
         createTransaction('2', 30000, CategoryType.INCOME, 'cat_2'),
       ];
 
-      const result = service.aggregateBySubcategory(transactions);
+      // カテゴリIDごとにグループ化
+      const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
+      for (const transaction of transactions) {
+        const categoryId = transaction.category.id;
+        if (!transactionsByCategoryId.has(categoryId)) {
+          transactionsByCategoryId.set(categoryId, []);
+        }
+        transactionsByCategoryId.get(categoryId)!.push(transaction);
+      }
+
+      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      const result = service.aggregateBySubcategory(
+        transactionsByCategoryId,
+        totalAmount,
+      );
 
       expect(result.size).toBe(2);
       expect(result.get('cat_1')?.totalAmount).toBe(50000);
@@ -125,7 +156,22 @@ describe('SubcategoryAggregationDomainService', () => {
         ),
       ];
 
-      const result = service.aggregateHierarchy(transactions, categories);
+      // カテゴリIDごとにグループ化
+      const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
+      for (const transaction of transactions) {
+        const categoryId = transaction.category.id;
+        if (!transactionsByCategoryId.has(categoryId)) {
+          transactionsByCategoryId.set(categoryId, []);
+        }
+        transactionsByCategoryId.get(categoryId)!.push(transaction);
+      }
+
+      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      const result = service.aggregateHierarchy(
+        transactionsByCategoryId,
+        categories,
+        totalAmount,
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].itemId).toBe('cat_parent');
@@ -150,7 +196,22 @@ describe('SubcategoryAggregationDomainService', () => {
         ),
       ];
 
-      const result = service.aggregateHierarchy(transactions, categories);
+      // カテゴリIDごとにグループ化
+      const transactionsByCategoryId = new Map<string, TransactionEntity[]>();
+      for (const transaction of transactions) {
+        const categoryId = transaction.category.id;
+        if (!transactionsByCategoryId.has(categoryId)) {
+          transactionsByCategoryId.set(categoryId, []);
+        }
+        transactionsByCategoryId.get(categoryId)!.push(transaction);
+      }
+
+      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      const result = service.aggregateHierarchy(
+        transactionsByCategoryId,
+        categories,
+        totalAmount,
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].itemId).toBe('cat_parent');

@@ -24,42 +24,37 @@ export interface SubcategoryAggregationResult {
 export class SubcategoryAggregationDomainService {
   /**
    * 費目別に集計
-   * @param transactions 取引リスト（UseCaseで既にフィルタリング済み）
+   * @param transactionsByCategoryId カテゴリIDごとの取引マップ（UseCaseで既にグループ化済み）
+   * @param totalAmount 全体の合計金額（UseCaseで既に計算済み）
    * @returns カテゴリIDをキーとした集計データのMap
    */
   aggregateBySubcategory(
-    transactions: TransactionEntity[],
+    transactionsByCategoryId: Map<string, TransactionEntity[]>,
+    totalAmount: number,
   ): Map<string, SubcategoryAggregationResult> {
     const result = new Map<string, SubcategoryAggregationResult>();
 
-    // 全体の合計金額を計算（割合計算用）
-    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    for (const [
+      categoryId,
+      transactions,
+    ] of transactionsByCategoryId.entries()) {
+      const categoryTotalAmount = transactions.reduce(
+        (sum, t) => sum + t.amount,
+        0,
+      );
+      const transactionCount = transactions.length;
 
-    for (const transaction of transactions) {
-      const categoryId = transaction.category.id;
-      const existing = result.get(categoryId);
-
-      if (existing) {
-        existing.totalAmount += transaction.amount;
-        existing.transactionCount += 1;
-        existing.averageAmount = this.calculateAverage(
-          existing.totalAmount,
-          existing.transactionCount,
-        );
-        existing.percentage = this.calculatePercentage(
-          existing.totalAmount,
-          totalAmount,
-        );
-      } else {
-        result.set(categoryId, {
-          itemId: categoryId,
-          totalAmount: transaction.amount,
-          transactionCount: 1,
-          averageAmount: transaction.amount,
-          percentage: this.calculatePercentage(transaction.amount, totalAmount),
-          children: [],
-        });
-      }
+      result.set(categoryId, {
+        itemId: categoryId,
+        totalAmount: categoryTotalAmount,
+        transactionCount,
+        averageAmount: this.calculateAverage(
+          categoryTotalAmount,
+          transactionCount,
+        ),
+        percentage: this.calculatePercentage(categoryTotalAmount, totalAmount),
+        children: [],
+      });
     }
 
     return result;
@@ -67,13 +62,15 @@ export class SubcategoryAggregationDomainService {
 
   /**
    * 階層構造で集計（親子関係を考慮）
-   * @param transactions 取引リスト
+   * @param transactionsByCategoryId カテゴリIDごとの取引マップ（UseCaseで既にグループ化済み）
    * @param categories カテゴリエンティティの配列
+   * @param totalAmount 全体の合計金額（UseCaseで既に計算済み）
    * @returns 階層構造を含む集計結果の配列
    */
   aggregateHierarchy(
-    transactions: TransactionEntity[],
+    transactionsByCategoryId: Map<string, TransactionEntity[]>,
     categories: CategoryEntity[],
+    totalAmount: number,
   ): SubcategoryAggregationResult[] {
     // カテゴリをMapに変換（IDで高速検索）
     const categoryMap = new Map<string, CategoryEntity>();
@@ -82,7 +79,10 @@ export class SubcategoryAggregationDomainService {
     }
 
     // 費目別に集計
-    const aggregation = this.aggregateBySubcategory(transactions);
+    const aggregation = this.aggregateBySubcategory(
+      transactionsByCategoryId,
+      totalAmount,
+    );
 
     // 階層構造を構築
     const rootCategories: SubcategoryAggregationResult[] = [];
@@ -122,11 +122,7 @@ export class SubcategoryAggregationDomainService {
     }
 
     // 親の平均金額と割合を再計算
-    // totalAmountはループ内で変化しないため、ループの外で一度だけ計算
-    const totalAmount = Array.from(aggregation.values()).reduce(
-      (sum, data) => sum + data.totalAmount,
-      0,
-    );
+    // totalAmountは引数として受け取る（UseCaseで既に計算済み）
     for (const result of categoryResults.values()) {
       if (result.children.length > 0) {
         result.averageAmount = this.calculateAverage(
