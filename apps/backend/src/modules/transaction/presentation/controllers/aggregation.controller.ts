@@ -2,6 +2,9 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import { GetMonthlyBalanceDto } from '../dto/get-monthly-balance.dto';
+import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import { GetCategoryAggregationQueryDto } from '../dto/get-category-aggregation.dto';
 
 /**
  * AggregationController
@@ -11,6 +14,7 @@ import { GetMonthlyBalanceDto } from '../dto/get-monthly-balance.dto';
 export class AggregationController {
   constructor(
     private readonly calculateMonthlyBalanceUseCase: CalculateMonthlyBalanceUseCase,
+    private readonly calculateCategoryAggregationUseCase: CalculateCategoryAggregationUseCase,
   ) {}
 
   /**
@@ -25,6 +29,29 @@ export class AggregationController {
     const result = await this.calculateMonthlyBalanceUseCase.execute(
       query.year,
       query.month,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * カテゴリ別集計情報を取得
+   * GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryType=EXPENSE
+   */
+  @Get('category')
+  async getCategoryAggregation(
+    @Query() query: GetCategoryAggregationQueryDto,
+  ): Promise<{
+    success: boolean;
+    data: CategoryAggregationResponseDto[];
+  }> {
+    const result = await this.calculateCategoryAggregationUseCase.execute(
+      new Date(query.startDate),
+      new Date(query.endDate),
+      query.categoryType,
     );
 
     return {

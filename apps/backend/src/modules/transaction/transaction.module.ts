@@ -8,12 +8,14 @@ import { TransactionOrmEntity } from './infrastructure/entities/transaction.orm-
 import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/entities/transaction-category-change-history.orm-entity';
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
 import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
+import { CategoryAggregationDomainService } from './domain/services/category-aggregation-domain.service';
 import { CategoryClassificationService } from './domain/services/category-classification.service';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from './application/use-cases/get-transactions.use-case';
 import { UpdateTransactionCategoryUseCase } from './application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
 import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
+import { CalculateCategoryAggregationUseCase } from './application/use-cases/calculate-category-aggregation.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from './domain/repositories/transaction-category-change-history.repository.interface';
@@ -41,6 +43,7 @@ import { CategoryModule } from '../category/category.module';
     // Domain Services
     TransactionDomainService,
     MonthlyBalanceDomainService,
+    CategoryAggregationDomainService,
     CategoryClassificationService,
     // Use Cases
     CreateTransactionUseCase,
@@ -48,6 +51,7 @@ import { CategoryModule } from '../category/category.module';
     UpdateTransactionCategoryUseCase,
     CalculateMonthlySummaryUseCase,
     CalculateMonthlyBalanceUseCase,
+    CalculateCategoryAggregationUseCase,
     ClassifyTransactionUseCase,
   ],
   exports: [
