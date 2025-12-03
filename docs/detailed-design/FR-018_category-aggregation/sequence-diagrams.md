@@ -141,7 +141,7 @@ sequenceDiagram
     UC->>DS: getTopTransactions(transactions, 5)
     DS-->>UC: TransactionEntity[]
 
-    UC-->>API: CategoryAggregationResponseDto<br/>(EXPENSEのみ)
+    UC-->>API: CategoryAggregationResponseDto[]<br/>([EXPENSE] - 要素1つの配列)
 
     API-->>FE: 200 OK<br/>{CategoryAggregationResponseDto}
     FE-->>User: 支出カテゴリ集計レポート表示
