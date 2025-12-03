@@ -45,6 +45,11 @@ export interface AccountSummaryDto {
   income: number;
   expense: number;
   periodBalance: number;
+  /**
+   * 現在の口座残高（account.balance）
+   * 注意: これは集計期間終了時点の残高ではなく、現在時点での実際の口座残高です。
+   * 期間内の収支差額は periodBalance フィールドを参照してください。
+   */
   currentBalance: number;
   transactionCount: number;
 }
@@ -61,6 +66,11 @@ export interface InstitutionSummaryDto {
   totalIncome: number;
   totalExpense: number;
   periodBalance: number;
+  /**
+   * 現在の全口座の合計残高（全口座の account.balance の合計）
+   * 注意: これは集計期間終了時点の残高ではなく、現在時点での実際の残高です。
+   * 期間内の収支差額は periodBalance フィールドを参照してください。
+   */
   currentBalance: number;
   transactionCount: number;
   transactions: TransactionDto[];

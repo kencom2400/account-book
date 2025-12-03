@@ -122,10 +122,8 @@ export class InstitutionAggregationDomainService {
         continue;
       }
 
-      const existing = result.get(transaction.accountId);
-      if (!existing) {
-        continue;
-      }
+      // すべての口座で初期化されているため、existing は常に存在する
+      const existing = result.get(transaction.accountId)!;
 
       existing.transactionCount += 1;
       existing.transactions.push(transaction);
@@ -149,6 +147,8 @@ export class InstitutionAggregationDomainService {
    * @param income 収入
    * @param expense 支出
    * @returns 収支差額（income - expense）
+   * @deprecated このメソッドは現在使用されていません。集計ロジック内で直接計算されています。
+   * 将来的に再利用する可能性があるため、現時点では削除せずに残しています。
    */
   calculateInstitutionBalance(income: number, expense: number): number {
     return income - expense;
@@ -159,6 +159,8 @@ export class InstitutionAggregationDomainService {
    * @param transactions 取引リスト
    * @param institutionIds 金融機関IDの配列（未指定の場合は全取引を返す）
    * @returns フィルタリングされた取引リスト
+   * @deprecated このメソッドは現在使用されていません。UseCase内でリポジトリから直接フィルタリングされた取引を取得しています。
+   * 将来的に再利用する可能性があるため、現時点では削除せずに残しています。
    */
   filterByInstitutionIds(
     transactions: TransactionEntity[],

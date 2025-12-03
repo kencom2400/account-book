@@ -9378,3 +9378,114 @@ async save(record: PaymentStatusRecord): Promise<PaymentStatusRecord> {
 **学習元**: Issue #36 / PR #334 - FR-015: 不一致時のアラート表示機能（Geminiレビュー指摘）
 
 ---
+
+## 21. 集計機能実装時の重要な観点（Gemini PR#346レビューから学習）
+
+### 21-1. 集計結果のフィールド名と意味の明確化
+
+**問題**: 集計サマリーの`currentBalance`フィールドが、集計期間終了時点の残高なのか、現在の実際の残高なのかが不明確。
+
+**解決策**:
+
+- DTOのフィールドにJSDocコメントを追加し、意味を明確にする
+- `currentBalance`は「現在時点での実際の残高」であることを明記
+- `periodBalance`は「期間内の収支差額」であることを区別
+
+**実装例**:
+
+```typescript
+export interface AccountSummaryDto {
+  // ...
+  /**
+   * 現在の口座残高（account.balance）
+   * 注意: これは集計期間終了時点の残高ではなく、現在時点での実際の口座残高です。
+   * 期間内の収支差額は periodBalance フィールドを参照してください。
+   */
+  currentBalance: number;
+  // ...
+}
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+### 21-2. ドメインサービス内の冗長なコードの削除
+
+**問題**: すべてのエンティティで初期化されているMapに対して、存在チェックが冗長。
+
+**解決策**:
+
+- 初期化済みのMapに対しては、`!`演算子を使用して非nullアサーションを行う
+- 冗長な`if (!existing) { continue; }`チェックを削除
+
+**実装例**:
+
+```typescript
+// ❌ 冗長なコード
+const existing = result.get(transaction.accountId);
+if (!existing) {
+  continue;
+}
+
+// ✅ 改善後
+// すべての口座で初期化されているため、existing は常に存在する
+const existing = result.get(transaction.accountId)!;
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+### 21-3. 未使用メソッドの扱い
+
+**問題**: ドメインサービス内に未使用のメソッドが存在する。
+
+**解決策**:
+
+- 将来的に再利用する可能性がある場合は、`@deprecated`タグを付けてコメントを追加
+- 完全に不要な場合は削除する
+
+**実装例**:
+
+```typescript
+/**
+ * 収支差額を計算
+ * @deprecated このメソッドは現在使用されていません。集計ロジック内で直接計算されています。
+ * 将来的に再利用する可能性があるため、現時点では削除せずに残しています。
+ */
+calculateInstitutionBalance(income: number, expense: number): number {
+  return income - expense;
+}
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+### 21-4. JSONリポジトリのパフォーマンス考慮事項
+
+**問題**: JSONファイルベースのリポジトリで、リクエストごとに全データをメモリにロードするため、大規模データセットではパフォーマンスに影響がある。
+
+**解決策**:
+
+- メソッドにJSDocコメントを追加し、パフォーマンスの考慮事項を明記
+- テストや小規模環境向けであることを明記
+- 大規模データセットの場合はTypeORMリポジトリの使用を推奨
+
+**実装例**:
+
+```typescript
+/**
+ * 複数のIDで金融機関を取得
+ *
+ * 注意: JSONファイルベースのリポジトリでは、リクエストごとにすべての金融機関データを
+ * メモリにロードします。JSONファイルが非常に大きくなった場合、パフォーマンスに影響を
+ * 与える可能性があります。このリポジトリはテストや小規模な環境向けです。
+ * 大規模なデータセットを扱う場合は、TypeORMリポジトリ（InstitutionTypeOrmRepository）を
+ * 使用することを推奨します。
+ */
+async findByIds(ids: string[]): Promise<InstitutionEntity[]> {
+  // ...
+}
+```
+
+**参照**: PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+**学習元**: Issue #46 / PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘）
+
+---

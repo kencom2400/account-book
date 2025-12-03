@@ -107,6 +107,12 @@ export class InstitutionRepository implements IInstitutionRepository {
 
   /**
    * 複数のIDで金融機関を取得
+   *
+   * 注意: JSONファイルベースのリポジトリでは、リクエストごとにすべての金融機関データを
+   * メモリにロードします。JSONファイルが非常に大きくなった場合、パフォーマンスに影響を
+   * 与える可能性があります。このリポジトリはテストや小規模な環境向けです。
+   * 大規模なデータセットを扱う場合は、TypeORMリポジトリ（InstitutionTypeOrmRepository）を
+   * 使用することを推奨します。
    */
   async findByIds(ids: string[]): Promise<InstitutionEntity[]> {
     if (ids.length === 0) {
