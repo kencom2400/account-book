@@ -72,14 +72,8 @@ sequenceDiagram
     UC->>DS: calculateTrend(transactions, startDate, endDate)
     DS-->>UC: TrendData<br/>{monthly: [{month: "2025-01", amount: 200000, count: 20}]}
 
-    Note over UC: 階層構造構築とDTO変換
+    Note over UC: 階層構造構築とDTO変換<br/>既に取得したカテゴリ情報を再利用
     UC->>UC: buildHierarchy(aggregation, categories)
-    Note over UC: 必要なcategoryIdをすべて収集
-    UC->>UC: collectCategoryIds(aggregation)
-    UC->>CRepo: findByIds(categoryIds[])
-    CRepo->>DB: データ読み込み（一括取得）
-    DB-->>CRepo: CategoryEntity[]
-    CRepo-->>UC: CategoryEntity[]
     UC->>UC: カテゴリ名をマッピング
     UC->>UC: 階層構造を構築（親子関係を反映）
 
@@ -167,13 +161,7 @@ sequenceDiagram
 
     API->>UC: execute(startDate, endDate, undefined, "cat-food")
 
-    Note over UC: 期間内の取引データ取得
-    UC->>TRepo: findByDateRange(2025-01-01, 2025-01-31)
-    TRepo->>DB: データ読み込み
-    DB-->>TRepo: TransactionEntity[]
-    TRepo-->>UC: TransactionEntity[]
-
-    Note over UC: 指定費目とその子費目を取得
+    Note over UC: 指定費目とその子費目を取得（カテゴリID収集）
     UC->>CRepo: findById("cat-food")
     CRepo->>DB: データ読み込み
     DB-->>CRepo: CategoryEntity
@@ -182,9 +170,13 @@ sequenceDiagram
     CRepo->>DB: データ読み込み
     DB-->>CRepo: CategoryEntity[] (子費目)
     CRepo-->>UC: CategoryEntity[]
+    UC->>UC: collectCategoryIds(category, children)
 
-    Note over UC: 指定費目とその子費目の取引のみフィルタリング
-    UC->>UC: filterTransactionsByCategoryIds(transactions, categoryIds)
+    Note over UC: 期間内の取引データ取得（指定費目とその子費目のみ）<br/>データベース層でフィルタリング
+    UC->>TRepo: findByCategoryIdsAndDateRange(categoryIds[], 2025-01-01, 2025-01-31)
+    TRepo->>DB: データ読み込み（カテゴリIDでフィルタリング）
+    DB-->>TRepo: TransactionEntity[] (指定費目とその子費目のみ)
+    TRepo-->>UC: TransactionEntity[]
 
     Note over UC: 費目別集計（階層構造を考慮）
     UC->>DS: aggregateHierarchy(filteredTransactions, categories)
