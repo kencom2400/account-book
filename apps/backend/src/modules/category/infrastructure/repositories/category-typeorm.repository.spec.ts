@@ -77,6 +77,56 @@ describe('CategoryTypeOrmRepository', () => {
     });
   });
 
+  describe('findByIds', () => {
+    it('should find categories by ids', async () => {
+      const mockOrmEntity1 = {
+        id: 'cat_1',
+        name: 'Food',
+        type: CategoryType.EXPENSE,
+        parentId: null,
+        icon: '🍔',
+        color: '#FF0000',
+        isSystemDefined: true,
+        order: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const mockOrmEntity2 = {
+        id: 'cat_2',
+        name: 'Transport',
+        type: CategoryType.EXPENSE,
+        parentId: null,
+        icon: '🚗',
+        color: '#0000FF',
+        isSystemDefined: true,
+        order: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockRepository.find.mockResolvedValue([
+        mockOrmEntity1 as CategoryOrmEntity,
+        mockOrmEntity2 as CategoryOrmEntity,
+      ]);
+
+      const result = await repository.findByIds(['cat_1', 'cat_2']);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('cat_1');
+      expect(result[1].id).toBe('cat_2');
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: expect.any(Object),
+        order: { order: 'ASC' },
+      });
+    });
+
+    it('should return empty array when ids is empty', async () => {
+      const result = await repository.findByIds([]);
+
+      expect(result).toHaveLength(0);
+      expect(mockRepository.find).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findByType', () => {
     it('should find categories by type', async () => {
       mockRepository.find.mockResolvedValue([
