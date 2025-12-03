@@ -83,6 +83,7 @@ classDiagram
     class ITransactionRepository {
         <<interface>>
         +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
     }
 
@@ -191,7 +192,7 @@ classDiagram
         +string itemName
         +string itemCode
         +string itemId
-        +string parent
+        +string? parent
         +number totalAmount
         +number transactionCount
         +number averageAmount
@@ -300,6 +301,7 @@ classDiagram
     class TransactionRepository {
         -string dataDir
         +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
         -loadFromFile(filePath) Promise<TransactionEntity[]>
         -toEntity(json) TransactionEntity
@@ -308,6 +310,7 @@ classDiagram
     class TransactionTypeOrmRepository {
         -Repository<TransactionEntity> repository
         +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
     }
 
@@ -332,6 +335,7 @@ classDiagram
     class ITransactionRepository {
         <<interface>>
         +findByDateRange(start, end) Promise<TransactionEntity[]>
+        +findByCategoryType(categoryType, start, end) Promise<TransactionEntity[]>
         +findByCategoryId(categoryId, start, end) Promise<TransactionEntity[]>
     }
 
@@ -356,6 +360,7 @@ classDiagram
 - **責務**: JSONファイルベースの取引リポジトリ実装
 - **主要メソッド**:
   - `findByDateRange(start, end)`: 期間で取引を取得
+  - `findByCategoryType(categoryType, start, end)`: カテゴリタイプと期間で取引を取得（新規追加）
   - `findByCategoryId(categoryId, start, end)`: 費目IDと期間で取引を取得（新規追加）
 
 #### TransactionTypeOrmRepository（既存を拡張）
@@ -363,6 +368,7 @@ classDiagram
 - **責務**: TypeORMベースの取引リポジトリ実装
 - **主要メソッド**:
   - `findByDateRange(start, end)`: 期間で取引を取得
+  - `findByCategoryType(categoryType, start, end)`: カテゴリタイプと期間で取引を取得（新規追加）
   - `findByCategoryId(categoryId, start, end)`: 費目IDと期間で取引を取得（新規追加）
 
 #### CategoryRepository（既存を拡張）
@@ -414,7 +420,7 @@ classDiagram
         +string itemName
         +string itemCode
         +string itemId
-        +string parent
+        +string? parent
         +number totalAmount
         +number transactionCount
         +number averageAmount
