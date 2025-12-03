@@ -533,6 +533,8 @@ interface TransactionDto {
 - **型**: `string`
 - **バリデーション**:
   - 有効な費目IDであること（存在チェック）
+  - **実装層**: アプリケーション層（UseCase）で実施
+  - **実装方法**: `CategoryRepository.findById(itemId)`で存在確認し、存在しない場合は404エラーを返す
 
 ---
 
