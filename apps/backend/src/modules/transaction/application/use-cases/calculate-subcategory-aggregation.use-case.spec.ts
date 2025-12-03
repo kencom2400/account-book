@@ -190,12 +190,9 @@ describe('CalculateSubcategoryAggregationUseCase', () => {
         createTransaction('2', 30000, CategoryType.EXPENSE, 'cat_child_2'),
       ];
 
-      // Promise.allで並列実行されるため、両方のモックを設定
       categoryRepository.findById.mockResolvedValue(parentCategory);
       // getAllDescendantCategoriesで複数回呼ばれる可能性があるため、モックを設定
-      // 最初の呼び出し（Promise.all内）と、getAllDescendantCategories内での呼び出し
       categoryRepository.findByParentId
-        .mockResolvedValueOnce([childCategory1, childCategory2]) // Promise.all内
         .mockResolvedValueOnce([childCategory1, childCategory2]) // getAllDescendantCategories内（cat_parent）
         .mockResolvedValueOnce([]) // getAllDescendantCategories内（cat_child_1）
         .mockResolvedValueOnce([]); // getAllDescendantCategories内（cat_child_2）

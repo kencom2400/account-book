@@ -43,11 +43,7 @@ export class CalculateSubcategoryAggregationUseCase {
     let categories: CategoryEntity[];
     if (itemId) {
       // 特定費目IDが指定された場合、該当カテゴリとそのすべての子孫カテゴリを取得
-      // findByIdとfindByParentIdは互いに依存していないため、Promise.allで並列実行
-      const [category] = await Promise.all([
-        this.categoryRepository.findById(itemId),
-        this.categoryRepository.findByParentId(itemId),
-      ]);
+      const category = await this.categoryRepository.findById(itemId);
       if (!category) {
         // 存在しない場合は空データを返す（200 OK）
         return this.createEmptyResponse(startDate, endDate);
