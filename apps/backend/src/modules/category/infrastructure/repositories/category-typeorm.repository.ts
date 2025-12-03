@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, In } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { CategoryOrmEntity } from '../entities/category.orm-entity';
 import { CategoryEntity } from '../../domain/entities/category.entity';
 
@@ -40,22 +40,6 @@ export class CategoryTypeOrmRepository {
     }
 
     return this.toDomain(ormEntity);
-  }
-
-  /**
-   * IDの配列でカテゴリを一括取得（N+1問題対策）
-   */
-  async findByIds(ids: string[]): Promise<CategoryEntity[]> {
-    if (ids.length === 0) {
-      return [];
-    }
-    const ormEntities: CategoryOrmEntity[] = await this.repository.find({
-      where: { id: In(ids) },
-      order: { order: 'ASC' },
-    });
-    return ormEntities.map((entity: CategoryOrmEntity) =>
-      this.toDomain(entity),
-    );
   }
 
   /**

@@ -92,18 +92,6 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   /**
-   * IDの配列でカテゴリを一括取得（N+1問題対策）
-   */
-  async findByIds(ids: string[]): Promise<CategoryEntity[]> {
-    if (ids.length === 0) {
-      return [];
-    }
-    const categories = await this.loadData();
-    const idSet = new Set(ids);
-    return categories.filter((c) => idSet.has(c.id));
-  }
-
-  /**
    * すべてのカテゴリを取得
    */
   async findAll(): Promise<CategoryEntity[]> {

@@ -12,11 +12,6 @@ export interface ICategoryRepository {
   findById(id: string): Promise<CategoryEntity | null>;
 
   /**
-   * IDの配列でカテゴリを一括取得（N+1問題対策）
-   */
-  findByIds(ids: string[]): Promise<CategoryEntity[]>;
-
-  /**
    * すべてのカテゴリを取得
    */
   findAll(): Promise<CategoryEntity[]>;
