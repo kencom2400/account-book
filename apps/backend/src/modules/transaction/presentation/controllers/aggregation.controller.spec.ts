@@ -2,14 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AggregationController } from './aggregation.controller';
 import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
+import { InstitutionType } from '@account-book/types';
 
 describe('AggregationController', () => {
   let controller: AggregationController;
   let module: TestingModule;
   let calculateMonthlyBalanceUseCase: jest.Mocked<CalculateMonthlyBalanceUseCase>;
   let calculateCategoryAggregationUseCase: jest.Mocked<CalculateCategoryAggregationUseCase>;
+  let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
     month: '2024-01',
@@ -47,6 +50,10 @@ describe('AggregationController', () => {
           provide: CalculateCategoryAggregationUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: CalculateInstitutionSummaryUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -54,6 +61,9 @@ describe('AggregationController', () => {
     calculateMonthlyBalanceUseCase = module.get(CalculateMonthlyBalanceUseCase);
     calculateCategoryAggregationUseCase = module.get(
       CalculateCategoryAggregationUseCase,
+    );
+    calculateInstitutionSummaryUseCase = module.get(
+      CalculateInstitutionSummaryUseCase,
     );
   });
 
@@ -144,6 +154,117 @@ describe('AggregationController', () => {
         new Date('2025-01-01'),
         new Date('2025-01-31'),
         undefined,
+      );
+    });
+  });
+
+  describe('getInstitutionSummary', () => {
+    it('should return institution summary data', async () => {
+      const mockResponse = {
+        institutions: [
+          {
+            institutionId: 'inst_1',
+            institutionName: 'Bank A',
+            institutionType: InstitutionType.BANK,
+            period: {
+              start: '2024-01-01T00:00:00.000Z',
+              end: '2024-01-31T23:59:59.999Z',
+            },
+            accounts: [],
+            totalIncome: 100000,
+            totalExpense: 50000,
+            periodBalance: 50000,
+            currentBalance: 1000000,
+            transactionCount: 2,
+            transactions: [],
+          },
+        ],
+      };
+
+      calculateInstitutionSummaryUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.getInstitutionSummary({
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResponse);
+      expect(calculateInstitutionSummaryUseCase.execute).toHaveBeenCalledWith(
+        new Date('2024-01-01'),
+        new Date('2024-01-31'),
+        undefined,
+        false,
+      );
+    });
+
+    it('should call use case with correct parameters including institutionIds', async () => {
+      const mockResponse = {
+        institutions: [],
+      };
+
+      calculateInstitutionSummaryUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getInstitutionSummary({
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+        institutionIds: ['inst_1', 'inst_2'],
+      });
+
+      expect(calculateInstitutionSummaryUseCase.execute).toHaveBeenCalledWith(
+        new Date('2024-01-01'),
+        new Date('2024-01-31'),
+        ['inst_1', 'inst_2'],
+        false,
+      );
+    });
+
+    it('should call use case with includeTransactions parameter', async () => {
+      const mockResponse = {
+        institutions: [],
+      };
+
+      calculateInstitutionSummaryUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getInstitutionSummary({
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+        includeTransactions: true,
+      });
+
+      expect(calculateInstitutionSummaryUseCase.execute).toHaveBeenCalledWith(
+        new Date('2024-01-01'),
+        new Date('2024-01-31'),
+        undefined,
+        true,
+      );
+    });
+
+    it('should default includeTransactions to false when not provided', async () => {
+      const mockResponse = {
+        institutions: [],
+      };
+
+      calculateInstitutionSummaryUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      await controller.getInstitutionSummary({
+        startDate: '2024-01-01',
+        endDate: '2024-01-31',
+      });
+
+      expect(calculateInstitutionSummaryUseCase.execute).toHaveBeenCalledWith(
+        new Date('2024-01-01'),
+        new Date('2024-01-31'),
+        undefined,
+        false,
       );
     });
   });

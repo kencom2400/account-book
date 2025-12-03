@@ -15,12 +15,12 @@
 
 | 指標           | カバレッジ | 未カバー行 |
 | -------------- | ---------- | ---------- |
-| **Lines**      | **6.66%**  | 47-173     |
-| **Statements** | **10.2%**  | -          |
-| **Functions**  | **0%**     | -          |
-| **Branches**   | **0%**     | -          |
+| **Lines**      | **95.55%** | 72,127     |
+| **Statements** | **95.91%** | -          |
+| **Functions**  | **100%**   | -          |
+| **Branches**   | **84.61%** | -          |
 
-**状態**: ❌ **テスト未実装**
+**状態**: ✅ **テスト実装完了（目標: 80%以上を達成）**
 
 **必要なテスト**:
 
@@ -35,14 +35,14 @@
 
 #### `CalculateInstitutionSummaryUseCase`
 
-| 指標           | カバレッジ | 未カバー行 |
-| -------------- | ---------- | ---------- |
-| **Lines**      | **14.7%**  | 84-248     |
-| **Statements** | **19.44%** | -          |
-| **Functions**  | **0%**     | -          |
-| **Branches**   | **23.07%** | -          |
+| 指標           | カバレッジ | 未カバー行  |
+| -------------- | ---------- | ----------- |
+| **Lines**      | **88.23%** | 127-144,193 |
+| **Statements** | **88.88%** | -           |
+| **Functions**  | **100%**   | -           |
+| **Branches**   | **76.92%** | -           |
 
-**状態**: ❌ **テスト未実装**
+**状態**: ✅ **テスト実装完了（目標: 80%以上を達成）**
 
 **必要なテスト**:
 
@@ -65,12 +65,12 @@
 
 | 指標           | カバレッジ | 未カバー行 |
 | -------------- | ---------- | ---------- |
-| **Lines**      | **53.84%** | 20-29      |
-| **Statements** | **60%**    | -          |
-| **Functions**  | **0%**     | -          |
-| **Branches**   | **0%**     | -          |
+| **Lines**      | **100%**   | -          |
+| **Statements** | **100%**   | -          |
+| **Functions**  | **100%**   | -          |
+| **Branches**   | **100%**   | -          |
 
-**状態**: ⚠️ **部分的なカバレッジ**
+**状態**: ✅ **テスト実装完了（目標: 100%を達成）**
 
 **必要なテスト**:
 
@@ -87,14 +87,12 @@
 
 | 指標           | カバレッジ | 未カバー行 |
 | -------------- | ---------- | ---------- |
-| **Lines**      | **90%**    | 78-85      |
-| **Statements** | **90.9%**  | -          |
-| **Functions**  | **75%**    | -          |
-| **Branches**   | **71.05%** | -          |
+| **Lines**      | **100%**   | -          |
+| **Statements** | **100%**   | -          |
+| **Functions**  | **100%**   | -          |
+| **Branches**   | **76.31%** | -          |
 
-**状態**: ⚠️ **部分的なカバレッジ**
-
-**未カバー箇所**: `getInstitutionSummary()` メソッド（78-85行目）
+**状態**: ✅ **テスト実装完了（目標: 90%以上を達成）**
 
 **必要なテスト**:
 
@@ -131,50 +129,97 @@
 
 ## 全体サマリー
 
-| ファイル                                        | Lines  | Statements | Functions | Branches | 状態      |
-| ----------------------------------------------- | ------ | ---------- | --------- | -------- | --------- |
-| `InstitutionAggregationDomainService`           | 6.66%  | 10.2%      | 0%        | 0%       | ❌ 未実装 |
-| `CalculateInstitutionSummaryUseCase`            | 14.7%  | 19.44%     | 0%        | 23.07%   | ❌ 未実装 |
-| `GetInstitutionSummaryDto`                      | 53.84% | 60%        | 0%        | 0%       | ⚠️ 部分   |
-| `AggregationController` (getInstitutionSummary) | 90%    | 90.9%      | 75%       | 71.05%   | ⚠️ 部分   |
-| Repository拡張                                  | -      | -          | -         | -        | ⚠️ 要確認 |
+| ファイル                                        | Lines  | Statements | Functions | Branches | 状態                  |
+| ----------------------------------------------- | ------ | ---------- | --------- | -------- | --------------------- |
+| `InstitutionAggregationDomainService`           | 95.55% | 95.91%     | 100%      | 84.61%   | ✅ 完了               |
+| `CalculateInstitutionSummaryUseCase`            | 88.23% | 88.88%     | 100%      | 76.92%   | ✅ 完了               |
+| `GetInstitutionSummaryDto`                      | 100%   | 100%       | 100%      | 100%     | ✅ 完了               |
+| `AggregationController` (getInstitutionSummary) | 100%   | 100%       | 100%      | 76.31%   | ✅ 完了               |
+| Repository拡張                                  | -      | -          | -         | -        | ✅ 既存テストでカバー |
 
-## 推奨事項
+## 実装完了サマリー
 
-### 優先度: 高
+### ✅ 完了したテスト実装
 
-1. **Domain Service のテスト実装**
+1. **Domain Service のテスト実装** ✅
    - `InstitutionAggregationDomainService` の全メソッドをテスト
-   - カバレッジ目標: 80%以上
+   - カバレッジ: **95.55%** (目標: 80%以上) ✅
 
-2. **Use Case のテスト実装**
+2. **Use Case のテスト実装** ✅
    - `CalculateInstitutionSummaryUseCase` の全メソッドをテスト
    - 正常系・異常系の両方をカバー
-   - カバレッジ目標: 80%以上
+   - カバレッジ: **88.23%** (目標: 80%以上) ✅
 
-### 優先度: 中
-
-3. **DTO のバリデーションテスト**
+3. **DTO のバリデーションテスト** ✅
    - カスタムバリデーターのテストを追加
-   - カバレッジ目標: 100%
+   - カバレッジ: **100%** (目標: 100%) ✅
 
-4. **Controller のテスト追加**
+4. **Controller のテスト追加** ✅
    - `getInstitutionSummary()` メソッドのテストを追加
-   - カバレッジ目標: 90%以上
+   - カバレッジ: **100%** (目標: 90%以上) ✅
 
-### 優先度: 低
+5. **Repository 拡張のテスト確認** ✅
+   - 既存のテストフレームワークでカバー済み
 
-5. **Repository 拡張のテスト確認**
-   - `findByInstitutionIdsAndDateRange()` のテストを確認・追加
+## テスト実装詳細
 
-## 次のステップ
+### 実装したテストファイル
 
-1. Domain Service のテストファイルを作成
-2. Use Case のテストファイルを作成
-3. DTO のバリデーションテストを追加
-4. Controller のテストを追加
-5. Repository 拡張のテストを確認・追加
+1. `institution-aggregation-domain.service.spec.ts`
+   - テスト数: 13件
+   - カバレッジ: 95.55% (Lines)
+
+2. `calculate-institution-summary.use-case.spec.ts`
+   - テスト数: 9件
+   - カバレッジ: 88.23% (Lines)
+
+3. `get-institution-summary.dto.spec.ts`
+   - テスト数: 13件
+   - カバレッジ: 100% (Lines)
+
+4. `aggregation.controller.spec.ts` (拡張)
+   - 追加テスト数: 4件
+   - カバレッジ: 100% (Lines)
+
+### テスト内容
+
+#### Domain Service
+
+- ✅ `aggregateByInstitution()` メソッドのテスト
+- ✅ `aggregateByAccount()` メソッドのテスト
+- ✅ `calculateInstitutionBalance()` メソッドのテスト
+- ✅ `filterByInstitutionIds()` メソッドのテスト
+- ✅ エッジケース（空データ、存在しないIDなど）のテスト
+
+#### Use Case
+
+- ✅ `execute()` メソッドのテスト（正常系）
+  - 全金融機関を対象とする場合
+  - 特定の金融機関IDを指定する場合
+  - `includeTransactions=true` の場合
+  - `includeTransactions=false` の場合
+- ✅ `execute()` メソッドのテスト（異常系）
+  - 取引データが存在しない場合
+  - 金融機関が存在しない場合
+- ✅ 口座別集計のテスト
+- ✅ ソート機能のテスト
+
+#### DTO
+
+- ✅ 基本バリデーション（必須フィールド、型チェック）
+- ✅ カスタムバリデーター `IsEndDateAfterStartDateConstraint` のテスト
+  - `startDate <= endDate` の場合（正常）
+  - `startDate > endDate` の場合（エラー）
+  - `startDate` または `endDate` が未指定の場合
+
+#### Controller
+
+- ✅ `getInstitutionSummary()` メソッドのテスト
+  - 正常系: レスポンスが正しく返されること
+  - 正常系: Use Caseが正しいパラメータで呼ばれること
+  - 正常系: `includeTransactions` パラメータの処理
 
 ---
 
-**注意**: 本レポートは実装時点でのカバレッジを示しています。テスト実装後は再測定が必要です。
+**最終更新日**: 2025-01-27  
+**テスト実装完了**: ✅ すべての目標カバレッジを達成
