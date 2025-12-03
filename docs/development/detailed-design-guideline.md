@@ -458,6 +458,34 @@ docs/detailed-design/
   - キーセレクター関数を引数に取る汎用メソッドを作成することで、コードの重複を削減できる
   - 例: `aggregateByCategory`と`aggregateByInstitution`は、汎用的な`aggregateBy`メソッドに統合可能
 
+### 13-12. Onion Architecture原則の徹底（Gemini PR#343レビューから学習）
+
+- [ ] **Domain層のValue Object設計**
+  - Domain層のValue Objectには、Application層で取得する情報（カテゴリ名など）を含めない
+  - Domain層は`categoryId`のみを知っているべきで、`categoryName`はApplication層で`CategoryRepository`から取得してDTOに設定する
+  - 例: `SubcategoryAggregationData`には`subcategoryId`のみを含め、`subcategoryName`は含めない
+  - これにより、関心事の分離が明確になり、Onion Architecture原則に準拠する
+
+- [ ] **APIレスポンスの一貫性**
+  - クライアント側のデータハンドリングをシンプルにするため、レスポンス形式を統一する
+  - 条件によって配列/オブジェクトを切り替えるのではなく、常に配列で返す（要素が1つの場合も配列）
+  - 例: `categoryType`が指定された場合も`data: [{ ... }]`のように要素が1つの配列を返す
+
+- [ ] **N+1問題の考慮**
+  - シーケンス図でループ内でリポジトリメソッドを呼び出す場合は、N+1問題を考慮する
+  - 必要なIDをすべて収集し、`findByIds`のような一括取得メソッドを使用する設計を検討する
+  - 例: サブカテゴリごとに`findById`を呼び出すのではなく、`findByIds(categoryIds[])`で一括取得
+
+- [ ] **型定義の一貫性**
+  - JSONレスポンスではISO形式の文字列として返すため、型定義も`string`を使用する
+  - `Date`型ではなく`string`型で定義することで、ドキュメントと実際のレスポンス形式が一致する
+  - 例: `Period`インターフェースの`start`と`end`は`Date`ではなく`string`（ISO8601形式）
+
+- [ ] **Mermaid記法の標準化**
+  - ジェネリクスは`Promise<Type>`のように標準的な`<>`を使用する
+  - `Promise~Type~`のような`~`記法は非標準のため、`<>`に統一する
+  - TypeScriptコードとの一貫性を保つため、より一般的な`<>`を使用する
+
 ### レビューチェックリスト
 
 ```markdown
@@ -468,18 +496,21 @@ docs/detailed-design/
 - [ ] Onion Architectureに準拠
 - [ ] 依存関係の方向が正しい
 - [ ] レイヤの責務が適切
+- [ ] Domain層のValue ObjectにApplication層で取得する情報を含めていない
 
 ### 設計
 
 - [ ] クラス設計が適切
 - [ ] 処理フローが明確
 - [ ] エラーハンドリングが考慮されている
+- [ ] N+1問題が考慮されている
 
 ### API
 
 - [ ] エンドポイント設計が適切
 - [ ] リクエスト/レスポンスの型が明確
 - [ ] バリデーションルールが定義されている
+- [ ] レスポンス形式が一貫している（配列/オブジェクトの統一）
 
 ### 品質
 
@@ -492,11 +523,13 @@ docs/detailed-design/
 - [ ] 必須セクションがすべて作成されている
 - [ ] 図が分かりやすい
 - [ ] 説明が十分
+- [ ] Mermaid記法が標準的（ジェネリクスは`<>`を使用）
 
 ### その他
 
 - [ ] 既存の設計パターンと一貫性がある
 - [ ] 技術的負債を生まない設計
+- [ ] 型定義が実際のレスポンス形式と一致している
 ```
 
 ---
@@ -680,6 +713,34 @@ flowchart TD
 2. **段階的に作成**: 最初はシンプルに、徐々に詳細化
 3. **既存の図を参考**: FR-001-005の図を参考にする
 4. **Mermaidドキュメント**: [公式ドキュメント](https://mermaid.js.org/)を参照
+
+### ジェネリクス表記の標準化
+
+Mermaidクラス図でジェネリクスを表現する際は、TypeScriptコードとの一貫性を保つため、標準的な`<>`記法を使用します。
+
+**✅ 推奨:**
+
+```mermaid
+classDiagram
+    class UseCase {
+        +execute() Promise<ResponseDto[]>
+    }
+```
+
+**❌ 非推奨:**
+
+```mermaid
+classDiagram
+    class UseCase {
+        +execute() Promise~ResponseDto[]~
+    }
+```
+
+**理由:**
+
+- TypeScriptコードとの一貫性が取れる
+- より一般的で可読性が高い
+- Mermaidの標準的な記法に準拠
 
 ---
 
