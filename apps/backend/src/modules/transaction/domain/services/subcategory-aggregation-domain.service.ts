@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionEntity } from '../entities/transaction.entity';
 import type { CategoryEntity } from '../../../category/domain/entities/category.entity';
-import { CategoryType } from '@account-book/types';
 import { TrendData, MonthlyTrend } from './category-aggregation-domain.service';
 
 /**
@@ -25,27 +24,18 @@ export interface SubcategoryAggregationResult {
 export class SubcategoryAggregationDomainService {
   /**
    * 費目別に集計
-   * @param transactions 取引リスト
-   * @param categoryType カテゴリタイプ（オプション）
+   * @param transactions 取引リスト（UseCaseで既にフィルタリング済み）
    * @returns カテゴリIDをキーとした集計データのMap
    */
   aggregateBySubcategory(
     transactions: TransactionEntity[],
-    categoryType?: CategoryType,
   ): Map<string, SubcategoryAggregationResult> {
-    const filteredTransactions = categoryType
-      ? transactions.filter((t) => t.category.type === categoryType)
-      : transactions;
-
     const result = new Map<string, SubcategoryAggregationResult>();
 
     // 全体の合計金額を計算（割合計算用）
-    const totalAmount = filteredTransactions.reduce(
-      (sum, t) => sum + t.amount,
-      0,
-    );
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
 
-    for (const transaction of filteredTransactions) {
+    for (const transaction of transactions) {
       const categoryId = transaction.category.id;
       const existing = result.get(categoryId);
 
@@ -132,15 +122,16 @@ export class SubcategoryAggregationDomainService {
     }
 
     // 親の平均金額と割合を再計算
+    // totalAmountはループ内で変化しないため、ループの外で一度だけ計算
+    const totalAmount = Array.from(aggregation.values()).reduce(
+      (sum, data) => sum + data.totalAmount,
+      0,
+    );
     for (const result of categoryResults.values()) {
       if (result.children.length > 0) {
         result.averageAmount = this.calculateAverage(
           result.totalAmount,
           result.transactionCount,
-        );
-        const totalAmount = Array.from(aggregation.values()).reduce(
-          (sum, data) => sum + data.totalAmount,
-          0,
         );
         result.percentage = this.calculatePercentage(
           result.totalAmount,
@@ -180,25 +171,22 @@ export class SubcategoryAggregationDomainService {
 
   /**
    * 期間内の月次推移を計算
-   * @param transactions 取引リスト
-   * @param startDate 開始日
-   * @param endDate 終了日
+   * @param transactions 取引リスト（UseCaseで既に期間でフィルタリング済み）
+   * @param _startDate 開始日（互換性のため保持、使用しない）
+   * @param _endDate 終了日（互換性のため保持、使用しない）
    * @returns 推移データ
    */
   calculateTrend(
     transactions: TransactionEntity[],
-    startDate: Date,
-    endDate: Date,
+    _startDate: Date,
+    _endDate: Date,
   ): TrendData {
-    // 期間内の取引をフィルタリング
-    const filteredTransactions = transactions.filter(
-      (t) => t.date >= startDate && t.date <= endDate,
-    );
+    // 期間内の取引は既にフィルタリング済み
 
     // 月ごとに集計
     const monthlyMap = new Map<string, { amount: number; count: number }>();
 
-    for (const transaction of filteredTransactions) {
+    for (const transaction of transactions) {
       const month = `${transaction.date.getFullYear()}-${String(
         transaction.date.getMonth() + 1,
       ).padStart(2, '0')}`;

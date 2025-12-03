@@ -146,7 +146,9 @@ export class CalculateSubcategoryAggregationUseCase {
       result: SubcategoryAggregationResult,
       parentId: string | null,
     ): ExpenseItemSummary => {
-      const category = categoryMap.get(result.itemId);
+      // categoryMapはaggregationResultsの元となったcategoriesから作成されているため、
+      // categoryがundefinedになることはない（非nullアサーションを使用）
+      const category = categoryMap.get(result.itemId)!;
       const categoryTransactions =
         transactionsByCategoryId.get(result.itemId) || [];
 
@@ -166,8 +168,8 @@ export class CalculateSubcategoryAggregationUseCase {
         );
 
       return {
-        itemName: category?.name || '',
-        itemCode: category?.id || '',
+        itemName: category.name,
+        itemCode: category.id,
         itemId: result.itemId,
         parent: parentId,
         totalAmount: result.totalAmount,

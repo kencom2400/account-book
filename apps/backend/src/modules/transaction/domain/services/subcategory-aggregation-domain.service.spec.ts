@@ -68,10 +68,7 @@ describe('SubcategoryAggregationDomainService', () => {
         createTransaction('3', 20000, CategoryType.EXPENSE, 'cat_1'),
       ];
 
-      const result = service.aggregateBySubcategory(
-        transactions,
-        CategoryType.EXPENSE,
-      );
+      const result = service.aggregateBySubcategory(transactions);
 
       expect(result.size).toBe(2);
       expect(result.get('cat_1')?.totalAmount).toBe(70000);
@@ -82,20 +79,15 @@ describe('SubcategoryAggregationDomainService', () => {
       expect(result.get('cat_2')?.averageAmount).toBe(30000);
     });
 
-    it('should return empty map when no transactions match category type', () => {
-      const transactions = [
-        createTransaction('1', 50000, CategoryType.INCOME, 'cat_1'),
-      ];
+    it('should return empty map when no transactions', () => {
+      const transactions: TransactionEntity[] = [];
 
-      const result = service.aggregateBySubcategory(
-        transactions,
-        CategoryType.EXPENSE,
-      );
+      const result = service.aggregateBySubcategory(transactions);
 
       expect(result.size).toBe(0);
     });
 
-    it('should aggregate all transactions when categoryType is not specified', () => {
+    it('should aggregate all transactions including different category types', () => {
       const transactions = [
         createTransaction('1', 50000, CategoryType.EXPENSE, 'cat_1'),
         createTransaction('2', 30000, CategoryType.INCOME, 'cat_2'),
@@ -194,9 +186,10 @@ describe('SubcategoryAggregationDomainService', () => {
   });
 
   describe('calculateTrend', () => {
-    it('should calculate monthly trend for transactions in date range', () => {
+    it('should calculate monthly trend for transactions (already filtered by UseCase)', () => {
       const startDate = new Date('2025-01-01');
       const endDate = new Date('2025-01-31');
+      // UseCaseで既に期間でフィルタリング済みの取引を想定
       const transactions = [
         createTransaction(
           '1',
@@ -219,13 +212,6 @@ describe('SubcategoryAggregationDomainService', () => {
           'cat_2',
           new Date('2025-01-25'),
         ),
-        createTransaction(
-          '4',
-          20000,
-          CategoryType.INCOME,
-          'cat_1',
-          new Date('2025-02-10'),
-        ),
       ];
 
       const result = service.calculateTrend(transactions, startDate, endDate);
@@ -236,9 +222,10 @@ describe('SubcategoryAggregationDomainService', () => {
       expect(result.monthly[0].count).toBe(3);
     });
 
-    it('should filter transactions by date range', () => {
+    it('should calculate monthly trend for multiple months', () => {
       const startDate = new Date('2025-01-01');
-      const endDate = new Date('2025-01-31');
+      const endDate = new Date('2025-02-28');
+      // UseCaseで既に期間でフィルタリング済みの取引を想定
       const transactions = [
         createTransaction(
           '1',
@@ -258,10 +245,13 @@ describe('SubcategoryAggregationDomainService', () => {
 
       const result = service.calculateTrend(transactions, startDate, endDate);
 
-      expect(result.monthly).toHaveLength(1);
+      expect(result.monthly).toHaveLength(2);
       expect(result.monthly[0].month).toBe('2025-01');
       expect(result.monthly[0].amount).toBe(100000);
       expect(result.monthly[0].count).toBe(1);
+      expect(result.monthly[1].month).toBe('2025-02');
+      expect(result.monthly[1].amount).toBe(50000);
+      expect(result.monthly[1].count).toBe(1);
     });
   });
 
