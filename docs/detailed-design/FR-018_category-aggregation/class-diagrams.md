@@ -142,7 +142,7 @@ classDiagram
         -ITransactionRepository transactionRepository
         -ICategoryRepository categoryRepository
         -CategoryAggregationDomainService domainService
-        +execute(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto | CategoryAggregationResponseDto[]>
+        +execute(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto[]>
         -buildSubcategorySummary(aggregation Map<string, SubcategoryAggregationData>, transactions TransactionEntity[]) SubcategorySummary[]
         -toTransactionDto(entity TransactionEntity) TransactionDto
         -getCategoryName(categoryId) Promise<string>
@@ -359,7 +359,7 @@ classDiagram
 classDiagram
     class AggregationController {
         -CalculateCategoryAggregationUseCase calculateCategoryAggregationUseCase
-        +getCategoryAggregation(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto | CategoryAggregationResponseDto[]>
+        +getCategoryAggregation(startDate, endDate, categoryType?) Promise<CategoryAggregationResponseDto[]>
     }
 
     class GetCategoryAggregationQueryDto {

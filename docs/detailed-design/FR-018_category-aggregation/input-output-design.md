@@ -273,47 +273,49 @@ GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryTy
 ```json
 {
   "success": true,
-  "data": {
-    "category": "EXPENSE",
-    "period": {
-      "start": "2025-01-01T00:00:00.000Z",
-      "end": "2025-01-31T23:59:59.999Z"
-    },
-    "totalAmount": 200000,
-    "transactionCount": 5,
-    "subcategories": [
-      {
-        "subcategory": "食費",
-        "subcategoryId": "cat-002",
-        "amount": 100000,
-        "count": 3,
-        "percentage": 50.0,
-        "topTransactions": [
+  "data": [
+    {
+      "category": "EXPENSE",
+      "period": {
+        "start": "2025-01-01T00:00:00.000Z",
+        "end": "2025-01-31T23:59:59.999Z"
+      },
+      "totalAmount": 200000,
+      "transactionCount": 5,
+      "subcategories": [
+        {
+          "subcategory": "食費",
+          "subcategoryId": "cat-002",
+          "amount": 100000,
+          "count": 3,
+          "percentage": 50.0,
+          "topTransactions": [
+            {
+              "id": "txn-002",
+              "date": "2025-01-10T00:00:00.000Z",
+              "amount": 50000,
+              "categoryType": "EXPENSE",
+              "categoryId": "cat-002",
+              "categoryName": "食費",
+              "institutionId": "inst-002",
+              "accountId": "acc-002",
+              "description": "スーパー"
+            }
+          ]
+        }
+      ],
+      "percentage": 100.0,
+      "trend": {
+        "monthly": [
           {
-            "id": "txn-002",
-            "date": "2025-01-10T00:00:00.000Z",
-            "amount": 50000,
-            "categoryType": "EXPENSE",
-            "categoryId": "cat-002",
-            "categoryName": "食費",
-            "institutionId": "inst-002",
-            "accountId": "acc-002",
-            "description": "スーパー"
+            "month": "2025-01",
+            "amount": 200000,
+            "count": 5
           }
         ]
       }
-    ],
-    "percentage": 100.0,
-    "trend": {
-      "monthly": [
-        {
-          "month": "2025-01",
-          "amount": 200000,
-          "count": 5
-        }
-      ]
     }
-  }
+  ]
 }
 ```
 
@@ -326,7 +328,7 @@ GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryTy
 | totalAmount      | number               | 合計金額                                                           |
 | transactionCount | number               | 取引件数                                                           |
 | subcategories    | SubcategorySummary[] | サブカテゴリ（費目）別内訳                                         |
-| percentage       | number               | 全体に占める割合（%）。全カテゴリ集計の場合のみ有効                |
+| percentage       | number               | 全体に占める割合（%）。categoryTypeが指定されている場合は100.0     |
 | trend            | TrendData            | 推移データ（月次推移）                                             |
 
 **Period:**
@@ -384,6 +386,8 @@ GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryTy
 
 ```typescript
 // Response DTO（interface）
+// 注意: categoryTypeが指定されていない場合は全カテゴリ（5つ）の配列、
+// categoryTypeが指定されている場合は該当カテゴリ（1つ）の配列を返す
 export interface CategoryAggregationResponseDto {
   category: CategoryType;
   period: Period;
