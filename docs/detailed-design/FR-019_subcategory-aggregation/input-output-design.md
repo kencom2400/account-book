@@ -216,6 +216,50 @@ GET /api/aggregation/subcategory?startDate=2025-01-01&endDate=2025-01-31&itemId=
             "institutionId": "inst-001",
             "accountId": "acc-001",
             "description": "レストラン"
+          },
+          {
+            "id": "txn-002",
+            "date": "2025-01-20T00:00:00.000Z",
+            "amount": 20000,
+            "categoryType": "EXPENSE",
+            "categoryId": "cat-food-dining",
+            "categoryName": "外食",
+            "institutionId": "inst-001",
+            "accountId": "acc-001",
+            "description": "カフェ"
+          },
+          {
+            "id": "txn-003",
+            "date": "2025-01-05T00:00:00.000Z",
+            "amount": 20000,
+            "categoryType": "EXPENSE",
+            "categoryId": "cat-food-supermarket",
+            "categoryName": "スーパー",
+            "institutionId": "inst-002",
+            "accountId": "acc-002",
+            "description": "スーパー"
+          },
+          {
+            "id": "txn-005",
+            "date": "2025-01-25T00:00:00.000Z",
+            "amount": 20000,
+            "categoryType": "EXPENSE",
+            "categoryId": "cat-food-convenience",
+            "categoryName": "コンビニ",
+            "institutionId": "inst-001",
+            "accountId": "acc-001",
+            "description": "コンビニ"
+          },
+          {
+            "id": "txn-004",
+            "date": "2025-01-15T00:00:00.000Z",
+            "amount": 10000,
+            "categoryType": "EXPENSE",
+            "categoryId": "cat-food-supermarket",
+            "categoryName": "スーパー",
+            "institutionId": "inst-002",
+            "accountId": "acc-002",
+            "description": "スーパー"
           }
         ]
       },
