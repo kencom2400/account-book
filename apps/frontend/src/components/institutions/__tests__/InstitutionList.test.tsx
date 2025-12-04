@@ -135,8 +135,8 @@ describe('InstitutionList', () => {
       expect(screen.getByText('テスト銀行')).toBeInTheDocument();
     });
 
-    const addButton = screen.getByText('金融機関を追加');
-    fireEvent.click(addButton);
+    const addButtons = screen.getAllByRole('button', { name: '金融機関を追加' });
+    fireEvent.click(addButtons[0]); // ヘッダー内のボタン
 
     expect(mockPush).toHaveBeenCalledWith('/banks/add');
   });
@@ -165,8 +165,8 @@ describe('InstitutionList', () => {
       expect(screen.getByText('金融機関が登録されていません')).toBeInTheDocument();
     });
 
-    const addButtons = screen.getAllByText('金融機関を追加');
-    fireEvent.click(addButtons[0]); // 空状態のボタン
+    const addButtons = screen.getAllByRole('button', { name: '金融機関を追加' });
+    fireEvent.click(addButtons[addButtons.length - 1]); // 空状態のボタン
 
     expect(mockPush).toHaveBeenCalledWith('/banks/add');
   });

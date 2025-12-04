@@ -64,7 +64,7 @@ test.describe('Category Management', () => {
     await page.waitForTimeout(500);
   });
 
-  // TODO: Issue #XXX - 編集機能の不具合が修正されたら、このテストを有効化する
+  // TODO: Issue #110 - 編集機能の不具合が修正されたら、このテストを有効化する
   test.skip('費目を編集できる', async ({ page }) => {
     // 最初の編集ボタンをクリック（システム定義以外）
     const editButtons = page.locator('button:has-text("編集")');

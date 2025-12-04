@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { Institution, InstitutionType } from '@account-book/types';
@@ -58,8 +58,9 @@ describe('DeleteConfirmModal', () => {
       />
     );
 
-    const deleteButton = screen.getAllByText('削除');
-    fireEvent.click(deleteButton[deleteButton.length - 1]); // モーダル内の削除ボタン
+    const modal = screen.getByRole('dialog');
+    const deleteButton = within(modal).getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
 
     expect(mockOnConfirm).toHaveBeenCalledTimes(1);
   });
@@ -120,8 +121,9 @@ describe('DeleteConfirmModal', () => {
       />
     );
 
-    const deleteButton = screen.getAllByText('削除');
-    fireEvent.click(deleteButton[deleteButton.length - 1]);
+    const modal = screen.getByRole('dialog');
+    const deleteButton = within(modal).getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
 
     await waitFor(() => {
       expect(asyncOnConfirm).toHaveBeenCalled();

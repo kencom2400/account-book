@@ -25,7 +25,8 @@ export function InstitutionList(): React.JSX.Element {
       setInstitutions(data);
       setError(null);
     } catch (err) {
-      setError('金融機関の取得に失敗しました。');
+      const message = err instanceof Error ? err.message : '金融機関の取得に失敗しました。';
+      setError(message);
       if (err instanceof Error) {
         console.error('金融機関の取得中にエラーが発生しました:', err);
       }

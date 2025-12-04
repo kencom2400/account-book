@@ -127,7 +127,9 @@ export function InstitutionCard({
                 <CardTitle className="text-lg">{institution.name}</CardTitle>
                 <p className="text-sm text-gray-500 mt-1">
                   {institution.accounts.length > 0
-                    ? institution.accounts[0].accountName
+                    ? institution.accounts.length === 1
+                      ? institution.accounts[0].accountName
+                      : `${institution.accounts.length}件の口座`
                     : '口座情報なし'}
                 </p>
               </div>

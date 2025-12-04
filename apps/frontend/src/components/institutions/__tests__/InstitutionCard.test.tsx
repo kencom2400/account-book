@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { InstitutionCard } from '../InstitutionCard';
 import { Institution, InstitutionType } from '@account-book/types';
@@ -179,42 +179,52 @@ describe('InstitutionCard', () => {
   it('削除ボタンをクリックすると、削除確認モーダルが表示される', async () => {
     render(<InstitutionCard institution={mockInstitution} onUpdate={mockOnUpdate} />);
 
-    const deleteButtons = screen.getAllByText('削除');
-    fireEvent.click(deleteButtons[0]); // カード内の削除ボタン
+    const deleteButton = screen.getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
 
     await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('金融機関を削除しますか？')).toBeInTheDocument();
     });
 
     // モーダル内のテキストを確認（strongタグ内のテキスト）
-    const modalText = screen.getByText(/を削除しようとしています/);
+    const modal = screen.getByRole('dialog');
+    const modalText = within(modal).getByText(/を削除しようとしています/);
     expect(modalText).toBeInTheDocument();
   });
 
-  it('削除確認モーダルでキャンセルをクリックすると、モーダルが閉じる', () => {
+  it('削除確認モーダルでキャンセルをクリックすると、モーダルが閉じる', async () => {
     render(<InstitutionCard institution={mockInstitution} onUpdate={mockOnUpdate} />);
 
-    const deleteButton = screen.getByText('削除');
+    const deleteButton = screen.getByRole('button', { name: '削除' });
     fireEvent.click(deleteButton);
 
-    const cancelButton = screen.getByText('キャンセル');
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    const modal = screen.getByRole('dialog');
+    const cancelButton = within(modal).getByRole('button', { name: 'キャンセル' });
     fireEvent.click(cancelButton);
 
-    expect(screen.queryByText('金融機関を削除しますか？')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   it('削除確認モーダルで削除をクリックすると、onUpdateが呼ばれる', async () => {
     render(<InstitutionCard institution={mockInstitution} onUpdate={mockOnUpdate} />);
 
-    const deleteButtons = screen.getAllByText('削除');
-    fireEvent.click(deleteButtons[0]); // カード内の削除ボタン
+    const deleteButton = screen.getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('金融機関を削除しますか？')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    const confirmButtons = screen.getAllByText('削除');
-    fireEvent.click(confirmButtons[confirmButtons.length - 1]); // モーダル内の削除ボタン
+    const modal = screen.getByRole('dialog');
+    const confirmButton = within(modal).getByRole('button', { name: '削除' });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(mockOnUpdate).toHaveBeenCalled();
@@ -236,5 +246,31 @@ describe('InstitutionCard', () => {
     render(<InstitutionCard institution={noAccountInstitution} onUpdate={mockOnUpdate} />);
 
     expect(screen.getByText('口座情報なし')).toBeInTheDocument();
+  });
+
+  it('複数の口座がある場合、口座数を表示する', () => {
+    const multiAccountInstitution: Institution = {
+      ...mockInstitution,
+      accounts: [
+        {
+          id: 'acc-1',
+          accountNumber: '1234567',
+          accountName: '普通預金',
+          balance: 1000000,
+          currency: 'JPY',
+        },
+        {
+          id: 'acc-2',
+          accountNumber: '7654321',
+          accountName: '定期預金',
+          balance: 5000000,
+          currency: 'JPY',
+        },
+      ],
+    };
+
+    render(<InstitutionCard institution={multiAccountInstitution} onUpdate={mockOnUpdate} />);
+
+    expect(screen.getByText('2件の口座')).toBeInTheDocument();
   });
 });

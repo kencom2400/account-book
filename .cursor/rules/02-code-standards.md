@@ -5802,6 +5802,100 @@ test.skip('費目を編集できる', async ({ page }) => {
 - コードの保守性が向上
 - 将来の実装者への情報提供
 
+### 13-6. モーダルのアクセシビリティ改善（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### モーダルコンポーネントのアクセシビリティ属性
+
+**問題**: モーダルコンポーネントに適切なARIA属性が設定されていない
+
+**解決策**: `role="dialog"`、`aria-modal="true"`、`aria-labelledby`を追加
+
+```typescript
+// ❌ 悪い例: アクセシビリティ属性が不足
+<div className="modal">
+  <h3>削除しますか？</h3>
+  {/* ... */}
+</div>
+
+// ✅ 良い例: 適切なARIA属性を設定
+<div role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <h3 id="modal-title">削除しますか？</h3>
+  {/* ... */}
+</div>
+```
+
+**理由**:
+
+- スクリーンリーダーがモーダルを正しく認識できる
+- ユーザー体験が向上
+- WCAG準拠
+
+**注意**: オーバーレイの`div`に`role="button"`や`tabIndex`を設定するのは不適切。`onClick`と`onKeyDown`だけで十分。
+
+### 13-7. テストでの堅牢なセレクタ使用（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### テストでのセレクタ選択
+
+**問題**: `getAllByText`とインデックスを使用したセレクタは脆弱
+
+**解決策**: `getByRole`と`within`を使用してスコープを限定
+
+```typescript
+// ❌ 悪い例: インデックスに依存した脆弱なセレクタ
+const deleteButtons = screen.getAllByText('削除');
+fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+
+// ✅ 良い例: roleとwithinでスコープを限定
+const modal = screen.getByRole('dialog');
+const deleteButton = within(modal).getByRole('button', { name: '削除' });
+fireEvent.click(deleteButton);
+```
+
+**理由**:
+
+- UIの変更に強いテストになる
+- 意図が明確になる
+- 保守性が向上
+
+### 13-8. 型定義の共有パッケージへの移動（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### API型定義の配置
+
+**問題**: フロントエンドとバックエンドで型定義が重複している
+
+**解決策**: 共通の型定義を`@account-book/types`パッケージに移動
+
+```typescript
+// ❌ 悪い例: フロントエンドにローカル型定義
+// apps/frontend/src/lib/api/sync.ts
+export interface SyncAllTransactionsRequest {
+  forceFullSync?: boolean;
+  institutionIds?: string[];
+}
+
+// ✅ 良い例: 共有パッケージに型定義
+// libs/types/src/sync.types.ts
+export interface SyncAllTransactionsRequest {
+  forceFullSync?: boolean;
+  institutionIds?: string[];
+}
+
+// apps/frontend/src/lib/api/sync.ts
+import { SyncAllTransactionsRequest } from '@account-book/types';
+```
+
+**理由**:
+
+- 型の一貫性が保証される
+- 重複が排除される
+- 保守性が向上
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
