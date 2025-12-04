@@ -15,9 +15,7 @@ import {
  * カスタムバリデーター: endDateがstartDate以降であることを確認
  */
 @ValidatorConstraint({ name: 'isEndDateAfterStartDate', async: false })
-export class IsEndDateAfterStartDateConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsEndDateAfterStartDateConstraint implements ValidatorConstraintInterface {
   validate(endDate: string, args: ValidationArguments): boolean {
     const object = args.object as GetInstitutionSummaryDto;
     const startDate = object.startDate;

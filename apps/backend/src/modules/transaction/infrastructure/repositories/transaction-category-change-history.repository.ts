@@ -10,9 +10,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from '../entities/transacti
  * FR-010: 費目の手動修正機能
  */
 @Injectable()
-export class TransactionCategoryChangeHistoryRepository
-  implements ITransactionCategoryChangeHistoryRepository
-{
+export class TransactionCategoryChangeHistoryRepository implements ITransactionCategoryChangeHistoryRepository {
   private readonly logger = new Logger(
     TransactionCategoryChangeHistoryRepository.name,
   );

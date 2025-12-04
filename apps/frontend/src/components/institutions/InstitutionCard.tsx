@@ -24,6 +24,27 @@ export function InstitutionCard({
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  const handleConfirmDelete = (): void => {
+    setIsDeleting(true);
+    try {
+      // TODO: 削除APIを呼び出す（バックエンドに未実装のため保留）
+      // 削除機能は別Issueで実装予定
+      setShowDeleteModal(false);
+      onUpdate();
+    } catch (error) {
+      // エラーハンドリングは別Issueで実装予定
+      if (error instanceof Error) {
+        // エラーを適切に処理
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = (): void => {
+    setShowDeleteModal(false);
+  };
+
   const getInstitutionIcon = (type: InstitutionType): string => {
     switch (type) {
       case InstitutionType.BANK:
@@ -185,25 +206,8 @@ export function InstitutionCard({
       {showDeleteModal && (
         <DeleteConfirmModal
           institution={institution}
-          onConfirm={(): void => {
-            setIsDeleting(true);
-            try {
-              // TODO: 削除APIを呼び出す（バックエンドに未実装のため保留）
-              // 削除機能は別Issueで実装予定
-              setShowDeleteModal(false);
-              onUpdate();
-            } catch (error) {
-              // エラーハンドリングは別Issueで実装予定
-              if (error instanceof Error) {
-                // エラーを適切に処理
-              }
-            } finally {
-              setIsDeleting(false);
-            }
-          }}
-          onCancel={(): void => {
-            setShowDeleteModal(false);
-          }}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
         />
       )}
     </>

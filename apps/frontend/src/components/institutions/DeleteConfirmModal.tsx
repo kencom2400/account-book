@@ -64,11 +64,7 @@ export function DeleteConfirmModal({
                     <strong>{institution.name}</strong>
                     を削除しようとしています。この操作は取り消せません。
                   </p>
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p className="text-sm text-yellow-800">
-                      <strong>注意:</strong> 削除する際は、取引履歴の扱いを選択してください。
-                    </p>
-                  </div>
+                  {/* TODO: 取引履歴の扱いを選択するUI要素を実装（別Issueで実装予定） */}
                 </div>
               </div>
             </div>

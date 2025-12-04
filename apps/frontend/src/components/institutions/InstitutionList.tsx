@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Institution } from '@account-book/types';
 import { getInstitutions } from '@/lib/api/institutions';
@@ -18,46 +18,32 @@ export function InstitutionList(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchInstitutions = async (): Promise<void> => {
-      try {
-        setLoading(true);
-        const data = await getInstitutions();
-        setInstitutions(data);
-        setError(null);
-      } catch (err) {
-        setError('金融機関の取得に失敗しました。');
-        if (err instanceof Error) {
-          // エラーを適切に処理
-        }
-      } finally {
-        setLoading(false);
+  const fetchInstitutions = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const data = await getInstitutions();
+      setInstitutions(data);
+      setError(null);
+    } catch (err) {
+      setError('金融機関の取得に失敗しました。');
+      if (err instanceof Error) {
+        // エラーを適切に処理
       }
-    };
-
-    void fetchInstitutions();
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchInstitutions();
+  }, [fetchInstitutions]);
 
   const handleAddInstitution = (): void => {
     router.push('/banks/add');
   };
 
   const handleRefresh = (): void => {
-    void (async (): Promise<void> => {
-      try {
-        setLoading(true);
-        const data = await getInstitutions();
-        setInstitutions(data);
-        setError(null);
-      } catch (err) {
-        setError('金融機関の取得に失敗しました。');
-        if (err instanceof Error) {
-          // エラーを適切に処理
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void fetchInstitutions();
   };
 
   if (loading) {
