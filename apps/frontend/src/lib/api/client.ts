@@ -124,7 +124,12 @@ async function del<T>(endpoint: string): Promise<T> {
   if (!response.ok) {
     await handleErrorResponse(response);
   }
-  
+
+  // 204 No Contentの場合はレスポンスボディがない
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const result: unknown = await response.json();
   return result as T;
 }

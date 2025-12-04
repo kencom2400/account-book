@@ -108,3 +108,22 @@ export async function testBankConnection(
     data
   );
 }
+
+export interface DeleteInstitutionRequest {
+  deleteTransactions?: boolean;
+}
+
+/**
+ * 金融機関を削除
+ */
+export async function deleteInstitution(
+  id: string,
+  options?: DeleteInstitutionRequest
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (options?.deleteTransactions === true) {
+    params.append('deleteTransactions', 'true');
+  }
+  const endpoint = `/institutions/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+  return await apiClient.delete<void>(endpoint);
+}

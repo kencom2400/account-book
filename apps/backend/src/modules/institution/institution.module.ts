@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InstitutionController } from './presentation/controllers/institution.controller';
 import { InstitutionTypeOrmRepository } from './infrastructure/repositories/institution-typeorm.repository';
@@ -12,6 +12,8 @@ import { GetInstitutionUseCase } from './application/use-cases/get-institution.u
 import { TestBankConnectionUseCase } from './application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from './application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from './application/use-cases/update-institution.use-case';
+import { DeleteInstitutionUseCase } from './application/use-cases/delete-institution.use-case';
+import { TransactionModule } from '../transaction/transaction.module';
 import {
   INSTITUTION_REPOSITORY,
   CRYPTO_SERVICE,
@@ -19,7 +21,10 @@ import {
 } from './institution.tokens';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InstitutionOrmEntity, AccountOrmEntity])],
+  imports: [
+    TypeOrmModule.forFeature([InstitutionOrmEntity, AccountOrmEntity]),
+    forwardRef(() => TransactionModule),
+  ],
   controllers: [InstitutionController],
   providers: [
     // Repository - TypeORM版を使用
@@ -44,6 +49,7 @@ import {
     TestBankConnectionUseCase,
     GetSupportedBanksUseCase,
     UpdateInstitutionUseCase,
+    DeleteInstitutionUseCase,
   ],
   exports: [INSTITUTION_REPOSITORY, CRYPTO_SERVICE, BANK_API_ADAPTER],
 })

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -16,8 +17,10 @@ import { GetInstitutionUseCase } from '../../application/use-cases/get-instituti
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
+import { DeleteInstitutionUseCase } from '../../application/use-cases/delete-institution.use-case';
 import { CreateInstitutionDto } from '../dto/create-institution.dto';
 import { UpdateInstitutionDto } from '../dto/update-institution.dto';
+import { DeleteInstitutionDto } from '../dto/delete-institution.dto';
 import { GetInstitutionsQueryDto } from '../dto/get-institutions.dto';
 import { TestBankConnectionDto } from '../dto/test-bank-connection.dto';
 import { GetSupportedBanksQueryDto } from '../dto/get-supported-banks.dto';
@@ -37,6 +40,7 @@ export class InstitutionController {
     private readonly testBankConnectionUseCase: TestBankConnectionUseCase,
     private readonly getSupportedBanksUseCase: GetSupportedBanksUseCase,
     private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
+    private readonly deleteInstitutionUseCase: DeleteInstitutionUseCase,
   ) {}
 
   /**
@@ -154,5 +158,18 @@ export class InstitutionController {
       success: true,
       data: institution.toJSON(),
     };
+  }
+
+  /**
+   * 金融機関を削除
+   * DELETE /api/institutions/:id?deleteTransactions=true
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id') id: string,
+    @Query() query: DeleteInstitutionDto,
+  ): Promise<void> {
+    await this.deleteInstitutionUseCase.execute(id, query);
   }
 }
