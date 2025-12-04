@@ -135,7 +135,7 @@ describe('DeleteConfirmModal', () => {
     expect(asyncOnConfirm).toHaveBeenCalledWith(false);
   });
 
-  it('デフォルトで「取引履歴は保持」が選択されている', () => {
+  it('ラジオボタンの選択が正しく切り替わる', () => {
     render(
       <DeleteConfirmModal
         institution={mockInstitution}
@@ -147,44 +147,16 @@ describe('DeleteConfirmModal', () => {
     const keepOption = screen.getByLabelText('取引履歴は保持');
     const deleteOption = screen.getByLabelText('取引履歴も削除');
 
+    // デフォルトで「取引履歴は保持」が選択されていることを確認
     expect(keepOption).toBeChecked();
     expect(deleteOption).not.toBeChecked();
-  });
 
-  it('「取引履歴も削除」を選択できる', () => {
-    render(
-      <DeleteConfirmModal
-        institution={mockInstitution}
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const deleteOption = screen.getByLabelText('取引履歴も削除');
+    // 「取引履歴も削除」を選択
     fireEvent.click(deleteOption);
-
     expect(deleteOption).toBeChecked();
-    const keepOption = screen.getByLabelText('取引履歴は保持');
     expect(keepOption).not.toBeChecked();
-  });
 
-  it('「取引履歴は保持」を選択できる', () => {
-    render(
-      <DeleteConfirmModal
-        institution={mockInstitution}
-        onConfirm={mockOnConfirm}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const deleteOption = screen.getByLabelText('取引履歴も削除');
-    const keepOption = screen.getByLabelText('取引履歴は保持');
-
-    // まず「取引履歴も削除」を選択
-    fireEvent.click(deleteOption);
-    expect(deleteOption).toBeChecked();
-
-    // 次に「取引履歴は保持」を選択
+    // 「取引履歴は保持」を選択
     fireEvent.click(keepOption);
     expect(keepOption).toBeChecked();
     expect(deleteOption).not.toBeChecked();
