@@ -37,23 +37,17 @@ export class UpdateInstitutionUseCase {
       throw new NotFoundException(`金融機関 (ID: ${id}) が見つかりません`);
     }
 
-    // 更新する値を決定
-    const name = dto.name ?? existingInstitution.name;
-    const type = dto.type ?? existingInstitution.type;
-    let credentials = existingInstitution.credentials;
-
     // 認証情報が更新される場合は暗号化
-    if (dto.credentials !== undefined) {
-      const credentialsJson = JSON.stringify(dto.credentials);
-      const encryptedCredentials = this.cryptoService.encrypt(credentialsJson);
-      credentials = encryptedCredentials;
-    }
+    const credentials =
+      dto.credentials !== undefined
+        ? this.cryptoService.encrypt(JSON.stringify(dto.credentials))
+        : existingInstitution.credentials;
 
     // 新しいエンティティを作成（updatedAtを更新）
     const updatedInstitution = new InstitutionEntity(
       existingInstitution.id,
-      name,
-      type,
+      dto.name ?? existingInstitution.name,
+      dto.type ?? existingInstitution.type,
       credentials,
       existingInstitution.isConnected,
       existingInstitution.lastSyncedAt,
