@@ -5979,6 +5979,158 @@ catch (error) {
 - ユーザー体験が向上する
 - デバッグ情報はログに残しつつ、ユーザーにも通知する
 
+### 13-11. データベース操作の原子性確保（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### トランザクションの導入
+
+**問題**: 複数のデータベース操作が関連する場合、処理の途中でエラーが発生するとデータが不整合な状態になる可能性がある。
+
+**解決策**: 関連する操作をトランザクション内で実行する
+
+```typescript
+// ❌ 悪い例: トランザクションなし
+await this.transactionRepository.deleteByInstitutionId(id);
+await this.institutionRepository.delete(id);
+// 2つ目の操作が失敗すると、取引履歴のみが削除された状態になる
+
+// ✅ 良い例: トランザクションを使用
+await this.dataSource.transaction(async (entityManager) => {
+  const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+  await transactionRepo.delete({ institutionId: id });
+
+  const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+  await institutionRepo.delete(id);
+});
+```
+
+**実装例**:
+
+```typescript
+@Injectable()
+export class DeleteInstitutionUseCase {
+  constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource
+    // ...
+  ) {}
+
+  async execute(id: string, dto: DeleteInstitutionDto = {}): Promise<void> {
+    // トランザクション外で検証（パフォーマンス向上）
+    const existingInstitution = await this.institutionRepository.findById(id);
+    if (!existingInstitution) {
+      throw new NotFoundException(`金融機関 (ID: ${id}) が見つかりません`);
+    }
+
+    // トランザクション内で削除操作を実行
+    await this.dataSource.transaction(async (entityManager) => {
+      if (dto.deleteTransactions === true) {
+        const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+        await transactionRepo.delete({ institutionId: id });
+      }
+
+      const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+      await institutionRepo.delete(id);
+    });
+  }
+}
+```
+
+**理由**:
+
+- データ整合性が保証される
+- 不整合な状態が発生しない
+- エラー発生時にすべての変更がロールバックされる
+
+**重要なポイント**:
+
+1. **複数のデータベース操作が関連する場合は必ずトランザクションを使用**
+2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
+3. **トランザクション内では`entityManager.getRepository()`を使用**
+4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+
+### 13-12. ファイルシステム版リポジトリのパフォーマンス最適化（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### 全データ読み込みの回避
+
+**問題**: 全取引をメモリに読み込んでから処理することで、大規模データセットでパフォーマンスが低下する。
+
+**解決策**: 月ごとのファイルを直接処理し、必要なデータのみを読み込む
+
+```typescript
+// ❌ 悪い例: 全データを読み込んでから処理
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const transactions = await this.findByInstitutionId(institutionId); // 全データ読み込み
+  // 月ごとにグループ化
+  // 各月のファイルを再度読み込んで削除
+}
+
+// ✅ 良い例: 月ごとのファイルを直接処理
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const files = await fs.readdir(this.dataDir);
+  const jsonFiles = files.filter((file) => file.endsWith('.json'));
+
+  for (const fileName of jsonFiles) {
+    const [yearStr, monthStr] = fileName.replace('.json', '').split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+
+    if (isNaN(year) || isNaN(month)) continue;
+
+    const existingTransactions = await this.findByMonth(year, month);
+    const filteredTransactions = existingTransactions.filter(
+      (t) => t.institutionId !== institutionId,
+    );
+
+    if (filteredTransactions.length < existingTransactions.length) {
+      await this.saveMonthData(year, month, filteredTransactions);
+    }
+  }
+}
+```
+
+**理由**:
+
+- メモリ使用量が削減される
+- 大規模データセットでのパフォーマンスが向上する
+- 必要なデータのみを処理するため効率的
+
+### 13-13. URL構築ロジックの簡潔化（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### クエリ文字列の構築
+
+**問題**: URLのクエリ文字列を構築するロジックが冗長で、可読性が低い。
+
+**解決策**: `params.set`を使用し、`params.toString()`を一度だけ呼び出す
+
+```typescript
+// ❌ 悪い例: 冗長なロジック
+const params = new URLSearchParams();
+if (options?.deleteTransactions === true) {
+  params.append('deleteTransactions', 'true');
+}
+const endpoint = `/institutions/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+
+// ✅ 良い例: 簡潔で読みやすい
+const params = new URLSearchParams();
+if (options?.deleteTransactions) {
+  params.set('deleteTransactions', 'true');
+}
+const queryString = params.toString();
+const endpoint = `/institutions/${id}${queryString ? `?${queryString}` : ''}`;
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- `params.toString()`を一度だけ呼び出すため効率的
+- `params.set`は`params.append`よりも意図が明確
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
