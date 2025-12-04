@@ -6131,6 +6131,110 @@ const endpoint = `/institutions/${id}${queryString ? `?${queryString}` : ''}`;
 - `params.toString()`を一度だけ呼び出すため効率的
 - `params.set`は`params.append`よりも意図が明確
 
+### 13-14. UseCaseレイヤーでの抽象化の維持（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### リポジトリインターフェースの拡張
+
+**問題**: トランザクションブロック内で`entityManager.getRepository()`とORMエンティティを直接使用しており、リポジトリ層の抽象化がバイパスされている。これにより、UseCaseが特定のORM実装（TypeORM）に密結合してしまい、テストや将来のデータソース変更が困難になる。
+
+**解決策**: リポジトリのメソッドがオプショナルで`EntityManager`を受け取れるようにインターフェースを変更
+
+```typescript
+// ❌ 悪い例: ORMエンティティを直接使用
+await this.dataSource.transaction(async (entityManager) => {
+  const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+  await transactionRepo.delete({ institutionId: id });
+
+  const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+  await institutionRepo.delete(id);
+});
+
+// ✅ 良い例: リポジトリメソッドを使用
+await this.dataSource.transaction(async (entityManager) => {
+  await this.transactionRepository.deleteByInstitutionId(id, entityManager);
+  await this.institutionRepository.delete(id, entityManager);
+});
+```
+
+**実装例**:
+
+```typescript
+// リポジトリインターフェース（ドメイン層）
+export interface ITransactionRepository {
+  deleteByInstitutionId(
+    institutionId: string,
+    manager?: unknown, // ドメイン層にTypeORMの依存を避けるためunknownを使用
+  ): Promise<void>;
+}
+
+// リポジトリ実装（インフラ層）
+async deleteByInstitutionId(
+  institutionId: string,
+  manager?: unknown,
+): Promise<void> {
+  const repository = manager
+    ? (manager as EntityManager).getRepository(TransactionOrmEntity)
+    : this.repository;
+  await repository.delete({ institutionId });
+}
+```
+
+**理由**:
+
+- リポジトリの抽象化が維持され、テストが容易になる
+- 将来のデータソース変更が容易になる
+- 関心の分離が適切に保たれる
+- UseCaseが永続化の詳細から切り離される
+
+**重要なポイント**:
+
+1. **ドメイン層にTypeORMの依存を入れない**: インターフェースでは`unknown`型を使用
+2. **インフラ層で型アサーション**: 実装層で`EntityManager`として型アサーション
+3. **ファイルシステム版リポジトリ**: `manager`パラメータは無視（互換性のため）
+
+### 13-15. クエリパラメータの型変換（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### @Transformデコレーターの使用
+
+**問題**: クエリパラメータは文字列として送信されるため、`deleteTransactions=true`のようなリクエストでは、`"true"`という文字列が渡される。`IsBoolean`バリデーターがこれをブール値ではないと判断し、バリデーションエラーを引き起こす。
+
+**解決策**: `class-transformer`の`@Transform`デコレーターを使用して文字列をブール値に変換
+
+```typescript
+// ❌ 悪い例: 型変換なし
+export class DeleteInstitutionDto {
+  @IsBoolean()
+  @IsOptional()
+  deleteTransactions?: boolean; // "true"文字列が渡されるとバリデーションエラー
+}
+
+// ✅ 良い例: @Transformで型変換
+export class DeleteInstitutionDto {
+  @Transform(({ value }): boolean | string => {
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+    return value as string;
+  })
+  @IsBoolean({ message: '取引履歴の削除フラグは真偽値で指定してください' })
+  @IsOptional()
+  deleteTransactions?: boolean;
+}
+```
+
+**理由**:
+
+- クエリパラメータが正しくブール値に変換される
+- バリデーションエラーが発生しなくなる
+- ユーザー体験が向上する
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
