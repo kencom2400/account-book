@@ -8,10 +8,14 @@ import { InstitutionCard } from '../InstitutionCard';
 import { Institution, InstitutionType } from '@account-book/types';
 import * as syncApi from '@/lib/api/sync';
 import * as institutionsApi from '@/lib/api/institutions';
+import * as errorToast from '@/components/notifications/ErrorToast';
 
 // モック
 jest.mock('@/lib/api/sync');
 jest.mock('@/lib/api/institutions');
+jest.mock('@/components/notifications/ErrorToast', () => ({
+  showErrorToast: jest.fn(),
+}));
 
 const mockInstitution: Institution = {
   id: 'inst-1',
@@ -160,7 +164,7 @@ describe('InstitutionCard', () => {
     expect(disabledButton).toBeDisabled();
   });
 
-  it('同期エラー時にエラーログを出力する', async () => {
+  it('同期エラー時にエラーログを出力し、onUpdateを呼び出す', async () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     (syncApi.startSync as jest.Mock).mockRejectedValue(new Error('Sync Error'));
 
@@ -174,6 +178,17 @@ describe('InstitutionCard', () => {
         '同期処理中にエラーが発生しました:',
         expect.any(Error)
       );
+    });
+
+    // エラートーストが表示されることを確認
+    // getErrorMessageはErrorインスタンスの場合、error.messageを返すため、実際のエラーメッセージを期待
+    await waitFor(() => {
+      expect(errorToast.showErrorToast).toHaveBeenCalledWith('error', 'Sync Error');
+    });
+
+    // 同期失敗時にもonUpdateが呼ばれることを確認
+    await waitFor(() => {
+      expect(mockOnUpdate).toHaveBeenCalled();
     });
 
     consoleErrorSpy.mockRestore();
