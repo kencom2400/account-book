@@ -17,6 +17,12 @@ export interface CreateInstitutionRequest {
   credentials: Record<string, unknown>;
 }
 
+export interface UpdateInstitutionRequest {
+  name?: string;
+  type?: InstitutionType;
+  credentials?: Record<string, unknown>;
+}
+
 export interface GetInstitutionsParams {
   type?: InstitutionType;
   isConnected?: boolean;
@@ -43,6 +49,16 @@ export async function createInstitution(data: CreateInstitutionRequest): Promise
 }
 
 /**
+ * 金融機関を更新
+ */
+export async function updateInstitution(
+  id: string,
+  data: UpdateInstitutionRequest
+): Promise<Institution> {
+  return await apiClient.patch<Institution>(`/institutions/${id}`, data);
+}
+
+/**
  * 金融機関一覧を取得
  */
 export async function getInstitutions(params?: GetInstitutionsParams): Promise<Institution[]> {
@@ -57,6 +73,13 @@ export async function getInstitutions(params?: GetInstitutionsParams): Promise<I
 
   const endpoint = `/institutions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   return await apiClient.get<Institution[]>(endpoint);
+}
+
+/**
+ * 金融機関をIDで取得
+ */
+export async function getInstitution(id: string): Promise<Institution> {
+  return await apiClient.get<Institution>(`/institutions/${id}`);
 }
 
 /**

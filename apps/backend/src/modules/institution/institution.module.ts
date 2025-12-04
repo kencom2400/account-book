@@ -8,8 +8,10 @@ import { CryptoService } from './infrastructure/services/crypto.service';
 import { MockBankApiAdapter } from './infrastructure/adapters/mock-bank-api.adapter';
 import { CreateInstitutionUseCase } from './application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from './application/use-cases/get-institutions.use-case';
+import { GetInstitutionUseCase } from './application/use-cases/get-institution.use-case';
 import { TestBankConnectionUseCase } from './application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from './application/use-cases/get-supported-banks.use-case';
+import { UpdateInstitutionUseCase } from './application/use-cases/update-institution.use-case';
 import {
   INSTITUTION_REPOSITORY,
   CRYPTO_SERVICE,
@@ -38,8 +40,10 @@ import {
     // Use Cases
     CreateInstitutionUseCase,
     GetInstitutionsUseCase,
+    GetInstitutionUseCase,
     TestBankConnectionUseCase,
     GetSupportedBanksUseCase,
+    UpdateInstitutionUseCase,
   ],
   exports: [INSTITUTION_REPOSITORY, CRYPTO_SERVICE, BANK_API_ADAPTER],
 })

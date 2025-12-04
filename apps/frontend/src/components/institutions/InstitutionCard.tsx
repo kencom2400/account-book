@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Institution, InstitutionType } from '@account-book/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -20,6 +21,7 @@ export function InstitutionCard({
   institution,
   onUpdate,
 }: InstitutionCardProps): React.JSX.Element {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -86,8 +88,8 @@ export function InstitutionCard({
   };
 
   const handleEdit = (): void => {
-    // TODO: 編集画面への遷移を実装
-    // 編集機能は別Issueで実装予定
+    // Issue #350: 編集画面への遷移を実装
+    router.push(`/banks/${institution.id}/edit`);
   };
 
   const handleDelete = (): void => {

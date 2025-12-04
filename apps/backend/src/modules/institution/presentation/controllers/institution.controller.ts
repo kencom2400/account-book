@@ -2,7 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
+  Param,
   Query,
   HttpCode,
   HttpStatus,
@@ -10,9 +12,12 @@ import {
 } from '@nestjs/common';
 import { CreateInstitutionUseCase } from '../../application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
+import { GetInstitutionUseCase } from '../../application/use-cases/get-institution.use-case';
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
+import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
 import { CreateInstitutionDto } from '../dto/create-institution.dto';
+import { UpdateInstitutionDto } from '../dto/update-institution.dto';
 import { GetInstitutionsQueryDto } from '../dto/get-institutions.dto';
 import { TestBankConnectionDto } from '../dto/test-bank-connection.dto';
 import { GetSupportedBanksQueryDto } from '../dto/get-supported-banks.dto';
@@ -28,8 +33,10 @@ export class InstitutionController {
   constructor(
     private readonly createInstitutionUseCase: CreateInstitutionUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
+    private readonly getInstitutionUseCase: GetInstitutionUseCase,
     private readonly testBankConnectionUseCase: TestBankConnectionUseCase,
     private readonly getSupportedBanksUseCase: GetSupportedBanksUseCase,
+    private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
   ) {}
 
   /**
@@ -73,6 +80,23 @@ export class InstitutionController {
   }
 
   /**
+   * IDで金融機関を取得
+   * GET /api/institutions/:id
+   */
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse;
+  }> {
+    const institution = await this.getInstitutionUseCase.execute(id);
+
+    return {
+      success: true,
+      data: institution.toJSON(),
+    };
+  }
+
+  /**
    * 対応銀行一覧を取得
    * GET /api/institutions/banks/supported
    */
@@ -108,6 +132,27 @@ export class InstitutionController {
     return {
       success,
       data,
+    };
+  }
+
+  /**
+   * 金融機関を更新
+   * PATCH /api/institutions/:id
+   */
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateInstitutionDto,
+  ): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse;
+  }> {
+    const institution = await this.updateInstitutionUseCase.execute(id, dto);
+
+    return {
+      success: true,
+      data: institution.toJSON(),
     };
   }
 }
