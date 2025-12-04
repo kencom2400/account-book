@@ -6,6 +6,7 @@ import { GetInstitutionUseCase } from '../../application/use-cases/get-instituti
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
+import { DeleteInstitutionUseCase } from '../../application/use-cases/delete-institution.use-case';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
 
@@ -58,6 +59,10 @@ describe('InstitutionController', () => {
         },
         {
           provide: UpdateInstitutionUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: DeleteInstitutionUseCase,
           useValue: { execute: jest.fn() },
         },
       ],
