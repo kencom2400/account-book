@@ -7289,6 +7289,175 @@ return {
 
 ---
 
+### 13-4. APIエンドポイントの効率性とコードの簡潔化（PR #355）
+
+**学習元**: PR #355 - Issue #350: 金融機関編集機能の実装（Geminiレビュー指摘）
+
+#### APIエンドポイントの効率性
+
+**問題**: フロントエンドで全データを取得してから検索するのは非効率
+
+```typescript
+// ❌ 悪い例: 全データ取得後に検索
+export async function getInstitution(id: string): Promise<Institution> {
+  const institutions = await getInstitutions(); // 全データ取得
+  const institution = institutions.find((inst) => inst.id === id); // 検索
+  if (!institution) {
+    throw new Error(`金融機関 (ID: ${id}) が見つかりません`);
+  }
+  return institution;
+}
+```
+
+**解決策**: バックエンドに直接取得エンドポイントを追加
+
+```typescript
+// ✅ 良い例: バックエンドの直接取得エンドポイントを使用
+export async function getInstitution(id: string): Promise<Institution> {
+  return await apiClient.get<Institution>(`/institutions/${id}`);
+}
+```
+
+**理由**:
+
+- ネットワークトラフィックの削減（必要なデータのみ取得）
+- パフォーマンスの向上（全データ取得不要）
+- バックエンドでの効率的な検索が可能
+
+#### エンティティ更新ロジックの簡潔化
+
+**問題**: 冗長な変数代入と条件分岐
+
+```typescript
+// ❌ 悪い例: 冗長な変数代入
+const name = dto.name ?? existingInstitution.name;
+const type = dto.type ?? existingInstitution.type;
+let credentials = existingInstitution.credentials;
+
+if (dto.credentials !== undefined) {
+  const credentialsJson = JSON.stringify(dto.credentials);
+  const encryptedCredentials = this.cryptoService.encrypt(credentialsJson);
+  credentials = encryptedCredentials;
+}
+
+const updatedInstitution = new InstitutionEntity(
+  existingInstitution.id,
+  name,
+  type,
+  credentials
+  // ...
+);
+```
+
+**解決策**: 三項演算子とNull合体演算子を活用
+
+```typescript
+// ✅ 良い例: 簡潔な記述
+const credentials =
+  dto.credentials !== undefined
+    ? this.cryptoService.encrypt(JSON.stringify(dto.credentials))
+    : existingInstitution.credentials;
+
+const updatedInstitution = new InstitutionEntity(
+  existingInstitution.id,
+  dto.name ?? existingInstitution.name,
+  dto.type ?? existingInstitution.type,
+  credentials
+  // ...
+);
+```
+
+**理由**:
+
+- コードが簡潔で可読性が向上
+- 中間変数が不要になり、メンテナンス性が向上
+- 意図が明確になる
+
+#### 冗長な状態更新の削除
+
+**問題**: 既に初期化されている値の再設定
+
+```typescript
+// ❌ 悪い例: 冗長な状態更新
+const [currentStep, setCurrentStep] = useState<'select' | 'input'>('select');
+
+useEffect(() => {
+  // ...
+  if (data.type === InstitutionType.BANK) {
+    setCurrentStep('select'); // 既に'select'で初期化されている
+  }
+}, [data]);
+```
+
+**解決策**: 冗長な更新を削除
+
+```typescript
+// ✅ 良い例: 冗長な更新を削除
+const [currentStep, setCurrentStep] = useState<'select' | 'input'>('select');
+
+useEffect(() => {
+  // ...
+  // currentStepは既に'select'で初期化されているため、設定不要
+}, [data]);
+```
+
+**理由**:
+
+- 不要な再レンダリングを防止
+- コードが簡潔になる
+- 意図が明確になる
+
+#### 状態管理の複雑さへの対応（オプション）
+
+**問題**: 複数の`useState`による状態管理が複雑
+
+```typescript
+// ⚠️ 複雑な状態管理の例
+const [institution, setInstitution] = useState<Institution | null>(null);
+const [loading, setLoading] = useState<boolean>(true);
+const [error, setError] = useState<string | null>(null);
+const [currentStep, setCurrentStep] = useState<'select' | 'input'>('select');
+// ... さらに多くの状態
+```
+
+**解決策**: `useReducer`の検討（状態が複雑な場合）
+
+```typescript
+// ✅ 良い例: useReducerで状態を統合
+type State = {
+  institution: Institution | null;
+  loading: boolean;
+  error: string | null;
+  currentStep: 'select' | 'input';
+};
+
+type Action =
+  | { type: 'SET_INSTITUTION'; payload: Institution }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_STEP'; payload: 'select' | 'input' };
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_INSTITUTION':
+      return { ...state, institution: action.payload };
+    // ...
+  }
+};
+
+const [state, dispatch] = useReducer(reducer, initialState);
+```
+
+**判断基準**:
+
+- 状態が3つ以上で、関連性が高い場合は`useReducer`を検討
+- 状態が独立している場合は`useState`で十分
+- 状態更新ロジックが複雑な場合は`useReducer`が適切
+
+**参考**: PR #355 - Issue #350: 金融機関編集機能の実装
+
+---
+
 ### 15-3. Geminiレビュー対応フロー
 
 **ルール**: Geminiからの指摘は必ず個別commit/pushで対応する
