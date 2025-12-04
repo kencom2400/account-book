@@ -2,7 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
+  Param,
   Query,
   HttpCode,
   HttpStatus,
@@ -12,7 +14,9 @@ import { CreateInstitutionUseCase } from '../../application/use-cases/create-ins
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
+import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
 import { CreateInstitutionDto } from '../dto/create-institution.dto';
+import { UpdateInstitutionDto } from '../dto/update-institution.dto';
 import { GetInstitutionsQueryDto } from '../dto/get-institutions.dto';
 import { TestBankConnectionDto } from '../dto/test-bank-connection.dto';
 import { GetSupportedBanksQueryDto } from '../dto/get-supported-banks.dto';
@@ -30,6 +34,7 @@ export class InstitutionController {
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
     private readonly testBankConnectionUseCase: TestBankConnectionUseCase,
     private readonly getSupportedBanksUseCase: GetSupportedBanksUseCase,
+    private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
   ) {}
 
   /**
@@ -108,6 +113,27 @@ export class InstitutionController {
     return {
       success,
       data,
+    };
+  }
+
+  /**
+   * 金融機関を更新
+   * PATCH /api/institutions/:id
+   */
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateInstitutionDto,
+  ): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse;
+  }> {
+    const institution = await this.updateInstitutionUseCase.execute(id, dto);
+
+    return {
+      success: true,
+      data: institution.toJSON(),
     };
   }
 }
