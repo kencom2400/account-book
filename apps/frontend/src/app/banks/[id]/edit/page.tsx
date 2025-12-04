@@ -38,10 +38,7 @@ export default function EditBankPage(): React.JSX.Element {
 
         // 既存の金融機関情報から銀行情報を設定
         // 注: 認証情報は暗号化されているため、再入力が必要
-        if (data.type === InstitutionType.BANK) {
-          // 銀行コードなどは認証情報から取得できないため、選択ステップから開始
-          setCurrentStep('select');
-        }
+        // currentStepは既に'select'で初期化されているため、設定不要
       } catch (error) {
         console.error('金融機関の取得に失敗しました:', error);
         setSaveError('金融機関の取得に失敗しました。');
