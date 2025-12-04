@@ -7597,6 +7597,92 @@ const creditCard = createTestCreditCard({ isConnected: true });
 
 ---
 
+### 14-8. テストケースの統合による可読性と保守性の向上 🎯 Medium
+
+**学習元**: PR #358 - Gemini Code Assistレビュー指摘
+
+#### ❌ 関連する複数のテストケースを分離（非効率）
+
+```typescript
+it('デフォルトで「取引履歴は保持」が選択されている', () => {
+  render(<DeleteConfirmModal {...props} />);
+  const keepOption = screen.getByLabelText('取引履歴は保持');
+  const deleteOption = screen.getByLabelText('取引履歴も削除');
+  expect(keepOption).toBeChecked();
+  expect(deleteOption).not.toBeChecked();
+});
+
+it('「取引履歴も削除」を選択できる', () => {
+  render(<DeleteConfirmModal {...props} />);
+  const deleteOption = screen.getByLabelText('取引履歴も削除');
+  fireEvent.click(deleteOption);
+  expect(deleteOption).toBeChecked();
+  const keepOption = screen.getByLabelText('取引履歴は保持');
+  expect(keepOption).not.toBeChecked();
+});
+
+it('「取引履歴は保持」を選択できる', () => {
+  render(<DeleteConfirmModal {...props} />);
+  const deleteOption = screen.getByLabelText('取引履歴も削除');
+  const keepOption = screen.getByLabelText('取引履歴は保持');
+  fireEvent.click(deleteOption);
+  expect(deleteOption).toBeChecked();
+  fireEvent.click(keepOption);
+  expect(keepOption).toBeChecked();
+  expect(deleteOption).not.toBeChecked();
+});
+```
+
+**問題点**:
+
+- コンポーネントのレンダリングが3回発生（非効率）
+- 関連するテストが分散し、一連のユーザー操作として理解しにくい
+- テストの保守性が低下（同じsetupが重複）
+
+#### ✅ 一連の操作を1つのテストケースに統合
+
+```typescript
+it('ラジオボタンの選択が正しく切り替わる', () => {
+  render(<DeleteConfirmModal {...props} />);
+
+  const keepOption = screen.getByLabelText('取引履歴は保持');
+  const deleteOption = screen.getByLabelText('取引履歴も削除');
+
+  // デフォルトで「取引履歴は保持」が選択されていることを確認
+  expect(keepOption).toBeChecked();
+  expect(deleteOption).not.toBeChecked();
+
+  // 「取引履歴も削除」を選択
+  fireEvent.click(deleteOption);
+  expect(deleteOption).toBeChecked();
+  expect(keepOption).not.toBeChecked();
+
+  // 「取引履歴は保持」を選択
+  fireEvent.click(keepOption);
+  expect(keepOption).toBeChecked();
+  expect(deleteOption).not.toBeChecked();
+});
+```
+
+**教訓**:
+
+- **関連する複数のテストケースは1つにまとめる**: 一連のユーザー操作としてテストの流れが明確になる
+- **コンポーネントのレンダリングを最小化**: パフォーマンス向上とテスト実行時間の短縮
+- **テストの可読性と保守性が向上**: 同じsetupが1回で済み、変更時の修正箇所が減る
+
+**適用基準**:
+
+- 同じコンポーネントをレンダリングする複数のテストケース
+- 一連のユーザー操作として理解できる関連するテスト
+- デフォルト状態の確認と状態変更のテストが同じコンポーネントで行われる場合
+
+**注意点**:
+
+- テストが長くなりすぎる場合は、適切な粒度で分割する
+- 各テストケースが独立して実行できることを確認する（前のテストの副作用がないこと）
+
+---
+
 ## 16. Gemini Code Assist レビューから学んだ観点（PR #320）
 
 ### 15-1. データ不整合の早期発見：警告ログの重要性 🟡 Medium
