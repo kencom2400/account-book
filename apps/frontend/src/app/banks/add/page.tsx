@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { Bank, BankConnectionTestResult, InstitutionType } from '@account-book/types';
 import { BankSelector } from '@/components/forms/BankSelector';
 import { BankCredentialsForm, BankCredentialsData } from '@/components/forms/BankCredentialsForm';
 import { ConnectionTestResult } from '@/components/forms/ConnectionTestResult';
 import { testBankConnection, createInstitution } from '@/lib/api/institutions';
+import { ApiError } from '@/lib/api/client';
+import { getErrorMessage } from '@/utils/error.utils';
 
 type Step = 'select' | 'credentials' | 'result';
 
@@ -75,10 +78,29 @@ export default function AddBankPage(): React.JSX.Element {
         },
       });
 
+      // 成功時のトースト通知
+      toast.success(`${selectedBank.name}を登録しました`, {
+        duration: 3000,
+        position: 'top-right',
+      });
+
       // 成功したらダッシュボードに遷移
       router.push('/dashboard');
-    } catch (_error) {
-      setSaveError('銀行の登録に失敗しました。もう一度お試しください。');
+    } catch (error) {
+      // ApiErrorの詳細を取得して表示
+      if (error instanceof ApiError) {
+        const errorMessage = error.message || '銀行の登録に失敗しました。';
+        const details = error.details
+          ?.map((detail) => `${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
+          .join('\n');
+        setSaveError(details || errorMessage);
+      } else {
+        const errorMessage = getErrorMessage(
+          error,
+          '銀行の登録に失敗しました。もう一度お試しください。'
+        );
+        setSaveError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
