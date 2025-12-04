@@ -78,18 +78,35 @@ export function DeleteConfirmModal({
                     を削除しようとしています。この操作は取り消せません。
                   </p>
                   <div className="mt-4">
-                    <label className="flex items-start">
-                      <input
-                        type="checkbox"
-                        checked={deleteTransactions}
-                        onChange={(e): void => setDeleteTransactions(e.target.checked)}
-                        className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">関連する取引履歴も削除する</span>
-                    </label>
-                    <p className="ml-6 mt-1 text-xs text-gray-500">
-                      チェックを外すと、取引履歴は保持されます
-                    </p>
+                    <fieldset>
+                      <legend className="text-sm font-medium text-gray-700 mb-2">
+                        取引履歴の扱い
+                      </legend>
+                      <div className="space-y-2">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="deleteTransactions"
+                            value="false"
+                            checked={!deleteTransactions}
+                            onChange={(): void => setDeleteTransactions(false)}
+                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">取引履歴は保持</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="deleteTransactions"
+                            value="true"
+                            checked={deleteTransactions}
+                            onChange={(): void => setDeleteTransactions(true)}
+                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">取引履歴も削除</span>
+                        </label>
+                      </div>
+                    </fieldset>
                   </div>
                 </div>
               </div>
