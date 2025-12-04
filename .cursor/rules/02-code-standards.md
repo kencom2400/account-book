@@ -5896,6 +5896,89 @@ import { SyncAllTransactionsRequest } from '@account-book/types';
 - 重複が排除される
 - 保守性が向上
 
+### 13-9. N+1問題の回避（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### 一括削除メソッドの実装
+
+**問題**: ループで一つずつ削除することで、データベースへのアクセス回数が増加し、パフォーマンス問題が発生する可能性がある。
+
+**解決策**: リポジトリに一括削除メソッドを追加し、UseCaseで使用する
+
+```typescript
+// ❌ 悪い例: N+1問題が発生
+const transactions = await this.transactionRepository.findByInstitutionId(id);
+for (const transaction of transactions) {
+  await this.transactionRepository.delete(transaction.id);
+}
+
+// ✅ 良い例: 一括削除メソッドを使用
+await this.transactionRepository.deleteByInstitutionId(id);
+```
+
+**実装例**:
+
+```typescript
+// Repositoryインターフェース
+export interface ITransactionRepository {
+  deleteByInstitutionId(institutionId: string): Promise<void>;
+}
+
+// TypeORM実装
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  await this.repository.delete({ institutionId });
+}
+
+// ファイルシステム実装（月ごとにグループ化）
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const transactions = await this.findByInstitutionId(institutionId);
+  // 月ごとにグループ化して削除
+  // ...
+}
+```
+
+**理由**:
+
+- データベースへのアクセス回数が大幅に削減される
+- パフォーマンスが向上する
+- スケーラビリティが向上する
+
+### 13-10. エラーハンドリングでのユーザーフィードバック（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### エラー時のトースト通知実装
+
+**問題**: エラー発生時に`console.error`でログ出力するのみで、ユーザーへのフィードバックがない。
+
+**解決策**: エラー時にトースト通知を表示する
+
+```typescript
+// ❌ 悪い例: ログ出力のみ
+catch (error) {
+  if (error instanceof Error) {
+    console.error('削除処理中にエラーが発生しました:', error);
+  }
+}
+
+// ✅ 良い例: トースト通知を表示
+catch (error) {
+  const errorMessage = getErrorMessage(
+    error,
+    '金融機関の削除に失敗しました',
+  );
+  showErrorToast('error', errorMessage);
+  console.error('削除処理中にエラーが発生しました:', error);
+}
+```
+
+**理由**:
+
+- ユーザーがエラーを認識できるようになる
+- ユーザー体験が向上する
+- デバッグ情報はログに残しつつ、ユーザーにも通知する
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
