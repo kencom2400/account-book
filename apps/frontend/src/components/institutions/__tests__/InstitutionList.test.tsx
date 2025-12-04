@@ -122,7 +122,7 @@ describe('InstitutionList', () => {
     render(<InstitutionList />);
 
     await waitFor(() => {
-      expect(screen.getByText('金融機関の取得に失敗しました。')).toBeInTheDocument();
+      expect(screen.getByText('API Error')).toBeInTheDocument();
     });
 
     consoleErrorSpy.mockRestore();
