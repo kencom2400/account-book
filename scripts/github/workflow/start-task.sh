@@ -43,18 +43,19 @@ get_issue_info() {
   local ISSUE_NUM=$1
   
   gh issue view "$ISSUE_NUM" \
-    --json number,title,state,assignees,projectItems,labels 2>&1
+    --json number,title,state,assignees,projectItems,labels 2>/dev/null
 }
 
 # Issueの存在確認とステータス取得
 check_issue_exists() {
   local ISSUE_NUM=$1
   
-  echo "🔍 Issue #${ISSUE_NUM} を確認中..."
+  echo "🔍 Issue #${ISSUE_NUM} を確認中..." >&2
   
-  ISSUE_INFO=$(get_issue_info "$ISSUE_NUM" 2>&1)
+  ISSUE_INFO=$(get_issue_info "$ISSUE_NUM")
+  local EXIT_CODE=$?
   
-  if [ $? -ne 0 ]; then
+  if [ $EXIT_CODE -ne 0 ] || [ -z "$ISSUE_INFO" ] || ! echo "$ISSUE_INFO" | jq -e . > /dev/null 2>&1; then
     echo "❌ エラー: Issue #${ISSUE_NUM} が見つかりません" >&2
     exit 1
   fi
@@ -90,18 +91,8 @@ check_assignee() {
     CURRENT_USER=$(gh api user --jq '.login')
     
     if [ "$CURRENT_ASSIGNEE" = "$CURRENT_USER" ]; then
-      echo "⚠️  注意: Issue #${ISSUE_NUM} は既にあなたにアサインされています"
-      
-      # 現在のステータスを取得
-      CURRENT_STATUS=$(echo "$ISSUE_INFO" | jq -r '.projectItems[0].status.name // "不明"')
-      echo "   現在のステータス: ${CURRENT_STATUS}"
-      echo ""
-      
-      read -r -p "続行しますか？ [y/N]: " CONFIRM
-      if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
-        echo "キャンセルしました"
-        exit 0
-      fi
+      # 既に自分にアサインされている場合は自動で続行（確認プロンプトなし）
+      echo "ℹ️  Issue #${ISSUE_NUM} は既にあなたにアサインされています"
     else
       echo "❌ エラー: Issue #${ISSUE_NUM} は既に @${CURRENT_ASSIGNEE} にアサインされています"
       echo "   ステータス: $(echo "$ISSUE_INFO" | jq -r '.projectItems[0].status.name // "不明"')"
@@ -149,8 +140,14 @@ start_task_by_id() {
   # 英数字以外の文字はすべてハイフンに置き換え、先頭と末尾のハイフンを削除
   BRANCH_NAME="feature/issue-${ISSUE_NUM}-$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g' | sed -E 's/^-+|-+$//g' | cut -c1-60)"
   
-  echo "🌿 ブランチを作成中: ${BRANCH_NAME}"
-  git checkout -b "$BRANCH_NAME" > /dev/null 2>&1
+  # ブランチが既に存在する場合はチェックアウト、存在しない場合は作成
+  if git show-ref --verify --quiet refs/heads/"$BRANCH_NAME"; then
+    echo "🌿 既存のブランチに切り替え中: ${BRANCH_NAME}"
+    git checkout "$BRANCH_NAME" > /dev/null 2>&1
+  else
+    echo "🌿 ブランチを作成中: ${BRANCH_NAME}"
+    git checkout -b "$BRANCH_NAME" > /dev/null 2>&1
+  fi
   
   # ステータスを In Progress に変更
   echo "🚧 ステータスを '🚧 In Progress' に変更中..."
@@ -184,7 +181,7 @@ select_priority_issue() {
   fi
   
   # 「📝 To Do」ステータスのIssueをフィルタリングし、優先度でソート
-  PRIORITY_ISSUE=$(echo "$TODO_ISSUES" | jq -r '
+  PRIORITY_ISSUE=$(echo "$TODO_ISSUES" | jq '
     [
       .[] |
       select(.projectItems[0].status.name == "📝 To Do") |
@@ -192,10 +189,10 @@ select_priority_issue() {
         number: .number,
         title: .title,
         priority: (
-          if (.labels[] | select(.name == "priority: critical")) then 4
-          elif (.labels[] | select(.name == "priority: high")) then 3
-          elif (.labels[] | select(.name == "priority: medium")) then 2
-          elif (.labels[] | select(.name == "priority: low")) then 1
+          if any(.labels[]; .name == "priority: critical") then 4
+          elif any(.labels[]; .name == "priority: high") then 3
+          elif any(.labels[]; .name == "priority: medium") then 2
+          elif any(.labels[]; .name == "priority: low") then 1
           else 0
           end
         )
@@ -205,7 +202,8 @@ select_priority_issue() {
     .[0]
   ')
   
-  if [ -z "$PRIORITY_ISSUE" ] || [ "$PRIORITY_ISSUE" = "null" ]; then
+  # nullチェック（jqの結果を直接チェック）
+  if [ -z "$PRIORITY_ISSUE" ] || [ "$PRIORITY_ISSUE" = "null" ] || ! echo "$PRIORITY_ISSUE" | jq -e '.number' > /dev/null 2>&1; then
     echo "❌ 「📝 To Do」ステータスのIssueが見つかりません"
     echo ""
     echo "📝 現在のオープンIssue（自分にアサイン）:"
