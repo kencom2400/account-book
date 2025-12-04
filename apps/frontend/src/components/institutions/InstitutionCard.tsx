@@ -107,11 +107,9 @@ export function InstitutionCard({
       // 同期完了後、一覧を更新
       onUpdate();
     } catch (error) {
-      // TODO: エラーメッセージを表示
-      // エラーハンドリングは別Issueで実装予定
-      if (error instanceof Error) {
-        console.error('同期処理中にエラーが発生しました:', error);
-      }
+      const errorMessage = getErrorMessage(error, '同期処理に失敗しました');
+      showErrorToast('error', errorMessage);
+      console.error('同期処理中にエラーが発生しました:', error);
     } finally {
       setIsSyncing(false);
     }
