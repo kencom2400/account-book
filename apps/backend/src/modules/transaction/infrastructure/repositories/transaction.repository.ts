@@ -311,8 +311,13 @@ export class TransactionRepository implements ITransactionRepository {
   /**
    * 金融機関IDで取引を一括削除
    * パフォーマンス最適化: 月ごとのファイルを直接処理し、全データ読み込みを避ける
+   * @param _manager ファイルシステム版では使用しない（互換性のため）
    */
-  async deleteByInstitutionId(institutionId: string): Promise<void> {
+  async deleteByInstitutionId(
+    institutionId: string,
+    _manager?: unknown,
+  ): Promise<void> {
+    // ファイルシステム版ではmanagerは使用しない
     await this.ensureDataDirectory();
     const files = await fs.readdir(this.dataDir);
     const jsonFiles = files.filter((file) => file.endsWith('.json'));

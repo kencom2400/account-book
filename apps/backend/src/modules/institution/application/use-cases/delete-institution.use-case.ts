@@ -5,8 +5,6 @@ import type { IInstitutionRepository } from '../../domain/repositories/instituti
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
 import { INSTITUTION_REPOSITORY } from '../../institution.tokens';
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
-import { InstitutionOrmEntity } from '../../infrastructure/entities/institution.orm-entity';
-import { TransactionOrmEntity } from '../../../transaction/infrastructure/entities/transaction.orm-entity';
 
 export interface DeleteInstitutionDto {
   deleteTransactions?: boolean;
@@ -39,14 +37,14 @@ export class DeleteInstitutionUseCase {
     await this.dataSource.transaction(async (entityManager) => {
       // 取引履歴を削除する場合
       if (dto.deleteTransactions === true) {
-        const transactionRepo =
-          entityManager.getRepository(TransactionOrmEntity);
-        await transactionRepo.delete({ institutionId: id });
+        await this.transactionRepository.deleteByInstitutionId(
+          id,
+          entityManager,
+        );
       }
 
       // 金融機関を削除
-      const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
-      await institutionRepo.delete(id);
+      await this.institutionRepository.delete(id, entityManager);
     });
   }
 }

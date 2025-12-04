@@ -95,8 +95,13 @@ export interface ITransactionRepository {
 
   /**
    * 金融機関IDで取引を一括削除
+   * @param institutionId 金融機関ID
+   * @param manager トランザクション用のEntityManager（オプショナル）
    */
-  deleteByInstitutionId(institutionId: string): Promise<void>;
+  deleteByInstitutionId(
+    institutionId: string,
+    manager?: unknown,
+  ): Promise<void>;
 
   /**
    * すべての取引を削除（テスト用）
