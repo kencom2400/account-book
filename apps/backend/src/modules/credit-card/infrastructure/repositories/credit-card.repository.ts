@@ -228,7 +228,9 @@ export class FileSystemCreditCardRepository implements ICreditCardRepository {
  * JSONファイルでの永続化を実装
  */
 @Injectable()
-export class FileSystemCreditCardTransactionRepository implements ICreditCardTransactionRepository {
+export class FileSystemCreditCardTransactionRepository
+  implements ICreditCardTransactionRepository
+{
   private readonly dataDir: string;
 
   constructor(private configService: ConfigService) {

@@ -11,7 +11,9 @@ import {
  * サブカテゴリと店舗マスタテーブルの追加
  * FR-009: 詳細費目分類機能のためのテーブル作成
  */
-export class AddSubcategoriesAndMerchantsTables1732400000000 implements MigrationInterface {
+export class AddSubcategoriesAndMerchantsTables1732400000000
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     // サブカテゴリテーブル作成
     await queryRunner.createTable(

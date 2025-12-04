@@ -68,7 +68,9 @@ interface TransactionData {
  * 証券口座リポジトリのファイルシステム実装
  */
 @Injectable()
-export class FileSystemSecuritiesAccountRepository implements ISecuritiesAccountRepository {
+export class FileSystemSecuritiesAccountRepository
+  implements ISecuritiesAccountRepository
+{
   private readonly logger = new Logger(
     FileSystemSecuritiesAccountRepository.name,
   );
@@ -291,7 +293,9 @@ export class FileSystemHoldingRepository implements IHoldingRepository {
  * 証券取引リポジトリのファイルシステム実装
  */
 @Injectable()
-export class FileSystemSecurityTransactionRepository implements ISecurityTransactionRepository {
+export class FileSystemSecurityTransactionRepository
+  implements ISecurityTransactionRepository
+{
   private readonly logger = new Logger(
     FileSystemSecurityTransactionRepository.name,
   );

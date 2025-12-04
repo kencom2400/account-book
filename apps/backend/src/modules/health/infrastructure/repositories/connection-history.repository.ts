@@ -31,7 +31,9 @@ interface ConnectionHistoryFile {
  * - 本番環境では必ずデータベース（SQLite/PostgreSQL等）に移行すること
  */
 @Injectable()
-export class FileSystemConnectionHistoryRepository implements IConnectionHistoryRepository {
+export class FileSystemConnectionHistoryRepository
+  implements IConnectionHistoryRepository
+{
   private readonly logger = new Logger(
     FileSystemConnectionHistoryRepository.name,
   );

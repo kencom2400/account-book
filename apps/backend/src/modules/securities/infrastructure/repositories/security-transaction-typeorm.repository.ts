@@ -10,7 +10,9 @@ import { ISecurityTransactionRepository } from '../../domain/repositories/securi
  * TypeORMを使用した証券取引リポジトリの実装
  */
 @Injectable()
-export class SecurityTransactionTypeOrmRepository implements ISecurityTransactionRepository {
+export class SecurityTransactionTypeOrmRepository
+  implements ISecurityTransactionRepository
+{
   constructor(
     @InjectRepository(SecurityTransactionOrmEntity)
     private readonly repository: Repository<SecurityTransactionOrmEntity>,
