@@ -34,7 +34,7 @@ export function InstitutionCard({
     } catch (error) {
       // エラーハンドリングは別Issueで実装予定
       if (error instanceof Error) {
-        // エラーを適切に処理
+        console.error('削除処理中にエラーが発生しました:', error);
       }
     } finally {
       setIsDeleting(false);
@@ -107,7 +107,7 @@ export function InstitutionCard({
       // TODO: エラーメッセージを表示
       // エラーハンドリングは別Issueで実装予定
       if (error instanceof Error) {
-        // エラーを適切に処理
+        console.error('同期処理中にエラーが発生しました:', error);
       }
     } finally {
       setIsSyncing(false);

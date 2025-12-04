@@ -27,7 +27,7 @@ export function InstitutionList(): React.JSX.Element {
     } catch (err) {
       setError('金融機関の取得に失敗しました。');
       if (err instanceof Error) {
-        // エラーを適切に処理
+        console.error('金融機関の取得中にエラーが発生しました:', err);
       }
     } finally {
       setLoading(false);
