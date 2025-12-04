@@ -79,12 +79,7 @@ export async function getInstitutions(params?: GetInstitutionsParams): Promise<I
  * 金融機関をIDで取得
  */
 export async function getInstitution(id: string): Promise<Institution> {
-  const institutions = await getInstitutions();
-  const institution = institutions.find((inst) => inst.id === id);
-  if (!institution) {
-    throw new Error(`金融機関 (ID: ${id}) が見つかりません`);
-  }
-  return institution;
+  return await apiClient.get<Institution>(`/institutions/${id}`);
 }
 
 /**

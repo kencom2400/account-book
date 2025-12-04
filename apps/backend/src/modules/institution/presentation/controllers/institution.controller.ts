@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CreateInstitutionUseCase } from '../../application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
+import { GetInstitutionUseCase } from '../../application/use-cases/get-institution.use-case';
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
@@ -32,6 +33,7 @@ export class InstitutionController {
   constructor(
     private readonly createInstitutionUseCase: CreateInstitutionUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
+    private readonly getInstitutionUseCase: GetInstitutionUseCase,
     private readonly testBankConnectionUseCase: TestBankConnectionUseCase,
     private readonly getSupportedBanksUseCase: GetSupportedBanksUseCase,
     private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
@@ -74,6 +76,23 @@ export class InstitutionController {
       success: true,
       data: institutions.map((i) => i.toJSON()),
       count: institutions.length,
+    };
+  }
+
+  /**
+   * IDで金融機関を取得
+   * GET /api/institutions/:id
+   */
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: InstitutionJSONResponse;
+  }> {
+    const institution = await this.getInstitutionUseCase.execute(id);
+
+    return {
+      success: true,
+      data: institution.toJSON(),
     };
   }
 

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InstitutionController } from './institution.controller';
 import { CreateInstitutionUseCase } from '../../application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
+import { GetInstitutionUseCase } from '../../application/use-cases/get-institution.use-case';
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
@@ -41,6 +42,10 @@ describe('InstitutionController', () => {
         },
         {
           provide: GetInstitutionsUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: GetInstitutionUseCase,
           useValue: { execute: jest.fn() },
         },
         {
