@@ -92,7 +92,7 @@ export default function AddBankPage(): React.JSX.Element {
         const errorMessage = error.message || '銀行の登録に失敗しました。';
         const details = error.details
           ?.map((detail) => `${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
-          .join('\n');
+          .join(', ');
         setSaveError(details || errorMessage);
       } else {
         const errorMessage = getErrorMessage(

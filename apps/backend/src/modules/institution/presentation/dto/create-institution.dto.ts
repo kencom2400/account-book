@@ -15,10 +15,19 @@ import { InstitutionType } from '@account-book/types';
  */
 @ValidatorConstraint({ name: 'isValidBankCredentials', async: false })
 export class IsValidBankCredentialsConstraint implements ValidatorConstraintInterface {
+  private static readonly bankCodePattern = /^\d{4}$/;
+  private static readonly branchCodePattern = /^\d{3}$/;
+  private static readonly accountNumberPattern = /^\d{7}$/;
+
   validate(
-    credentials: Record<string, unknown>,
+    credentials: Record<string, unknown> | undefined,
     args: ValidationArguments,
   ): boolean {
+    // credentialsがundefinedまたはnullの場合は、@IsNotEmptyでチェックされるため、ここではtrueを返す
+    if (!credentials || typeof credentials !== 'object') {
+      return true;
+    }
+
     const object = args.object as CreateInstitutionDto;
     if (object.type !== InstitutionType.BANK) {
       return true; // 銀行タイプ以外はスキップ
@@ -34,14 +43,16 @@ export class IsValidBankCredentialsConstraint implements ValidatorConstraintInte
     }
 
     // フォーマットのチェック
-    const bankCodePattern = /^\d{4}$/;
-    const branchCodePattern = /^\d{3}$/;
-    const accountNumberPattern = /^\d{7}$/;
-
     return (
-      bankCodePattern.test(credentials.bankCode) &&
-      branchCodePattern.test(credentials.branchCode) &&
-      accountNumberPattern.test(credentials.accountNumber)
+      IsValidBankCredentialsConstraint.bankCodePattern.test(
+        credentials.bankCode,
+      ) &&
+      IsValidBankCredentialsConstraint.branchCodePattern.test(
+        credentials.branchCode,
+      ) &&
+      IsValidBankCredentialsConstraint.accountNumberPattern.test(
+        credentials.accountNumber,
+      )
     );
   }
 
@@ -65,9 +76,6 @@ export class CreateInstitutionDto {
 
   @IsObject({ message: '認証情報はオブジェクト形式で指定してください' })
   @IsNotEmpty({ message: '認証情報は必須です' })
-  @Validate(IsValidBankCredentialsConstraint, {
-    message:
-      '銀行タイプの場合、認証情報にはbankCode（4桁の数字）、branchCode（3桁の数字）、accountNumber（7桁の数字）が必要です',
-  })
+  @Validate(IsValidBankCredentialsConstraint)
   credentials!: Record<string, unknown>;
 }
