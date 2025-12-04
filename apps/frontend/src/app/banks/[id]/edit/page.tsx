@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useReducer, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Bank, BankConnectionTestResult, InstitutionType, Institution } from '@account-book/types';
 import { BankSelector } from '@/components/forms/BankSelector';
@@ -9,6 +9,85 @@ import { ConnectionTestResult } from '@/components/forms/ConnectionTestResult';
 import { testBankConnection, updateInstitution, getInstitution } from '@/lib/api/institutions';
 
 type Step = 'select' | 'credentials' | 'result';
+
+interface State {
+  currentStep: Step;
+  selectedBank: Bank | null;
+  testResult: BankConnectionTestResult | null;
+  credentials: BankCredentialsData | null;
+  loading: boolean;
+  saveError: string | null;
+  institution: Institution | null;
+  loadingInstitution: boolean;
+}
+
+type Action =
+  | { type: 'SET_INSTITUTION'; payload: Institution }
+  | { type: 'SET_LOADING_INSTITUTION'; payload: boolean }
+  | { type: 'SET_STEP'; payload: Step }
+  | { type: 'SELECT_BANK'; payload: Bank }
+  | { type: 'SET_TEST_RESULT'; payload: BankConnectionTestResult }
+  | { type: 'SET_CREDENTIALS'; payload: BankCredentialsData }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_SAVE_ERROR'; payload: string | null }
+  | { type: 'RESET_TO_SELECT' }
+  | { type: 'RESET_TO_CREDENTIALS' };
+
+const initialState: State = {
+  currentStep: 'select',
+  selectedBank: null,
+  testResult: null,
+  credentials: null,
+  loading: false,
+  saveError: null,
+  institution: null,
+  loadingInstitution: true,
+};
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'SET_INSTITUTION':
+      return { ...state, institution: action.payload };
+    case 'SET_LOADING_INSTITUTION':
+      return { ...state, loadingInstitution: action.payload };
+    case 'SET_STEP':
+      return { ...state, currentStep: action.payload };
+    case 'SELECT_BANK':
+      return {
+        ...state,
+        selectedBank: action.payload,
+        currentStep: 'credentials',
+      };
+    case 'SET_TEST_RESULT':
+      return {
+        ...state,
+        testResult: action.payload,
+        currentStep: 'result',
+      };
+    case 'SET_CREDENTIALS':
+      return { ...state, credentials: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_SAVE_ERROR':
+      return { ...state, saveError: action.payload };
+    case 'RESET_TO_SELECT':
+      return {
+        ...state,
+        currentStep: 'select',
+        selectedBank: null,
+        testResult: null,
+        credentials: null,
+      };
+    case 'RESET_TO_CREDENTIALS':
+      return {
+        ...state,
+        currentStep: 'credentials',
+        testResult: null,
+      };
+    default:
+      return state;
+  }
+}
 
 /**
  * 金融機関編集ページ
@@ -19,31 +98,24 @@ export default function EditBankPage(): React.JSX.Element {
   const params = useParams();
   const id = params.id as string;
 
-  const [currentStep, setCurrentStep] = useState<Step>('select');
-  const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
-  const [testResult, setTestResult] = useState<BankConnectionTestResult | null>(null);
-  const [credentials, setCredentials] = useState<BankCredentialsData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [institution, setInstitution] = useState<Institution | null>(null);
-  const [loadingInstitution, setLoadingInstitution] = useState(true);
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   // 既存の金融機関情報を取得
   useEffect(() => {
     const fetchInstitution = async (): Promise<void> => {
       try {
-        setLoadingInstitution(true);
+        dispatch({ type: 'SET_LOADING_INSTITUTION', payload: true });
         const data = await getInstitution(id);
-        setInstitution(data);
+        dispatch({ type: 'SET_INSTITUTION', payload: data });
 
         // 既存の金融機関情報から銀行情報を設定
         // 注: 認証情報は暗号化されているため、再入力が必要
         // currentStepは既に'select'で初期化されているため、設定不要
       } catch (error) {
         console.error('金融機関の取得に失敗しました:', error);
-        setSaveError('金融機関の取得に失敗しました。');
+        dispatch({ type: 'SET_SAVE_ERROR', payload: '金融機関の取得に失敗しました。' });
       } finally {
-        setLoadingInstitution(false);
+        dispatch({ type: 'SET_LOADING_INSTITUTION', payload: false });
       }
     };
 
@@ -54,14 +126,13 @@ export default function EditBankPage(): React.JSX.Element {
 
   // 銀行選択
   const handleSelectBank = (bank: Bank): void => {
-    setSelectedBank(bank);
-    setCurrentStep('credentials');
+    dispatch({ type: 'SELECT_BANK', payload: bank });
   };
 
   // 接続テスト実行
   const handleTestConnection = async (credentialsData: BankCredentialsData): Promise<void> => {
-    setLoading(true);
-    setCredentials(credentialsData);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_CREDENTIALS', payload: credentialsData });
 
     try {
       const result = await testBankConnection({
@@ -72,63 +143,63 @@ export default function EditBankPage(): React.JSX.Element {
         apiSecret: credentialsData.apiSecret,
       });
 
-      setTestResult(result);
-      setCurrentStep('result');
+      dispatch({ type: 'SET_TEST_RESULT', payload: result });
     } catch (_error) {
-      setTestResult({
-        success: false,
-        message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
+      dispatch({
+        type: 'SET_TEST_RESULT',
+        payload: {
+          success: false,
+          message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
+        },
       });
-      setCurrentStep('result');
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   // 金融機関を更新
   const handleUpdateBank = async (): Promise<void> => {
-    if (!selectedBank || !credentials) return;
+    if (!state.selectedBank || !state.credentials) return;
 
-    setLoading(true);
-    setSaveError(null);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_SAVE_ERROR', payload: null });
 
     try {
       await updateInstitution(id, {
-        name: selectedBank.name,
+        name: state.selectedBank.name,
         type: InstitutionType.BANK,
         credentials: {
-          bankCode: credentials.bankCode,
-          branchCode: credentials.branchCode,
-          accountNumber: credentials.accountNumber,
-          apiKey: credentials.apiKey,
-          apiSecret: credentials.apiSecret,
+          bankCode: state.credentials.bankCode,
+          branchCode: state.credentials.branchCode,
+          accountNumber: state.credentials.accountNumber,
+          apiKey: state.credentials.apiKey,
+          apiSecret: state.credentials.apiSecret,
         },
       });
 
       // 成功したら金融機関一覧に遷移
       router.push('/banks');
     } catch (_error) {
-      setSaveError('金融機関の更新に失敗しました。もう一度お試しください。');
+      dispatch({
+        type: 'SET_SAVE_ERROR',
+        payload: '金融機関の更新に失敗しました。もう一度お試しください。',
+      });
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   // 再試行（認証情報入力に戻る）
   const handleRetry = (): void => {
-    setCurrentStep('credentials');
-    setTestResult(null);
+    dispatch({ type: 'RESET_TO_CREDENTIALS' });
   };
 
   // 銀行選択に戻る
   const handleBackToSelect = (): void => {
-    setCurrentStep('select');
-    setSelectedBank(null);
-    setTestResult(null);
-    setCredentials(null);
+    dispatch({ type: 'RESET_TO_SELECT' });
   };
 
-  if (loadingInstitution) {
+  if (state.loadingInstitution) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -141,7 +212,7 @@ export default function EditBankPage(): React.JSX.Element {
     );
   }
 
-  if (!institution) {
+  if (!state.institution) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -188,7 +259,7 @@ export default function EditBankPage(): React.JSX.Element {
             <div className="flex-1">
               <div
                 className={`w-full h-2 rounded ${
-                  currentStep === 'select' ? 'bg-blue-600' : 'bg-blue-200'
+                  state.currentStep === 'select' ? 'bg-blue-600' : 'bg-blue-200'
                 }`}
               ></div>
               <div className="mt-2 text-sm font-medium text-gray-900">1. 銀行選択</div>
@@ -197,7 +268,7 @@ export default function EditBankPage(): React.JSX.Element {
             <div className="flex-1">
               <div
                 className={`w-full h-2 rounded ${
-                  currentStep === 'credentials' || currentStep === 'result'
+                  state.currentStep === 'credentials' || state.currentStep === 'result'
                     ? 'bg-blue-600'
                     : 'bg-gray-300'
                 }`}
@@ -208,7 +279,7 @@ export default function EditBankPage(): React.JSX.Element {
             <div className="flex-1">
               <div
                 className={`w-full h-2 rounded ${
-                  currentStep === 'result' ? 'bg-blue-600' : 'bg-gray-300'
+                  state.currentStep === 'result' ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               ></div>
               <div className="mt-2 text-sm font-medium text-gray-900">3. 接続テスト</div>
@@ -218,14 +289,14 @@ export default function EditBankPage(): React.JSX.Element {
 
         {/* コンテンツ */}
         <div className="bg-white rounded-lg shadow p-6">
-          {currentStep === 'select' && (
+          {state.currentStep === 'select' && (
             <BankSelector
               onSelectBank={handleSelectBank}
-              selectedBank={selectedBank || undefined}
+              selectedBank={state.selectedBank || undefined}
             />
           )}
 
-          {currentStep === 'credentials' && selectedBank && (
+          {state.currentStep === 'credentials' && state.selectedBank && (
             <div>
               <button
                 onClick={handleBackToSelect}
@@ -234,16 +305,16 @@ export default function EditBankPage(): React.JSX.Element {
                 ← 銀行を変更
               </button>
               <BankCredentialsForm
-                bank={selectedBank}
+                bank={state.selectedBank}
                 onSubmit={handleTestConnection}
-                loading={loading}
+                loading={state.loading}
               />
             </div>
           )}
 
-          {currentStep === 'result' && testResult && (
+          {state.currentStep === 'result' && state.testResult && (
             <div>
-              {saveError && (
+              {state.saveError && (
                 <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
                   <div className="flex">
                     <div className="flex-shrink-0">
@@ -261,15 +332,15 @@ export default function EditBankPage(): React.JSX.Element {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm text-red-800">{saveError}</p>
+                      <p className="text-sm text-red-800">{state.saveError}</p>
                     </div>
                   </div>
                 </div>
               )}
               <ConnectionTestResult
-                result={testResult}
+                result={state.testResult}
                 onRetry={handleRetry}
-                onContinue={testResult.success ? handleUpdateBank : undefined}
+                onContinue={state.testResult.success ? handleUpdateBank : undefined}
               />
             </div>
           )}
