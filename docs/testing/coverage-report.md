@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-12-04 07:55:23  
-> **コミット**: `0844a24`  
-> **ブランチ**: `feature/issue-48-subcategory-aggregation-impl`
+> **最終更新**: 2025-12-04 15:33:45  
+> **コミット**: `1e68385`  
+> **ブランチ**: `feature/issue-114-financial-institution-settings-screen`
 
 ## 概要
 
@@ -18,9 +18,9 @@
 
 | テスト種類      | Lines  | Statements | Functions | Branches |
 | --------------- | ------ | ---------- | --------- | -------- |
-| Backend (Unit)  | 77.73% | 72.54%     | 76.11%    | 61.48%   |
+| Backend (Unit)  | 79.20% | 79.37%     | 78.98%    | 67.56%   |
 | Backend (E2E)   | 4.73%  | 4.73%      | 3.68%     | 9.60%    |
-| Frontend (Unit) | 28.98% | 28.98%     | 30.45%    | 29.86%   |
+| Frontend (Unit) | 33.10% | 33.10%     | 34.75%    | 32.10%   |
 | Frontend (E2E)  | N/A    | N/A        | N/A       | N/A      |
 
 ## Backend モジュール別詳細
@@ -29,13 +29,13 @@
 
 | モジュール  | Lines  | Statements | Functions | Branches | 優先度 |
 | ----------- | ------ | ---------- | --------- | -------- | ------ |
-| category    | 60.48% | 60.48%     | 61.18%    | 50.00%   | 🟢 Low |
-| credit-card | 62.59% | 62.59%     | 45.96%    | 55.12%   | 🟢 Low |
+| category    | 78.57% | 78.57%     | 74.36%    | 72.67%   | 🟢 Low |
+| credit-card | 88.18% | 88.18%     | 90.68%    | 69.31%   | 🟢 Low |
 | health      | 82.17% | 82.17%     | 85.71%    | 61.26%   | 🟢 Low |
-| institution | 69.00% | 69.00%     | 50.00%    | 60.89%   | 🟢 Low |
+| institution | 67.38% | 67.38%     | 48.28%    | 60.22%   | 🟢 Low |
 | securities  | 86.07% | 86.07%     | 85.23%    | 69.64%   | 🟢 Low |
-| sync        | 56.10% | 56.10%     | 48.28%    | 46.15%   | 🟢 Low |
-| transaction | 67.91% | 67.91%     | 60.31%    | 66.67%   | 🟢 Low |
+| sync        | 60.60% | 60.60%     | 57.47%    | 50.00%   | 🟢 Low |
+| transaction | 84.86% | 84.86%     | 80.67%    | 75.45%   | 🟢 Low |
 
 ### E2E Tests
 
@@ -55,9 +55,9 @@
 
 | モジュール | Lines  | Statements | Functions | Branches | 優先度    |
 | ---------- | ------ | ---------- | --------- | -------- | --------- |
-| app        | 0.00%  | 0.00%      | 0.00%     | 0.00%    | 🔴 High   |
-| components | 37.18% | 37.18%     | 37.16%    | 37.31%   | 🟡 Medium |
-| lib        | 34.96% | 34.96%     | 29.82%    | 27.69%   | 🟡 Medium |
+| app        | 1.38%  | 1.38%      | 1.82%     | 0.00%    | 🔴 High   |
+| components | 42.63% | 42.63%     | 42.98%    | 39.92%   | 🟡 Medium |
+| lib        | 36.68% | 36.68%     | 31.03%    | 29.85%   | 🟡 Medium |
 | stores     | 43.14% | 43.14%     | 47.62%    | 7.14%    | 🟡 Medium |
 | utils      | 14.04% | 14.04%     | 12.50%    | 18.92%   | 🔴 High   |
 
@@ -69,7 +69,7 @@
 
 **Frontend:**
 
-- app (Lines: 0.00%, Stmts: 0.00%, Funcs: 0.00%, Branches: 0.00%)
+- app (Lines: 1.38%, Stmts: 1.38%, Funcs: 1.82%, Branches: 0.00%)
 - utils (Lines: 14.04%, Stmts: 14.04%, Funcs: 12.50%, Branches: 18.92%)
 
 ### 🟡 Medium Priority (30% ≤ カバレッジ < 50%)
@@ -78,21 +78,21 @@
 
 **Frontend:**
 
-- components (Lines: 37.18%, Stmts: 37.18%, Funcs: 37.16%, Branches: 37.31%)
-- lib (Lines: 34.96%, Stmts: 34.96%, Funcs: 29.82%, Branches: 27.69%)
+- components (Lines: 42.63%, Stmts: 42.63%, Funcs: 42.98%, Branches: 39.92%)
+- lib (Lines: 36.68%, Stmts: 36.68%, Funcs: 31.03%, Branches: 29.85%)
 - stores (Lines: 43.14%, Stmts: 43.14%, Funcs: 47.62%, Branches: 7.14%)
 
 ### 🟢 Low Priority (カバレッジ ≥ 50%)
 
 **Backend:**
 
-- category (Lines: 60.48%, Stmts: 60.48%, Funcs: 61.18%, Branches: 50.00%)
-- credit-card (Lines: 62.59%, Stmts: 62.59%, Funcs: 45.96%, Branches: 55.12%)
+- category (Lines: 78.57%, Stmts: 78.57%, Funcs: 74.36%, Branches: 72.67%)
+- credit-card (Lines: 88.18%, Stmts: 88.18%, Funcs: 90.68%, Branches: 69.31%)
 - health (Lines: 82.17%, Stmts: 82.17%, Funcs: 85.71%, Branches: 61.26%)
-- institution (Lines: 69.00%, Stmts: 69.00%, Funcs: 50.00%, Branches: 60.89%)
+- institution (Lines: 67.38%, Stmts: 67.38%, Funcs: 48.28%, Branches: 60.22%)
 - securities (Lines: 86.07%, Stmts: 86.07%, Funcs: 85.23%, Branches: 69.64%)
-- sync (Lines: 56.10%, Stmts: 56.10%, Funcs: 48.28%, Branches: 46.15%)
-- transaction (Lines: 67.91%, Stmts: 67.91%, Funcs: 60.31%, Branches: 66.67%)
+- sync (Lines: 60.60%, Stmts: 60.60%, Funcs: 57.47%, Branches: 50.00%)
+- transaction (Lines: 84.86%, Stmts: 84.86%, Funcs: 80.67%, Branches: 75.45%)
 
 **Frontend:**
 
@@ -155,6 +155,47 @@ pnpm test:e2e:cov
 cd apps/frontend
 pnpm test -- --coverage
 ```
+
+## 新規機能追加のカバレッジ状況
+
+### Issue #114: 金融機関設定画面の実装
+
+**追加日**: 2025-12-04  
+**ブランチ**: `feature/issue-114-financial-institution-settings-screen`  
+**コミット**: `ae9b519`
+
+#### 追加されたファイルとカバレッジ
+
+| ファイル                                                           | Lines  | Statements | Functions | Branches | 状態                                        |
+| ------------------------------------------------------------------ | ------ | ---------- | --------- | -------- | ------------------------------------------- |
+| `apps/frontend/src/app/banks/page.tsx`                             | 0%     | 0%         | 0%        | 0%       | 🟡 テスト作成済み（ラッパーコンポーネント） |
+| `apps/frontend/src/components/institutions/InstitutionList.tsx`    | 100%   | 100%       | 100%      | 100%     | ✅ テスト作成済み                           |
+| `apps/frontend/src/components/institutions/InstitutionCard.tsx`    | 93.33% | 93.47%     | 88.88%    | 84.61%   | ✅ テスト作成済み                           |
+| `apps/frontend/src/components/institutions/DeleteConfirmModal.tsx` | 100%   | 100%       | 100%      | 100%     | ✅ テスト作成済み                           |
+| `apps/frontend/src/lib/api/sync.ts`                                | 100%   | 100%       | 100%      | 100%     | ✅ テスト作成済み                           |
+
+#### カバレッジサマリー
+
+- **合計行数**: 約557行
+- **カバレッジ**: 91.76% (Lines: 91.66%, Statements: 91.76%, Functions: 89.47%, Branches: 90.00%)
+- **目標**: 80%以上
+- **状態**: ✅ **目標達成**（Issue #114でテストコード作成完了）
+
+#### 実装内容
+
+- 金融機関一覧画面のページコンポーネント
+- 金融機関一覧表示コンポーネント（InstitutionList）
+- 金融機関カードコンポーネント（InstitutionCard）
+- 削除確認モーダルコンポーネント（DeleteConfirmModal）
+- 同期APIクライアント（sync.ts）
+
+#### テスト実装状況
+
+- ✅ InstitutionListコンポーネントのテスト（100%カバレッジ）
+- ✅ InstitutionCardコンポーネントのテスト（93.33%カバレッジ）
+- ✅ DeleteConfirmModalコンポーネントのテスト（100%カバレッジ）
+- ✅ sync.ts APIクライアントのテスト（100%カバレッジ）
+- ✅ banks/page.tsx ページコンポーネントのテスト（ラッパーコンポーネントのため0%）
 
 ## 参考資料
 

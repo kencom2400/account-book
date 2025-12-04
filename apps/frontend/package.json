@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "postinstall": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@account-book/types": "workspace:^",

@@ -99,6 +99,7 @@
     "coverageReporters": [
       "text",
       "lcov",
+      "json",
       "json-summary"
     ],
     "testEnvironment": "node",

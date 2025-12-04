@@ -5621,7 +5621,284 @@ TypeORMリポジトリのテストを作成する際は、以下を確認：
 
 ## 13. Geminiレビューから学んだ観点
 
-### 13-1. 型安全性の維持 🔴 Critical
+### 13-1. コードの重複排除と再利用性（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### データ取得ロジックの重複排除
+
+**問題**: `useEffect`と`handleRefresh`で同じデータ取得ロジックが重複している
+
+**解決策**: `useCallback`を使用してデータ取得ロジックを1つの関数にまとめる
+
+```typescript
+// ❌ 悪い例: ロジックが重複
+useEffect(() => {
+  const fetchData = async () => {
+    // データ取得ロジック
+  };
+  void fetchData();
+}, []);
+
+const handleRefresh = () => {
+  void (async () => {
+    // 同じデータ取得ロジックが重複
+  })();
+};
+
+// ✅ 良い例: useCallbackで共通化
+const fetchData = useCallback(async () => {
+  // データ取得ロジック
+}, []);
+
+useEffect(() => {
+  void fetchData();
+}, [fetchData]);
+
+const handleRefresh = () => {
+  void fetchData();
+};
+```
+
+**理由**:
+
+- コードの重複を排除し、保守性を向上
+- ロジックの変更時に1箇所の修正で済む
+- テストが容易になる
+
+### 13-2. インライン関数の抽出（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### 複雑なインラインアロー関数の抽出
+
+**問題**: JSX内のインラインアロー関数が複雑で、可読性と保守性が低下
+
+**解決策**: 名前付き関数として抽出
+
+```typescript
+// ❌ 悪い例: 複雑なインライン関数
+<Modal
+  onConfirm={() => {
+    setIsDeleting(true);
+    try {
+      // 複雑なロジック
+    } catch (error) {
+      // エラーハンドリング
+    } finally {
+      setIsDeleting(false);
+    }
+  }}
+/>
+
+// ✅ 良い例: 名前付き関数として抽出
+const handleConfirm = (): void => {
+  setIsDeleting(true);
+  try {
+    // 複雑なロジック
+  } catch (error) {
+    // エラーハンドリング
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+<Modal onConfirm={handleConfirm} />
+```
+
+**理由**:
+
+- 可読性が向上
+- 関数の再利用が容易
+- テストが容易になる
+
+### 13-3. 未実装UI要素の扱い（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### 未実装機能に関するUIテキストの扱い
+
+**問題**: 未実装のUI要素に関する注意書きが表示され、ユーザーを混乱させる
+
+**解決策**: 未実装の場合は、該当するUIテキストを削除またはコメントアウト
+
+```typescript
+// ❌ 悪い例: 未実装機能に関する注意書きが表示される
+<div className="mt-4 p-3 bg-yellow-50">
+  <p>注意: 削除する際は、取引履歴の扱いを選択してください。</p>
+  {/* しかし、選択UI要素が存在しない */}
+</div>
+
+// ✅ 良い例: 未実装の場合は削除またはTODOコメント
+{/* TODO: 取引履歴の扱いを選択するUI要素を実装（別Issueで実装予定） */}
+```
+
+**理由**:
+
+- ユーザーの混乱を防ぐ
+- 将来の実装を示すためにTODOコメントを残す
+- 実装時に明確な指針となる
+
+### 13-4. エラーハンドリングでのログ出力（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### catchブロックでのエラーログ出力
+
+**問題**: catchブロックが空で、エラー発生時のデバッグが困難
+
+**解決策**: `console.error`でエラーオブジェクトをログに出力する
+
+```typescript
+// ❌ 悪い例: catchブロックが空
+catch (error) {
+  if (error instanceof Error) {
+    // エラーを適切に処理
+  }
+}
+
+// ✅ 良い例: console.errorでエラーをログ出力
+catch (error) {
+  if (error instanceof Error) {
+    console.error('処理中にエラーが発生しました:', error);
+  }
+}
+```
+
+**理由**:
+
+- デバッグが容易になる
+- 予期せぬ問題の原因特定がしやすくなる
+- 開発中の問題発見に役立つ
+
+**注意**: 本番環境では、適切なエラーロギングサービス（Sentry等）を使用することを推奨
+
+### 13-5. テストスキップ時のコメント（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### テストスキップ時の理由とIssue番号の記録
+
+**問題**: テストをスキップした理由が不明で、再有効化を忘れる可能性がある
+
+**解決策**: スキップ理由とIssue番号をコメントとして残す
+
+```typescript
+// ❌ 悪い例: 理由が不明
+test.skip('費目を編集できる', async ({ page }) => {
+  // ...
+});
+
+// ✅ 良い例: 理由とIssue番号をコメントとして残す
+// TODO: Issue #XXX - 編集機能の不具合が修正されたら、このテストを有効化する
+test.skip('費目を編集できる', async ({ page }) => {
+  // ...
+});
+```
+
+**理由**:
+
+- テスト再有効化のタイミングが明確になる
+- コードの保守性が向上
+- 将来の実装者への情報提供
+
+### 13-6. モーダルのアクセシビリティ改善（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### モーダルコンポーネントのアクセシビリティ属性
+
+**問題**: モーダルコンポーネントに適切なARIA属性が設定されていない
+
+**解決策**: `role="dialog"`、`aria-modal="true"`、`aria-labelledby`を追加
+
+```typescript
+// ❌ 悪い例: アクセシビリティ属性が不足
+<div className="modal">
+  <h3>削除しますか？</h3>
+  {/* ... */}
+</div>
+
+// ✅ 良い例: 適切なARIA属性を設定
+<div role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <h3 id="modal-title">削除しますか？</h3>
+  {/* ... */}
+</div>
+```
+
+**理由**:
+
+- スクリーンリーダーがモーダルを正しく認識できる
+- ユーザー体験が向上
+- WCAG準拠
+
+**注意**: オーバーレイの`div`に`role="button"`や`tabIndex`を設定するのは不適切。`onClick`と`onKeyDown`だけで十分。
+
+### 13-7. テストでの堅牢なセレクタ使用（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### テストでのセレクタ選択
+
+**問題**: `getAllByText`とインデックスを使用したセレクタは脆弱
+
+**解決策**: `getByRole`と`within`を使用してスコープを限定
+
+```typescript
+// ❌ 悪い例: インデックスに依存した脆弱なセレクタ
+const deleteButtons = screen.getAllByText('削除');
+fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+
+// ✅ 良い例: roleとwithinでスコープを限定
+const modal = screen.getByRole('dialog');
+const deleteButton = within(modal).getByRole('button', { name: '削除' });
+fireEvent.click(deleteButton);
+```
+
+**理由**:
+
+- UIの変更に強いテストになる
+- 意図が明確になる
+- 保守性が向上
+
+### 13-8. 型定義の共有パッケージへの移動（PR #349）
+
+**学習元**: PR #349 - Issue #114: 金融機関設定画面の実装（Geminiレビュー指摘）
+
+#### API型定義の配置
+
+**問題**: フロントエンドとバックエンドで型定義が重複している
+
+**解決策**: 共通の型定義を`@account-book/types`パッケージに移動
+
+```typescript
+// ❌ 悪い例: フロントエンドにローカル型定義
+// apps/frontend/src/lib/api/sync.ts
+export interface SyncAllTransactionsRequest {
+  forceFullSync?: boolean;
+  institutionIds?: string[];
+}
+
+// ✅ 良い例: 共有パッケージに型定義
+// libs/types/src/sync.types.ts
+export interface SyncAllTransactionsRequest {
+  forceFullSync?: boolean;
+  institutionIds?: string[];
+}
+
+// apps/frontend/src/lib/api/sync.ts
+import { SyncAllTransactionsRequest } from '@account-book/types';
+```
+
+**理由**:
+
+- 型の一貫性が保証される
+- 重複が排除される
+- 保守性が向上
+
+## 14. Geminiレビューから学んだ観点（旧セクション14以降）
+
+### 14-1. 型安全性の維持 🔴 Critical
 
 **学習元**: PR #259 - パフォーマンステストとチューニング
 

@@ -102,6 +102,7 @@ extract_module_coverage() {
   fi
   
   # モジュールパスに一致するファイルのみをフィルタリング
+  # coverage-final.jsonのキーは絶対パスなので、module_pathが含まれているかチェック
   local coverage_data=$(jq --arg module_path "$module_path" '[
     to_entries[] | 
     select(.key | contains($module_path)) | 
@@ -184,7 +185,8 @@ BACKEND_MODULES=("category" "credit-card" "health" "institution" "securities" "s
 
 # 各モジュールのカバレッジデータを変数に格納
 for module in "${BACKEND_MODULES[@]}"; do
-  module_path="/modules/$module/"
+  # モジュールパスは "modules/category" のような形式で検索（絶対パスに対応）
+  module_path="modules/$module"
   module_var_name=$(echo "$module" | tr '-' '_')
   eval "BACKEND_MODULE_UNIT_${module_var_name}=\$(extract_module_coverage \"$PROJECT_ROOT/apps/backend/coverage/coverage-final.json\" \"$module_path\")"
   eval "BACKEND_MODULE_E2E_${module_var_name}=\$(extract_module_coverage \"$PROJECT_ROOT/apps/backend/coverage-e2e/coverage-final.json\" \"$module_path\")"
