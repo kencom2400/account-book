@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, EntityManager } from 'typeorm';
 import { InstitutionOrmEntity } from '../entities/institution.orm-entity';
 import { AccountOrmEntity } from '../entities/account.orm-entity';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
