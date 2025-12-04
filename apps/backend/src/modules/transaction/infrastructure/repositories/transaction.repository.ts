@@ -310,40 +310,35 @@ export class TransactionRepository implements ITransactionRepository {
 
   /**
    * 金融機関IDで取引を一括削除
+   * パフォーマンス最適化: 月ごとのファイルを直接処理し、全データ読み込みを避ける
    */
   async deleteByInstitutionId(institutionId: string): Promise<void> {
-    const transactions = await this.findByInstitutionId(institutionId);
+    await this.ensureDataDirectory();
+    const files = await fs.readdir(this.dataDir);
+    const jsonFiles = files.filter((file) => file.endsWith('.json'));
 
-    if (transactions.length === 0) {
-      return;
-    }
+    for (const fileName of jsonFiles) {
+      const [yearStr, monthStr] = fileName.replace('.json', '').split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
 
-    // 月ごとにグループ化
-    const groupedByMonth = new Map<string, TransactionEntity[]>();
-
-    for (const transaction of transactions) {
-      const year = transaction.date.getFullYear();
-      const month = transaction.date.getMonth() + 1;
-      const key = `${year}-${month}`;
-
-      if (!groupedByMonth.has(key)) {
-        groupedByMonth.set(key, []);
+      if (isNaN(year) || isNaN(month)) {
+        continue;
       }
-      groupedByMonth.get(key)!.push(transaction);
-    }
 
-    // 月ごとに削除
-    for (const [key, monthTransactions] of groupedByMonth.entries()) {
-      const [year, month] = key.split('-').map(Number);
       const existingTransactions = await this.findByMonth(year, month);
-      const transactionIdsToDelete = new Set(
-        monthTransactions.map((t) => t.id),
-      );
+      if (existingTransactions.length === 0) {
+        continue;
+      }
+
       const filteredTransactions = existingTransactions.filter(
-        (t) => !transactionIdsToDelete.has(t.id),
+        (t) => t.institutionId !== institutionId,
       );
 
-      await this.saveMonthData(year, month, filteredTransactions);
+      // 削除対象がある場合のみファイルを更新
+      if (filteredTransactions.length < existingTransactions.length) {
+        await this.saveMonthData(year, month, filteredTransactions);
+      }
     }
   }
 

@@ -121,9 +121,10 @@ export async function deleteInstitution(
   options?: DeleteInstitutionRequest
 ): Promise<void> {
   const params = new URLSearchParams();
-  if (options?.deleteTransactions === true) {
-    params.append('deleteTransactions', 'true');
+  if (options?.deleteTransactions) {
+    params.set('deleteTransactions', 'true');
   }
-  const endpoint = `/institutions/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+  const queryString = params.toString();
+  const endpoint = `/institutions/${id}${queryString ? `?${queryString}` : ''}`;
   return await apiClient.delete<void>(endpoint);
 }
