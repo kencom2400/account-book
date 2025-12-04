@@ -2737,7 +2737,110 @@ catch (fetchError) {
 
 ---
 
-### 4-16. 不要な依存関係の削除
+### 4-16. エラー発生時にも状態更新を実行する
+
+#### 🔴 重要: エラー発生時でもサーバー側の状態変更をUIに反映する
+
+同期処理や更新処理が失敗した場合でも、サーバー側で状態が変更されている可能性があります（例: 金融機関の接続状態が「接続エラー」に変更される）。エラー発生時にも状態更新を実行することで、UIが最新の状態を反映し、ユーザーが正しい情報を即座に確認できるようになります。
+
+❌ **悪い例**: エラー発生時に状態更新をスキップ
+
+```typescript
+const handleSync = async (): Promise<void> => {
+  setIsSyncing(true);
+  try {
+    await startSync({
+      institutionIds: [institution.id],
+      forceFullSync: false,
+    });
+    // 同期完了後、一覧を更新
+    onUpdate();
+  } catch (error) {
+    const errorMessage = getErrorMessage(error, '同期処理に失敗しました');
+    showErrorToast('error', errorMessage);
+    console.error('同期処理中にエラーが発生しました:', error);
+    // ❌ エラー発生時に状態更新をスキップしている
+    // サーバー側で金融機関のステータスが更新されている可能性がある
+  } finally {
+    setIsSyncing(false);
+  }
+};
+```
+
+**問題点**:
+
+- サーバー側で金融機関のステータスが「接続エラー」などに変更されても、UIに反映されない
+- ユーザーがエラー発生後に正しい接続状態を確認できない
+- UIに表示される情報が不正確になる可能性がある
+
+✅ **良い例**: エラー発生時にも状態更新を実行
+
+```typescript
+const handleSync = async (): Promise<void> => {
+  setIsSyncing(true);
+  try {
+    await startSync({
+      institutionIds: [institution.id],
+      forceFullSync: false,
+    });
+    // 同期完了後、一覧を更新
+    onUpdate();
+  } catch (error) {
+    const errorMessage = getErrorMessage(error, '同期処理に失敗しました');
+    showErrorToast('error', errorMessage);
+    console.error('同期処理中にエラーが発生しました:', error);
+    // ✅ エラー発生時でも、サーバー側で状態が更新されている可能性があるため、
+    // UIを最新の状態に更新する
+    onUpdate();
+  } finally {
+    setIsSyncing(false);
+  }
+};
+```
+
+**利点**:
+
+- サーバー側で状態が変更されても、UIに即座に反映される
+- ユーザーがエラー発生後に正しい接続状態を確認できる
+- UIに表示される情報が常に最新の状態になる
+
+#### ✅ 実装パターン
+
+```typescript
+// パターン1: catchブロック内で状態更新
+try {
+  await someOperation();
+  onUpdate();
+} catch (error) {
+  handleError(error);
+  onUpdate(); // エラー発生時にも状態更新
+}
+
+// パターン2: finallyブロックで状態更新（エラー有無に関わらず）
+try {
+  await someOperation();
+} catch (error) {
+  handleError(error);
+} finally {
+  onUpdate(); // 常に状態更新
+}
+```
+
+#### ✅ 適用箇所
+
+- **同期処理**: 同期失敗時でも金融機関のステータスが更新される可能性がある
+- **更新処理**: 更新失敗時でも一部の状態が変更される可能性がある
+- **削除処理**: 削除失敗時でも関連データの状態が変更される可能性がある
+
+#### 参考
+
+- **PR #357**: Geminiレビュー指摘（Issue #352）
+- **修正箇所**: `apps/frontend/src/components/institutions/InstitutionCard.tsx`
+- **学習元**: エラー発生時でもUIの状態を最新に保つ重要性
+
+---
+
+### 4-17. 不要な依存関係の削除
 
 #### 🟡 推奨: 使用していない依存関係は削除する
 

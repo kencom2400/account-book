@@ -110,6 +110,9 @@ export function InstitutionCard({
       const errorMessage = getErrorMessage(error, '同期処理に失敗しました');
       showErrorToast('error', errorMessage);
       console.error('同期処理中にエラーが発生しました:', error);
+      // 同期失敗時でも、サーバー側で金融機関のステータスが更新されている可能性があるため、
+      // UIを最新の状態に更新する
+      onUpdate();
     } finally {
       setIsSyncing(false);
     }
