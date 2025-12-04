@@ -63,6 +63,7 @@ describe('DeleteConfirmModal', () => {
     fireEvent.click(deleteButton);
 
     expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    expect(mockOnConfirm).toHaveBeenCalledWith(false);
   });
 
   it('キャンセルボタンをクリックすると、onCancelが呼ばれる', () => {
@@ -131,5 +132,73 @@ describe('DeleteConfirmModal', () => {
 
     // モック関数が呼ばれたことを確認
     expect(asyncOnConfirm).toHaveBeenCalledTimes(1);
+    expect(asyncOnConfirm).toHaveBeenCalledWith(false);
+  });
+
+  it('ラジオボタンの選択が正しく切り替わる', () => {
+    render(
+      <DeleteConfirmModal
+        institution={mockInstitution}
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const keepOption = screen.getByLabelText('取引履歴は保持');
+    const deleteOption = screen.getByLabelText('取引履歴も削除');
+
+    // デフォルトで「取引履歴は保持」が選択されていることを確認
+    expect(keepOption).toBeChecked();
+    expect(deleteOption).not.toBeChecked();
+
+    // 「取引履歴も削除」を選択
+    fireEvent.click(deleteOption);
+    expect(deleteOption).toBeChecked();
+    expect(keepOption).not.toBeChecked();
+
+    // 「取引履歴は保持」を選択
+    fireEvent.click(keepOption);
+    expect(keepOption).toBeChecked();
+    expect(deleteOption).not.toBeChecked();
+  });
+
+  it('「取引履歴も削除」を選択して削除ボタンをクリックすると、trueが渡される', () => {
+    render(
+      <DeleteConfirmModal
+        institution={mockInstitution}
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const deleteOption = screen.getByLabelText('取引履歴も削除');
+    fireEvent.click(deleteOption);
+
+    const modal = screen.getByRole('dialog');
+    const deleteButton = within(modal).getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
+
+    expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    expect(mockOnConfirm).toHaveBeenCalledWith(true);
+  });
+
+  it('「取引履歴は保持」を選択して削除ボタンをクリックすると、falseが渡される', () => {
+    render(
+      <DeleteConfirmModal
+        institution={mockInstitution}
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const keepOption = screen.getByLabelText('取引履歴は保持');
+    fireEvent.click(keepOption);
+
+    const modal = screen.getByRole('dialog');
+    const deleteButton = within(modal).getByRole('button', { name: '削除' });
+    fireEvent.click(deleteButton);
+
+    expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    expect(mockOnConfirm).toHaveBeenCalledWith(false);
   });
 });
