@@ -241,6 +241,13 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
   }
 
   /**
+   * 金融機関IDで取引を一括削除
+   */
+  async deleteByInstitutionId(institutionId: string): Promise<void> {
+    await this.repository.delete({ institutionId });
+  }
+
+  /**
    * すべての取引を削除（テスト用）
    */
   async deleteAll(): Promise<void> {

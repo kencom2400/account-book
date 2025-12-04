@@ -94,6 +94,11 @@ export interface ITransactionRepository {
   delete(id: string): Promise<void>;
 
   /**
+   * 金融機関IDで取引を一括削除
+   */
+  deleteByInstitutionId(institutionId: string): Promise<void>;
+
+  /**
    * すべての取引を削除（テスト用）
    */
   deleteAll(): Promise<void>;

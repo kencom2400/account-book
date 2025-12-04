@@ -30,13 +30,7 @@ export class DeleteInstitutionUseCase {
 
     // 取引履歴を削除する場合
     if (dto.deleteTransactions === true) {
-      const transactions =
-        await this.transactionRepository.findByInstitutionId(id);
-
-      // 各取引を削除
-      for (const transaction of transactions) {
-        await this.transactionRepository.delete(transaction.id);
-      }
+      await this.transactionRepository.deleteByInstitutionId(id);
     }
 
     // 金融機関を削除

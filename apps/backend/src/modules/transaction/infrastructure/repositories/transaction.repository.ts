@@ -309,6 +309,45 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * 金融機関IDで取引を一括削除
+   */
+  async deleteByInstitutionId(institutionId: string): Promise<void> {
+    const transactions = await this.findByInstitutionId(institutionId);
+
+    if (transactions.length === 0) {
+      return;
+    }
+
+    // 月ごとにグループ化
+    const groupedByMonth = new Map<string, TransactionEntity[]>();
+
+    for (const transaction of transactions) {
+      const year = transaction.date.getFullYear();
+      const month = transaction.date.getMonth() + 1;
+      const key = `${year}-${month}`;
+
+      if (!groupedByMonth.has(key)) {
+        groupedByMonth.set(key, []);
+      }
+      groupedByMonth.get(key)!.push(transaction);
+    }
+
+    // 月ごとに削除
+    for (const [key, monthTransactions] of groupedByMonth.entries()) {
+      const [year, month] = key.split('-').map(Number);
+      const existingTransactions = await this.findByMonth(year, month);
+      const transactionIdsToDelete = new Set(
+        monthTransactions.map((t) => t.id),
+      );
+      const filteredTransactions = existingTransactions.filter(
+        (t) => !transactionIdsToDelete.has(t.id),
+      );
+
+      await this.saveMonthData(year, month, filteredTransactions);
+    }
+  }
+
+  /**
    * すべての取引を削除（テスト用）
    */
   async deleteAll(): Promise<void> {
