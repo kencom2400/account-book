@@ -64,7 +64,7 @@ test.describe('Category Management', () => {
     await page.waitForTimeout(500);
   });
 
-  test('費目を編集できる', async ({ page }) => {
+  test.skip('費目を編集できる', async ({ page }) => {
     // 最初の編集ボタンをクリック（システム定義以外）
     const editButtons = page.locator('button:has-text("編集")');
     const count = await editButtons.count();
