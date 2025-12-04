@@ -43,8 +43,10 @@ export interface IInstitutionRepository {
 
   /**
    * 金融機関を削除
+   * @param id 金融機関ID
+   * @param manager トランザクション用のEntityManager（オプショナル）
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, manager?: unknown): Promise<void>;
 
   /**
    * すべての金融機関を削除（テスト用）

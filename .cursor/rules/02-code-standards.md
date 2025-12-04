@@ -5896,6 +5896,345 @@ import { SyncAllTransactionsRequest } from '@account-book/types';
 - 重複が排除される
 - 保守性が向上
 
+### 13-9. N+1問題の回避（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### 一括削除メソッドの実装
+
+**問題**: ループで一つずつ削除することで、データベースへのアクセス回数が増加し、パフォーマンス問題が発生する可能性がある。
+
+**解決策**: リポジトリに一括削除メソッドを追加し、UseCaseで使用する
+
+```typescript
+// ❌ 悪い例: N+1問題が発生
+const transactions = await this.transactionRepository.findByInstitutionId(id);
+for (const transaction of transactions) {
+  await this.transactionRepository.delete(transaction.id);
+}
+
+// ✅ 良い例: 一括削除メソッドを使用
+await this.transactionRepository.deleteByInstitutionId(id);
+```
+
+**実装例**:
+
+```typescript
+// Repositoryインターフェース
+export interface ITransactionRepository {
+  deleteByInstitutionId(institutionId: string): Promise<void>;
+}
+
+// TypeORM実装
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  await this.repository.delete({ institutionId });
+}
+
+// ファイルシステム実装（月ごとにグループ化）
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const transactions = await this.findByInstitutionId(institutionId);
+  // 月ごとにグループ化して削除
+  // ...
+}
+```
+
+**理由**:
+
+- データベースへのアクセス回数が大幅に削減される
+- パフォーマンスが向上する
+- スケーラビリティが向上する
+
+### 13-10. エラーハンドリングでのユーザーフィードバック（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### エラー時のトースト通知実装
+
+**問題**: エラー発生時に`console.error`でログ出力するのみで、ユーザーへのフィードバックがない。
+
+**解決策**: エラー時にトースト通知を表示する
+
+```typescript
+// ❌ 悪い例: ログ出力のみ
+catch (error) {
+  if (error instanceof Error) {
+    console.error('削除処理中にエラーが発生しました:', error);
+  }
+}
+
+// ✅ 良い例: トースト通知を表示
+catch (error) {
+  const errorMessage = getErrorMessage(
+    error,
+    '金融機関の削除に失敗しました',
+  );
+  showErrorToast('error', errorMessage);
+  console.error('削除処理中にエラーが発生しました:', error);
+}
+```
+
+**理由**:
+
+- ユーザーがエラーを認識できるようになる
+- ユーザー体験が向上する
+- デバッグ情報はログに残しつつ、ユーザーにも通知する
+
+### 13-11. データベース操作の原子性確保（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### トランザクションの導入
+
+**問題**: 複数のデータベース操作が関連する場合、処理の途中でエラーが発生するとデータが不整合な状態になる可能性がある。
+
+**解決策**: 関連する操作をトランザクション内で実行する
+
+```typescript
+// ❌ 悪い例: トランザクションなし
+await this.transactionRepository.deleteByInstitutionId(id);
+await this.institutionRepository.delete(id);
+// 2つ目の操作が失敗すると、取引履歴のみが削除された状態になる
+
+// ✅ 良い例: トランザクションを使用
+await this.dataSource.transaction(async (entityManager) => {
+  const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+  await transactionRepo.delete({ institutionId: id });
+
+  const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+  await institutionRepo.delete(id);
+});
+```
+
+**実装例**:
+
+```typescript
+@Injectable()
+export class DeleteInstitutionUseCase {
+  constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource
+    // ...
+  ) {}
+
+  async execute(id: string, dto: DeleteInstitutionDto = {}): Promise<void> {
+    // トランザクション外で検証（パフォーマンス向上）
+    const existingInstitution = await this.institutionRepository.findById(id);
+    if (!existingInstitution) {
+      throw new NotFoundException(`金融機関 (ID: ${id}) が見つかりません`);
+    }
+
+    // トランザクション内で削除操作を実行
+    await this.dataSource.transaction(async (entityManager) => {
+      if (dto.deleteTransactions === true) {
+        const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+        await transactionRepo.delete({ institutionId: id });
+      }
+
+      const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+      await institutionRepo.delete(id);
+    });
+  }
+}
+```
+
+**理由**:
+
+- データ整合性が保証される
+- 不整合な状態が発生しない
+- エラー発生時にすべての変更がロールバックされる
+
+**重要なポイント**:
+
+1. **複数のデータベース操作が関連する場合は必ずトランザクションを使用**
+2. **トランザクション外で可能な検証は先に実行**（パフォーマンス向上）
+3. **トランザクション内では`entityManager.getRepository()`を使用**
+4. **すべての操作が成功するか、すべて失敗するかのどちらか**（原子性）
+
+### 13-12. ファイルシステム版リポジトリのパフォーマンス最適化（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### 全データ読み込みの回避
+
+**問題**: 全取引をメモリに読み込んでから処理することで、大規模データセットでパフォーマンスが低下する。
+
+**解決策**: 月ごとのファイルを直接処理し、必要なデータのみを読み込む
+
+```typescript
+// ❌ 悪い例: 全データを読み込んでから処理
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const transactions = await this.findByInstitutionId(institutionId); // 全データ読み込み
+  // 月ごとにグループ化
+  // 各月のファイルを再度読み込んで削除
+}
+
+// ✅ 良い例: 月ごとのファイルを直接処理
+async deleteByInstitutionId(institutionId: string): Promise<void> {
+  const files = await fs.readdir(this.dataDir);
+  const jsonFiles = files.filter((file) => file.endsWith('.json'));
+
+  for (const fileName of jsonFiles) {
+    const [yearStr, monthStr] = fileName.replace('.json', '').split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+
+    if (isNaN(year) || isNaN(month)) continue;
+
+    const existingTransactions = await this.findByMonth(year, month);
+    const filteredTransactions = existingTransactions.filter(
+      (t) => t.institutionId !== institutionId,
+    );
+
+    if (filteredTransactions.length < existingTransactions.length) {
+      await this.saveMonthData(year, month, filteredTransactions);
+    }
+  }
+}
+```
+
+**理由**:
+
+- メモリ使用量が削減される
+- 大規模データセットでのパフォーマンスが向上する
+- 必要なデータのみを処理するため効率的
+
+### 13-13. URL構築ロジックの簡潔化（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### クエリ文字列の構築
+
+**問題**: URLのクエリ文字列を構築するロジックが冗長で、可読性が低い。
+
+**解決策**: `params.set`を使用し、`params.toString()`を一度だけ呼び出す
+
+```typescript
+// ❌ 悪い例: 冗長なロジック
+const params = new URLSearchParams();
+if (options?.deleteTransactions === true) {
+  params.append('deleteTransactions', 'true');
+}
+const endpoint = `/institutions/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+
+// ✅ 良い例: 簡潔で読みやすい
+const params = new URLSearchParams();
+if (options?.deleteTransactions) {
+  params.set('deleteTransactions', 'true');
+}
+const queryString = params.toString();
+const endpoint = `/institutions/${id}${queryString ? `?${queryString}` : ''}`;
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- `params.toString()`を一度だけ呼び出すため効率的
+- `params.set`は`params.append`よりも意図が明確
+
+### 13-14. UseCaseレイヤーでの抽象化の維持（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### リポジトリインターフェースの拡張
+
+**問題**: トランザクションブロック内で`entityManager.getRepository()`とORMエンティティを直接使用しており、リポジトリ層の抽象化がバイパスされている。これにより、UseCaseが特定のORM実装（TypeORM）に密結合してしまい、テストや将来のデータソース変更が困難になる。
+
+**解決策**: リポジトリのメソッドがオプショナルで`EntityManager`を受け取れるようにインターフェースを変更
+
+```typescript
+// ❌ 悪い例: ORMエンティティを直接使用
+await this.dataSource.transaction(async (entityManager) => {
+  const transactionRepo = entityManager.getRepository(TransactionOrmEntity);
+  await transactionRepo.delete({ institutionId: id });
+
+  const institutionRepo = entityManager.getRepository(InstitutionOrmEntity);
+  await institutionRepo.delete(id);
+});
+
+// ✅ 良い例: リポジトリメソッドを使用
+await this.dataSource.transaction(async (entityManager) => {
+  await this.transactionRepository.deleteByInstitutionId(id, entityManager);
+  await this.institutionRepository.delete(id, entityManager);
+});
+```
+
+**実装例**:
+
+```typescript
+// リポジトリインターフェース（ドメイン層）
+export interface ITransactionRepository {
+  deleteByInstitutionId(
+    institutionId: string,
+    manager?: unknown, // ドメイン層にTypeORMの依存を避けるためunknownを使用
+  ): Promise<void>;
+}
+
+// リポジトリ実装（インフラ層）
+async deleteByInstitutionId(
+  institutionId: string,
+  manager?: unknown,
+): Promise<void> {
+  const repository = manager
+    ? (manager as EntityManager).getRepository(TransactionOrmEntity)
+    : this.repository;
+  await repository.delete({ institutionId });
+}
+```
+
+**理由**:
+
+- リポジトリの抽象化が維持され、テストが容易になる
+- 将来のデータソース変更が容易になる
+- 関心の分離が適切に保たれる
+- UseCaseが永続化の詳細から切り離される
+
+**重要なポイント**:
+
+1. **ドメイン層にTypeORMの依存を入れない**: インターフェースでは`unknown`型を使用
+2. **インフラ層で型アサーション**: 実装層で`EntityManager`として型アサーション
+3. **ファイルシステム版リポジトリ**: `manager`パラメータは無視（互換性のため）
+
+### 13-15. クエリパラメータの型変換（PR #356）
+
+**学習元**: PR #356 - Issue #351: 金融機関削除機能の実装（Geminiレビュー指摘）
+
+#### @Transformデコレーターの使用
+
+**問題**: クエリパラメータは文字列として送信されるため、`deleteTransactions=true`のようなリクエストでは、`"true"`という文字列が渡される。`IsBoolean`バリデーターがこれをブール値ではないと判断し、バリデーションエラーを引き起こす。
+
+**解決策**: `class-transformer`の`@Transform`デコレーターを使用して文字列をブール値に変換
+
+```typescript
+// ❌ 悪い例: 型変換なし
+export class DeleteInstitutionDto {
+  @IsBoolean()
+  @IsOptional()
+  deleteTransactions?: boolean; // "true"文字列が渡されるとバリデーションエラー
+}
+
+// ✅ 良い例: @Transformで型変換
+export class DeleteInstitutionDto {
+  @Transform(({ value }): boolean | string => {
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+    return value as string;
+  })
+  @IsBoolean({ message: '取引履歴の削除フラグは真偽値で指定してください' })
+  @IsOptional()
+  deleteTransactions?: boolean;
+}
+```
+
+**理由**:
+
+- クエリパラメータが正しくブール値に変換される
+- バリデーションエラーが発生しなくなる
+- ユーザー体験が向上する
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical

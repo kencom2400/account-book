@@ -309,6 +309,45 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * 金融機関IDで取引を一括削除
+   * パフォーマンス最適化: 月ごとのファイルを直接処理し、全データ読み込みを避ける
+   * @param _manager ファイルシステム版では使用しない（互換性のため）
+   */
+  async deleteByInstitutionId(
+    institutionId: string,
+    _manager?: unknown,
+  ): Promise<void> {
+    // ファイルシステム版ではmanagerは使用しない
+    await this.ensureDataDirectory();
+    const files = await fs.readdir(this.dataDir);
+    const jsonFiles = files.filter((file) => file.endsWith('.json'));
+
+    for (const fileName of jsonFiles) {
+      const [yearStr, monthStr] = fileName.replace('.json', '').split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
+
+      if (isNaN(year) || isNaN(month)) {
+        continue;
+      }
+
+      const existingTransactions = await this.findByMonth(year, month);
+      if (existingTransactions.length === 0) {
+        continue;
+      }
+
+      const filteredTransactions = existingTransactions.filter(
+        (t) => t.institutionId !== institutionId,
+      );
+
+      // 削除対象がある場合のみファイルを更新
+      if (filteredTransactions.length < existingTransactions.length) {
+        await this.saveMonthData(year, month, filteredTransactions);
+      }
+    }
+  }
+
+  /**
    * すべての取引を削除（テスト用）
    */
   async deleteAll(): Promise<void> {

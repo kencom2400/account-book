@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Institution } from '@account-book/types';
 
 interface DeleteConfirmModalProps {
   institution: Institution;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: (deleteTransactions: boolean) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -19,6 +19,12 @@ export function DeleteConfirmModal({
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps): React.JSX.Element {
+  const [deleteTransactions, setDeleteTransactions] = useState<boolean>(false);
+
+  const handleConfirm = (): void => {
+    void onConfirm(deleteTransactions);
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -71,14 +77,27 @@ export function DeleteConfirmModal({
                     <strong>{institution.name}</strong>
                     を削除しようとしています。この操作は取り消せません。
                   </p>
-                  {/* TODO: 取引履歴の扱いを選択するUI要素を実装（別Issueで実装予定） */}
+                  <div className="mt-4">
+                    <label className="flex items-start">
+                      <input
+                        type="checkbox"
+                        checked={deleteTransactions}
+                        onChange={(e): void => setDeleteTransactions(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">関連する取引履歴も削除する</span>
+                    </label>
+                    <p className="ml-6 mt-1 text-xs text-gray-500">
+                      チェックを外すと、取引履歴は保持されます
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
             >
               削除

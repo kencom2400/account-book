@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { Repository, Between, In, EntityManager } from 'typeorm';
 import { TransactionOrmEntity } from '../entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
@@ -238,6 +238,19 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
    */
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
+  }
+
+  /**
+   * 金融機関IDで取引を一括削除
+   */
+  async deleteByInstitutionId(
+    institutionId: string,
+    manager?: unknown,
+  ): Promise<void> {
+    const repository = manager
+      ? (manager as EntityManager).getRepository(TransactionOrmEntity)
+      : this.repository;
+    await repository.delete({ institutionId });
   }
 
   /**

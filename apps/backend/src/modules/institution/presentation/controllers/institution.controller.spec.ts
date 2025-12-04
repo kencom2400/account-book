@@ -6,6 +6,7 @@ import { GetInstitutionUseCase } from '../../application/use-cases/get-instituti
 import { TestBankConnectionUseCase } from '../../application/use-cases/test-bank-connection.use-case';
 import { GetSupportedBanksUseCase } from '../../application/use-cases/get-supported-banks.use-case';
 import { UpdateInstitutionUseCase } from '../../application/use-cases/update-institution.use-case';
+import { DeleteInstitutionUseCase } from '../../application/use-cases/delete-institution.use-case';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
 import { EncryptedCredentials } from '../../domain/value-objects/encrypted-credentials.vo';
 
@@ -13,6 +14,7 @@ describe('InstitutionController', () => {
   let controller: InstitutionController;
   let createUseCase: jest.Mocked<CreateInstitutionUseCase>;
   let getUseCase: jest.Mocked<GetInstitutionsUseCase>;
+  let deleteUseCase: jest.Mocked<DeleteInstitutionUseCase>;
 
   const mockCredentials = new EncryptedCredentials(
     'encrypted',
@@ -60,12 +62,17 @@ describe('InstitutionController', () => {
           provide: UpdateInstitutionUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: DeleteInstitutionUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
     controller = module.get<InstitutionController>(InstitutionController);
     createUseCase = module.get(CreateInstitutionUseCase);
     getUseCase = module.get(GetInstitutionsUseCase);
+    deleteUseCase = module.get(DeleteInstitutionUseCase);
   });
 
   describe('create', () => {
@@ -93,6 +100,41 @@ describe('InstitutionController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete an institution', async () => {
+      deleteUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.delete(mockInstitution.id, {});
+
+      expect(deleteUseCase.execute).toHaveBeenCalledWith(
+        mockInstitution.id,
+        {},
+      );
+    });
+
+    it('should delete an institution with transactions', async () => {
+      deleteUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.delete(mockInstitution.id, { deleteTransactions: true });
+
+      expect(deleteUseCase.execute).toHaveBeenCalledWith(mockInstitution.id, {
+        deleteTransactions: true,
+      });
+    });
+
+    it('should delete an institution without transactions', async () => {
+      deleteUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.delete(mockInstitution.id, {
+        deleteTransactions: false,
+      });
+
+      expect(deleteUseCase.execute).toHaveBeenCalledWith(mockInstitution.id, {
+        deleteTransactions: false,
+      });
     });
   });
 });

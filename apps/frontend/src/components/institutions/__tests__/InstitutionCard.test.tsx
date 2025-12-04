@@ -7,9 +7,11 @@ import '@testing-library/jest-dom';
 import { InstitutionCard } from '../InstitutionCard';
 import { Institution, InstitutionType } from '@account-book/types';
 import * as syncApi from '@/lib/api/sync';
+import * as institutionsApi from '@/lib/api/institutions';
 
 // モック
 jest.mock('@/lib/api/sync');
+jest.mock('@/lib/api/institutions');
 
 const mockInstitution: Institution = {
   id: 'inst-1',
@@ -55,6 +57,7 @@ describe('InstitutionCard', () => {
         duration: 100,
       },
     });
+    (institutionsApi.deleteInstitution as jest.Mock).mockResolvedValue(undefined);
   });
 
   it('金融機関情報を正しく表示する', () => {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, EntityManager } from 'typeorm';
 import { InstitutionOrmEntity } from '../entities/institution.orm-entity';
 import { AccountOrmEntity } from '../entities/account.orm-entity';
 import { InstitutionEntity } from '../../domain/entities/institution.entity';
@@ -136,9 +136,12 @@ export class InstitutionTypeOrmRepository implements IInstitutionRepository {
   /**
    * 金融機関を削除
    */
-  async delete(id: string): Promise<void> {
+  async delete(id: string, manager?: unknown): Promise<void> {
+    const repository = manager
+      ? (manager as EntityManager).getRepository(InstitutionOrmEntity)
+      : this.institutionRepository;
     // 関連する口座も削除される（CASCADE設定による）
-    await this.institutionRepository.delete(id);
+    await repository.delete(id);
   }
 
   /**

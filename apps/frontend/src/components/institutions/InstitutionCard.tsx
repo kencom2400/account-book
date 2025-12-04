@@ -6,6 +6,9 @@ import { Institution, InstitutionType } from '@account-book/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { startSync } from '@/lib/api/sync';
+import { deleteInstitution } from '@/lib/api/institutions';
+import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { getErrorMessage } from '@/utils/error.utils';
 
 interface InstitutionCardProps {
   institution: Institution;
@@ -26,18 +29,16 @@ export function InstitutionCard({
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  const handleConfirmDelete = (): void => {
+  const handleConfirmDelete = async (deleteTransactions: boolean): Promise<void> => {
     setIsDeleting(true);
     try {
-      // TODO: 削除APIを呼び出す（バックエンドに未実装のため保留）
-      // 削除機能は別Issueで実装予定
+      await deleteInstitution(institution.id, { deleteTransactions });
       setShowDeleteModal(false);
       onUpdate();
     } catch (error) {
-      // エラーハンドリングは別Issueで実装予定
-      if (error instanceof Error) {
-        console.error('削除処理中にエラーが発生しました:', error);
-      }
+      const errorMessage = getErrorMessage(error, '金融機関の削除に失敗しました');
+      showErrorToast('error', errorMessage);
+      console.error('削除処理中にエラーが発生しました:', error);
     } finally {
       setIsDeleting(false);
     }
