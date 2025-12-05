@@ -378,7 +378,7 @@ classDiagram
     AggregationController --> CalculateYearlyBalanceUseCase
     AggregationController --> CalculateMonthlyBalanceUseCase
     AggregationController --> YearlyBalanceResponseDto
-    YearlyBalanceResponseDto --> MonthlyBalanceResponseDto
+    YearlyBalanceResponseDto --> MonthlyBalanceSummaryDto
     YearlyBalanceResponseDto --> AnnualSummaryData
     YearlyBalanceResponseDto --> TrendData
     YearlyBalanceResponseDto --> HighlightsData
