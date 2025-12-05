@@ -42,7 +42,7 @@
 │  - GetEventByIdUseCase                   │
 │  - GetEventsByDateRangeUseCase           │
 │  - LinkTransactionToEventUseCase         │
-│  - UnlinkTransactionFromEventUseCase      │
+│  - UnlinkTransactionFromEventUseCase     │
 │  - IEventRepository (依存)              │
 │  - ITransactionRepository (依存)        │
 └──────────────┬──────────────────────────┘
@@ -51,7 +51,7 @@
 │     Domain Layer                        │
 │  - EventEntity                          │
 │  - EventCategory (Value Object)         │
-│  - EventDate (Value Object)             │
+│  - EventDate (Value Object)            │
 │  - IEventRepository                     │
 └──────────────┬──────────────────────────┘
                │

@@ -400,8 +400,29 @@ interface EventResponse {
 
 **Response**
 
-- **Status**: `204 No Content`
-- **Body**: なし
+- **Status**: `200 OK`
+- **Content-Type**: `application/json`
+
+```typescript
+interface DeleteEventResponse {
+  message: string;
+}
+```
+
+**Response Example**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Event deleted successfully"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
+}
+```
 
 **エラーレスポンス**
 
@@ -571,8 +592,29 @@ interface LinkTransactionResponse {
 
 **Response**
 
-- **Status**: `204 No Content`
-- **Body**: なし
+- **Status**: `200 OK`
+- **Content-Type**: `application/json`
+
+```typescript
+interface UnlinkTransactionResponse {
+  message: string;
+}
+```
+
+**Response Example**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Transaction unlinked successfully"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
+}
+```
 
 **エラーレスポンス**
 
