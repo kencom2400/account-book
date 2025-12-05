@@ -37,7 +37,7 @@ import { EventCategory } from '../../domain/enums/event-category.enum';
  * イベントメモ機能のAPIエンドポイント
  */
 @ApiTags('events')
-@Controller('api/events')
+@Controller('events')
 export class EventController {
   constructor(
     private readonly createEventUseCase: CreateEventUseCase,
