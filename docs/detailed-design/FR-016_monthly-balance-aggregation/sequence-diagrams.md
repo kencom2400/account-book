@@ -192,7 +192,7 @@ sequenceDiagram
     FE->>API: GET /api/aggregation/monthly-balance?year=2025&month=13
 
     API->>API: リクエスト検証<br/>(month > 12 を検出)
-    API-->>FE: 400 Bad Request<br/>{success: false, message: "Invalid month",<br/>errors: [{field: "month", message: "Month must be between 1 and 12"}]}
+    API-->>FE: 400 Bad Request<br/>{success: false, error: {code: "VALIDATION_ERROR",<br/>message: "Validation failed",<br/>details: [{field: "month", message: "Month must be between 1 and 12"}]},<br/>metadata: {timestamp: "...", version: "1.0.0"}}
     FE-->>User: エラーメッセージ表示
 ```
 
@@ -219,26 +219,26 @@ sequenceDiagram
 
     UC-->>API: throw DatabaseConnectionError
     API->>API: エラーハンドリング<br/>(500 Internal Server Error)
-    API-->>FE: 500 Internal Server Error<br/>{success: false, message: "Internal server error",<br/>code: "DATABASE_CONNECTION_ERROR"}
+    API-->>FE: 500 Internal Server Error<br/>{success: false, error: {code: "DATABASE_CONNECTION_ERROR",<br/>message: "Internal server error"},<br/>metadata: {timestamp: "...", version: "1.0.0"}}
     FE-->>User: エラーメッセージ表示
 ```
 
 ### エラーレスポンス形式
 
-すべてのエラーレスポンスは以下の共通形式に従う：
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
 
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
-  message: string;
-  code?: string;
-  errors?: Array<{
-    field: string;
+  error: {
+    code: string;
     message: string;
-  }>;
-  timestamp: string;
-  path: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
 }
 ```
 

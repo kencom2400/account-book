@@ -315,8 +315,10 @@ docs/detailed-design/
   - 設計書で使用しているステータス名がEnum定義と一致しているか
   - 「支払済」「要確認」などの曖昧な表現ではなく、Enum値（MATCHED、PARTIAL、UNMATCHED）を使用しているか
 - [ ] **共通エラーレスポンス形式の統一**
-  - すべてのエラーレスポンスが共通形式に準拠しているか（success、statusCode、message、code、errors、timestamp、path）
-  - エラーレスポンス例が共通形式と一致しているか
+  - すべてのエラーレスポンスがプロジェクトの標準形式（`libs/types/src/api/error-response.ts`）に準拠しているか
+  - 標準形式: `{success: false, error: {code, message, details?}, metadata: {timestamp, version}}`
+  - エラーレスポンス例が標準形式と一致しているか
+  - **重要**: 独自の形式を定義せず、必ず既存の標準形式を使用すること
 - [ ] **HTTPステータスコードの適切性**
   - 外部サービス障害の場合は502 Bad Gatewayまたは503 Service Unavailableを使用
   - 500 Internal Server Errorは自サーバーの内部ロジックエラーのみ
@@ -345,6 +347,11 @@ docs/detailed-design/
   - プレゼンテーション層がドメイン層のエンティティに直接依存しない
   - UseCase層でエンティティからDTOへの変換を実施
   - レスポンスDTOにはプレーンなDTO（`TransactionDto`など）を使用
+  - **ドメインオブジェクト（Value Object）とDTOの分離（Geminiレビュー PR#360から学習）**
+    - DTOがドメイン層のValue Object（例: `TrendAnalysis`、`Highlights`）に直接依存しないこと
+    - ドメインオブジェクト用のDTO（例: `TrendAnalysisDto`、`HighlightsDto`）を別途定義すること
+    - UseCase層でドメインオブジェクトからDTOへのマッピングを実施すること
+    - これにより、レイヤー間の分離が明確になり、疎結合が維持される
 - [ ] **設計書間の整合性確認（Geminiレビュー PR#347から学習）**
   - **クラス図と入出力設計の整合性**: UseCaseの戻り値型が`input-output-design.md`のレスポンス例と一致しているか（配列 vs 単一オブジェクト）
   - **ControllerとUseCaseの整合性**: Controllerの戻り値型とUseCaseの戻り値型が一致しているか
@@ -358,9 +365,14 @@ docs/detailed-design/
   - **階層構造構築時のN+1問題回避**: 階層構造を構築する際、トランザクションに含まれる`categoryId`のみを基に`findByIds()`で取得すると、親カテゴリに取引がない場合に親エンティティが取得されず、追加のDBクエリが必要になる。`findAll()`を使用してすべてのカテゴリを一度に取得する設計か
   - **不要なデータ取得の回避**: 必要なデータのみを取得する設計か（全取引を取得してからフィルタリングしない）
   - **冗長なデータベース呼び出しの回避**: 既に取得したデータ（例: カテゴリ情報）を再利用し、同じデータを複数回取得しない設計か（例: `findByCategoryType()`で取得したカテゴリを`buildHierarchy`で再利用し、`findByIds()`を再度呼び出さない）
-- [ ] **エラーハンドリング方針の統一（Geminiレビュー PR#347から学習）**
+- [ ] **エラーハンドリング方針の統一（Geminiレビュー PR#347、PR#360から学習）**
   - **存在しないリソースの扱い**: 存在しないIDが指定された場合、404エラーではなく200 OKと空のデータセットを返す設計か（フィルタリング条件に一致するデータがない場合の一般的な動作）
+  - **データ取得エラーの扱い**: データ取得時にエラー（DB接続失敗など）が発生した場合は、500 Internal Server Errorを返す（空データとして扱わない）。これにより、クライアント側で正常な空データとサーバー側の問題を明確に区別できる
   - **エラーハンドリング方針の一貫性**: 設計書全体（README、シーケンス図、入出力設計）でエラーハンドリング方針が統一されているか
+- [ ] **設計書間の用語・型定義の一貫性（Geminiレビュー PR#360から学習）**
+  - **DTO型の一貫性**: すべての設計書（README、クラス図、シーケンス図、入出力設計）で同じDTO型名を使用しているか（例: `MonthlyBalanceResponseDto` vs `MonthlyBalanceSummaryDto`）
+  - **クラス図間の一貫性**: Application層とPresentation層のクラス図で同じDTO型を使用しているか
+  - **シーケンス図とクラス図の一貫性**: シーケンス図で使用している型名がクラス図の定義と一致しているか
 - [ ] **型定義の正確性（Geminiレビュー PR#347から学習）**
   - **nullableなプロパティの明示**: トップレベルの項目など、親が存在しない可能性がある場合は`string | null`または`string?`で明示されているか（例: `CategoryEntity.parentId`、`ExpenseItemSummary.parent`）
   - **クラス図とDTO定義の整合性**: クラス図の型定義がDTO定義（`input-output-design.md`）と一致しているか

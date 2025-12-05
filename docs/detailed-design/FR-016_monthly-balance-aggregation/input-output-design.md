@@ -402,20 +402,26 @@ export enum CategoryType {
 
 ### 共通エラーレスポンス形式
 
-すべてのエラーレスポンスは以下の共通形式に従う：
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
 
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
+  error: {
+    code: string;
+    message: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
+}
+
+export interface ErrorDetail {
+  field?: string;
   message: string;
   code?: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-  }>;
-  timestamp: string;
-  path: string;
 }
 ```
 
@@ -426,17 +432,20 @@ interface ErrorResponse {
 ```json
 {
   "success": false,
-  "statusCode": 400,
-  "message": "Validation failed",
-  "code": "VALIDATION_ERROR",
-  "errors": [
-    {
-      "field": "month",
-      "message": "Month must be between 1 and 12"
-    }
-  ],
-  "timestamp": "2025-01-27T10:00:00.000Z",
-  "path": "/api/aggregation/monthly-balance"
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [
+      {
+        "field": "month",
+        "message": "Month must be between 1 and 12"
+      }
+    ]
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00.000Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -445,11 +454,14 @@ interface ErrorResponse {
 ```json
 {
   "success": false,
-  "statusCode": 500,
-  "message": "Internal server error",
-  "code": "DATABASE_CONNECTION_ERROR",
-  "timestamp": "2025-01-27T10:00:00.000Z",
-  "path": "/api/aggregation/monthly-balance"
+  "error": {
+    "code": "DATABASE_CONNECTION_ERROR",
+    "message": "Internal server error"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00.000Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
