@@ -223,7 +223,7 @@ sequenceDiagram
     DB-->>EventRepo: 成功
 
     UC-->>API: void
-    API-->>FE: 204 No Content
+    API-->>FE: 200 OK<br/>{SuccessResponse: message}
 
     FE->>FE: イベント一覧を更新
     FE->>FE: カレンダーを更新
@@ -365,6 +365,12 @@ sequenceDiagram
 - イベントと取引が関連付けられる
 - イベント詳細画面に関連取引が表示される
 
+**設計判断**:
+
+- 中間テーブル（event_transaction_relations）はInfrastructure層の実装詳細として扱い、`IEventRepository.linkTransaction()`で隠蔽
+- Domain層の`EventEntity`には`relatedTransactionIds`を含めない（Onion Architecture原則）
+- この設計により、Application層は中間テーブルの存在を意識せずに操作可能
+
 ### 正常系フロー
 
 ```mermaid
@@ -375,7 +381,6 @@ sequenceDiagram
     participant UC as LinkTransactionToEventUseCase
     participant EventRepo as EventRepository
     participant TransRepo as TransactionRepository
-    participant RelationRepo as EventTransactionRelationRepository
     participant DB as Database
 
     User->>FE: 「取引を追加」ボタンクリック
@@ -397,10 +402,15 @@ sequenceDiagram
     DB-->>TransRepo: 取引データ
     TransRepo-->>UC: TransactionEntity
 
-    UC->>UC: 重複チェック<br/>(既に紐付けられていないか)
+    UC->>EventRepo: getTransactionIdsByEventId(eventId)
+    EventRepo->>DB: SELECT transaction_id FROM event_transaction_relations<br/>WHERE event_id = ?
+    DB-->>EventRepo: 関連取引ID一覧
+    EventRepo-->>UC: transactionIds[]
+
+    UC->>UC: 重複チェック<br/>(transactionIdsにtransactionIdが含まれていないか)
 
     UC->>EventRepo: linkTransaction(eventId, transactionId)
-    Note over EventRepo: 中間テーブルへの保存は<br/>IEventRepositoryの実装詳細
+    Note over EventRepo: 中間テーブルへの保存は<br/>IEventRepositoryの実装詳細として隠蔽<br/>（Onion Architecture原則）
     EventRepo->>DB: INSERT INTO event_transaction_relations<br/>(event_id, transaction_id)
     DB-->>EventRepo: 成功
     EventRepo-->>UC: void
@@ -460,14 +470,21 @@ sequenceDiagram
 
     UC->>UC: 紐付け存在チェック<br/>(既に紐付けられているか)
 
+    UC->>EventRepo: getTransactionIdsByEventId(eventId)
+    EventRepo->>DB: SELECT transaction_id FROM event_transaction_relations<br/>WHERE event_id = ?
+    DB-->>EventRepo: 関連取引ID一覧
+    EventRepo-->>UC: transactionIds[]
+
+    UC->>UC: 紐付け存在チェック<br/>(transactionIdsにtransactionIdが含まれているか)
+
     UC->>EventRepo: unlinkTransaction(eventId, transactionId)
-    Note over EventRepo: 中間テーブルからの削除は<br/>IEventRepositoryの実装詳細
+    Note over EventRepo: 中間テーブルからの削除は<br/>IEventRepositoryの実装詳細として隠蔽<br/>（Onion Architecture原則）
     EventRepo->>DB: DELETE FROM event_transaction_relations<br/>WHERE event_id = ? AND transaction_id = ?
     DB-->>EventRepo: 成功
     EventRepo-->>UC: void
 
     UC-->>API: void
-    API-->>FE: 204 No Content
+    API-->>FE: 200 OK<br/>{SuccessResponse: message}
 
     FE->>FE: イベント詳細を再取得
     FE-->>User: 関連取引が削除される

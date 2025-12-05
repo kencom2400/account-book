@@ -395,7 +395,6 @@ classDiagram
   - `DELETE /api/events/:id`: イベント削除
   - `POST /api/events/:id/transactions`: 取引との紐付け
   - `DELETE /api/events/:id/transactions/:transactionId`: 取引との紐付け解除
-  - `unlinkTransaction(eventId, transactionId)`: 取引との紐付け解除
 
 #### CreateEventDto
 
