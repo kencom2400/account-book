@@ -18,6 +18,10 @@ import type {
   InstitutionBreakdown,
   TransactionDto,
 } from './calculate-monthly-balance.use-case';
+import type { ICategoryRepository } from '../../../category/domain/repositories/category.repository.interface';
+import { CATEGORY_REPOSITORY } from '../../../category/domain/repositories/category.repository.interface';
+import type { IInstitutionRepository } from '../../../institution/domain/repositories/institution.repository.interface';
+import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens';
 
 /**
  * MonthlyBalanceSummaryDto
@@ -92,6 +96,10 @@ export class CalculateYearlyBalanceUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categoryRepository: ICategoryRepository,
+    @Inject(INSTITUTION_REPOSITORY)
+    private readonly institutionRepository: IInstitutionRepository,
     private readonly monthlyBalanceDomainService: MonthlyBalanceDomainService,
     private readonly yearlyBalanceDomainService: YearlyBalanceDomainService,
   ) {}
@@ -111,6 +119,12 @@ export class CalculateYearlyBalanceUseCase {
     // パフォーマンス最適化: 取引データを月ごとにグループ化（1回の走査で完了）
     const transactionsByMonth =
       this.groupTransactionsByMonth(yearlyTransactions);
+
+    // カテゴリと金融機関のマップを事前に取得
+    const categories = await this.categoryRepository.findAll();
+    const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+    const institutions = await this.institutionRepository.findAll();
+    const institutionMap = new Map(institutions.map((i) => [i.id, i.name]));
 
     // 月別サマリーとDTOを一度に構築（非効率な繰り返し処理を回避）
     const monthlySummaries: MonthlySummary[] = [];
@@ -133,7 +147,13 @@ export class CalculateYearlyBalanceUseCase {
 
       // DTOを構築（計算済みのbalanceを引数で渡す）
       monthlyDtos.push(
-        this.buildMonthlySummaryDto(monthString, monthlyTransactions, balance),
+        this.buildMonthlySummaryDto(
+          monthString,
+          monthlyTransactions,
+          balance,
+          categoryMap,
+          institutionMap,
+        ),
       );
     }
 
@@ -215,12 +235,16 @@ export class CalculateYearlyBalanceUseCase {
    * @param monthString 月（YYYY-MM形式）
    * @param monthlyTransactions 該当月の取引データ
    * @param balance 計算済みの収支結果（重複計算を避けるため引数で受け取る）
+   * @param categoryMap カテゴリIDとカテゴリ名のマップ
+   * @param institutionMap 金融機関IDと金融機関名のマップ
    * @returns MonthlyBalanceSummaryDto
    */
   private buildMonthlySummaryDto(
     monthString: string,
     monthlyTransactions: TransactionEntity[],
     balance: BalanceResult,
+    categoryMap: Map<string, string>,
+    institutionMap: Map<string, string>,
   ): MonthlyBalanceSummaryDto {
     // 収入・支出を分離
     const { incomeTransactions, expenseTransactions } =
@@ -267,10 +291,12 @@ export class CalculateYearlyBalanceUseCase {
         byCategory: this.buildCategoryBreakdown(
           incomeCategoryAggregation,
           incomeTransactions,
+          categoryMap,
         ),
         byInstitution: this.buildInstitutionBreakdown(
           incomeInstitutionAggregation,
           incomeTotal,
+          institutionMap,
         ),
         transactions: incomeTransactions.map((t) => this.toTransactionDto(t)),
       },
@@ -280,10 +306,12 @@ export class CalculateYearlyBalanceUseCase {
         byCategory: this.buildCategoryBreakdown(
           expenseCategoryAggregation,
           expenseTransactions,
+          categoryMap,
         ),
         byInstitution: this.buildInstitutionBreakdown(
           expenseInstitutionAggregation,
           expenseTotal,
+          institutionMap,
         ),
         transactions: expenseTransactions.map((t) => this.toTransactionDto(t)),
       },
@@ -298,26 +326,21 @@ export class CalculateYearlyBalanceUseCase {
   /**
    * CategoryBreakdownを構築
    * @param aggregation カテゴリ別集計結果
-   * @param transactions 取引データ（カテゴリ名取得用）
+   * @param transactions 取引データ（合計計算用）
+   * @param categoryMap カテゴリIDとカテゴリ名のマップ
    */
   private buildCategoryBreakdown(
     aggregation: Map<string, { total: number; count: number }>,
     transactions: TransactionEntity[],
+    categoryMap: Map<string, string>,
   ): CategoryBreakdown[] {
     const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-    // カテゴリIDとカテゴリ名のマップを事前に作成（O(N)）
-    const categoryMap = new Map<string, string>();
-    for (const t of transactions) {
-      if (!categoryMap.has(t.category.id)) {
-        categoryMap.set(t.category.id, t.category.name);
-      }
-    }
 
     const breakdowns: CategoryBreakdown[] = [];
 
     for (const [categoryId, data] of aggregation.entries()) {
-      const categoryName = categoryMap.get(categoryId) || '';
+      const categoryName =
+        categoryMap.get(categoryId) || `Unknown Category (${categoryId})`;
 
       const percentage = total > 0 ? (Math.abs(data.total) / total) * 100 : 0;
 
@@ -336,14 +359,20 @@ export class CalculateYearlyBalanceUseCase {
 
   /**
    * InstitutionBreakdownを構築
+   * @param aggregation 金融機関別集計結果
+   * @param total 合計金額
+   * @param institutionMap 金融機関IDと金融機関名のマップ
    */
   private buildInstitutionBreakdown(
     aggregation: Map<string, { total: number; count: number }>,
     total: number,
+    institutionMap: Map<string, string>,
   ): InstitutionBreakdown[] {
     return Array.from(aggregation.entries()).map(([institutionId, data]) => ({
       institutionId,
-      institutionName: `Institution ${institutionId}`, // TODO: 金融機関名を取得する実装が必要
+      institutionName:
+        institutionMap.get(institutionId) ||
+        `Unknown Institution (${institutionId})`,
       amount: data.total,
       count: data.count,
       percentage: total > 0 ? (data.total / total) * 100 : 0,

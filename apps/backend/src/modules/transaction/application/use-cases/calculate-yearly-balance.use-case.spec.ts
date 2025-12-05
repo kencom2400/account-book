@@ -7,6 +7,8 @@ import { MonthlyBalanceDomainService } from '../../domain/services/monthly-balan
 import { YearlyBalanceDomainService } from '../../domain/services/yearly-balance-domain.service';
 import { TransactionDomainService } from '../../domain/services/transaction-domain.service';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
+import { CATEGORY_REPOSITORY } from '../../../category/domain/repositories/category.repository.interface';
+import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens';
 
 describe('CalculateYearlyBalanceUseCase', () => {
   let useCase: CalculateYearlyBalanceUseCase;
@@ -37,12 +39,30 @@ describe('CalculateYearlyBalanceUseCase', () => {
   };
 
   beforeEach(async () => {
-    const mockRepo = {
+    const mockTransactionRepo = {
       findByDateRange: jest.fn(),
       findByMonth: jest.fn(),
       findAll: jest.fn(),
       findById: jest.fn(),
       save: jest.fn(),
+    };
+
+    const mockCategoryRepo = {
+      findAll: jest.fn().mockResolvedValue([
+        { id: 'cat_1', name: 'Category 1', type: CategoryType.INCOME },
+        { id: 'cat_2', name: 'Category 2', type: CategoryType.EXPENSE },
+      ]),
+      findById: jest.fn(),
+      findByIds: jest.fn(),
+      findByType: jest.fn(),
+    };
+
+    const mockInstitutionRepo = {
+      findAll: jest
+        .fn()
+        .mockResolvedValue([{ id: 'inst_1', name: 'Institution 1' }]),
+      findById: jest.fn(),
+      findByIds: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -53,7 +73,15 @@ describe('CalculateYearlyBalanceUseCase', () => {
         TransactionDomainService,
         {
           provide: TRANSACTION_REPOSITORY,
-          useValue: mockRepo,
+          useValue: mockTransactionRepo,
+        },
+        {
+          provide: CATEGORY_REPOSITORY,
+          useValue: mockCategoryRepo,
+        },
+        {
+          provide: INSTITUTION_REPOSITORY,
+          useValue: mockInstitutionRepo,
         },
       ],
     }).compile();

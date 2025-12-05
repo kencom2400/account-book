@@ -140,25 +140,20 @@ export class YearlyBalanceDomainService {
       };
     }
 
-    // 最大収入月
-    const maxIncomeMonth = monthlySummaries.reduce((max, current) =>
-      current.income > max.income ? current : max,
-    );
+    // 汎用的なヘルパー関数: 指定されたキーで最大値または最小値を見つける
+    const findHighlight = (
+      key: 'income' | 'expense' | 'balance',
+      compareFn: (a: number, b: number) => boolean,
+    ): MonthlySummary => {
+      return monthlySummaries.reduce((prev, current) =>
+        compareFn(current[key], prev[key]) ? current : prev,
+      );
+    };
 
-    // 最大支出月
-    const maxExpenseMonth = monthlySummaries.reduce((max, current) =>
-      current.expense > max.expense ? current : max,
-    );
-
-    // 最高収支月（収支が最大）
-    const bestBalanceMonth = monthlySummaries.reduce((max, current) =>
-      current.balance > max.balance ? current : max,
-    );
-
-    // 最低収支月（収支が最小）
-    const worstBalanceMonth = monthlySummaries.reduce((min, current) =>
-      current.balance < min.balance ? current : min,
-    );
+    const maxIncomeMonth = findHighlight('income', (a, b) => a > b);
+    const maxExpenseMonth = findHighlight('expense', (a, b) => a > b);
+    const bestBalanceMonth = findHighlight('balance', (a, b) => a > b);
+    const worstBalanceMonth = findHighlight('balance', (a, b) => a < b);
 
     // すべての収支が0の場合は、bestBalanceMonth/worstBalanceMonthもnullを返す
     const allBalancesZero = monthlySummaries.every((m) => m.balance === 0);
