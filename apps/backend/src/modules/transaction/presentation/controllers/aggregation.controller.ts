@@ -19,7 +19,7 @@ import { GetSubcategoryAggregationQueryDto } from '../dto/get-subcategory-aggreg
  * AggregationController
  * 集計機能のREST APIエンドポイント
  */
-@Controller('api/aggregation')
+@Controller('aggregation')
 export class AggregationController {
   constructor(
     private readonly calculateMonthlyBalanceUseCase: CalculateMonthlyBalanceUseCase,
