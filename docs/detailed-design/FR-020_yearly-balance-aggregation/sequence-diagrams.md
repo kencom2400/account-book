@@ -50,18 +50,18 @@ sequenceDiagram
     API->>API: リクエスト検証<br/>(yearの妥当性)
     API->>UC: execute(2025)
 
-    Note over UC: 12ヶ月分のデータを取得<br/>(1月〜12月をループ)
-    loop 1月〜12月
-        UC->>MonthlyUC: execute(2025, month)
-        MonthlyUC->>Repo: findByMonth(2025, month)
-        Repo->>DB: データ読み込み
-        DB-->>Repo: TransactionEntity[]
-        Repo-->>MonthlyUC: TransactionEntity[]
+    Note over UC: 対象年全体のデータを一度に取得<br/>(パフォーマンス最適化)
+    UC->>Repo: findByDateRange(2025-01-01, 2025-12-31)
+    Repo->>DB: データ読み込み
+    DB-->>Repo: TransactionEntity[] (全12ヶ月分)
+    Repo-->>UC: TransactionEntity[]
 
-        Note over MonthlyUC: 月別集計処理<br/>(FR-016のロジック)
-        MonthlyUC->>MDS: calculateBalance(transactions)
-        MDS-->>MonthlyUC: BalanceResult
-        MonthlyUC-->>UC: MonthlyBalanceResponseDto
+    Note over UC: メモリ上で月別に集計<br/>(1月〜12月をループ)
+    loop 1月〜12月
+        UC->>UC: 該当月の取引をフィルタリング
+        UC->>MDS: calculateBalance(monthlyTransactions)
+        MDS-->>UC: BalanceResult
+        UC->>UC: MonthlyBalanceResponseDtoを構築
     end
 
     Note over UC: 年間サマリー計算
@@ -140,14 +140,18 @@ sequenceDiagram
 
     API->>UC: execute(2025)
 
-    Note over UC: 12ヶ月分のデータを取得<br/>(すべて空データの場合)
+    Note over UC: 対象年全体のデータを一度に取得<br/>(データが存在しない場合)
+    UC->>Repo: findByDateRange(2025-01-01, 2025-12-31)
+    Repo->>DB: データ読み込み
+    DB-->>Repo: [] (空配列)
+    Repo-->>UC: [] (空配列)
+
+    Note over UC: メモリ上で月別に集計<br/>(すべて空データの場合、12ヶ月分すべて空データとして処理)
     loop 1月〜12月
-        UC->>MonthlyUC: execute(2025, month)
-        MonthlyUC->>Repo: findByMonth(2025, month)
-        Repo->>DB: データ読み込み
-        DB-->>Repo: [] (空配列)
-        Repo-->>MonthlyUC: [] (空配列)
-        MonthlyUC-->>UC: MonthlyBalanceResponseDto<br/>{month: "2025-01", income: {...},<br/>expense: {...}, balance: 0}
+        UC->>UC: 該当月の取引をフィルタリング<br/>(空配列)
+        UC->>MDS: calculateBalance([])
+        MDS-->>UC: BalanceResult<br/>{income: 0, expense: 0, balance: 0}
+        UC->>UC: MonthlyBalanceResponseDtoを構築<br/>{month: "2025-01", income: {...},<br/>expense: {...}, balance: 0}
     end
 
     Note over UC: データが存在しない場合も<br/>正常な応答として処理
@@ -184,13 +188,23 @@ sequenceDiagram
 
     API->>UC: execute(2025)
 
-    Note over UC: 12ヶ月分のデータを取得<br/>(一部の月にデータがない場合)
+    Note over UC: 対象年全体のデータを一度に取得<br/>(一部の月にデータがない場合)
+    UC->>Repo: findByDateRange(2025-01-01, 2025-12-31)
+    Repo->>DB: データ読み込み
+    DB-->>Repo: TransactionEntity[] (一部の月のデータのみ)
+    Repo-->>UC: TransactionEntity[]
+
+    Note over UC: メモリ上で月別に集計<br/>(データが存在する月と存在しない月を処理)
     loop 1月〜12月
-        UC->>MonthlyUC: execute(2025, month)
+        UC->>UC: 該当月の取引をフィルタリング
         alt データが存在する月
-            MonthlyUC-->>UC: MonthlyBalanceResponseDto<br/>(正常なデータ)
+            UC->>MDS: calculateBalance(monthlyTransactions)
+            MDS-->>UC: BalanceResult
+            UC->>UC: MonthlyBalanceResponseDtoを構築<br/>(正常なデータ)
         else データが存在しない月
-            MonthlyUC-->>UC: MonthlyBalanceResponseDto<br/>{month: "2025-02", income: {...},<br/>expense: {...}, balance: 0}
+            UC->>MDS: calculateBalance([])
+            MDS-->>UC: BalanceResult<br/>{income: 0, expense: 0, balance: 0}
+            UC->>UC: MonthlyBalanceResponseDtoを構築<br/>{month: "2025-02", income: {...},<br/>expense: {...}, balance: 0}
         end
     end
 
@@ -226,7 +240,7 @@ sequenceDiagram
     FE->>API: GET /api/aggregation/yearly-balance?year=1800
 
     API->>API: リクエスト検証<br/>(year < 1900 を検出)
-    API-->>FE: 400 Bad Request<br/>{success: false, message: "Invalid year",<br/>errors: [{field: "year", message: "Year must be >= 1900"}]}
+    API-->>FE: 400 Bad Request<br/>{success: false, error: {code: "VALIDATION_ERROR",<br/>message: "Validation failed",<br/>details: [{field: "year", message: "Year must be >= 1900"}]},<br/>metadata: {timestamp: "...", version: "1.0.0"}}
     FE-->>User: エラーメッセージ表示
 ```
 
@@ -238,7 +252,6 @@ sequenceDiagram
     participant FE as Frontend
     participant API as AggregationController
     participant UC as CalculateYearlyBalanceUseCase
-    participant MonthlyUC as CalculateMonthlyBalanceUseCase
     participant Repo as TransactionRepository
     participant DB as Database/File
 
@@ -247,35 +260,32 @@ sequenceDiagram
 
     API->>UC: execute(2025)
 
-    UC->>MonthlyUC: execute(2025, 1)
-    MonthlyUC->>Repo: findByMonth(2025, 1)
+    UC->>Repo: findByDateRange(2025-01-01, 2025-12-31)
     Repo->>DB: データ読み込み
     DB-->>Repo: Error (DB接続失敗)
-    Repo-->>MonthlyUC: throw DatabaseConnectionError
-
-    MonthlyUC-->>UC: throw DatabaseConnectionError
+    Repo-->>UC: throw DatabaseConnectionError
     UC-->>API: throw DatabaseConnectionError
     API->>API: エラーハンドリング<br/>(500 Internal Server Error)
-    API-->>FE: 500 Internal Server Error<br/>{success: false, message: "Internal server error",<br/>code: "DATABASE_CONNECTION_ERROR"}
+    API-->>FE: 500 Internal Server Error<br/>{success: false, error: {code: "DATABASE_CONNECTION_ERROR",<br/>message: "Internal server error"},<br/>metadata: {timestamp: "...", version: "1.0.0"}}
     FE-->>User: エラーメッセージ表示
 ```
 
 ### エラーレスポンス形式
 
-すべてのエラーレスポンスは以下の共通形式に従う：
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
 
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
-  message: string;
-  code?: string;
-  errors?: Array<{
-    field: string;
+  error: {
+    code: string;
     message: string;
-  }>;
-  timestamp: string;
-  path: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
 }
 ```
 

@@ -161,10 +161,12 @@ classDiagram
 ```mermaid
 classDiagram
     class CalculateYearlyBalanceUseCase {
-        -CalculateMonthlyBalanceUseCase calculateMonthlyBalanceUseCase
+        -ITransactionRepository transactionRepository
         -YearlyBalanceDomainService yearlyBalanceDomainService
+        -MonthlyBalanceDomainService monthlyBalanceDomainService
         +execute(year) Promise~YearlyBalanceResponseDto~
-        -getMonthlyData(year, month) Promise~MonthlyBalanceResponseDto~
+        -getYearlyTransactions(year) Promise~TransactionEntity[]~
+        -aggregateByMonth(transactions, year) MonthlyBalanceResponseDto[]
         -buildYearlySummary(monthlyData) YearlyBalanceResponseDto
     }
 
@@ -212,14 +214,15 @@ classDiagram
     }
 
     class HighlightsData {
-        +string maxIncomeMonth
-        +string maxExpenseMonth
-        +string bestBalanceMonth
-        +string worstBalanceMonth
+        +string maxIncomeMonth (nullable)
+        +string maxExpenseMonth (nullable)
+        +string bestBalanceMonth (nullable)
+        +string worstBalanceMonth (nullable)
     }
 
-    CalculateYearlyBalanceUseCase --> CalculateMonthlyBalanceUseCase
+    CalculateYearlyBalanceUseCase --> ITransactionRepository
     CalculateYearlyBalanceUseCase --> YearlyBalanceDomainService
+    CalculateYearlyBalanceUseCase --> MonthlyBalanceDomainService
     CalculateYearlyBalanceUseCase --> YearlyBalanceResponseDto
     YearlyBalanceResponseDto --> MonthlyBalanceResponseDto
     YearlyBalanceResponseDto --> AnnualSummaryData

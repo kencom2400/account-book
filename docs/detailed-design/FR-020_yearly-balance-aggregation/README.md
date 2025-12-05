@@ -113,7 +113,8 @@
 既存の`CalculateMonthlyBalanceUseCase`（FR-016）を再利用し、年間集計機能を実装：
 
 1. **新しいUseCaseの作成**: `CalculateYearlyBalanceUseCase`
-   - FR-016の`CalculateMonthlyBalanceUseCase`を12回呼び出して各月のデータを取得
+   - 対象年全体の取引データを`findByDateRange`で一度に取得（パフォーマンス最適化）
+   - メモリ上で月別に集計処理を実行（FR-016の`MonthlyBalanceDomainService`を再利用）
    - 年間サマリーの計算（合計・平均・貯蓄率）
    - トレンド分析の実行
    - ハイライト情報の抽出
@@ -124,7 +125,7 @@
    - 年間サマリーの計算ロジック
 
 3. **既存Domain Serviceの再利用**: `MonthlyBalanceDomainService`（FR-016で作成済み）
-   - 各月の収支集計に使用
+   - メモリ上で月別にフィルタリングした取引データの収支集計に使用
 
 4. **DTOの拡張**: 既存の`MonthlyBalanceResponseDto`を再利用し、`YearlyBalanceResponseDto`を作成
    - 12ヶ月分の`MonthlyBalanceResponseDto`を含む
@@ -239,13 +240,13 @@ interface MonthlyBalanceSummary {
 
 ## パフォーマンス考慮事項
 
-- [x] データベースクエリの最適化（年単位での取得、月単位で12回クエリ）
+- [x] データベースクエリの最適化（年単位での取得、`findByDateRange`で一度に取得してメモリ上で月別集計）
 - [x] インデックスの適用（日付・カテゴリ・金融機関ID）
 - [ ] キャッシング戦略（将来対応：年間集計結果のキャッシュ）
 - [ ] ページネーション実装（不要：年単位の集計のため）
 - [ ] 不要なデータの遅延読み込み（取引明細は必要時のみ取得）
 
-**注意**: 年間集計は12ヶ月分のデータを取得するため、パフォーマンスに注意が必要。将来的には、月次集計結果をキャッシュして再利用することを検討。
+**注意**: パフォーマンス最適化のため、12ヶ月分のデータを`findByDateRange`で一度に取得し、メモリ上で月別に集計する。これにより、N+1問題を回避し、データベースへの負荷を大幅に削減できる。将来的には、月次集計結果をキャッシュして再利用することを検討。
 
 ## エラーハンドリング
 

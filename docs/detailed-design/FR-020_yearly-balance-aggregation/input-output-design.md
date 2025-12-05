@@ -250,6 +250,215 @@ export interface HighlightsData {
         },
         "balance": 0,
         "savingsRate": 0
+      },
+      {
+        "month": "2025-02",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-03",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-04",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-05",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-06",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-07",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-08",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-09",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-10",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-11",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
+      },
+      {
+        "month": "2025-12",
+        "income": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "expense": {
+          "total": 0,
+          "count": 0,
+          "byCategory": [],
+          "byInstitution": [],
+          "transactions": []
+        },
+        "balance": 0,
+        "savingsRate": 0
       }
     ],
     "annual": {
@@ -332,20 +541,26 @@ export enum CategoryType {
 
 ### 共通エラーレスポンス形式
 
-すべてのエラーレスポンスは以下の共通形式に従う：
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
 
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
+  error: {
+    code: string;
+    message: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
+}
+
+export interface ErrorDetail {
+  field?: string;
   message: string;
   code?: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-  }>;
-  timestamp: string;
-  path: string;
 }
 ```
 
@@ -356,17 +571,20 @@ interface ErrorResponse {
 ```json
 {
   "success": false,
-  "statusCode": 400,
-  "message": "Validation failed",
-  "code": "VALIDATION_ERROR",
-  "errors": [
-    {
-      "field": "year",
-      "message": "Year must be >= 1900"
-    }
-  ],
-  "timestamp": "2025-01-27T10:00:00.000Z",
-  "path": "/api/aggregation/yearly-balance"
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [
+      {
+        "field": "year",
+        "message": "Year must be >= 1900"
+      }
+    ]
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00.000Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -375,11 +593,14 @@ interface ErrorResponse {
 ```json
 {
   "success": false,
-  "statusCode": 500,
-  "message": "Internal server error",
-  "code": "DATABASE_CONNECTION_ERROR",
-  "timestamp": "2025-01-27T10:00:00.000Z",
-  "path": "/api/aggregation/yearly-balance"
+  "error": {
+    "code": "DATABASE_CONNECTION_ERROR",
+    "message": "Internal server error"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00.000Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
