@@ -166,7 +166,7 @@ classDiagram
         -MonthlyBalanceDomainService monthlyBalanceDomainService
         +execute(year) Promise~YearlyBalanceResponseDto~
         -getYearlyTransactions(year) Promise~TransactionEntity[]~
-        -aggregateByMonth(transactions, year) MonthlyBalanceResponseDto[]
+        -aggregateByMonth(transactions, year) MonthlyBalanceSummaryDto[]
         -buildYearlySummary(monthlyData) YearlyBalanceResponseDto
     }
 
