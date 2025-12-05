@@ -10748,3 +10748,151 @@ export class IsValidBankCredentialsConstraint implements ValidatorConstraintInte
 **参照**: PR #359 - Issue #354: 金融機関登録機能の改善（Geminiレビュー指摘）
 
 ---
+
+### 19-5. 詳細設計時のOnion Architecture原則遵守 🟢 High
+
+**学習元**: Issue #50 / PR #363 - FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: FrontendコンポーネントがDomain層のEntityを直接使用
+
+```typescript
+// ❌ FrontendコンポーネントがEventEntityを直接使用
+class EventManagementPage {
+  +EventEntity[] events  // Domain層のEntityを直接使用
+}
+```
+
+**問題点**:
+
+- Onion Architecture原則違反（Presentation層がDomain層に直接依存）
+- Domain層の変更がFrontendに直接影響する
+
+#### ✅ 正しいパターン: Presentation層のDTOを使用
+
+```typescript
+// ✅ FrontendコンポーネントはEventResponseDtoを使用
+class EventManagementPage {
+  +EventResponseDto[] events  // Presentation層のDTOを使用
+}
+```
+
+**教訓**:
+
+- FrontendコンポーネントはDomain層のEntityに依存せず、Presentation層のDTOを使用
+- Onion Architecture原則を遵守し、レイヤ間の結合度を下げる
+
+#### ❌ 避けるべきパターン: EntityのtoJSON()メソッドでDTOを返す
+
+```typescript
+// ❌ EventEntityにtoJSON()メソッドを定義
+class EventEntity {
+  +toJSON() EventJSONResponse  // Onion Architecture原則違反
+}
+```
+
+**問題点**:
+
+- Domain層のEntityがPresentation層のDTO型に依存する（Onion Architecture原則違反）
+
+#### ✅ 正しいパターン: UseCaseまたはマッパーでDTOに変換
+
+```typescript
+// ✅ UseCaseでEventResponseDtoに変換
+class GetEventByIdUseCase {
+  execute(id: string): Promise<EventResponseDto> {
+    const event = await this.repository.findById(id);
+    return EventResponseDto.fromEntity(event, transactions);
+  }
+}
+```
+
+**教訓**:
+
+- EntityからDTOへの変換はApplication層またはPresentation層で実施
+- Entityに`toJSON()`メソッドを定義しない
+
+#### ❌ 避けるべきパターン: Domain層にInfrastructure層の関心事を含める
+
+```typescript
+// ❌ EventEntityにrelatedTransactionIdsを含める
+interface EventEntity {
+  relatedTransactionIds: string[]; // Infrastructure層の関心事
+}
+```
+
+**問題点**:
+
+- Domain層にInfrastructure層の関心事（関連テーブルの情報）を含める
+
+#### ✅ 正しいパターン: Domain層は純粋なドメインモデルのみ
+
+```typescript
+// ✅ EventEntityは純粋なドメインモデルのみ
+interface EventEntity {
+  id: string;
+  date: Date;
+  title: string;
+  // relatedTransactionIdsは含めない
+}
+```
+
+**教訓**:
+
+- Domain層のEntityは純粋なドメインモデルのみを含める
+- Infrastructure層の関心事は含めない
+
+#### ❌ 避けるべきパターン: シーケンス図で存在しないメソッドを呼び出す
+
+```mermaid
+sequenceDiagram
+    UC->>EventRepo: findByTransactionIds(relatedTransactionIds)  # 存在しないメソッド
+```
+
+**問題点**:
+
+- クラス図で定義されていないメソッドをシーケンス図で呼び出している
+
+#### ✅ 正しいパターン: クラス図と整合性のあるメソッドを使用
+
+```mermaid
+sequenceDiagram
+    UC->>EventRepo: getTransactionIdsByEventId(eventId)  # クラス図で定義されたメソッド
+```
+
+**教訓**:
+
+- シーケンス図で使用するメソッドは、クラス図で定義されたインターフェースと整合性を保つ
+
+#### ❌ 避けるべきパターン: APIレスポンス形式が統一されていない
+
+```json
+// ❌ エンドポイントごとにレスポンス形式が異なる
+{
+  "id": "evt_001"
+}
+```
+
+#### ✅ 正しいパターン: SuccessResponse<T>で統一
+
+```json
+// ✅ すべての成功レスポンスをSuccessResponse<T>でラップ
+{
+  "success": true,
+  "data": {
+    "id": "evt_001"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
+}
+```
+
+**教訓**:
+
+- すべての成功レスポンスを`SuccessResponse<T>`でラップ
+- 設計書のすべてのレスポンス例で統一
+
+**参照**: PR #363 - Issue #50: FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
+
+---
