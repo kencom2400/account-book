@@ -339,13 +339,13 @@ classDiagram
 
     class YearlyBalanceResponseDto {
         +number year
-        +MonthlyBalanceResponseDto[] months
+        +MonthlyBalanceSummaryDto[] months
         +AnnualSummaryData annual
         +TrendData trend
         +HighlightsData highlights
     }
 
-    class MonthlyBalanceResponseDto {
+    class MonthlyBalanceSummaryDto {
         +string month
         +IncomeExpenseSummary income
         +IncomeExpenseSummary expense
