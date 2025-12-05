@@ -396,17 +396,13 @@ sequenceDiagram
     DB-->>TransRepo: 取引データ
     TransRepo-->>UC: TransactionEntity
 
-    UC->>RelationRepo: findByEventIdAndTransactionId(eventId, transactionId)
-    RelationRepo->>DB: SELECT * FROM event_transaction_relations<br/>WHERE event_id = ? AND transaction_id = ?
-    DB-->>RelationRepo: 結果（存在しない）
-    RelationRepo-->>UC: null
-
     UC->>UC: 重複チェック<br/>(既に紐付けられていないか)
 
-    UC->>RelationRepo: save(EventTransactionRelation)
-    RelationRepo->>DB: INSERT INTO event_transaction_relations<br/>(event_id, transaction_id)
-    DB-->>RelationRepo: 成功
-    RelationRepo-->>UC: EventTransactionRelation
+    UC->>EventRepo: linkTransaction(eventId, transactionId)
+    Note over EventRepo: 中間テーブルへの保存は<br/>IEventRepositoryの実装詳細
+    EventRepo->>DB: INSERT INTO event_transaction_relations<br/>(event_id, transaction_id)
+    DB-->>EventRepo: 成功
+    EventRepo-->>UC: void
 
     UC-->>API: void
     API-->>FE: 201 Created
