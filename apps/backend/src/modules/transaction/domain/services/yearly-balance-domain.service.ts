@@ -49,6 +49,9 @@ export interface MonthlySummary {
  */
 @Injectable()
 export class YearlyBalanceDomainService {
+  // トレンドが安定と判定するための閾値（傾きの絶対値）
+  private static readonly STABLE_TREND_THRESHOLD = 0.01;
+
   constructor(
     private readonly monthlyBalanceDomainService: MonthlyBalanceDomainService,
   ) {}
@@ -104,7 +107,7 @@ export class YearlyBalanceDomainService {
 
     // 傾きの符号で方向を判定
     let direction: 'increasing' | 'decreasing' | 'stable';
-    if (Math.abs(slope) < 0.01) {
+    if (Math.abs(slope) < YearlyBalanceDomainService.STABLE_TREND_THRESHOLD) {
       // 傾きがほぼ0の場合はstable
       direction = 'stable';
     } else if (slope > 0) {
@@ -159,14 +162,9 @@ export class YearlyBalanceDomainService {
       maxIncomeMonth: maxIncomeMonth.income > 0 ? maxIncomeMonth.month : null,
       maxExpenseMonth:
         maxExpenseMonth.expense > 0 ? maxExpenseMonth.month : null,
-      bestBalanceMonth:
-        bestBalanceMonth.balance > Number.NEGATIVE_INFINITY
-          ? bestBalanceMonth.month
-          : null,
-      worstBalanceMonth:
-        worstBalanceMonth.balance < Number.POSITIVE_INFINITY
-          ? worstBalanceMonth.month
-          : null,
+      // bestBalanceMonth/worstBalanceMonthは常に存在する（reduceの結果）
+      bestBalanceMonth: bestBalanceMonth.month,
+      worstBalanceMonth: worstBalanceMonth.month,
     };
   }
 

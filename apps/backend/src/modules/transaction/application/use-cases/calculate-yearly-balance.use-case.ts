@@ -105,8 +105,34 @@ export class CalculateYearlyBalanceUseCase {
       endDate,
     );
 
-    // メモリ上で月別に集計
-    const monthlySummaries = this.aggregateByMonth(yearlyTransactions, year);
+    // パフォーマンス最適化: 取引データを月ごとにグループ化（1回の走査で完了）
+    const transactionsByMonth =
+      this.groupTransactionsByMonth(yearlyTransactions);
+
+    // 月別サマリーとDTOを一度に構築（非効率な繰り返し処理を回避）
+    const monthlySummaries: MonthlySummary[] = [];
+    const monthlyDtos: MonthlyBalanceSummaryDto[] = [];
+
+    for (let month = 1; month <= 12; month++) {
+      const monthString = `${year}-${String(month).padStart(2, '0')}`;
+      const monthlyTransactions = transactionsByMonth.get(month) || [];
+
+      // 収支計算
+      const balance =
+        this.monthlyBalanceDomainService.calculateBalance(monthlyTransactions);
+
+      monthlySummaries.push({
+        month: monthString,
+        income: balance.income,
+        expense: balance.expense,
+        balance: balance.balance,
+      });
+
+      // DTOを構築（月ごとの取引データを使用）
+      monthlyDtos.push(
+        this.buildMonthlySummaryDto(monthString, monthlyTransactions),
+      );
+    }
 
     // 年間サマリーを計算
     const annualSummary =
@@ -131,9 +157,7 @@ export class CalculateYearlyBalanceUseCase {
     // DTOを構築
     return {
       year,
-      months: monthlySummaries.map((summary) =>
-        this.buildMonthlySummaryDto(summary, yearlyTransactions),
-      ),
+      months: monthlyDtos,
       annual: {
         totalIncome: annualSummary.totalIncome,
         totalExpense: annualSummary.totalExpense,
@@ -157,62 +181,44 @@ export class CalculateYearlyBalanceUseCase {
   }
 
   /**
-   * メモリ上で月別に集計
+   * 取引データを月ごとにグループ化（パフォーマンス最適化）
    * @param transactions 対象年全体の取引データ
-   * @param year 年
-   * @returns 月別サマリーの配列（12ヶ月分）
+   * @returns 月（1-12）をキーとした取引データのMap
    */
-  private aggregateByMonth(
+  private groupTransactionsByMonth(
     transactions: TransactionEntity[],
-    year: number,
-  ): MonthlySummary[] {
-    const monthlySummaries: MonthlySummary[] = [];
+  ): Map<number, TransactionEntity[]> {
+    const transactionsByMonth = new Map<number, TransactionEntity[]>();
 
-    // 1月〜12月をループ
+    // 1月〜12月の初期化
     for (let month = 1; month <= 12; month++) {
-      const monthString = `${year}-${String(month).padStart(2, '0')}`;
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59, 999); // 月の最終日
-
-      // 該当月の取引をフィルタリング
-      const monthlyTransactions = transactions.filter(
-        (t) => t.date >= startDate && t.date <= endDate,
-      );
-
-      // 収支計算
-      const balance =
-        this.monthlyBalanceDomainService.calculateBalance(monthlyTransactions);
-
-      monthlySummaries.push({
-        month: monthString,
-        income: balance.income,
-        expense: balance.expense,
-        balance: balance.balance,
-      });
+      transactionsByMonth.set(month, []);
     }
 
-    return monthlySummaries;
+    // 1回の走査で月ごとにグループ化
+    for (const transaction of transactions) {
+      const transactionMonth = transaction.date.getMonth() + 1; // getMonth()は0-11を返すため+1
+      if (transactionMonth >= 1 && transactionMonth <= 12) {
+        const monthlyTransactions =
+          transactionsByMonth.get(transactionMonth) || [];
+        monthlyTransactions.push(transaction);
+        transactionsByMonth.set(transactionMonth, monthlyTransactions);
+      }
+    }
+
+    return transactionsByMonth;
   }
 
   /**
    * MonthlySummaryDtoを構築
-   * @param summary 月別サマリー
-   * @param allTransactions 対象年全体の取引データ（カテゴリ別・金融機関別集計用）
+   * @param monthString 月（YYYY-MM形式）
+   * @param monthlyTransactions 該当月の取引データ
    * @returns MonthlyBalanceSummaryDto
    */
   private buildMonthlySummaryDto(
-    summary: MonthlySummary,
-    allTransactions: TransactionEntity[],
+    monthString: string,
+    monthlyTransactions: TransactionEntity[],
   ): MonthlyBalanceSummaryDto {
-    const [year, month] = summary.month.split('-').map(Number);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-
-    // 該当月の取引をフィルタリング
-    const monthlyTransactions = allTransactions.filter(
-      (t) => t.date >= startDate && t.date <= endDate,
-    );
-
     // 収入・支出を分離
     const { incomeTransactions, expenseTransactions } =
       monthlyTransactions.reduce(
@@ -229,6 +235,10 @@ export class CalculateYearlyBalanceUseCase {
           expenseTransactions: [] as TransactionEntity[],
         },
       );
+
+    // 収支計算
+    const balance =
+      this.monthlyBalanceDomainService.calculateBalance(monthlyTransactions);
 
     // カテゴリ別集計
     const incomeCategoryAggregation =
@@ -247,17 +257,17 @@ export class CalculateYearlyBalanceUseCase {
       );
 
     // DTOを構築
-    const incomeTotal = summary.income;
-    const expenseTotal = summary.expense;
+    const incomeTotal = balance.income;
+    const expenseTotal = balance.expense;
 
     return {
-      month: summary.month,
+      month: monthString,
       income: {
         total: incomeTotal,
         count: incomeTransactions.length,
         byCategory: this.buildCategoryBreakdown(
           incomeCategoryAggregation,
-          incomeTotal,
+          incomeTransactions,
         ),
         byInstitution: this.buildInstitutionBreakdown(
           incomeInstitutionAggregation,
@@ -270,7 +280,7 @@ export class CalculateYearlyBalanceUseCase {
         count: expenseTransactions.length,
         byCategory: this.buildCategoryBreakdown(
           expenseCategoryAggregation,
-          expenseTotal,
+          expenseTransactions,
         ),
         byInstitution: this.buildInstitutionBreakdown(
           expenseInstitutionAggregation,
@@ -278,7 +288,7 @@ export class CalculateYearlyBalanceUseCase {
         ),
         transactions: expenseTransactions.map((t) => this.toTransactionDto(t)),
       },
-      balance: summary.balance,
+      balance: balance.balance,
       savingsRate: this.monthlyBalanceDomainService.calculateSavingsRate(
         incomeTotal,
         expenseTotal,
@@ -288,18 +298,41 @@ export class CalculateYearlyBalanceUseCase {
 
   /**
    * CategoryBreakdownを構築
+   * @param aggregation カテゴリ別集計結果
+   * @param transactions 取引データ（カテゴリ名取得用）
    */
   private buildCategoryBreakdown(
     aggregation: Map<string, { total: number; count: number }>,
-    total: number,
+    transactions: TransactionEntity[],
   ): CategoryBreakdown[] {
-    return Array.from(aggregation.entries()).map(([categoryId, data]) => ({
-      categoryId,
-      categoryName: `Category ${categoryId}`, // TODO: カテゴリ名を取得する実装が必要
-      amount: data.total,
-      count: data.count,
-      percentage: total > 0 ? (data.total / total) * 100 : 0,
-    }));
+    const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    // カテゴリIDとカテゴリ名のマップを事前に作成（O(N)）
+    const categoryMap = new Map<string, string>();
+    for (const t of transactions) {
+      if (!categoryMap.has(t.category.id)) {
+        categoryMap.set(t.category.id, t.category.name);
+      }
+    }
+
+    const breakdowns: CategoryBreakdown[] = [];
+
+    for (const [categoryId, data] of aggregation.entries()) {
+      const categoryName = categoryMap.get(categoryId) || '';
+
+      const percentage = total > 0 ? (Math.abs(data.total) / total) * 100 : 0;
+
+      breakdowns.push({
+        categoryId,
+        categoryName,
+        amount: Math.abs(data.total),
+        count: data.count,
+        percentage,
+      });
+    }
+
+    // 金額の降順でソート
+    return breakdowns.sort((a, b) => b.amount - a.amount);
   }
 
   /**
