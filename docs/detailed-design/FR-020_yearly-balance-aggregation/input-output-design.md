@@ -219,6 +219,42 @@ export interface MonthlyBalanceSummaryDto {
   // comparisonフィールドは除外（年間集計では不要）
 }
 
+// IncomeExpenseSummary（FR-016で定義済み、再利用）
+export interface IncomeExpenseSummary {
+  total: number;
+  count: number;
+  byCategory: CategoryBreakdown[];
+  byInstitution: InstitutionBreakdown[];
+  transactions: TransactionDto[];
+}
+
+export interface CategoryBreakdown {
+  categoryId: string;
+  categoryName: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+export interface InstitutionBreakdown {
+  institutionId: string;
+  institutionName: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+export interface TransactionDto {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string; // CategoryTypeの文字列値
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
+}
+
 export interface AnnualSummaryData {
   totalIncome: number;
   totalExpense: number;
@@ -229,12 +265,13 @@ export interface AnnualSummaryData {
 }
 
 export interface TrendData {
-  incomeProgression: TrendAnalysis;
-  expenseProgression: TrendAnalysis;
-  balanceProgression: TrendAnalysis;
+  incomeProgression: TrendAnalysisDto;
+  expenseProgression: TrendAnalysisDto;
+  balanceProgression: TrendAnalysisDto;
 }
 
-export interface TrendAnalysis {
+// Presentation層のDTO（Domain層のTrendAnalysisとは別物）
+export interface TrendAnalysisDto {
   direction: 'increasing' | 'decreasing' | 'stable';
   changeRate: number; // 傾き（線形回帰の係数）を100倍した値
   standardDeviation: number;

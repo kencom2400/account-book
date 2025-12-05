@@ -347,6 +347,11 @@ docs/detailed-design/
   - プレゼンテーション層がドメイン層のエンティティに直接依存しない
   - UseCase層でエンティティからDTOへの変換を実施
   - レスポンスDTOにはプレーンなDTO（`TransactionDto`など）を使用
+  - **ドメインオブジェクト（Value Object）とDTOの分離（Geminiレビュー PR#360から学習）**
+    - DTOがドメイン層のValue Object（例: `TrendAnalysis`、`Highlights`）に直接依存しないこと
+    - ドメインオブジェクト用のDTO（例: `TrendAnalysisDto`、`HighlightsDto`）を別途定義すること
+    - UseCase層でドメインオブジェクトからDTOへのマッピングを実施すること
+    - これにより、レイヤー間の分離が明確になり、疎結合が維持される
 - [ ] **設計書間の整合性確認（Geminiレビュー PR#347から学習）**
   - **クラス図と入出力設計の整合性**: UseCaseの戻り値型が`input-output-design.md`のレスポンス例と一致しているか（配列 vs 単一オブジェクト）
   - **ControllerとUseCaseの整合性**: Controllerの戻り値型とUseCaseの戻り値型が一致しているか

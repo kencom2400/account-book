@@ -207,9 +207,15 @@ classDiagram
     }
 
     class TrendData {
-        +TrendAnalysis incomeProgression
-        +TrendAnalysis expenseProgression
-        +TrendAnalysis balanceProgression
+        +TrendAnalysisDto incomeProgression
+        +TrendAnalysisDto expenseProgression
+        +TrendAnalysisDto balanceProgression
+    }
+
+    class TrendAnalysisDto {
+        +string direction
+        +number changeRate
+        +number standardDeviation
     }
 
     class HighlightsData {
@@ -227,8 +233,7 @@ classDiagram
     YearlyBalanceResponseDto --> AnnualSummaryData
     YearlyBalanceResponseDto --> TrendData
     YearlyBalanceResponseDto --> HighlightsData
-    TrendData --> TrendAnalysis
-    HighlightsData --> Highlights
+    TrendData --> TrendAnalysisDto
 ```
 
 **クラス説明**:

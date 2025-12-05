@@ -177,7 +177,7 @@ interface TransactionEntity {
 ```typescript
 interface YearlyBalanceSummary {
   year: number;
-  months: MonthlyBalanceSummary[]; // FR-016のMonthlyBalanceSummaryを再利用
+  months: MonthlyBalanceSummary[]; // 年間集計用に簡略化された月別サマリー（FR-016とは異なる）
   annual: {
     totalIncome: number;
     totalExpense: number;
