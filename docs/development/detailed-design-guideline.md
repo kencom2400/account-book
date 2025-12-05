@@ -315,8 +315,10 @@ docs/detailed-design/
   - 設計書で使用しているステータス名がEnum定義と一致しているか
   - 「支払済」「要確認」などの曖昧な表現ではなく、Enum値（MATCHED、PARTIAL、UNMATCHED）を使用しているか
 - [ ] **共通エラーレスポンス形式の統一**
-  - すべてのエラーレスポンスが共通形式に準拠しているか（success、statusCode、message、code、errors、timestamp、path）
-  - エラーレスポンス例が共通形式と一致しているか
+  - すべてのエラーレスポンスがプロジェクトの標準形式（`libs/types/src/api/error-response.ts`）に準拠しているか
+  - 標準形式: `{success: false, error: {code, message, details?}, metadata: {timestamp, version}}`
+  - エラーレスポンス例が標準形式と一致しているか
+  - **重要**: 独自の形式を定義せず、必ず既存の標準形式を使用すること
 - [ ] **HTTPステータスコードの適切性**
   - 外部サービス障害の場合は502 Bad Gatewayまたは503 Service Unavailableを使用
   - 500 Internal Server Errorは自サーバーの内部ロジックエラーのみ
