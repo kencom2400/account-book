@@ -68,12 +68,12 @@ export class YearlyBalanceDomainService {
       0,
     );
     const totalBalance = totalIncome - totalExpense;
-    // 月別サマリーの数が0でなければその数、0なら12（12ヶ月分を想定）
-    const monthCount =
-      monthlySummaries.length > 0 ? monthlySummaries.length : 12;
+    // executeユースケースからは常に12ヶ月分のデータが渡されるため、lengthをそのまま使用
+    // ゼロ除算を防ぐため、monthCount > 0のチェックを追加
+    const monthCount = monthlySummaries.length;
 
-    const averageIncome = totalIncome / monthCount;
-    const averageExpense = totalExpense / monthCount;
+    const averageIncome = monthCount > 0 ? totalIncome / monthCount : 0;
+    const averageExpense = monthCount > 0 ? totalExpense / monthCount : 0;
 
     const savingsRate = this.monthlyBalanceDomainService.calculateSavingsRate(
       totalIncome,

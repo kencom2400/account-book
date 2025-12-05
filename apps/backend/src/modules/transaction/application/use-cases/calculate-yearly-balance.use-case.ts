@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
-import { MonthlyBalanceDomainService } from '../../domain/services/monthly-balance-domain.service';
+import {
+  MonthlyBalanceDomainService,
+  type BalanceResult,
+} from '../../domain/services/monthly-balance-domain.service';
 import {
   YearlyBalanceDomainService,
   type TrendAnalysis,
@@ -128,9 +131,9 @@ export class CalculateYearlyBalanceUseCase {
         balance: balance.balance,
       });
 
-      // DTOを構築（月ごとの取引データを使用）
+      // DTOを構築（計算済みのbalanceを引数で渡す）
       monthlyDtos.push(
-        this.buildMonthlySummaryDto(monthString, monthlyTransactions),
+        this.buildMonthlySummaryDto(monthString, monthlyTransactions, balance),
       );
     }
 
@@ -211,11 +214,13 @@ export class CalculateYearlyBalanceUseCase {
    * MonthlySummaryDtoを構築
    * @param monthString 月（YYYY-MM形式）
    * @param monthlyTransactions 該当月の取引データ
+   * @param balance 計算済みの収支結果（重複計算を避けるため引数で受け取る）
    * @returns MonthlyBalanceSummaryDto
    */
   private buildMonthlySummaryDto(
     monthString: string,
     monthlyTransactions: TransactionEntity[],
+    balance: BalanceResult,
   ): MonthlyBalanceSummaryDto {
     // 収入・支出を分離
     const { incomeTransactions, expenseTransactions } =
@@ -233,10 +238,6 @@ export class CalculateYearlyBalanceUseCase {
           expenseTransactions: [] as TransactionEntity[],
         },
       );
-
-    // 収支計算
-    const balance =
-      this.monthlyBalanceDomainService.calculateBalance(monthlyTransactions);
 
     // カテゴリ別集計
     const incomeCategoryAggregation =
