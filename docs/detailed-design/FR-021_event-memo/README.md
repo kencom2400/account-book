@@ -334,7 +334,7 @@ export class EventTransactionRelationOrmEntity {
 
 ## セキュリティ考慮事項
 
-- [x] 認証・認可の実装（将来対応）
+- [ ] 認証・認可の実装（将来対応）
 - [x] 入力値のバリデーション（DTO、class-validator）
 - [x] SQLインジェクション対策（TypeORM使用）
 - [x] XSS対策（フロントエンドでのエスケープ処理）
@@ -346,7 +346,7 @@ export class EventTransactionRelationOrmEntity {
 - [x] データベースインデックスの活用（date, category）
 - [x] 日付範囲クエリの最適化
 - [ ] イベント一覧のキャッシング（将来対応）
-- [ ] ページネーション実装（大量データ対応）
+- [x] ページネーション実装（大量データ対応、将来実装）
 
 ### パフォーマンス要件
 

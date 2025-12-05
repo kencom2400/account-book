@@ -61,14 +61,8 @@ classDiagram
         +delete(id) Promise~void~
         +findByTransactionId(transactionId) Promise~EventEntity[]~
         +getTransactionIdsByEventId(eventId) Promise~string[]~
-    }
-
-    class IEventTransactionRelationRepository {
-        <<interface>>
-        +save(relation) Promise~EventTransactionRelation~
-        +findByEventId(eventId) Promise~EventTransactionRelation[]~
-        +findByTransactionId(transactionId) Promise~EventTransactionRelation[]~
-        +delete(eventId, transactionId) Promise~void~
+        +linkTransaction(eventId, transactionId) Promise~void~
+        +unlinkTransaction(eventId, transactionId) Promise~void~
     }
 
     EventEntity --> EventCategory
@@ -150,7 +144,6 @@ classDiagram
     class LinkTransactionToEventUseCase {
         -IEventRepository repository
         -ITransactionRepository transactionRepository
-        -IEventTransactionRelationRepository relationRepository
         +execute(eventId, transactionId) Promise~void~
     }
 
@@ -177,7 +170,6 @@ classDiagram
     GetEventsByDateRangeUseCase --> IEventRepository
     LinkTransactionToEventUseCase --> IEventRepository
     LinkTransactionToEventUseCase --> ITransactionRepository
-    LinkTransactionToEventUseCase --> IEventTransactionRelationRepository
     CreateEventUseCase --> CreateEventDto
     UpdateEventUseCase --> UpdateEventDto
 ```
@@ -220,8 +212,9 @@ classDiagram
 #### LinkTransactionToEventUseCase
 
 - **責務**: 取引とイベントの紐付けのユースケース
-- **依存**: `IEventRepository`, `ITransactionRepository`, `IEventTransactionRelationRepository`
-- **処理**: 中間テーブル（event_transaction_relations）に保存
+- **依存**: `IEventRepository`, `ITransactionRepository`
+- **処理**: `IEventRepository.linkTransaction()`を使用して中間テーブル（event_transaction_relations）に保存
+- **注意**: 中間テーブルの存在は`IEventRepository`の実装詳細として隠蔽され、Application層は意識しない（Onion Architecture原則）
 
 ---
 
@@ -543,6 +536,8 @@ graph TD
     style C fill:#ffe1f5
     style D fill:#e1ffe1
 ```
+
+**注意**: Presentation層からDomain層への依存（`A -->|依存| C`）は、`EventResponseDto`が`EventCategory` enumを直接利用しているためです。これは実用的な判断ですが、厳密なOnion Architecture原則からは少し逸脱します。代替案として、`EventCategory`の値を`string`型としてDTOで扱うことも検討可能です。
 
 ### データフロー
 

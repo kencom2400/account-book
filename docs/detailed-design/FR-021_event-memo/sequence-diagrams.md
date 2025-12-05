@@ -266,13 +266,11 @@ sequenceDiagram
     API->>UC: execute(id)
 
     UC->>EventRepo: findById(id)
-    EventRepo->>DB: SELECT * FROM events<br/>WHERE id = ?<br/>LEFT JOIN event_transaction_relations
-    DB-->>EventRepo: イベントデータ + 関連取引ID一覧
-    EventRepo->>EventRepo: EventOrmEntityから関連取引IDを抽出
+    EventRepo->>DB: SELECT * FROM events<br/>WHERE id = ?
+    DB-->>EventRepo: イベントデータ
     EventRepo-->>UC: EventEntity
 
     UC->>EventRepo: getTransactionIdsByEventId(id)
-    Note over EventRepo: EventOrmEntityのtransactionRelations<br/>から取引IDを抽出
     EventRepo->>DB: SELECT transaction_id FROM event_transaction_relations<br/>WHERE event_id = ?
     DB-->>EventRepo: 関連取引ID一覧
     EventRepo-->>UC: transactionIds[]

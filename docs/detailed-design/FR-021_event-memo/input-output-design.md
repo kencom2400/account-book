@@ -71,10 +71,13 @@ interface EventEntity {
   description: string | null; // 説明（最大1000文字）
   category: EventCategory; // イベントカテゴリ
   tags: string[]; // タグ（配列）
-  relatedTransactionIds: string[]; // 関連取引ID（配列）
   createdAt: Date; // 作成日時
   updatedAt: Date; // 更新日時
 }
+
+// 注意: relatedTransactionIdsはDomain層には含めない
+// これはInfrastructure層のEventOrmEntityの関心事であり、
+// 関連取引の取得はEventTransactionRelationOrmEntity経由で行う
 ```
 
 ### TransactionDto (Response)
