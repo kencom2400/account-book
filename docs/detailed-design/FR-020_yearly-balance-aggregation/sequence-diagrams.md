@@ -108,8 +108,8 @@ sequenceDiagram
    - クエリパラメータ: `year` (number)
 
 4. **UseCase 実行**
-   - 1月〜12月の各月について、FR-016の`CalculateMonthlyBalanceUseCase`を呼び出し
-   - 各月のデータを取得
+   - 対象年全体の取引データを`findByDateRange`で一度に取得（パフォーマンス最適化）
+   - メモリ上で月別にフィルタリングし、FR-016の`MonthlyBalanceDomainService`を再利用して集計
    - 年間サマリーを計算（合計・平均・貯蓄率）
    - トレンド分析を実行（収入・支出・収支それぞれ）
    - ハイライト情報を抽出

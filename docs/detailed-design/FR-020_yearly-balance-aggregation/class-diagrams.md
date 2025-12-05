@@ -224,7 +224,7 @@ classDiagram
     CalculateYearlyBalanceUseCase --> YearlyBalanceDomainService
     CalculateYearlyBalanceUseCase --> MonthlyBalanceDomainService
     CalculateYearlyBalanceUseCase --> YearlyBalanceResponseDto
-    YearlyBalanceResponseDto --> MonthlyBalanceResponseDto
+    YearlyBalanceResponseDto --> MonthlyBalanceSummaryDto
     YearlyBalanceResponseDto --> AnnualSummaryData
     YearlyBalanceResponseDto --> TrendData
     YearlyBalanceResponseDto --> HighlightsData
@@ -237,12 +237,13 @@ classDiagram
 #### CalculateYearlyBalanceUseCase（新規作成）
 
 - **責務**: 年間収支推移表示のユースケース実装
-- **依存**: `CalculateMonthlyBalanceUseCase`（FR-016）、`YearlyBalanceDomainService`
+- **依存**: `ITransactionRepository`、`YearlyBalanceDomainService`、`MonthlyBalanceDomainService`（FR-016）
 - **入力**: `year: number`
 - **出力**: `YearlyBalanceResponseDto`
 - **主要メソッド**:
   - `execute(year)`: 年間収支推移を実行
-  - `getMonthlyData(year, month)`: 指定月の月別収支データを取得（FR-016のUseCaseを呼び出し）
+  - `getYearlyTransactions(year)`: 対象年全体の取引データを一度に取得（`findByDateRange`を使用）
+  - `aggregateByMonth(transactions, year)`: メモリ上で月別にフィルタリング・集計（`MonthlyBalanceDomainService`を再利用）
   - `buildYearlySummary(monthlyData)`: 年間サマリーを構築
 
 #### CalculateMonthlyBalanceUseCase（既存、FR-016で作成済み）

@@ -127,11 +127,12 @@
 3. **既存Domain Serviceの再利用**: `MonthlyBalanceDomainService`（FR-016で作成済み）
    - メモリ上で月別にフィルタリングした取引データの収支集計に使用
 
-4. **DTOの拡張**: 既存の`MonthlyBalanceResponseDto`を再利用し、`YearlyBalanceResponseDto`を作成
-   - 12ヶ月分の`MonthlyBalanceResponseDto`を含む
+4. **DTOの拡張**: 年間集計用の簡略版DTO（`MonthlyBalanceSummaryDto`）を新規作成し、`YearlyBalanceResponseDto`を作成
+   - 12ヶ月分の`MonthlyBalanceSummaryDto`を含む（`comparison`フィールドを除外した簡略版）
    - 年間サマリー情報を追加
    - トレンド分析情報を追加
    - ハイライト情報を追加
+   - **注意**: 月別集計API（FR-016）では`MonthlyBalanceResponseDto`（完全版、`comparison`フィールド含む）を使用し、年間集計API（FR-020）では`MonthlyBalanceSummaryDto`（簡略版、`comparison`フィールドなし）を使用する
 
 ## 技術スタック
 
@@ -264,18 +265,26 @@ interface MonthlyBalanceSummary {
 
 ### エラーレスポンス形式
 
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
+
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
+  error: {
+    code: string;
+    message: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
+}
+
+export interface ErrorDetail {
+  field?: string;
   message: string;
   code?: string;
-  errors?: Array<{
-    field: string;
-    message: string;
-  }>;
-  timestamp: string;
-  path: string;
 }
 ```
 
@@ -331,8 +340,9 @@ interface ErrorResponse {
    - 月の最終日を正確に取得（Date APIを活用）
 
 7. **既存機能の再利用**
-   - FR-016の`CalculateMonthlyBalanceUseCase`を12回呼び出して各月のデータを取得
-   - 各月のデータ取得時にエラーが発生した場合は、その月のデータをスキップして続行（空データとして扱う）
+   - 対象年全体の取引データを`findByDateRange`で一度に取得（パフォーマンス最適化）
+   - メモリ上で月別にフィルタリングし、FR-016の`MonthlyBalanceDomainService`を再利用して集計
+   - データ取得時にエラーが発生した場合は、空データとして扱う（12ヶ月分すべて空データとして処理）
 
 ## 関連ドキュメント
 

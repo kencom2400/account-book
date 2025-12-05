@@ -130,13 +130,15 @@ GET /api/aggregation/yearly-balance?year=2025
 
 **Response Schema (YearlyBalanceResponseDto):**
 
-| フィールド | 型                          | 説明                                   |
-| ---------- | --------------------------- | -------------------------------------- |
-| year       | number                      | 年                                     |
-| months     | MonthlyBalanceResponseDto[] | 12ヶ月分の月別収支データ（FR-016参照） |
-| annual     | AnnualSummaryData           | 年間サマリー                           |
-| trend      | TrendData                   | トレンド分析情報                       |
-| highlights | HighlightsData              | ハイライト情報                         |
+| フィールド | 型                         | 説明                                                           |
+| ---------- | -------------------------- | -------------------------------------------------------------- |
+| year       | number                     | 年                                                             |
+| months     | MonthlyBalanceSummaryDto[] | 12ヶ月分の月別収支データ（簡略版、`comparison`フィールドなし） |
+| annual     | AnnualSummaryData          | 年間サマリー                                                   |
+| trend      | TrendData                  | トレンド分析情報                                               |
+| highlights | HighlightsData             | ハイライト情報                                                 |
+
+**注意**: `months`配列の要素は`MonthlyBalanceResponseDto`ではなく、`MonthlyBalanceSummaryDto`（簡略版）を使用します。年間集計では月ごとの比較情報（前月比・前年同月比）は不要なため、`comparison`フィールドを除外した簡略版DTOを定義します。
 
 **AnnualSummaryData:**
 
@@ -174,9 +176,21 @@ GET /api/aggregation/yearly-balance?year=2025
 | bestBalanceMonth  | string \| null | 最高収支月（収支が最大の月、YYYY-MM形式、データが存在しない場合はnull） |
 | worstBalanceMonth | string \| null | 最低収支月（収支が最小の月、YYYY-MM形式、データが存在しない場合はnull） |
 
-**MonthlyBalanceResponseDto（FR-016で定義済み、再利用）:**
+**MonthlyBalanceSummaryDto（新規作成、年間集計用の簡略版）:**
 
-詳細は [FR-016の入出力設計](../FR-016_monthly-balance-aggregation/input-output-design.md) を参照。
+年間集計では月ごとの比較情報（前月比・前年同月比）は不要なため、`MonthlyBalanceResponseDto`から`comparison`フィールドを除外した簡略版DTOを定義します。
+
+| フィールド  | 型                   | 説明                                                        |
+| ----------- | -------------------- | ----------------------------------------------------------- |
+| month       | string               | 月（YYYY-MM形式）                                           |
+| income      | IncomeExpenseSummary | 収入サマリー                                                |
+| expense     | IncomeExpenseSummary | 支出サマリー                                                |
+| balance     | number               | 収支差額（income - expense）                                |
+| savingsRate | number               | 貯蓄率（balance / income \* 100）。incomeが0の場合は0を返す |
+
+**MonthlyBalanceResponseDto（FR-016で定義済み、月別集計APIで使用）:**
+
+詳細は [FR-016の入出力設計](../FR-016_monthly-balance-aggregation/input-output-design.md) を参照。月別集計APIでは`comparison`フィールドを含む完全版を使用します。
 
 **Error Responses:**
 
@@ -189,10 +203,20 @@ GET /api/aggregation/yearly-balance?year=2025
 // Response DTO（interface）
 export interface YearlyBalanceResponseDto {
   year: number;
-  months: MonthlyBalanceResponseDto[]; // FR-016で定義済み
+  months: MonthlyBalanceSummaryDto[]; // 年間集計用の簡略版（comparisonフィールドなし）
   annual: AnnualSummaryData;
   trend: TrendData;
   highlights: HighlightsData;
+}
+
+// 年間集計用の簡略版DTO（comparisonフィールドを除外）
+export interface MonthlyBalanceSummaryDto {
+  month: string; // YYYY-MM
+  income: IncomeExpenseSummary;
+  expense: IncomeExpenseSummary;
+  balance: number;
+  savingsRate: number;
+  // comparisonフィールドは除外（年間集計では不要）
 }
 
 export interface AnnualSummaryData {
