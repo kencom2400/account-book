@@ -8,6 +8,7 @@ import { TransactionOrmEntity } from './infrastructure/entities/transaction.orm-
 import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/entities/transaction-category-change-history.orm-entity';
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
 import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
+import { YearlyBalanceDomainService } from './domain/services/yearly-balance-domain.service';
 import { CategoryAggregationDomainService } from './domain/services/category-aggregation-domain.service';
 import { SubcategoryAggregationDomainService } from './domain/services/subcategory-aggregation-domain.service';
 import { InstitutionAggregationDomainService } from './domain/services/institution-aggregation-domain.service';
@@ -17,6 +18,7 @@ import { GetTransactionsUseCase } from './application/use-cases/get-transactions
 import { UpdateTransactionCategoryUseCase } from './application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
 import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
+import { CalculateYearlyBalanceUseCase } from './application/use-cases/calculate-yearly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from './application/use-cases/calculate-category-aggregation.use-case';
 import { CalculateSubcategoryAggregationUseCase } from './application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from './application/use-cases/calculate-institution-summary.use-case';
@@ -49,6 +51,7 @@ import { InstitutionModule } from '../institution/institution.module';
     // Domain Services
     TransactionDomainService,
     MonthlyBalanceDomainService,
+    YearlyBalanceDomainService,
     CategoryAggregationDomainService,
     SubcategoryAggregationDomainService,
     InstitutionAggregationDomainService,
@@ -59,6 +62,7 @@ import { InstitutionModule } from '../institution/institution.module';
     UpdateTransactionCategoryUseCase,
     CalculateMonthlySummaryUseCase,
     CalculateMonthlyBalanceUseCase,
+    CalculateYearlyBalanceUseCase,
     CalculateCategoryAggregationUseCase,
     CalculateSubcategoryAggregationUseCase,
     CalculateInstitutionSummaryUseCase,

@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AggregationController } from './aggregation.controller';
 import { CalculateMonthlyBalanceUseCase } from '../../application/use-cases/calculate-monthly-balance.use-case';
+import { CalculateYearlyBalanceUseCase } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
+import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
 import { InstitutionType } from '@account-book/types';
@@ -13,6 +15,7 @@ describe('AggregationController', () => {
   let controller: AggregationController;
   let module: TestingModule;
   let calculateMonthlyBalanceUseCase: jest.Mocked<CalculateMonthlyBalanceUseCase>;
+  let calculateYearlyBalanceUseCase: jest.Mocked<CalculateYearlyBalanceUseCase>;
   let calculateCategoryAggregationUseCase: jest.Mocked<CalculateCategoryAggregationUseCase>;
   let calculateSubcategoryAggregationUseCase: jest.Mocked<CalculateSubcategoryAggregationUseCase>;
   let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
@@ -50,6 +53,10 @@ describe('AggregationController', () => {
           useValue: { execute: jest.fn() },
         },
         {
+          provide: CalculateYearlyBalanceUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: CalculateCategoryAggregationUseCase,
           useValue: { execute: jest.fn() },
         },
@@ -66,6 +73,7 @@ describe('AggregationController', () => {
 
     controller = module.get<AggregationController>(AggregationController);
     calculateMonthlyBalanceUseCase = module.get(CalculateMonthlyBalanceUseCase);
+    calculateYearlyBalanceUseCase = module.get(CalculateYearlyBalanceUseCase);
     calculateCategoryAggregationUseCase = module.get(
       CalculateCategoryAggregationUseCase,
     );
@@ -387,6 +395,109 @@ describe('AggregationController', () => {
         undefined,
         'cat-food',
       );
+    });
+  });
+
+  describe('getYearlyBalance', () => {
+    const mockYearlyBalanceResponse: YearlyBalanceResponseDto = {
+      year: 2024,
+      months: [
+        {
+          month: '2024-01',
+          income: {
+            total: 300000,
+            count: 1,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          expense: {
+            total: 200000,
+            count: 1,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          balance: 100000,
+          savingsRate: 33.33,
+        },
+        {
+          month: '2024-02',
+          income: {
+            total: 300000,
+            count: 1,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          expense: {
+            total: 180000,
+            count: 1,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          balance: 120000,
+          savingsRate: 40.0,
+        },
+      ],
+      annual: {
+        totalIncome: 600000,
+        totalExpense: 380000,
+        totalBalance: 220000,
+        averageIncome: 50000,
+        averageExpense: 31666.67,
+        savingsRate: 36.67,
+      },
+      trend: {
+        incomeProgression: {
+          direction: 'stable',
+          changeRate: 0,
+          standardDeviation: 0,
+        },
+        expenseProgression: {
+          direction: 'decreasing',
+          changeRate: -1.5,
+          standardDeviation: 15000,
+        },
+        balanceProgression: {
+          direction: 'increasing',
+          changeRate: 2.0,
+          standardDeviation: 10000,
+        },
+      },
+      highlights: {
+        maxIncomeMonth: '2024-01',
+        maxExpenseMonth: '2024-01',
+        bestBalanceMonth: '2024-02',
+        worstBalanceMonth: '2024-01',
+      },
+    };
+
+    it('should return yearly balance data', async () => {
+      calculateYearlyBalanceUseCase.execute.mockResolvedValue(
+        mockYearlyBalanceResponse,
+      );
+
+      const result = await controller.getYearlyBalance({
+        year: 2024,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockYearlyBalanceResponse);
+      expect(calculateYearlyBalanceUseCase.execute).toHaveBeenCalledWith(2024);
+    });
+
+    it('should call use case with correct parameters', async () => {
+      calculateYearlyBalanceUseCase.execute.mockResolvedValue(
+        mockYearlyBalanceResponse,
+      );
+
+      await controller.getYearlyBalance({
+        year: 2024,
+      });
+
+      expect(calculateYearlyBalanceUseCase.execute).toHaveBeenCalledWith(2024);
     });
   });
 });
