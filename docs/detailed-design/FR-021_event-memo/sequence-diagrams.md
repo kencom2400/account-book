@@ -468,8 +468,6 @@ sequenceDiagram
     DB-->>EventRepo: イベントデータ
     EventRepo-->>UC: EventEntity
 
-    UC->>UC: 紐付け存在チェック<br/>(既に紐付けられているか)
-
     UC->>EventRepo: getTransactionIdsByEventId(eventId)
     EventRepo->>DB: SELECT transaction_id FROM event_transaction_relations<br/>WHERE event_id = ?
     DB-->>EventRepo: 関連取引ID一覧
