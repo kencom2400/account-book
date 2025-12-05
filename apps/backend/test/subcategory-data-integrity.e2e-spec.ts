@@ -38,7 +38,13 @@ describe('Subcategory Classification Data Integrity Tests', () => {
     }
   });
 
+  beforeEach(async () => {
+    // 各テスト前にデータベースをクリーンアップ（beforeEachで実行することで、テスト間のデータ漏れを防ぐ）
+    await dbHelper.cleanDatabase();
+  });
+
   afterEach(async () => {
+    // テスト後にクリーンアップ（念のため）
     await dbHelper.cleanDatabase();
   });
 

@@ -13,6 +13,7 @@ export class E2ETestDatabaseHelper {
 
   /**
    * すべてのテーブルをクリーンアップ
+   * 直接SQLでTRUNCATEを使用して、TypeORMリポジトリ経由で挿入されなかったデータも削除
    */
   async cleanDatabase(): Promise<void> {
     const entities = this.dataSource.entityMetadatas;
@@ -25,10 +26,11 @@ export class E2ETestDatabaseHelper {
     }
 
     try {
-      // すべてのテーブルをTRUNCATE
+      // すべてのテーブルをTRUNCATE（直接SQLを使用）
       for (const entity of entities) {
-        const repository = this.dataSource.getRepository(entity.name);
-        await repository.clear();
+        const tableName = entity.tableName;
+        // TRUNCATEを使用して、直接SQLで挿入されたデータも削除
+        await this.dataSource.query(`TRUNCATE TABLE \`${tableName}\``);
       }
     } finally {
       // 外部キー制約を再度有効化（MySQL固有）
