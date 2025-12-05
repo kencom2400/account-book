@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEntity } from '../../domain/entities/event.entity';
-import { IEventRepository } from '../../domain/repositories/event.repository.interface';
+import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
 
 /**
