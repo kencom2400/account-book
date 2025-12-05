@@ -210,8 +210,9 @@ export async function seedE2ETestData(): Promise<{
       name: 'テスト銀行E2E',
       type: 'bank',
       credentials: {
-        username: 'test_user',
-        password: 'test_password',
+        bankCode: '0000',
+        branchCode: '001',
+        accountNumber: '1234567',
       },
     });
     console.log(`  ✅ Created institution: ${institution.name}`);

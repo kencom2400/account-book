@@ -10516,3 +10516,235 @@ const existing = result.get(transaction.institutionId)!;
 **学習元**: Issue #46 / PR #346 - FR-017: 金融機関別集計機能（Geminiレビュー指摘 第2弾）
 
 ---
+
+## 19. Gemini Code Assist レビューから学んだ観点（PR #359 金融機関登録機能）
+
+### 19-1. バリデーションロジックの簡潔化 🟡 Medium
+
+**学習元**: Issue #354 / PR #359 - 金融機関登録機能の改善（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: プロパティへの繰り返しアクセス
+
+```typescript
+validate(
+  credentials: Record<string, unknown> | undefined,
+  args: ValidationArguments,
+): boolean {
+  // プロパティへの繰り返しアクセス
+  if (
+    typeof credentials.bankCode !== 'string' ||
+    typeof credentials.branchCode !== 'string' ||
+    typeof credentials.accountNumber !== 'string'
+  ) {
+    return false;
+  }
+
+  return (
+    IsValidBankCredentialsConstraint.bankCodePattern.test(credentials.bankCode) &&
+    IsValidBankCredentialsConstraint.branchCodePattern.test(credentials.branchCode) &&
+    IsValidBankCredentialsConstraint.accountNumberPattern.test(credentials.accountNumber)
+  );
+}
+```
+
+**問題点**:
+
+- `credentials.bankCode`などのプロパティに複数回アクセス
+- コードが冗長で読みにくい
+- 保守性が低い
+
+#### ✅ 正しいパターン: 分割代入で簡潔化
+
+```typescript
+validate(
+  credentials: Record<string, unknown> | undefined,
+  args: ValidationArguments,
+): boolean {
+  const { bankCode, branchCode, accountNumber } = credentials;
+
+  // 必須フィールドの存在、型、フォーマットをチェック
+  return (
+    typeof bankCode === 'string' &&
+    IsValidBankCredentialsConstraint.bankCodePattern.test(bankCode) &&
+    typeof branchCode === 'string' &&
+    IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
+    typeof accountNumber === 'string' &&
+    IsValidBankCredentialsConstraint.accountNumberPattern.test(accountNumber)
+  );
+}
+```
+
+**教訓**:
+
+- オブジェクトの分割代入（destructuring）を使用してコードを簡潔化
+- プロパティへの繰り返しアクセスを減らす
+- 型チェックと正規表現テストをまとめて記述
+
+**参照**: PR #359 - Issue #354: 金融機関登録機能の改善（Geminiレビュー指摘）
+
+---
+
+### 19-2. エラーメッセージの定数化 🟡 Medium
+
+**学習元**: Issue #354 / PR #359 - 金融機関登録機能の改善（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: ハードコードされたエラーメッセージ
+
+```typescript
+catch (error) {
+  if (error instanceof ApiError) {
+    const errorMessage = error.message || '銀行の登録に失敗しました。';
+    // ...
+  } else {
+    const errorMessage = getErrorMessage(
+      error,
+      '銀行の登録に失敗しました。もう一度お試しください。'
+    );
+    setSaveError(errorMessage);
+  }
+}
+```
+
+**問題点**:
+
+- エラーメッセージが2箇所でハードコードされている
+- メッセージの内容が微妙に異なる（一貫性がない）
+- メンテナンス性が低い（変更時に複数箇所を修正する必要がある）
+
+#### ✅ 正しいパターン: 定数として定義して再利用
+
+```typescript
+const DEFAULT_SAVE_ERROR_MESSAGE = '銀行の登録に失敗しました。もう一度お試しください。';
+
+try {
+  // ...
+} catch (error) {
+  if (error instanceof ApiError) {
+    const errorMessage = error.message || DEFAULT_SAVE_ERROR_MESSAGE;
+    // ...
+  } else {
+    const errorMessage = getErrorMessage(error, DEFAULT_SAVE_ERROR_MESSAGE);
+    setSaveError(errorMessage);
+  }
+}
+```
+
+**教訓**:
+
+- デフォルトのエラーメッセージを定数として定義
+- 複数箇所で使用する場合は定数で一元管理
+- 一貫性を保ち、メンテナンス性を向上
+
+**参照**: PR #359 - Issue #354: 金融機関登録機能の改善（Geminiレビュー指摘）
+
+---
+
+### 19-3. 正規表現のパフォーマンス最適化 🟢 Medium
+
+**学習元**: Issue #354 / PR #359 - 金融機関登録機能の改善（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: メソッド呼び出しごとに正規表現を再生成
+
+```typescript
+validate(
+  credentials: Record<string, unknown> | undefined,
+  args: ValidationArguments,
+): boolean {
+  // メソッドが呼ばれるたびに正規表現オブジェクトが再生成される
+  const bankCodePattern = /^\d{4}$/;
+  const branchCodePattern = /^\d{3}$/;
+  const accountNumberPattern = /^\d{7}$/;
+
+  return (
+    bankCodePattern.test(credentials.bankCode) &&
+    branchCodePattern.test(credentials.branchCode) &&
+    accountNumberPattern.test(credentials.accountNumber)
+  );
+}
+```
+
+**問題点**:
+
+- `validate`メソッドが呼び出されるたびに正規表現オブジェクトが再生成される
+- パフォーマンスにわずかな影響を与える可能性がある
+- 不要なメモリ割り当てが発生
+
+#### ✅ 正しいパターン: 静的プロパティとして定義
+
+```typescript
+@ValidatorConstraint({ name: 'isValidBankCredentials', async: false })
+export class IsValidBankCredentialsConstraint implements ValidatorConstraintInterface {
+  private static readonly bankCodePattern = /^\d{4}$/;
+  private static readonly branchCodePattern = /^\d{3}$/;
+  private static readonly accountNumberPattern = /^\d{7}$/;
+
+  validate(credentials: Record<string, unknown> | undefined, args: ValidationArguments): boolean {
+    // 静的プロパティとして定義された正規表現を再利用
+    return (
+      IsValidBankCredentialsConstraint.bankCodePattern.test(bankCode) &&
+      IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
+      IsValidBankCredentialsConstraint.accountNumberPattern.test(accountNumber)
+    );
+  }
+}
+```
+
+**教訓**:
+
+- 定数として使用される正規表現はクラスの静的プロパティとして定義
+- 不要な再生成を避け、パフォーマンスを向上
+- コードの可読性も向上
+
+**参照**: PR #359 - Issue #354: 金融機関登録機能の改善（Geminiレビュー指摘）
+
+---
+
+### 19-4. エラーメッセージの重複定義解消 🟢 Medium
+
+**学習元**: Issue #354 / PR #359 - 金融機関登録機能の改善（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: エラーメッセージの重複定義
+
+```typescript
+@Validate(IsValidBankCredentialsConstraint, {
+  message: '銀行タイプの場合、認証情報にはbankCode（4桁の数字）、branchCode（3桁の数字）、accountNumber（7桁の数字）が必要です',
+})
+credentials!: Record<string, unknown>;
+
+// カスタムバリデーター内でも同じメッセージを定義
+export class IsValidBankCredentialsConstraint implements ValidatorConstraintInterface {
+  defaultMessage(_args: ValidationArguments): string {
+    return '銀行タイプの場合、認証情報にはbankCode（4桁の数字）、branchCode（3桁の数字）、accountNumber（7桁の数字）が必要です';
+  }
+}
+```
+
+**問題点**:
+
+- エラーメッセージが2箇所で定義されている（DRY原則違反）
+- メッセージを変更する際に複数箇所を修正する必要がある
+- 保守性が低い
+
+#### ✅ 正しいパターン: defaultMessageに一本化
+
+```typescript
+@Validate(IsValidBankCredentialsConstraint)
+credentials!: Record<string, unknown>;
+
+// カスタムバリデーター内でエラーメッセージを定義
+export class IsValidBankCredentialsConstraint implements ValidatorConstraintInterface {
+  defaultMessage(_args: ValidationArguments): string {
+    return '銀行タイプの場合、認証情報にはbankCode（4桁の数字）、branchCode（3桁の数字）、accountNumber（7桁の数字）が必要です';
+  }
+}
+```
+
+**教訓**:
+
+- DRY原則に従い、エラーメッセージは1箇所で定義
+- `@Validate`デコレーターの`message`プロパティを削除し、`defaultMessage`に一本化
+- バリデーションロジックと関連メッセージをカプセル化
+
+**参照**: PR #359 - Issue #354: 金融機関登録機能の改善（Geminiレビュー指摘）
+
+---
