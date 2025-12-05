@@ -25,16 +25,12 @@ classDiagram
         +string|null description
         +EventCategory category
         +string[] tags
-        +string[] relatedTransactionIds
         +Date createdAt
         +Date updatedAt
         +validateTitle(title) void
         +validateDate(date) void
         +addTag(tag) void
         +removeTag(tag) void
-        +linkTransaction(transactionId) void
-        +unlinkTransaction(transactionId) void
-        +toJSON() EventJSONResponse
     }
 
     class EventCategory {
@@ -64,6 +60,15 @@ classDiagram
         +findByDateRange(startDate, endDate) Promise~EventEntity[]~
         +delete(id) Promise~void~
         +findByTransactionId(transactionId) Promise~EventEntity[]~
+        +getTransactionIdsByEventId(eventId) Promise~string[]~
+    }
+
+    class IEventTransactionRelationRepository {
+        <<interface>>
+        +save(relation) Promise~EventTransactionRelation~
+        +findByEventId(eventId) Promise~EventTransactionRelation[]~
+        +findByTransactionId(transactionId) Promise~EventTransactionRelation[]~
+        +delete(eventId, transactionId) Promise~void~
     }
 
     EventEntity --> EventCategory
@@ -81,9 +86,9 @@ classDiagram
   - `validateDate(date)`: 日付のバリデーション
   - `addTag(tag)`: タグを追加
   - `removeTag(tag)`: タグを削除
-  - `linkTransaction(transactionId)`: 取引を関連付け
-  - `unlinkTransaction(transactionId)`: 取引との関連付けを解除
-  - `toJSON()`: JSON形式への変換
+- **注意**:
+  - `relatedTransactionIds`はDomain層には含めない（これはInfrastructure層の`EventOrmEntity`の関心事）
+  - `toJSON()`メソッドはOnion Architecture原則に違反するため削除（EntityからDTOへの変換はApplication層またはPresentation層のマッパーで実施）
 
 #### EventCategory (Enum)
 
@@ -145,6 +150,7 @@ classDiagram
     class LinkTransactionToEventUseCase {
         -IEventRepository repository
         -ITransactionRepository transactionRepository
+        -IEventTransactionRelationRepository relationRepository
         +execute(eventId, transactionId) Promise~void~
     }
 
@@ -170,6 +176,8 @@ classDiagram
     GetEventByIdUseCase --> IEventRepository
     GetEventsByDateRangeUseCase --> IEventRepository
     LinkTransactionToEventUseCase --> IEventRepository
+    LinkTransactionToEventUseCase --> ITransactionRepository
+    LinkTransactionToEventUseCase --> IEventTransactionRelationRepository
     CreateEventUseCase --> CreateEventDto
     UpdateEventUseCase --> UpdateEventDto
 ```
@@ -212,7 +220,7 @@ classDiagram
 #### LinkTransactionToEventUseCase
 
 - **責務**: 取引とイベントの紐付けのユースケース
-- **依存**: `IEventRepository`, `ITransactionRepository`
+- **依存**: `IEventRepository`, `ITransactionRepository`, `IEventTransactionRelationRepository`
 - **処理**: 中間テーブル（event_transaction_relations）に保存
 
 ---
@@ -409,7 +417,7 @@ classDiagram
 ```mermaid
 classDiagram
     class EventManagementPage {
-        +EventEntity[] events
+        +EventResponseDto[] events
         +Date selectedDate
         +useEffect()
         +handleCreateEvent()
@@ -420,7 +428,7 @@ classDiagram
     }
 
     class EventForm {
-        +EventEntity|null initialEvent
+        +EventResponseDto|null initialEvent
         +onSubmit(data)
         +onCancel()
         +validateForm() boolean
@@ -428,7 +436,7 @@ classDiagram
     }
 
     class EventCalendar {
-        +EventEntity[] events
+        +EventResponseDto[] events
         +Date currentMonth
         +onEventClick(event)
         +onDateClick(date)
@@ -436,14 +444,14 @@ classDiagram
     }
 
     class EventList {
-        +EventEntity[] events
+        +EventResponseDto[] events
         +onSelect(event)
         +onDelete(event)
         +render() JSX
     }
 
     class EventDetailDialog {
-        +EventEntity event
+        +EventResponseDto event
         +TransactionDto[] relatedTransactions
         +onClose()
         +onEdit()
@@ -457,6 +465,11 @@ classDiagram
     EventManagementPage --> EventList
     EventCalendar --> EventDetailDialog
     EventList --> EventDetailDialog
+    EventManagementPage --> EventResponseDto
+    EventForm --> EventResponseDto
+    EventCalendar --> EventResponseDto
+    EventList --> EventResponseDto
+    EventDetailDialog --> EventResponseDto
 ```
 
 **コンポーネント説明**:
@@ -465,7 +478,7 @@ classDiagram
 
 - **責務**: イベント管理ページのメインコンポーネント
 - **State**:
-  - `events`: イベント一覧
+  - `events`: イベント一覧（`EventResponseDto[]`）
   - `selectedDate`: 選択された日付
 - **API連携**:
   - `GET /api/events/date-range`: 日付範囲でイベント取得
@@ -477,16 +490,17 @@ classDiagram
 
 - **責務**: イベント作成・編集フォーム
 - **Props**:
-  - `initialEvent`: 編集時の初期値（nullの場合は新規作成）
+  - `initialEvent`: 編集時の初期値（`EventResponseDto | null`、nullの場合は新規作成）
   - `onSubmit`: フォーム送信時のコールバック
   - `onCancel`: キャンセル時のコールバック
 - **バリデーション**: React Hook Form + Zod
+- **注意**: FrontendコンポーネントはDomain層の`EventEntity`に依存せず、Presentation層の`EventResponseDto`を使用（Onion Architecture原則）
 
 #### EventCalendar
 
 - **責務**: カレンダー表示コンポーネント
 - **Props**:
-  - `events`: 表示するイベント配列
+  - `events`: 表示するイベント配列（`EventResponseDto[]`）
   - `currentMonth`: 現在表示している月
   - `onEventClick`: イベントクリック時のコールバック
   - `onDateClick`: 日付クリック時のコールバック
@@ -496,7 +510,7 @@ classDiagram
 
 - **責務**: イベント一覧表示コンポーネント
 - **Props**:
-  - `events`: 表示するイベント配列
+  - `events`: 表示するイベント配列（`EventResponseDto[]`）
   - `onSelect`: イベント選択時のコールバック
   - `onDelete`: イベント削除時のコールバック
 
@@ -504,8 +518,8 @@ classDiagram
 
 - **責務**: イベント詳細ダイアログ
 - **Props**:
-  - `event`: 表示するイベント
-  - `relatedTransactions`: 関連する取引一覧
+  - `event`: 表示するイベント（`EventResponseDto`）
+  - `relatedTransactions`: 関連する取引一覧（`TransactionDto[]`）
   - `onClose`: 閉じる時のコールバック
   - `onEdit`: 編集時のコールバック
   - `onDelete`: 削除時のコールバック
@@ -538,6 +552,7 @@ sequenceDiagram
     participant U as CreateEventUseCase
     participant R as EventRepository
     participant E as EventEntity
+    participant DTO as EventResponseDto
 
     C->>U: execute(createEventDto)
     U->>E: new EventEntity(...)
@@ -546,8 +561,8 @@ sequenceDiagram
     U->>R: save(event)
     R->>R: toOrmEntity(event)
     R-->>U: saved event
-    U->>E: toJSON()
-    E-->>U: EventJSONResponse
+    U->>DTO: fromEntity(event)
+    DTO-->>U: EventResponseDto
     U-->>C: EventResponseDto
 ```
 

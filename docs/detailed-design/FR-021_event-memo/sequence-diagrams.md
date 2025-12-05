@@ -266,12 +266,14 @@ sequenceDiagram
     API->>UC: execute(id)
 
     UC->>EventRepo: findById(id)
-    EventRepo->>DB: SELECT * FROM events<br/>WHERE id = ?
-    DB-->>EventRepo: イベントデータ
+    EventRepo->>DB: SELECT * FROM events<br/>WHERE id = ?<br/>LEFT JOIN event_transaction_relations
+    DB-->>EventRepo: イベントデータ + 関連取引ID一覧
+    EventRepo->>EventRepo: EventOrmEntityから関連取引IDを抽出
     EventRepo-->>UC: EventEntity
 
-    UC->>EventRepo: findByTransactionIds(relatedTransactionIds)
-    EventRepo->>DB: SELECT * FROM event_transaction_relations<br/>WHERE event_id = ?
+    UC->>EventRepo: getTransactionIdsByEventId(id)
+    Note over EventRepo: EventOrmEntityのtransactionRelations<br/>から取引IDを抽出
+    EventRepo->>DB: SELECT transaction_id FROM event_transaction_relations<br/>WHERE event_id = ?
     DB-->>EventRepo: 関連取引ID一覧
     EventRepo-->>UC: transactionIds[]
 
@@ -374,6 +376,7 @@ sequenceDiagram
     participant UC as LinkTransactionToEventUseCase
     participant EventRepo as EventRepository
     participant TransRepo as TransactionRepository
+    participant RelationRepo as EventTransactionRelationRepository
     participant DB as Database
 
     User->>FE: 「取引を追加」ボタンクリック
@@ -395,11 +398,17 @@ sequenceDiagram
     DB-->>TransRepo: 取引データ
     TransRepo-->>UC: TransactionEntity
 
+    UC->>RelationRepo: findByEventIdAndTransactionId(eventId, transactionId)
+    RelationRepo->>DB: SELECT * FROM event_transaction_relations<br/>WHERE event_id = ? AND transaction_id = ?
+    DB-->>RelationRepo: 結果（存在しない）
+    RelationRepo-->>UC: null
+
     UC->>UC: 重複チェック<br/>(既に紐付けられていないか)
 
-    UC->>EventRepo: linkTransaction(eventId, transactionId)
-    EventRepo->>DB: INSERT INTO event_transaction_relations<br/>(event_id, transaction_id)
-    DB-->>EventRepo: 成功
+    UC->>RelationRepo: save(EventTransactionRelation)
+    RelationRepo->>DB: INSERT INTO event_transaction_relations<br/>(event_id, transaction_id)
+    DB-->>RelationRepo: 成功
+    RelationRepo-->>UC: EventTransactionRelation
 
     UC-->>API: void
     API-->>FE: 201 Created

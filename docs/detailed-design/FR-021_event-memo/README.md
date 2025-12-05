@@ -41,14 +41,16 @@
 │  - DeleteEventUseCase                    │
 │  - GetEventByIdUseCase                   │
 │  - GetEventsByDateRangeUseCase           │
-│  - LinkTransactionToEventUseCase          │
+│  - LinkTransactionToEventUseCase         │
+│  - IEventRepository (依存)              │
+│  - ITransactionRepository (依存)        │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────┴──────────────────────────┐
 │     Domain Layer                        │
 │  - EventEntity                          │
 │  - EventCategory (Value Object)         │
-│  - EventDate (Value Object)              │
+│  - EventDate (Value Object)             │
 │  - IEventRepository                     │
 └──────────────┬──────────────────────────┘
                │
@@ -223,11 +225,16 @@ interface EventEntity {
   description: string | null; // 説明（最大1000文字）
   category: EventCategory; // イベントカテゴリ
   tags: string[]; // タグ（配列）
-  relatedTransactionIds: string[]; // 関連取引ID（配列）
-  attachments: Attachment[]; // 添付ファイル（将来対応）
   createdAt: Date;
   updatedAt: Date;
 }
+
+// 注意: relatedTransactionIdsはDomain層には含めない
+// これはInfrastructure層のEventOrmEntityの関心事であり、
+// 関連取引の取得はEventTransactionRelationOrmEntity経由で行う
+
+// 注意: attachmentsは将来対応のため、現時点では定義しない
+// 実装時にEventEntityとEventOrmEntityの両方に追加する
 
 enum EventCategory {
   EDUCATION = 'education', // 就学関連
@@ -279,6 +286,11 @@ export class EventOrmEntity {
 
   @OneToMany(() => EventTransactionRelationOrmEntity, (relation) => relation.event)
   transactionRelations!: EventTransactionRelationOrmEntity[];
+
+  // 注意: attachmentsは将来対応のため、現時点では定義しない
+  // 実装時に以下のように追加する:
+  // @Column({ type: 'json', nullable: true })
+  // attachments!: Attachment[] | null;
 }
 ```
 

@@ -154,15 +154,22 @@ interface EventResponse {
 
 ```json
 {
-  "id": "evt_001",
-  "date": "2025-04-01",
-  "title": "入学式",
-  "description": "長男の小学校入学式",
-  "category": "education",
-  "tags": ["学校", "入学"],
-  "relatedTransactions": [],
-  "createdAt": "2025-01-27T10:00:00Z",
-  "updatedAt": "2025-01-27T10:00:00Z"
+  "success": true,
+  "data": {
+    "id": "evt_001",
+    "date": "2025-04-01",
+    "title": "入学式",
+    "description": "長男の小学校入学式",
+    "category": "education",
+    "tags": ["学校", "入学"],
+    "relatedTransactions": [],
+    "createdAt": "2025-01-27T10:00:00Z",
+    "updatedAt": "2025-01-27T10:00:00Z"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -206,22 +213,29 @@ interface EventListResponse {
 
 ```json
 {
-  "events": [
-    {
-      "id": "evt_001",
-      "date": "2025-04-01",
-      "title": "入学式",
-      "description": "長男の小学校入学式",
-      "category": "education",
-      "tags": ["学校", "入学"],
-      "relatedTransactions": [],
-      "createdAt": "2025-01-27T10:00:00Z",
-      "updatedAt": "2025-01-27T10:00:00Z"
-    }
-  ],
-  "total": 1,
-  "limit": 100,
-  "offset": 0
+  "success": true,
+  "data": {
+    "events": [
+      {
+        "id": "evt_001",
+        "date": "2025-04-01",
+        "title": "入学式",
+        "description": "長男の小学校入学式",
+        "category": "education",
+        "tags": ["学校", "入学"],
+        "relatedTransactions": [],
+        "createdAt": "2025-01-27T10:00:00Z",
+        "updatedAt": "2025-01-27T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "limit": 100,
+    "offset": 0
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -263,27 +277,34 @@ interface EventResponse {
 
 ```json
 {
-  "id": "evt_001",
-  "date": "2025-04-01",
-  "title": "入学式",
-  "description": "長男の小学校入学式",
-  "category": "education",
-  "tags": ["学校", "入学"],
-  "relatedTransactions": [
-    {
-      "id": "txn_001",
-      "date": "2025-04-01",
-      "amount": 50000,
-      "categoryType": "EXPENSE",
-      "categoryId": "cat_001",
-      "categoryName": "教育費",
-      "institutionId": "inst_001",
-      "accountId": "acc_001",
-      "description": "入学準備費用"
-    }
-  ],
-  "createdAt": "2025-01-27T10:00:00Z",
-  "updatedAt": "2025-01-27T10:00:00Z"
+  "success": true,
+  "data": {
+    "id": "evt_001",
+    "date": "2025-04-01",
+    "title": "入学式",
+    "description": "長男の小学校入学式",
+    "category": "education",
+    "tags": ["学校", "入学"],
+    "relatedTransactions": [
+      {
+        "id": "txn_001",
+        "date": "2025-04-01",
+        "amount": 50000,
+        "categoryType": "EXPENSE",
+        "categoryId": "cat_001",
+        "categoryName": "教育費",
+        "institutionId": "inst_001",
+        "accountId": "acc_001",
+        "description": "入学準備費用"
+      }
+    ],
+    "createdAt": "2025-01-27T10:00:00Z",
+    "updatedAt": "2025-01-27T10:00:00Z"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -425,22 +446,29 @@ interface EventListResponse {
 
 ```json
 {
-  "events": [
-    {
-      "id": "evt_001",
-      "date": "2025-01-15",
-      "title": "旅行",
-      "description": "沖縄旅行",
-      "category": "travel",
-      "tags": ["旅行", "沖縄"],
-      "relatedTransactions": [],
-      "createdAt": "2025-01-10T10:00:00Z",
-      "updatedAt": "2025-01-10T10:00:00Z"
-    }
-  ],
-  "total": 1,
-  "startDate": "2025-01-01",
-  "endDate": "2025-01-31"
+  "success": true,
+  "data": {
+    "events": [
+      {
+        "id": "evt_001",
+        "date": "2025-01-15",
+        "title": "旅行",
+        "description": "沖縄旅行",
+        "category": "travel",
+        "tags": ["旅行", "沖縄"],
+        "relatedTransactions": [],
+        "createdAt": "2025-01-10T10:00:00Z",
+        "updatedAt": "2025-01-10T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "startDate": "2025-01-01",
+    "endDate": "2025-01-31"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:00:00Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
@@ -500,9 +528,16 @@ interface LinkTransactionResponse {
 
 ```json
 {
-  "eventId": "evt_001",
-  "transactionId": "txn_001",
-  "linkedAt": "2025-01-27T10:30:00Z"
+  "success": true,
+  "data": {
+    "eventId": "evt_001",
+    "transactionId": "txn_001",
+    "linkedAt": "2025-01-27T10:30:00Z"
+  },
+  "metadata": {
+    "timestamp": "2025-01-27T10:30:00Z",
+    "version": "1.0.0"
+  }
 }
 ```
 
