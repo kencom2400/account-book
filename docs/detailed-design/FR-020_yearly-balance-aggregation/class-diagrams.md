@@ -96,7 +96,6 @@ classDiagram
     YearlyBalanceDomainService --> AnnualSummary
     YearlyBalanceDomainService --> TrendAnalysis
     YearlyBalanceDomainService --> Highlights
-    YearlyBalanceDomainService --> MonthlyBalanceDomainService
     MonthlyBalanceDomainService --> TransactionEntity
     MonthlyBalanceDomainService --> BalanceResult
     ITransactionRepository ..> TransactionEntity
@@ -184,13 +183,13 @@ classDiagram
 
     class YearlyBalanceResponseDto {
         +number year
-        +MonthlyBalanceResponseDto[] months
+        +MonthlyBalanceSummaryDto[] months
         +AnnualSummaryData annual
         +TrendData trend
         +HighlightsData highlights
     }
 
-    class MonthlyBalanceResponseDto {
+    class MonthlyBalanceSummaryDto {
         +string month
         +IncomeExpenseSummary income
         +IncomeExpenseSummary expense
