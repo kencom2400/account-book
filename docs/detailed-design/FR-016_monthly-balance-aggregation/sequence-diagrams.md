@@ -192,7 +192,7 @@ sequenceDiagram
     FE->>API: GET /api/aggregation/monthly-balance?year=2025&month=13
 
     API->>API: リクエスト検証<br/>(month > 12 を検出)
-    API-->>FE: 400 Bad Request<br/>{success: false, message: "Invalid month",<br/>errors: [{field: "month", message: "Month must be between 1 and 12"}]}
+    API-->>FE: 400 Bad Request<br/>{success: false, error: {code: "VALIDATION_ERROR",<br/>message: "Validation failed",<br/>details: [{field: "month", message: "Month must be between 1 and 12"}]},<br/>metadata: {timestamp: "...", version: "1.0.0"}}
     FE-->>User: エラーメッセージ表示
 ```
 
