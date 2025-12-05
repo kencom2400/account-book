@@ -191,6 +191,20 @@
 - 取引IDとイベントIDを関連付け
 - 中間テーブル（event_transaction_relations）に保存
 
+### 7. 取引との紐付け解除
+
+**概要**: イベントと取引の関連付けを解除する
+
+**実装箇所**:
+
+- Controller: `EventController.unlinkTransaction()`
+- Use Case: `UnlinkTransactionFromEventUseCase`
+
+**処理**:
+
+- 取引IDとイベントIDの関連付けを解除
+- 中間テーブル（event_transaction_relations）から削除
+
 ## 技術スタック
 
 ### Backend
