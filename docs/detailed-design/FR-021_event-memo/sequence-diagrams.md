@@ -10,7 +10,8 @@
 4. [イベント詳細取得のフロー](#イベント詳細取得のフロー)
 5. [日付範囲でのイベント取得のフロー](#日付範囲でのイベント取得のフロー)
 6. [取引との紐付けのフロー](#取引との紐付けのフロー)
-7. [エラーハンドリングフロー](#エラーハンドリングフロー)
+7. [取引との紐付け解除のフロー](#取引との紐付け解除のフロー)
+8. [エラーハンドリングフロー](#エラーハンドリングフロー)
 
 ---
 
@@ -409,6 +410,67 @@ sequenceDiagram
 
     FE->>FE: イベント詳細を再取得
     FE-->>User: 関連取引が表示される
+```
+
+---
+
+## 取引との紐付け解除のフロー
+
+### 概要
+
+**ユースケース**: イベントと取引の関連付けを解除する
+
+**アクター**: ユーザー
+
+**前提条件**:
+
+- イベントが存在する
+- 取引が存在する
+- イベントと取引が既に紐付けられている
+
+**成功時の結果**:
+
+- イベントと取引の関連付けが解除される
+- イベント詳細画面から関連取引が削除される
+
+### 正常系フロー
+
+```mermaid
+sequenceDiagram
+    actor User as ユーザー
+    participant FE as Frontend<br/>(EventDetailDialog)
+    participant API as EventController
+    participant UC as UnlinkTransactionFromEventUseCase
+    participant EventRepo as EventRepository
+    participant DB as Database
+
+    User->>FE: 「取引を削除」ボタンクリック
+    FE->>FE: 確認ダイアログ表示
+
+    User->>FE: 「削除」を確定
+    FE->>API: DELETE /api/events/:id/transactions/:transactionId
+
+    API->>API: リクエスト検証
+    API->>UC: execute(eventId, transactionId)
+
+    UC->>EventRepo: findById(eventId)
+    EventRepo->>DB: SELECT * FROM events<br/>WHERE id = ?
+    DB-->>EventRepo: イベントデータ
+    EventRepo-->>UC: EventEntity
+
+    UC->>UC: 紐付け存在チェック<br/>(既に紐付けられているか)
+
+    UC->>EventRepo: unlinkTransaction(eventId, transactionId)
+    Note over EventRepo: 中間テーブルからの削除は<br/>IEventRepositoryの実装詳細
+    EventRepo->>DB: DELETE FROM event_transaction_relations<br/>WHERE event_id = ? AND transaction_id = ?
+    DB-->>EventRepo: 成功
+    EventRepo-->>UC: void
+
+    UC-->>API: void
+    API-->>FE: 204 No Content
+
+    FE->>FE: イベント詳細を再取得
+    FE-->>User: 関連取引が削除される
 ```
 
 ---

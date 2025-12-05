@@ -126,7 +126,6 @@ classDiagram
 
     class DeleteEventUseCase {
         -IEventRepository repository
-        -ITransactionRepository transactionRepository
         +execute(id) Promise~void~
     }
 
@@ -144,6 +143,11 @@ classDiagram
     class LinkTransactionToEventUseCase {
         -IEventRepository repository
         -ITransactionRepository transactionRepository
+        +execute(eventId, transactionId) Promise~void~
+    }
+
+    class UnlinkTransactionFromEventUseCase {
+        -IEventRepository repository
         +execute(eventId, transactionId) Promise~void~
     }
 
@@ -167,9 +171,11 @@ classDiagram
     UpdateEventUseCase --> IEventRepository
     DeleteEventUseCase --> IEventRepository
     GetEventByIdUseCase --> IEventRepository
+    GetEventByIdUseCase --> ITransactionRepository
     GetEventsByDateRangeUseCase --> IEventRepository
     LinkTransactionToEventUseCase --> IEventRepository
     LinkTransactionToEventUseCase --> ITransactionRepository
+    UnlinkTransactionFromEventUseCase --> IEventRepository
     CreateEventUseCase --> CreateEventDto
     UpdateEventUseCase --> UpdateEventDto
 ```
@@ -193,8 +199,8 @@ classDiagram
 #### DeleteEventUseCase
 
 - **責務**: イベント削除のユースケース
-- **依存**: `IEventRepository`, `ITransactionRepository`
-- **処理**: イベント削除と関連取引との紐付け解除
+- **依存**: `IEventRepository`
+- **処理**: イベント削除と関連取引との紐付け解除（CASCADE削除により自動的に解除される）
 
 #### GetEventByIdUseCase
 
@@ -214,6 +220,13 @@ classDiagram
 - **責務**: 取引とイベントの紐付けのユースケース
 - **依存**: `IEventRepository`, `ITransactionRepository`
 - **処理**: `IEventRepository.linkTransaction()`を使用して中間テーブル（event_transaction_relations）に保存
+- **注意**: 中間テーブルの存在は`IEventRepository`の実装詳細として隠蔽され、Application層は意識しない（Onion Architecture原則）
+
+#### UnlinkTransactionFromEventUseCase
+
+- **責務**: 取引とイベントの紐付け解除のユースケース
+- **依存**: `IEventRepository`
+- **処理**: `IEventRepository.unlinkTransaction()`を使用して中間テーブル（event_transaction_relations）から削除
 - **注意**: 中間テーブルの存在は`IEventRepository`の実装詳細として隠蔽され、Application層は意識しない（Onion Architecture原則）
 
 ---
@@ -313,12 +326,14 @@ classDiagram
         -GetEventByIdUseCase getByIdUseCase
         -GetEventsByDateRangeUseCase getByDateRangeUseCase
         -LinkTransactionToEventUseCase linkTransactionUseCase
+        -UnlinkTransactionFromEventUseCase unlinkTransactionUseCase
         +create(dto) Promise~EventResponseDto~
         +update(id, dto) Promise~EventResponseDto~
         +delete(id) Promise~void~
         +findById(id) Promise~EventResponseDto~
         +findByDateRange(query) Promise~EventResponseDto[]~
         +linkTransaction(eventId, transactionId) Promise~void~
+        +unlinkTransaction(eventId, transactionId) Promise~void~
         -validateRequest(request) ValidationResult
         -handleError(error) Response
     }
@@ -360,6 +375,7 @@ classDiagram
     EventController --> GetEventByIdUseCase
     EventController --> GetEventsByDateRangeUseCase
     EventController --> LinkTransactionToEventUseCase
+    EventController --> UnlinkTransactionFromEventUseCase
     EventController --> CreateEventDto
     EventController --> UpdateEventDto
     EventController --> EventResponseDto
@@ -379,6 +395,7 @@ classDiagram
   - `DELETE /api/events/:id`: イベント削除
   - `POST /api/events/:id/transactions`: 取引との紐付け
   - `DELETE /api/events/:id/transactions/:transactionId`: 取引との紐付け解除
+  - `unlinkTransaction(eventId, transactionId)`: 取引との紐付け解除
 
 #### CreateEventDto
 

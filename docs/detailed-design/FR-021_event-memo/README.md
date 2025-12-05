@@ -42,6 +42,7 @@
 │  - GetEventByIdUseCase                   │
 │  - GetEventsByDateRangeUseCase           │
 │  - LinkTransactionToEventUseCase         │
+│  - UnlinkTransactionFromEventUseCase      │
 │  - IEventRepository (依存)              │
 │  - ITransactionRepository (依存)        │
 └──────────────┬──────────────────────────┘
