@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
@@ -41,7 +41,7 @@ export class GetEventByIdUseCase {
     const event = await this.eventRepository.findById(id);
 
     if (!event) {
-      throw new Error(`Event with id ${id} not found`);
+      throw new NotFoundException(`Event with id ${id} not found`);
     }
 
     // 関連取引IDを取得

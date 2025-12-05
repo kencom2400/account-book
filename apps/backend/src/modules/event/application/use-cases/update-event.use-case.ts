@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEntity } from '../../domain/entities/event.entity';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
@@ -34,7 +34,7 @@ export class UpdateEventUseCase {
     const event = await this.eventRepository.findById(id);
 
     if (!event) {
-      throw new Error(`Event with id ${id} not found`);
+      throw new NotFoundException(`Event with id ${id} not found`);
     }
 
     const updatedEvent = event.update(

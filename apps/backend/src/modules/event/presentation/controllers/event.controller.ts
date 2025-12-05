@@ -26,11 +26,7 @@ import {
   EventResponseDto,
   toEventResponseDto,
 } from '../dto/event-response.dto';
-import {
-  GetEventsQueryDto,
-  GetEventsByDateRangeQueryDto,
-} from '../dto/get-events-query.dto';
-import { EventCategory } from '../../domain/enums/event-category.enum';
+import { GetEventsByDateRangeQueryDto } from '../dto/get-events-query.dto';
 
 /**
  * EventController
@@ -80,64 +76,9 @@ export class EventController {
   }
 
   /**
-   * イベント一覧を取得
-   * GET /api/events
-   * 注意: 現在は日付範囲での取得のみ実装（将来、全件取得を追加予定）
-   */
-  @Get()
-  @ApiOperation({ summary: 'イベント一覧を取得' })
-  @ApiResponse({ status: 200, description: 'イベント一覧取得成功' })
-  findAll(
-    @Query() _query: GetEventsQueryDto,
-  ): Promise<{ success: boolean; data: EventResponseDto[]; total: number }> {
-    // 現在は日付範囲での取得のみ実装
-    // 将来、全件取得を追加する場合はここに実装
-    throw new BadRequestException({
-      success: false,
-      statusCode: 400,
-      message:
-        '現在は日付範囲での取得のみサポートしています。GET /api/events/date-range を使用してください。',
-    });
-  }
-
-  /**
-   * イベント詳細を取得
-   * GET /api/events/:id
-   */
-  @Get(':id')
-  @ApiOperation({ summary: 'イベント詳細を取得' })
-  @ApiResponse({ status: 200, description: 'イベント詳細取得成功' })
-  @ApiResponse({ status: 404, description: 'イベントが見つかりません' })
-  async findById(
-    @Param('id') id: string,
-  ): Promise<{ success: boolean; data: EventResponseDto }> {
-    try {
-      const result = await this.getEventByIdUseCase.execute(id);
-
-      return {
-        success: true,
-        data: toEventResponseDto(
-          {
-            id: result.id,
-            date: result.date,
-            title: result.title,
-            description: result.description,
-            category: result.category as EventCategory,
-            tags: result.tags,
-            createdAt: result.createdAt,
-            updatedAt: result.updatedAt,
-          },
-          result.relatedTransactions,
-        ),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  /**
    * 日付範囲でイベント一覧を取得
    * GET /api/events/date-range
+   * 注意: このルートは@Get(':id')より前に定義する必要がある
    */
   @Get('date-range')
   @ApiOperation({ summary: '日付範囲でイベント一覧を取得' })
@@ -287,6 +228,15 @@ export class EventController {
    * エラーハンドリング
    */
   private handleError(error: unknown): never {
+    if (error instanceof NotFoundException) {
+      throw new NotFoundException({
+        success: false,
+        statusCode: 404,
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
         throw new NotFoundException({
