@@ -10896,3 +10896,47 @@ sequenceDiagram
 **参照**: PR #363 - Issue #50: FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
 
 ---
+
+### 19-6. 中間テーブル操作のリポジトリ設計 🟢 Medium
+
+**学習元**: Issue #50 / PR #363 - FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: 中間テーブル専用のリポジトリをDomain層で定義
+
+```typescript
+// ❌ IEventTransactionRelationRepositoryをDomain層で定義
+interface IEventTransactionRelationRepository {
+  save(relation: EventTransactionRelation): Promise<EventTransactionRelation>;
+  findByEventId(eventId: string): Promise<EventTransactionRelation[]>;
+  delete(eventId: string, transactionId: string): Promise<void>;
+}
+```
+
+**問題点**:
+
+- 中間テーブル（多対多関連）はInfrastructure層の実装詳細
+- Application層に中間テーブルの存在を公開してしまう
+- Onion Architecture原則に反する
+
+#### ✅ 正しいパターン: メインリポジトリに統合
+
+```typescript
+// ✅ IEventRepositoryに統合
+interface IEventRepository {
+  // ... existing methods
+  linkTransaction(eventId: string, transactionId: string): Promise<void>;
+  unlinkTransaction(eventId: string, transactionId: string): Promise<void>;
+  getTransactionIdsByEventId(eventId: string): Promise<string[]>;
+}
+```
+
+**教訓**:
+
+- 中間テーブルの操作はメインリポジトリ（`IEventRepository`）に統合
+- Application層は中間テーブルの存在を意識しない
+- Infrastructure層の実装で中間テーブルを扱う
+- Onion Architecture原則を遵守し、ドメインの関心事を純粋に保つ
+
+**参照**: PR #363 - Issue #50: FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
+
+---
