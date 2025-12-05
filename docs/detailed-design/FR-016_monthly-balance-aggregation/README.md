@@ -275,18 +275,20 @@ interface TransactionDto {
 
 ### エラーレスポンス形式
 
+すべてのエラーレスポンスは、プロジェクトで定義されている標準形式（`libs/types/src/api/error-response.ts`）に従う：
+
 ```typescript
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false;
-  statusCode: number;
-  message: string;
-  code?: string;
-  errors?: Array<{
-    field: string;
+  error: {
+    code: string;
     message: string;
-  }>;
-  timestamp: string;
-  path: string;
+    details?: ErrorDetail[];
+  };
+  metadata: {
+    timestamp: string;
+    version: string;
+  };
 }
 ```
 
