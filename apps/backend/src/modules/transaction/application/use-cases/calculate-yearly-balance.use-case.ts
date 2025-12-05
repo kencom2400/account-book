@@ -199,10 +199,8 @@ export class CalculateYearlyBalanceUseCase {
     for (const transaction of transactions) {
       const transactionMonth = transaction.date.getMonth() + 1; // getMonth()は0-11を返すため+1
       if (transactionMonth >= 1 && transactionMonth <= 12) {
-        const monthlyTransactions =
-          transactionsByMonth.get(transactionMonth) || [];
-        monthlyTransactions.push(transaction);
-        transactionsByMonth.set(transactionMonth, monthlyTransactions);
+        // 事前に初期化されているため、get()は必ず配列を返す
+        transactionsByMonth.get(transactionMonth)!.push(transaction);
       }
     }
 

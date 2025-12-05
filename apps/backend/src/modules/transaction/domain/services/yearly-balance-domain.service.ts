@@ -68,7 +68,9 @@ export class YearlyBalanceDomainService {
       0,
     );
     const totalBalance = totalIncome - totalExpense;
-    const monthCount = monthlySummaries.length || 12; // 12ヶ月分を想定
+    // 月別サマリーの数が0でなければその数、0なら12（12ヶ月分を想定）
+    const monthCount =
+      monthlySummaries.length > 0 ? monthlySummaries.length : 12;
 
     const averageIncome = totalIncome / monthCount;
     const averageExpense = totalExpense / monthCount;
@@ -158,13 +160,15 @@ export class YearlyBalanceDomainService {
       current.balance < min.balance ? current : min,
     );
 
+    // すべての収支が0の場合は、bestBalanceMonth/worstBalanceMonthもnullを返す
+    const allBalancesZero = monthlySummaries.every((m) => m.balance === 0);
+
     return {
       maxIncomeMonth: maxIncomeMonth.income > 0 ? maxIncomeMonth.month : null,
       maxExpenseMonth:
         maxExpenseMonth.expense > 0 ? maxExpenseMonth.month : null,
-      // bestBalanceMonth/worstBalanceMonthは常に存在する（reduceの結果）
-      bestBalanceMonth: bestBalanceMonth.month,
-      worstBalanceMonth: worstBalanceMonth.month,
+      bestBalanceMonth: allBalancesZero ? null : bestBalanceMonth.month,
+      worstBalanceMonth: allBalancesZero ? null : worstBalanceMonth.month,
     };
   }
 
