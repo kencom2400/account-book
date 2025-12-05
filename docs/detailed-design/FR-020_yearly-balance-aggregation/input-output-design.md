@@ -153,19 +153,21 @@ GET /api/aggregation/yearly-balance?year=2025
 
 **TrendData:**
 
-| フィールド         | 型            | 説明               |
-| ------------------ | ------------- | ------------------ |
-| incomeProgression  | TrendAnalysis | 収入のトレンド分析 |
-| expenseProgression | TrendAnalysis | 支出のトレンド分析 |
-| balanceProgression | TrendAnalysis | 収支のトレンド分析 |
+| フィールド         | 型               | 説明               |
+| ------------------ | ---------------- | ------------------ |
+| incomeProgression  | TrendAnalysisDto | 収入のトレンド分析 |
+| expenseProgression | TrendAnalysisDto | 支出のトレンド分析 |
+| balanceProgression | TrendAnalysisDto | 収支のトレンド分析 |
 
-**TrendAnalysis:**
+**TrendAnalysisDto:**
 
 | フィールド        | 型     | 説明                                                   |
 | ----------------- | ------ | ------------------------------------------------------ |
 | direction         | string | トレンド方向（"increasing" / "decreasing" / "stable"） |
 | changeRate        | number | 傾き（線形回帰の係数）を100倍した値（単位: %/月）      |
 | standardDeviation | number | 標準偏差（データのばらつきを表す）                     |
+
+**注意**: `TrendAnalysisDto`はPresentation層のDTOであり、Domain層の`TrendAnalysis`（Value Object）とは別物です。UseCase層でドメインオブジェクトからDTOへのマッピングを実施します。
 
 **HighlightsData:**
 
