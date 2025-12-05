@@ -61,7 +61,7 @@ sequenceDiagram
         UC->>UC: 該当月の取引をフィルタリング
         UC->>MDS: calculateBalance(monthlyTransactions)
         MDS-->>UC: BalanceResult
-        UC->>UC: MonthlyBalanceResponseDtoを構築
+        UC->>UC: MonthlyBalanceSummaryDtoを構築
     end
 
     Note over UC: 年間サマリー計算
@@ -151,7 +151,7 @@ sequenceDiagram
         UC->>UC: 該当月の取引をフィルタリング<br/>(空配列)
         UC->>MDS: calculateBalance([])
         MDS-->>UC: BalanceResult<br/>{income: 0, expense: 0, balance: 0}
-        UC->>UC: MonthlyBalanceResponseDtoを構築<br/>{month: "2025-01", income: {...},<br/>expense: {...}, balance: 0}
+        UC->>UC: MonthlyBalanceSummaryDtoを構築<br/>{month: "2025-01", income: {...},<br/>expense: {...}, balance: 0}
     end
 
     Note over UC: データが存在しない場合も<br/>正常な応答として処理
@@ -200,11 +200,11 @@ sequenceDiagram
         alt データが存在する月
             UC->>MDS: calculateBalance(monthlyTransactions)
             MDS-->>UC: BalanceResult
-            UC->>UC: MonthlyBalanceResponseDtoを構築<br/>(正常なデータ)
+            UC->>UC: MonthlyBalanceSummaryDtoを構築<br/>(正常なデータ)
         else データが存在しない月
             UC->>MDS: calculateBalance([])
             MDS-->>UC: BalanceResult<br/>{income: 0, expense: 0, balance: 0}
-            UC->>UC: MonthlyBalanceResponseDtoを構築<br/>{month: "2025-02", income: {...},<br/>expense: {...}, balance: 0}
+            UC->>UC: MonthlyBalanceSummaryDtoを構築<br/>{month: "2025-02", income: {...},<br/>expense: {...}, balance: 0}
         end
     end
 
