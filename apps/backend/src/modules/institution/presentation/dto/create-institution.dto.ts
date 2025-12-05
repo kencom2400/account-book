@@ -33,26 +33,16 @@ export class IsValidBankCredentialsConstraint implements ValidatorConstraintInte
       return true; // 銀行タイプ以外はスキップ
     }
 
-    // 必須フィールドのチェック
-    if (
-      typeof credentials.bankCode !== 'string' ||
-      typeof credentials.branchCode !== 'string' ||
-      typeof credentials.accountNumber !== 'string'
-    ) {
-      return false;
-    }
+    const { bankCode, branchCode, accountNumber } = credentials;
 
-    // フォーマットのチェック
+    // 必須フィールドの存在、型、フォーマットをチェック
     return (
-      IsValidBankCredentialsConstraint.bankCodePattern.test(
-        credentials.bankCode,
-      ) &&
-      IsValidBankCredentialsConstraint.branchCodePattern.test(
-        credentials.branchCode,
-      ) &&
-      IsValidBankCredentialsConstraint.accountNumberPattern.test(
-        credentials.accountNumber,
-      )
+      typeof bankCode === 'string' &&
+      IsValidBankCredentialsConstraint.bankCodePattern.test(bankCode) &&
+      typeof branchCode === 'string' &&
+      IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
+      typeof accountNumber === 'string' &&
+      IsValidBankCredentialsConstraint.accountNumberPattern.test(accountNumber)
     );
   }
 

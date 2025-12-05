@@ -65,6 +65,8 @@ export default function AddBankPage(): React.JSX.Element {
     setLoading(true);
     setSaveError(null); // エラーをクリア
 
+    const DEFAULT_SAVE_ERROR_MESSAGE = '銀行の登録に失敗しました。もう一度お試しください。';
+
     try {
       await createInstitution({
         name: selectedBank.name,
@@ -89,16 +91,13 @@ export default function AddBankPage(): React.JSX.Element {
     } catch (error) {
       // ApiErrorの詳細を取得して表示
       if (error instanceof ApiError) {
-        const errorMessage = error.message || '銀行の登録に失敗しました。';
+        const errorMessage = error.message || DEFAULT_SAVE_ERROR_MESSAGE;
         const details = error.details
           ?.map((detail) => `${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
           .join(', ');
         setSaveError(details || errorMessage);
       } else {
-        const errorMessage = getErrorMessage(
-          error,
-          '銀行の登録に失敗しました。もう一度お試しください。'
-        );
+        const errorMessage = getErrorMessage(error, DEFAULT_SAVE_ERROR_MESSAGE);
         setSaveError(errorMessage);
       }
     } finally {
