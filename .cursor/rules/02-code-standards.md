@@ -6624,6 +6624,127 @@ if (exception instanceof AlertNotFoundException) {
 2. **フィルター側では参照のみ**: エラーコードをハードコードしない
 3. **モジュール間の一貫性**: すべての例外クラスで同じパターンを採用
 
+### 13-17. Exception Filterの簡潔化と責務の明確化（PR #369）
+
+**学習元**: PR #369 - Issue #366: Exception Filterの導入によるエラーハンドリングの一元化（Geminiレビュー指摘 #2）
+
+#### convertToHttpExceptionメソッドの冗長なプロパティ削除
+
+**問題**: `convertToHttpException`メソッド内で、各HTTP例外を生成する際に渡しているオブジェクトに冗長なプロパティが含まれている
+
+```typescript
+// ❌ 悪い例: 冗長なプロパティを含む
+if (exception instanceof AlertNotFoundException) {
+  return new NotFoundException({
+    success: false,
+    statusCode: HttpStatus.NOT_FOUND,
+    message: exception.message,
+    code: exception.code,
+    errors: [],
+    timestamp: new Date().toISOString(),
+    path: request.url,
+  });
+}
+```
+
+**問題点**:
+
+- `handleHttpException`メソッドでは、ここで生成された例外オブジェクトから主に`message`と`code`プロパティしか利用していない
+- `success`, `statusCode`, `timestamp`, `path`などのプロパティは`handleHttpException`側で設定されるため、`convertToHttpException`内での定義は不要
+- コードが冗長で、責務が不明確
+
+**解決策**: HTTP例外のコンストラクタに渡すオブジェクトを簡潔にする
+
+```typescript
+// ✅ 良い例: 必要なプロパティのみを含める
+if (exception instanceof AlertNotFoundException) {
+  return new NotFoundException({
+    message: exception.message,
+    code: exception.code,
+  });
+}
+```
+
+**理由**:
+
+- コードがシンプルになり、可読性が向上
+- 責務が明確になる（`convertToHttpException`は例外の変換のみ、`handleHttpException`はレスポンスの整形）
+- メンテナンスが容易になる
+
+**重要なポイント**:
+
+1. **責務の分離**: 例外変換とレスポンス整形を明確に分離
+2. **最小限の情報**: 変換時に必要な情報のみを渡す
+3. **一貫性**: すべての例外変換で同じパターンを採用
+
+### 13-18. ドメイン固有カスタム例外クラスの導入（PR #369）
+
+**学習元**: PR #369 - Issue #366: Exception Filterの導入によるエラーハンドリングの一元化（Geminiレビュー指摘 #3）
+
+#### 文字列マッチングロジックの完全な排除
+
+**問題**: エラーメッセージの文字列マッチングによる例外変換は堅牢性に欠ける
+
+```typescript
+// ❌ 悪い例: 文字列マッチングによる例外変換
+if (exception instanceof Error) {
+  if (exception.message.includes('not found')) {
+    return new NotFoundException({ ... });
+  }
+}
+```
+
+**問題点**:
+
+- エラーメッセージの変更で挙動が変わる
+- 予期せぬ挙動を引き起こす可能性（例: 500系エラーのメッセージが「validation of external service response failed」の場合、誤って400 `BadRequestException`として処理される）
+
+**解決策**: アプリケーション全体でドメイン固有のカスタム例外クラスをスローするようにリファクタリング
+
+```typescript
+// ✅ 良い例: カスタム例外クラスを使用
+export class EventNotFoundException extends Error {
+  public readonly code = 'EV001';
+  constructor(public readonly eventId: string) {
+    super(`Event not found: ${eventId}`);
+    this.name = 'EventNotFoundException';
+  }
+}
+
+// UseCase層で使用
+if (!event) {
+  throw new EventNotFoundException(id);
+}
+
+// Filter層で処理
+if (exception instanceof EventNotFoundException) {
+  return new NotFoundException({
+    message: exception.message,
+    code: exception.code,
+  });
+}
+```
+
+**理由**:
+
+- 型安全な例外処理が可能になる
+- 文字列マッチングロジックを完全に排除できる
+- エラーコードの管理がドメイン層に集約される
+- モジュール間の一貫性が向上
+
+**実装手順**:
+
+1. **ドメイン層に例外クラスを定義**: `domain/errors/`ディレクトリに例外クラスを作成
+2. **UseCase層でカスタム例外をスロー**: `NotFoundException`や`Error`の代わりにカスタム例外を使用
+3. **Filter層で例外を処理**: `instanceof`による型安全な分岐で処理
+4. **テストを更新**: テストの期待値をカスタム例外のメッセージに合わせる
+
+**重要なポイント**:
+
+1. **型安全性**: `instanceof`による型安全な例外処理
+2. **ドメイン層での管理**: エラーコードとメッセージをドメイン層で管理
+3. **段階的な移行**: 既存の文字列マッチングロジックは残しつつ、新規モジュールからカスタム例外を導入
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
