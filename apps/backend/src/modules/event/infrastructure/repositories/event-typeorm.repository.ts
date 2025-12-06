@@ -53,26 +53,27 @@ export class EventTypeOrmRepository implements IEventRepository {
     startDate: Date,
     endDate: Date,
   ): Promise<EventEntity[]> {
-    // date型のカラムに対しては、日付文字列（YYYY-MM-DD）として直接比較
-    // タイムゾーンの影響を回避するため、日付文字列を抽出して使用
+    // date型のカラムに対しては、UTCの日付として扱う
+    // タイムゾーンの影響を回避するため、日付文字列からUTCのDateオブジェクトを作成
     const startDateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const endDateStr = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // date型のカラムは時刻部分を持たないため、日付文字列として直接比較
+    // 日付文字列からUTCのDateオブジェクトを作成（00:00:00 UTC）
+    const start = new Date(`${startDateStr}T00:00:00.000Z`);
+
+    // date型のカラムに対しては、Dateオブジェクトを使用
     const ormEntities: EventOrmEntity[] = await this.eventRepository.find({
       where: {
-        date: MoreThanOrEqual(startDateStr),
-        // endDateも含めるため、LessThanOrEqualを使用
+        date: MoreThanOrEqual(start),
       },
       order: { date: 'ASC', createdAt: 'ASC' },
     });
 
     // メモリ上でendDateでフィルタリング（date型のカラムは時刻部分を持たないため）
     const filtered = ormEntities.filter((entity) => {
-      const entityDateStr =
-        entity.date instanceof Date
-          ? entity.date.toISOString().split('T')[0]
-          : String(entity.date).split('T')[0];
+      const entityDate =
+        entity.date instanceof Date ? entity.date : new Date(entity.date);
+      const entityDateStr = entityDate.toISOString().split('T')[0];
       return entityDateStr <= endDateStr;
     });
 

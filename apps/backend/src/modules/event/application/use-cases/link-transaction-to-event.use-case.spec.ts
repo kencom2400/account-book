@@ -113,31 +113,31 @@ describe('LinkTransactionToEventUseCase', () => {
       expect(transactionRepository.findById).toHaveBeenCalledWith(
         transaction.id,
       );
-      expect(eventRepository.getTransactionIdsByEventId).toHaveBeenCalledWith(
-        event.id,
-      );
       expect(eventRepository.linkTransaction).toHaveBeenCalledWith(
         event.id,
         transaction.id,
       );
     });
 
-    it('should not link if already linked', async () => {
+    it('should call linkTransaction even if already linked (duplicate check is in repository)', async () => {
       // Arrange
       const event = createEvent();
       const transaction = createTransaction('txn_1');
 
       eventRepository.findById.mockResolvedValue(event);
       transactionRepository.findById.mockResolvedValue(transaction);
-      eventRepository.getTransactionIdsByEventId.mockResolvedValue([
-        transaction.id,
-      ]);
+      // 重複チェックはリポジトリレベルで行われるため、UseCaseは常にlinkTransactionを呼び出す
+      eventRepository.linkTransaction.mockResolvedValue(undefined);
 
       // Act
       await useCase.execute(event.id, transaction.id);
 
       // Assert
-      expect(eventRepository.linkTransaction).not.toHaveBeenCalled();
+      // リポジトリレベルで重複チェックが行われるため、UseCaseは常にlinkTransactionを呼び出す
+      expect(eventRepository.linkTransaction).toHaveBeenCalledWith(
+        event.id,
+        transaction.id,
+      );
     });
 
     it('should throw error when event not found', async () => {

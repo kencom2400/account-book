@@ -55,6 +55,7 @@ describe('GetEventByIdUseCase', () => {
 
     const mockTransactionRepo = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
       findAll: jest.fn(),
       findByInstitutionId: jest.fn(),
       findByAccountId: jest.fn(),
@@ -104,15 +105,17 @@ describe('GetEventByIdUseCase', () => {
         'txn_1',
         'txn_2',
       ]);
-      transactionRepository.findById.mockResolvedValueOnce(transaction1);
-      transactionRepository.findById.mockResolvedValueOnce(transaction2);
+      transactionRepository.findByIds.mockResolvedValue([
+        transaction1,
+        transaction2,
+      ]);
 
       // Act
       const result = await useCase.execute(event.id);
 
       // Assert
-      expect(result.id).toBe(event.id);
-      expect(result.title).toBe('入学式');
+      expect(result.event.id).toBe(event.id);
+      expect(result.event.title).toBe('入学式');
       expect(result.relatedTransactions).toHaveLength(2);
       expect(result.relatedTransactions[0].id).toBe('txn_1');
       expect(result.relatedTransactions[1].id).toBe('txn_2');
@@ -120,6 +123,10 @@ describe('GetEventByIdUseCase', () => {
       expect(eventRepository.getTransactionIdsByEventId).toHaveBeenCalledWith(
         event.id,
       );
+      expect(transactionRepository.findByIds).toHaveBeenCalledWith([
+        'txn_1',
+        'txn_2',
+      ]);
     });
 
     it('should get event by id without related transactions', async () => {
@@ -132,7 +139,7 @@ describe('GetEventByIdUseCase', () => {
       const result = await useCase.execute(event.id);
 
       // Assert
-      expect(result.id).toBe(event.id);
+      expect(result.event.id).toBe(event.id);
       expect(result.relatedTransactions).toHaveLength(0);
     });
 
@@ -151,7 +158,7 @@ describe('GetEventByIdUseCase', () => {
       const event = createEvent();
       eventRepository.findById.mockResolvedValue(event);
       eventRepository.getTransactionIdsByEventId.mockResolvedValue(['txn_1']);
-      transactionRepository.findById.mockResolvedValue(null);
+      transactionRepository.findByIds.mockResolvedValue([]);
 
       // Act
       const result = await useCase.execute(event.id);
