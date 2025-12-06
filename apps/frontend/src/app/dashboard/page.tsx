@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import { MonthlySummaryCard } from '@/components/dashboard/MonthlySummaryCard';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
+import { MonthlyBalanceGraph } from '@/components/dashboard/MonthlyBalanceGraph';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { getTransactions, getMonthlySummary, type MonthlySummary } from '@/lib/api/transactions';
+import { aggregationApi, type MonthlyBalanceResponse } from '@/lib/api/aggregation';
 import { Transaction } from '@account-book/types';
 
 /**
@@ -14,6 +16,7 @@ import { Transaction } from '@account-book/types';
 export default function DashboardPage(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
+  const [balanceData, setBalanceData] = useState<MonthlyBalanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,14 +31,16 @@ export default function DashboardPage(): React.JSX.Element {
         setLoading(true);
         setError(null);
 
-        // 取引データと月次サマリーを並行取得
-        const [transactionsData, summaryData] = await Promise.all([
+        // 取引データ、月次サマリー、月別収支集計を並行取得
+        const [transactionsData, summaryData, balanceResponse] = await Promise.all([
           getTransactions({ year: currentYear, month: currentMonth }),
           getMonthlySummary(currentYear, currentMonth),
+          aggregationApi.getMonthlyBalance(currentYear, currentMonth),
         ]);
 
         setTransactions(transactionsData);
         setSummary(summaryData);
+        setBalanceData(balanceResponse);
       } catch (_err) {
         setError('データの取得に失敗しました');
       } finally {
@@ -104,6 +109,13 @@ export default function DashboardPage(): React.JSX.Element {
             </>
           )}
         </div>
+
+        {/* グラフセクション */}
+        {balanceData && (
+          <div className="mb-8">
+            <MonthlyBalanceGraph data={balanceData} />
+          </div>
+        )}
 
         {/* 取引一覧セクション */}
         <Card>

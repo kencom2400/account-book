@@ -1,6 +1,7 @@
 /**
  * 月別集計APIクライアント
  * FR-012: クレジットカード月別集計
+ * FR-016: 月別収支集計
  */
 
 import { CategoryAmount } from '@account-book/types';
@@ -50,6 +51,87 @@ export interface MonthlyCardSummaryListItem {
 }
 
 /**
+ * 月別収支集計レスポンス（FR-016）
+ */
+export interface MonthlyBalanceResponse {
+  month: string; // YYYY-MM
+  income: {
+    total: number;
+    count: number;
+    byCategory: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    byInstitution: Array<{
+      institutionId: string;
+      institutionName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    transactions: Array<{
+      id: string;
+      date: string; // ISO8601形式
+      amount: number;
+      categoryType: string;
+      categoryId: string;
+      institutionId: string;
+      accountId: string;
+      description: string;
+    }>;
+  };
+  expense: {
+    total: number;
+    count: number;
+    byCategory: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    byInstitution: Array<{
+      institutionId: string;
+      institutionName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    transactions: Array<{
+      id: string;
+      date: string; // ISO8601形式
+      amount: number;
+      categoryType: string;
+      categoryId: string;
+      institutionId: string;
+      accountId: string;
+      description: string;
+    }>;
+  };
+  balance: number;
+  savingsRate: number;
+  comparison: {
+    previousMonth: {
+      incomeDiff: number;
+      expenseDiff: number;
+      balanceDiff: number;
+      incomeChangeRate: number;
+      expenseChangeRate: number;
+    } | null;
+    sameMonthLastYear: {
+      incomeDiff: number;
+      expenseDiff: number;
+      balanceDiff: number;
+      incomeChangeRate: number;
+      expenseChangeRate: number;
+    } | null;
+  };
+}
+
+/**
  * 月別集計APIクライアント
  */
 export const aggregationApi = {
@@ -88,5 +170,14 @@ export const aggregationApi = {
    */
   delete: async (id: string): Promise<void> => {
     return await apiClient.delete(`/api/aggregation/card/monthly/${id}`);
+  },
+
+  /**
+   * 月別収支集計情報を取得（FR-016）
+   */
+  getMonthlyBalance: async (year: number, month: number): Promise<MonthlyBalanceResponse> => {
+    return await apiClient.get<MonthlyBalanceResponse>(
+      `/api/aggregation/monthly-balance?year=${year}&month=${month}`
+    );
   },
 };
