@@ -221,4 +221,4 @@ gh issue comment $ISSUE_NUMBER --body "$BODY"
 
 ## 📚 参考
 
-- `.cursor/rules/04-github-integration.md` - Issue完了報告ルール
+- `.cursor/rules/04-github-integration.d/03-issue-reporting.md` - Issue完了報告ルール
