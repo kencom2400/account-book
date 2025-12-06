@@ -48,17 +48,11 @@ export class GetEventByIdUseCase {
     const transactionIds =
       await this.eventRepository.getTransactionIdsByEventId(id);
 
-    // 関連取引を取得
-    const relatedTransactions: TransactionEntity[] = [];
-    if (transactionIds.length > 0) {
-      for (const transactionId of transactionIds) {
-        const transaction =
-          await this.transactionRepository.findById(transactionId);
-        if (transaction) {
-          relatedTransactions.push(transaction);
-        }
-      }
-    }
+    // 関連取引を一括取得（N+1クエリ問題を回避）
+    const relatedTransactions: TransactionEntity[] =
+      transactionIds.length > 0
+        ? await this.transactionRepository.findByIds(transactionIds)
+        : [];
 
     return {
       id: event.id,

@@ -12,6 +12,11 @@ export interface ITransactionRepository {
   findById(id: string): Promise<TransactionEntity | null>;
 
   /**
+   * 複数のIDで取引を一括取得
+   */
+  findByIds(ids: string[]): Promise<TransactionEntity[]>;
+
+  /**
    * すべての取引を取得
    */
   findAll(): Promise<TransactionEntity[]>;
