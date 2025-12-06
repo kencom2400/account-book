@@ -6062,3 +6062,196 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps): React.JSX.Eleme
 **参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 21-4. SVG要素のID衝突防止 🔴 High
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- `linearGradient`などのSVG要素の`id`がハードコードされている
+- 同一ページでコンポーネントが複数回使用された場合、IDが衝突して意図しないスタイルが適用される可能性がある
+- コンポーネントの再利用性が低下する
+
+**解決策**:
+
+- React 18の`useId`フックを使用して一意なIDを生成する
+- 生成したIDをSVG要素の`id`属性と参照に使用する
+
+```typescript
+// ❌ 悪い例: IDがハードコード
+<AreaChart>
+  <defs>
+    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="5%" stopColor={COLOR_INCOME} stopOpacity={0.8} />
+      <stop offset="95%" stopColor={COLOR_INCOME} stopOpacity={0} />
+    </linearGradient>
+  </defs>
+  <Area fill="url(#colorIncome)" />
+</AreaChart>
+
+// ✅ 良い例: useIdで一意なIDを生成
+import React, { useId } from 'react';
+
+export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.JSX.Element {
+  const uniqueId = useId();
+  const incomeGradientId = `colorIncome-${uniqueId}`;
+  const expenseGradientId = `colorExpense-${uniqueId}`;
+
+  return (
+    <AreaChart>
+      <defs>
+        <linearGradient id={incomeGradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor={COLOR_INCOME} stopOpacity={0.8} />
+          <stop offset="95%" stopColor={COLOR_INCOME} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <Area fill={`url(#${incomeGradientId})`} />
+    </AreaChart>
+  );
+}
+```
+
+**教訓**:
+
+- SVG要素やその他のDOM要素で一意なIDが必要な場合は、`useId`フックを使用する
+- コンポーネントの再利用性が向上し、ID衝突によるバグを防ぐことができる
+- React 18以降で利用可能な機能
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-5. Reactのkey propの適切な使用 🟡 Medium
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- リストの`key`として`index`を使用している
+- リストの項目が並び替えられたり、追加・削除されたりする場合にパフォーマンスの問題やバグを引き起こす可能性がある
+- Reactのアンチパターンとされている
+
+**解決策**:
+
+- 一意で安定した識別子を`key`として使用する
+- `item.name`や`item.id`など、データに含まれる一意な値を使用する
+
+```typescript
+// ❌ 悪い例: indexをkeyとして使用
+{payload.map((item, index) => (
+  <p key={index} className="text-sm">
+    {`${item.name}: ${formatCurrency(item.value)}`}
+  </p>
+))}
+
+// ✅ 良い例: 一意な識別子をkeyとして使用
+{payload.map((item) => (
+  <p key={item.name} className="text-sm">
+    {`${item.name}: ${formatCurrency(item.value)}`}
+  </p>
+))}
+```
+
+**教訓**:
+
+- リストの`key`として`index`を使用することは避ける
+- 一意で安定した識別子（`id`、`name`など）を`key`として使用する
+- これにより、Reactの再レンダリングが最適化され、パフォーマンスが向上する
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-6. 型定義の重複排除とDRY原則 🟡 Medium
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- インターフェース内で型定義に多くの重複が見られる
+- 同じ構造の型が複数箇所で定義されている
+- 変更時に複数箇所の修正が必要で、保守性が低下する
+
+**解決策**:
+
+- 共通の型を別の`interface`として抽出する
+- DRY原則に従い、型定義の重複を排除する
+
+```typescript
+// ❌ 悪い例: 型定義が重複
+export interface MonthlyBalanceResponse {
+  month: string;
+  income: {
+    total: number;
+    byCategory: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    transactions: Array<{
+      id: string;
+      date: string;
+      amount: number;
+      // ...
+    }>;
+  };
+  expense: {
+    total: number;
+    byCategory: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      count: number;
+      percentage: number;
+    }>;
+    transactions: Array<{
+      id: string;
+      date: string;
+      amount: number;
+      // ...
+    }>;
+  };
+}
+
+// ✅ 良い例: 共通の型を抽出
+interface MonthlyBalanceTransaction {
+  id: string;
+  date: string;
+  amount: number;
+  // ...
+}
+
+interface MonthlyBalanceCategoryBreakdown {
+  categoryId: string;
+  categoryName: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+interface MonthlyBalanceDetails {
+  total: number;
+  byCategory: MonthlyBalanceCategoryBreakdown[];
+  transactions: MonthlyBalanceTransaction[];
+}
+
+export interface MonthlyBalanceResponse {
+  month: string;
+  income: MonthlyBalanceDetails;
+  expense: MonthlyBalanceDetails;
+  // ...
+}
+```
+
+**教訓**:
+
+- 型定義の重複を排除し、共通の型を抽出する
+- DRY原則に従い、コードの可読性と保守性を向上させる
+- 変更時に1箇所の修正で済むようになる
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
