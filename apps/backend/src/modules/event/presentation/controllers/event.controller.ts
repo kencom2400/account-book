@@ -27,7 +27,6 @@ import {
   toEventResponseDto,
 } from '../dto/event-response.dto';
 import { GetEventsByDateRangeQueryDto } from '../dto/get-events-query.dto';
-import { EventCategory } from '../../domain/enums/event-category.enum';
 
 /**
  * EventController
@@ -128,19 +127,7 @@ export class EventController {
 
       return {
         success: true,
-        data: toEventResponseDto(
-          {
-            id: result.id,
-            date: result.date,
-            title: result.title,
-            description: result.description,
-            category: result.category as EventCategory,
-            tags: result.tags,
-            createdAt: result.createdAt,
-            updatedAt: result.updatedAt,
-          },
-          result.relatedTransactions,
-        ),
+        data: toEventResponseDto(result.event, result.relatedTransactions),
       };
     } catch (error) {
       this.handleError(error);

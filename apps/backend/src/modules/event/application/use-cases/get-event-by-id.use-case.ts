@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEntity } from '../../domain/entities/event.entity';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
@@ -6,19 +7,12 @@ import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
 
 /**
- * EventResponseDto
- * イベント詳細取得のレスポンスDTO
+ * GetEventByIdResult
+ * イベント詳細取得の結果
  */
-export interface EventResponseDto {
-  id: string;
-  date: Date;
-  title: string;
-  description: string | null;
-  category: string;
-  tags: string[];
+export interface GetEventByIdResult {
+  event: EventEntity;
   relatedTransactions: TransactionEntity[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 /**
@@ -37,7 +31,7 @@ export class GetEventByIdUseCase {
   /**
    * イベント詳細を取得
    */
-  async execute(id: string): Promise<EventResponseDto> {
+  async execute(id: string): Promise<GetEventByIdResult> {
     const event = await this.eventRepository.findById(id);
 
     if (!event) {
@@ -55,15 +49,8 @@ export class GetEventByIdUseCase {
         : [];
 
     return {
-      id: event.id,
-      date: event.date,
-      title: event.title,
-      description: event.description,
-      category: event.category,
-      tags: event.tags,
+      event,
       relatedTransactions,
-      createdAt: event.createdAt,
-      updatedAt: event.updatedAt,
     };
   }
 }

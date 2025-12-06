@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { EventCategory } from '../../domain/enums/event-category.enum';
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
+import { EventEntity } from '../../domain/entities/event.entity';
 
 /**
  * TransactionDto
@@ -123,16 +124,18 @@ export class EventResponseDto {
  * EventResponseDtoに変換するヘルパー関数
  */
 export function toEventResponseDto(
-  event: {
-    id: string;
-    date: Date;
-    title: string;
-    description: string | null;
-    category: EventCategory;
-    tags: string[];
-    createdAt: Date;
-    updatedAt: Date;
-  },
+  event:
+    | EventEntity
+    | {
+        id: string;
+        date: Date;
+        title: string;
+        description: string | null;
+        category: EventCategory;
+        tags: string[];
+        createdAt: Date;
+        updatedAt: Date;
+      },
   relatedTransactions: TransactionEntity[] = [],
 ): EventResponseDto {
   return {
