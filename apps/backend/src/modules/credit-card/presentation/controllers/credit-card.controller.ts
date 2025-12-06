@@ -92,7 +92,11 @@ export class CreditCardController {
     const creditCard = await this.creditCardRepository.findById(id);
 
     if (!creditCard) {
-      throw new NotFoundException('Credit card not found');
+      // HttpExceptionFilterが統一されたエラーレスポンス形式で処理
+      throw new NotFoundException({
+        message: 'Credit card not found',
+        code: 'CREDIT_CARD_NOT_FOUND',
+      });
     }
 
     return {

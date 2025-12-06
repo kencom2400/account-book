@@ -189,7 +189,11 @@ export class PaymentStatusController {
       await this.paymentStatusRepository.findByCardSummaryId(cardSummaryId);
 
     if (!record) {
-      throw new NotFoundException(`Payment status not found: ${cardSummaryId}`);
+      // HttpExceptionFilterが統一されたエラーレスポンス形式で処理
+      throw new NotFoundException({
+        message: `Payment status not found: ${cardSummaryId}`,
+        code: 'PAYMENT_STATUS_NOT_FOUND',
+      });
     }
 
     return {
