@@ -107,7 +107,7 @@
 - ✅ **危険な型キャストの禁止**
 - ✅ **DTO設計**: リクエストは`class`、レスポンスは`interface`（Issue #22で学習）
 
-**参照**: `.cursor/rules/02-code-standards.d/01-type-safety.md`
+**参照**: `.cursor/rules/02-code-standards.d/01-01-type-safety.md`
 
 ### 2. 自動コミット
 
@@ -141,7 +141,7 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 - ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
 - 実例: Issue #22でビルドチェック忘れ → CI全滅 → 20分の時間損失
 
-**参照**: `.cursor/rules/03-git-workflow.d/03-push-check.md` / `.cursor/rules/02-code-standards.d/10-push-check.md`
+**参照**: `.cursor/rules/03-git-workflow.d/03-push-check.md` / `.cursor/rules/02-code-standards.d/01-03-push-check.md`
 
 ### 4. @start-task
 
