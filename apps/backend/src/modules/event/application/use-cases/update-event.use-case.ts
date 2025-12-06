@@ -44,16 +44,24 @@ export class UpdateEventUseCase {
       dto.category,
     );
 
-    // タグの更新
+    // タグの更新（差分のみを更新してパフォーマンスを改善）
     let eventWithTags = updatedEvent;
     if (dto.tags !== undefined) {
-      // 既存のタグをすべて削除してから新しいタグを追加
-      eventWithTags = updatedEvent;
-      for (const tag of updatedEvent.tags) {
-        eventWithTags = eventWithTags.removeTag(tag);
+      const currentTags = new Set(updatedEvent.tags);
+      const newTags = new Set(dto.tags);
+
+      // 不要になったタグを削除
+      for (const tag of currentTags) {
+        if (!newTags.has(tag)) {
+          eventWithTags = eventWithTags.removeTag(tag);
+        }
       }
-      for (const tag of dto.tags) {
-        eventWithTags = eventWithTags.addTag(tag);
+
+      // 新しく追加されたタグを追加
+      for (const tag of newTags) {
+        if (!currentTags.has(tag)) {
+          eventWithTags = eventWithTags.addTag(tag);
+        }
       }
     }
 
