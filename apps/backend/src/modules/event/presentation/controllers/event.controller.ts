@@ -27,6 +27,7 @@ import {
   toEventResponseDto,
 } from '../dto/event-response.dto';
 import { GetEventsByDateRangeQueryDto } from '../dto/get-events-query.dto';
+import { EventCategory } from '../../domain/enums/event-category.enum';
 
 /**
  * EventController
@@ -104,6 +105,42 @@ export class EventController {
       return {
         success: true,
         data: events.map((event) => toEventResponseDto(event, [])),
+      };
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * イベント詳細を取得
+   * GET /api/events/:id
+   * 注意: このルートは@Get('date-range')より後に定義する必要がある
+   */
+  @Get(':id')
+  @ApiOperation({ summary: 'イベント詳細を取得' })
+  @ApiResponse({ status: 200, description: 'イベント詳細取得成功' })
+  @ApiResponse({ status: 404, description: 'イベントが見つかりません' })
+  async findById(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; data: EventResponseDto }> {
+    try {
+      const result = await this.getEventByIdUseCase.execute(id);
+
+      return {
+        success: true,
+        data: toEventResponseDto(
+          {
+            id: result.id,
+            date: result.date,
+            title: result.title,
+            description: result.description,
+            category: result.category as EventCategory,
+            tags: result.tags,
+            createdAt: result.createdAt,
+            updatedAt: result.updatedAt,
+          },
+          result.relatedTransactions,
+        ),
       };
     } catch (error) {
       this.handleError(error);

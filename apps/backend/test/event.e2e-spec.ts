@@ -138,17 +138,29 @@ describe('Event Controller (e2e)', () => {
   describe('GET /api/events/date-range', () => {
     beforeEach(async () => {
       // テスト用のイベントを作成
-      await request(app.getHttpServer()).post('/api/events').send({
-        date: '2025-04-01',
-        title: '入学式',
-        category: EventCategory.EDUCATION,
-      });
+      const response1 = await request(app.getHttpServer())
+        .post('/api/events')
+        .send({
+          date: '2025-04-01',
+          title: '入学式',
+          category: EventCategory.EDUCATION,
+        })
+        .expect(201);
 
-      await request(app.getHttpServer()).post('/api/events').send({
-        date: '2025-04-15',
-        title: '旅行',
-        category: EventCategory.TRAVEL,
-      });
+      const response2 = await request(app.getHttpServer())
+        .post('/api/events')
+        .send({
+          date: '2025-04-15',
+          title: '旅行',
+          category: EventCategory.TRAVEL,
+        })
+        .expect(201);
+
+      // イベントが正しく作成されたことを確認
+      expect(response1.body.success).toBe(true);
+      expect(response1.body.data).toHaveProperty('id');
+      expect(response2.body.success).toBe(true);
+      expect(response2.body.data).toHaveProperty('id');
     });
 
     it('should get events by date range', async () => {
@@ -159,6 +171,17 @@ describe('Event Controller (e2e)', () => {
           endDate: '2025-04-30',
         })
         .expect(200);
+
+      if (response.body.data.length < 2) {
+        console.error(
+          'Expected at least 2 events, but got:',
+          response.body.data.length,
+        );
+        console.error(
+          'Response data:',
+          JSON.stringify(response.body.data, null, 2),
+        );
+      }
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeInstanceOf(Array);
@@ -196,9 +219,14 @@ describe('Event Controller (e2e)', () => {
         .send({
           title: '更新されたタイトル',
           category: EventCategory.TRAVEL,
-        })
-        .expect(200);
+        });
 
+      if (response.status !== 200) {
+        console.error('Response status:', response.status);
+        console.error('Response body:', JSON.stringify(response.body, null, 2));
+      }
+
+      expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.title).toBe('更新されたタイトル');
       expect(response.body.data.category).toBe(EventCategory.TRAVEL);

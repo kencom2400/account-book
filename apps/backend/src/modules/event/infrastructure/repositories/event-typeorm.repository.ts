@@ -53,9 +53,16 @@ export class EventTypeOrmRepository implements IEventRepository {
     startDate: Date,
     endDate: Date,
   ): Promise<EventEntity[]> {
+    // date型のカラムに対しては、日付のみを比較するため、時刻部分を調整
+    // startDateはその日の00:00:00、endDateはその日の23:59:59.999に設定
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
     const ormEntities: EventOrmEntity[] = await this.eventRepository.find({
       where: {
-        date: Between(startDate, endDate),
+        date: Between(start, end),
       },
       order: { date: 'ASC', createdAt: 'ASC' },
     });
@@ -135,9 +142,15 @@ export class EventTypeOrmRepository implements IEventRepository {
    * ORM→ドメインエンティティ変換
    */
   private toDomain(ormEntity: EventOrmEntity): EventEntity {
+    // date型は文字列として返される可能性があるため、Dateオブジェクトに変換
+    const date =
+      ormEntity.date instanceof Date
+        ? ormEntity.date
+        : new Date(ormEntity.date);
+
     return new EventEntity(
       ormEntity.id,
-      ormEntity.date,
+      date,
       ormEntity.title,
       ormEntity.description,
       ormEntity.category as EventCategory,
