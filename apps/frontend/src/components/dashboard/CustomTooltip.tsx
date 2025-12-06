@@ -19,8 +19,8 @@ export function CustomTooltip({ active, payload }: CustomTooltipProps): React.JS
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-      {payload.map((item, index) => (
-        <p key={index} className="text-sm" style={{ color: item.color }}>
+      {payload.map((item) => (
+        <p key={item.name} className="text-sm" style={{ color: item.color }}>
           {`${item.name}: ${formatCurrency(item.value)}`}
         </p>
       ))}
