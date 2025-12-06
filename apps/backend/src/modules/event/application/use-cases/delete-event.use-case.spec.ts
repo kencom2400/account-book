@@ -66,7 +66,7 @@ describe('DeleteEventUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute('nonexistent')).rejects.toThrow(
-        'Event with id nonexistent not found',
+        'Event not found: nonexistent',
       );
       expect(repository.delete).not.toHaveBeenCalled();
     });

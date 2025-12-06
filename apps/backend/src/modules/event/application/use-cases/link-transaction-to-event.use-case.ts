@@ -3,6 +3,7 @@ import type { IEventRepository } from '../../domain/repositories/event.repositor
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
+import { EventNotFoundException } from '../../domain/errors/event.errors';
 
 /**
  * LinkTransactionToEventUseCase
@@ -24,13 +25,14 @@ export class LinkTransactionToEventUseCase {
     // イベントの存在確認
     const event = await this.eventRepository.findById(eventId);
     if (!event) {
-      throw new Error(`Event with id ${eventId} not found`);
+      throw new EventNotFoundException(eventId);
     }
 
     // 取引の存在確認
     const transaction =
       await this.transactionRepository.findById(transactionId);
     if (!transaction) {
+      // TODO: TransactionNotFoundExceptionをtransactionモジュールに作成して使用
       throw new Error(`Transaction with id ${transactionId} not found`);
     }
 

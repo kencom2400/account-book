@@ -1,10 +1,11 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEntity } from '../../domain/entities/event.entity';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
 import type { ITransactionRepository } from '../../../transaction/domain/repositories/transaction.repository.interface';
 import { TRANSACTION_REPOSITORY } from '../../../transaction/domain/repositories/transaction.repository.interface';
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
+import { EventNotFoundException } from '../../domain/errors/event.errors';
 
 /**
  * GetEventByIdResult
@@ -35,7 +36,7 @@ export class GetEventByIdUseCase {
     const event = await this.eventRepository.findById(id);
 
     if (!event) {
-      throw new NotFoundException(`Event with id ${id} not found`);
+      throw new EventNotFoundException(id);
     }
 
     // 関連取引IDを取得

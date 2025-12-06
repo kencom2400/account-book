@@ -3,14 +3,13 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
-  HttpStatus,
   BadRequestException,
   NotFoundException,
   UnprocessableEntityException,
   BadGatewayException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { ErrorDetail } from '@account-book/types';
 import { AlertNotFoundException } from '../../modules/alert/domain/errors/alert.errors';
 import { DuplicateAlertException } from '../../modules/alert/domain/errors/alert.errors';
@@ -23,6 +22,7 @@ import {
   InvalidPaymentDateError,
   MultipleCandidateError,
 } from '../../modules/reconciliation/domain/errors/reconciliation.errors';
+import { EventNotFoundException } from '../../modules/event/domain/errors/event.errors';
 
 /**
  * グローバル例外フィルター
@@ -34,7 +34,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
 
     // HTTP例外の場合はそのまま処理
     if (exception instanceof HttpException) {
@@ -43,7 +42,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // カスタム例外をHTTP例外に変換
-    const httpException = this.convertToHttpException(exception, request);
+    const httpException = this.convertToHttpException(exception);
     this.handleHttpException(httpException, response);
   }
 
@@ -141,20 +140,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
   /**
    * カスタム例外をHTTP例外に変換
    */
-  private convertToHttpException(
-    exception: unknown,
-    request: Request,
-  ): HttpException {
+  private convertToHttpException(exception: unknown): HttpException {
     // Alert関連の例外
     if (exception instanceof AlertNotFoundException) {
       return new NotFoundException({
-        success: false,
-        statusCode: HttpStatus.NOT_FOUND,
         message: exception.message,
         code: exception.code,
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: request.url,
       });
     }
 
@@ -165,13 +156,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof CriticalAlertDeletionException
     ) {
       return new UnprocessableEntityException({
-        success: false,
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         message: exception.message,
         code: exception.code,
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: request.url,
+      });
+    }
+
+    // Event関連の例外
+    if (exception instanceof EventNotFoundException) {
+      return new NotFoundException({
+        message: exception.message,
+        code: exception.code,
       });
     }
 
@@ -181,27 +175,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof CardSummaryNotFoundError
     ) {
       return new NotFoundException({
-        success: false,
-        statusCode: HttpStatus.NOT_FOUND,
         message: exception.message,
         code: exception.code,
-        errors: [],
         ...(exception.details || {}),
-        timestamp: new Date().toISOString(),
-        path: request.url,
       });
     }
 
     if (exception instanceof BankTransactionNotFoundError) {
       return new BadGatewayException({
-        success: false,
-        statusCode: HttpStatus.BAD_GATEWAY,
         message: exception.message,
         code: exception.code,
-        errors: [],
         ...(exception.details || {}),
-        timestamp: new Date().toISOString(),
-        path: request.url,
       });
     }
 
@@ -210,14 +194,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof MultipleCandidateError
     ) {
       return new UnprocessableEntityException({
-        success: false,
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         message: exception.message,
         code: exception.code,
-        errors: [],
         ...(exception.details || {}),
-        timestamp: new Date().toISOString(),
-        path: request.url,
       });
     }
 
@@ -232,11 +211,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       // "not found"を含むエラーは404に変換
       if (exception.message.includes('not found')) {
         return new NotFoundException({
-          success: false,
-          statusCode: HttpStatus.NOT_FOUND,
           message: exception.message,
-          timestamp: new Date().toISOString(),
-          path: request.url,
         });
       }
 
@@ -247,25 +222,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.message.includes('validation')
       ) {
         return new BadRequestException({
-          success: false,
-          statusCode: HttpStatus.BAD_REQUEST,
           message: exception.message,
-          timestamp: new Date().toISOString(),
-          path: request.url,
         });
       }
     }
 
     // その他のエラーは500に変換
     return new InternalServerErrorException({
-      success: false,
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message:
         exception instanceof Error
           ? exception.message
           : 'Internal server error',
-      timestamp: new Date().toISOString(),
-      path: request.url,
     });
   }
 }

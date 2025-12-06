@@ -146,7 +146,7 @@ describe('LinkTransactionToEventUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute('nonexistent', 'txn_1')).rejects.toThrow(
-        'Event with id nonexistent not found',
+        'Event not found: nonexistent',
       );
       expect(eventRepository.linkTransaction).not.toHaveBeenCalled();
     });

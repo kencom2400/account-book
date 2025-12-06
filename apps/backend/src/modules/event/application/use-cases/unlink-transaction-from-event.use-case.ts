@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
+import { EventNotFoundException } from '../../domain/errors/event.errors';
 
 /**
  * UnlinkTransactionFromEventUseCase
@@ -20,7 +21,7 @@ export class UnlinkTransactionFromEventUseCase {
     // イベントの存在確認
     const event = await this.eventRepository.findById(eventId);
     if (!event) {
-      throw new Error(`Event with id ${eventId} not found`);
+      throw new EventNotFoundException(eventId);
     }
 
     // 紐付け存在チェック（既に紐付けられているか）
