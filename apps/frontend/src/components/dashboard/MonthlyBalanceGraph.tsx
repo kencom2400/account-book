@@ -19,6 +19,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency } from '@account-book/utils';
 import type { MonthlyBalanceResponse } from '@/lib/api/aggregation';
+import { CustomTooltip } from './CustomTooltip';
 
 interface MonthlyBalanceGraphProps {
   data: MonthlyBalanceResponse;
@@ -122,29 +123,6 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
       };
     });
   }, [dailyData]);
-
-  // カスタムツールチップ
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-  }): React.JSX.Element | null => {
-    if (!active || !payload || payload.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-        {payload.map((item, index) => (
-          <p key={index} className="text-sm" style={{ color: item.color }}>
-            {`${item.name}: ${formatCurrency(item.value)}`}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
