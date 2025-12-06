@@ -2,6 +2,7 @@
  * 月別集計APIクライアント
  * FR-012: クレジットカード月別集計
  * FR-016: 月別収支集計
+ * FR-020: 年間収支推移表示
  */
 
 import { CategoryAmount } from '@account-book/types';
@@ -116,6 +117,60 @@ export interface MonthlyBalanceResponse {
 }
 
 /**
+ * 年間収支集計レスポンス（FR-020）
+ */
+
+// トレンド分析
+export interface TrendAnalysis {
+  direction: 'increasing' | 'decreasing' | 'stable';
+  changeRate: number;
+  standardDeviation: number;
+}
+
+// トレンドデータ
+export interface TrendData {
+  incomeProgression: TrendAnalysis;
+  expenseProgression: TrendAnalysis;
+  balanceProgression: TrendAnalysis;
+}
+
+// 年間サマリー
+export interface AnnualSummary {
+  totalIncome: number;
+  totalExpense: number;
+  totalBalance: number;
+  averageIncome: number;
+  averageExpense: number;
+  savingsRate: number;
+}
+
+// ハイライト情報
+export interface Highlights {
+  maxIncomeMonth: string | null; // YYYY-MM
+  maxExpenseMonth: string | null; // YYYY-MM
+  bestBalanceMonth: string | null; // YYYY-MM
+  worstBalanceMonth: string | null; // YYYY-MM
+}
+
+// 月別サマリー（年間集計用の簡略版、comparisonフィールドなし）
+export interface MonthlyBalanceSummary {
+  month: string; // YYYY-MM
+  income: MonthlyBalanceDetails;
+  expense: MonthlyBalanceDetails;
+  balance: number;
+  savingsRate: number;
+}
+
+// 年間収支集計レスポンス
+export interface YearlyBalanceResponse {
+  year: number;
+  months: MonthlyBalanceSummary[];
+  annual: AnnualSummary;
+  trend: TrendData;
+  highlights: Highlights;
+}
+
+/**
  * 月別集計APIクライアント
  */
 export const aggregationApi = {
@@ -162,6 +217,15 @@ export const aggregationApi = {
   getMonthlyBalance: async (year: number, month: number): Promise<MonthlyBalanceResponse> => {
     return await apiClient.get<MonthlyBalanceResponse>(
       `/api/aggregation/monthly-balance?year=${year}&month=${month}`
+    );
+  },
+
+  /**
+   * 年間収支集計情報を取得（FR-020）
+   */
+  getYearlyBalance: async (year: number): Promise<YearlyBalanceResponse> => {
+    return await apiClient.get<YearlyBalanceResponse>(
+      `/api/aggregation/yearly-balance?year=${year}`
     );
   },
 };
