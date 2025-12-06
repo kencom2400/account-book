@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { EventOrmEntity } from '../entities/event.orm-entity';
 import { EventTransactionRelationOrmEntity } from '../entities/event-transaction-relation.orm-entity';
 import { EventEntity } from '../../domain/entities/event.entity';
@@ -53,21 +53,30 @@ export class EventTypeOrmRepository implements IEventRepository {
     startDate: Date,
     endDate: Date,
   ): Promise<EventEntity[]> {
-    // date型のカラムに対しては、日付のみを比較するため、時刻部分を調整
-    // startDateはその日の00:00:00、endDateはその日の23:59:59.999に設定
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // date型のカラムに対しては、日付文字列（YYYY-MM-DD）として直接比較
+    // タイムゾーンの影響を回避するため、日付文字列を抽出して使用
+    const startDateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const endDateStr = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
+    // date型のカラムは時刻部分を持たないため、日付文字列として直接比較
     const ormEntities: EventOrmEntity[] = await this.eventRepository.find({
       where: {
-        date: Between(start, end),
+        date: MoreThanOrEqual(startDateStr),
+        // endDateも含めるため、LessThanOrEqualを使用
       },
       order: { date: 'ASC', createdAt: 'ASC' },
     });
 
-    return ormEntities.map((entity: EventOrmEntity) => this.toDomain(entity));
+    // メモリ上でendDateでフィルタリング（date型のカラムは時刻部分を持たないため）
+    const filtered = ormEntities.filter((entity) => {
+      const entityDateStr =
+        entity.date instanceof Date
+          ? entity.date.toISOString().split('T')[0]
+          : String(entity.date).split('T')[0];
+      return entityDateStr <= endDateStr;
+    });
+
+    return filtered.map((entity: EventOrmEntity) => this.toDomain(entity));
   }
 
   /**
