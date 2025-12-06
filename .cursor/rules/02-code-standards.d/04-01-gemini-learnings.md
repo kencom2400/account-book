@@ -6388,3 +6388,123 @@ useEffect(() => {
 **参照**: PR #376 - Issue #374: FR-024 年間収支グラフをページに統合（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 3. マジックナンバーの定数化
+
+**問題点**:
+
+年の選択範囲を生成する際に、`10`と`5`というマジックナンバーが使用されていました。これらの数値が何を表しているのかがコードから直感的に分かりにくく、将来的に範囲を変更する際に修正が困難になる可能性があります。
+
+**❌ 悪い例**:
+
+```typescript
+{Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map((year) => (
+  <option key={year} value={year}>
+    {year}年
+  </option>
+))}
+```
+
+**✅ 良い例**:
+
+```typescript
+// 年の選択範囲の定数
+const YEAR_SELECTION_RANGE = 10; // 選択可能な年の数
+const YEAR_SELECTION_OFFSET = 5; // 現在年から前後何年まで表示するか
+
+{Array.from(
+  { length: YEAR_SELECTION_RANGE },
+  (_, i) => currentYear - YEAR_SELECTION_OFFSET + i
+).map((year) => (
+  <option key={year} value={year}>
+    {year}年
+  </option>
+))}
+```
+
+**教訓**:
+
+- マジックナンバーは意味のある名前を持つ定数として定義する
+- コードの可読性と保守性が向上する
+- 将来的に範囲を変更する際に、1箇所の修正で済む
+
+### 4. データパース処理の厳格化
+
+**問題点**:
+
+`month.month.split('-')[1] || '1'`というフォールバック処理は、`month.month`の形式が期待される`YYYY-MM`ではない場合に、データを暗黙的に1月として扱ってしまいます。これにより、APIからのデータに問題があった場合でも気づきにくくなり、グラフが誤ったデータを表示する原因となります。
+
+**❌ 悪い例**:
+
+```typescript
+const monthNum = parseInt(month.month.split('-')[1] || '1', 10);
+```
+
+**✅ 良い例**:
+
+```typescript
+// month.monthはYYYY-MM形式であることが保証されている
+const monthPart = month.month.split('-')[1];
+if (!monthPart) {
+  throw new Error(`Invalid month format: ${month.month}`);
+}
+const monthNum = parseInt(monthPart, 10);
+```
+
+**教訓**:
+
+- 不正な形式のデータは早期に検知できるよう、厳格なパース処理を行う
+- フォールバック処理は、データの整合性を損なう可能性があるため、慎重に使用する
+- エラーを明示的に投げることで、問題を早期に発見できる
+
+### 5. UIの一貫性向上（動的なスタイル適用）
+
+**問題点**:
+
+年間収支のサマリーカードの背景色とテキストカラーが、収支がプラスの場合の色（`bg-blue-50`, `text-blue-600`）に固定されていました。しかし、すぐ下の棒グラフでは、収支がマイナスの場合にオレンジ色系の`COLOR_BALANCE_NEGATIVE`を使用するロジックになっています。
+
+**❌ 悪い例**:
+
+```typescript
+<div className="text-center p-4 bg-blue-50 rounded-lg">
+  <p className="text-sm text-gray-600 mb-1">年間収支</p>
+  <p className="text-2xl font-bold text-blue-600">
+    {formatCurrency(data.annual.totalBalance)}
+  </p>
+  <p className="text-xs text-gray-500 mt-1">
+    貯蓄率: {data.annual.savingsRate.toFixed(1)}%
+  </p>
+</div>
+```
+
+**✅ 良い例**:
+
+```typescript
+<div
+  className={`text-center p-4 rounded-lg ${
+    data.annual.totalBalance >= 0 ? 'bg-blue-50' : 'bg-orange-50'
+  }`}
+>
+  <p className="text-sm text-gray-600 mb-1">年間収支</p>
+  <p
+    className={`text-2xl font-bold ${
+      data.annual.totalBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
+    }`}
+  >
+    {formatCurrency(data.annual.totalBalance)}
+  </p>
+  <p className="text-xs text-gray-500 mt-1">
+    貯蓄率: {data.annual.savingsRate.toFixed(1)}%
+  </p>
+</div>
+```
+
+**教訓**:
+
+- UIの一貫性を保ち、ユーザーが収支の状態を直感的に理解できるようにする
+- 同じデータの表示方法を統一することで、ユーザーエクスペリエンスが向上する
+- プラス/マイナスの状態に応じて、色を動的に変更する
+
+**参照**: PR #376 - Issue #374: FR-024 年間収支グラフをページに統合（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
