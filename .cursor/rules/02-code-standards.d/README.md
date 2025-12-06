@@ -15,7 +15,12 @@
 5. **`04-architecture.md`** - アーキテクチャとモジュール設計
 6. **`05-test-guidelines.md`** - テスト実装ガイドライン
 7. **`06-eslint-config.md`** - ESLint設定
-8. **`07-gemini-learnings.md`** - Geminiレビューから学んだ観点
+8. **`07-react-ui.md`** - React/UIコンポーネント
+9. **`08-implementation-checklist.md`** - 実装フローチェックリスト
+10. **`09-script-tools.md`** - スクリプト・ツール開発のベストプラクティス
+11. **`10-push-check.md`** - push前の必須チェック
+12. **`11-shell-scripts.md`** - シェルスクリプトのベストプラクティス
+13. **`12-gemini-learnings.md`** - Geminiレビューから学んだ観点
 
 ## セクション間の関係性
 
@@ -30,7 +35,17 @@
     ↓
 06-eslint-config.md
     ↓
-07-gemini-learnings.md (参考情報)
+07-react-ui.md
+    ↓
+08-implementation-checklist.md
+    ↓
+09-script-tools.md
+    ↓
+10-push-check.md
+    ↓
+11-shell-scripts.md
+    ↓
+12-gemini-learnings.md (参考情報)
 ```
 
 ## 最優先事項

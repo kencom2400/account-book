@@ -8,7 +8,7 @@
 
 以下のルールファイルを**必ず参照**してください：
 
-### 0. `.cursor/rules/00-WORKFLOW-CHECKLIST.md` ⭐ ワークフロー・チェックリスト
+### 0. `.cursor/rules/00-workflow-checklist.d/` ⭐ ワークフロー・チェックリスト
 
 **最優先ガイド - 全体フローの羅針盤**
 
@@ -17,48 +17,62 @@
 - 最優先事項のサマリー
 - クイックリファレンス
 
-### 1. `.cursor/rules/01-project.md` - プロジェクト全体のガイドライン
+**参照**: `.cursor/rules/00-workflow-checklist.d/README.md`（ディレクトリの説明とファイル一覧）
+
+### 1. `.cursor/rules/01-project.d/` - プロジェクト全体のガイドライン
 
 - プロジェクト概要
 - 技術スタック
 - アーキテクチャ原則（Onion Architecture）
 - コーディング規約
-- 環境管理
+- Issue管理
 
-### 2. `.cursor/rules/02-code-standards.md` - コード品質基準とテスト
+**参照**: `.cursor/rules/01-project.d/README.md`（ディレクトリの説明とファイル一覧）
 
-- 型安全性（最優先）
+### 2. `.cursor/rules/02-code-standards.d/` - コード品質基準とテスト
+
+- 型安全性（最優先）⭐
+- テスト作成の必須化
 - データアクセスと配列操作
 - アーキテクチャとモジュール設計
 - テスト実装ガイドライン
-- ESLint設定のベストプラクティス
+- ESLint設定
+- React/UIコンポーネント
 - 実装フローチェックリスト
-- Geminiレビューから学んだ観点（セクション13-14）
+- スクリプト・ツール開発
+- push前の必須チェック
+- シェルスクリプトのベストプラクティス
+- Geminiレビューから学んだ観点
 
-### 3. `.cursor/rules/03-git-workflow.md` - Git ワークフロー
+**参照**: `.cursor/rules/02-code-standards.d/README.md`（ディレクトリの説明とファイル一覧）
+
+### 3. `.cursor/rules/03-git-workflow.d/` - Git ワークフロー
 
 - 🚨 絶対禁止事項（mainブランチ直接作業、PRなしマージ、PRマージ前Issue Done変更）
 - ブランチ管理
 - コミットルール（最優先）
 - Push前チェック（必須）
 - PR作成・レビュー
-- Gemini Code Assistレビュー対応
-- トラブルシューティング
 
-### 4. `.cursor/rules/04-github-integration.md` - GitHub統合
+**参照**: `.cursor/rules/03-git-workflow.d/README.md`（ディレクトリの説明とファイル一覧）
+
+### 4. `.cursor/rules/04-github-integration.d/` - GitHub統合
 
 - GitHub Projects設定
 - Issueステータス管理
 - Issue完了報告（最優先）
 - @start-task統合
 
-### 5. `.cursor/rules/05-ci-cd.md` - CI/CD設定ガイドライン
+**参照**: `.cursor/rules/04-github-integration.d/README.md`（ディレクトリの説明とファイル一覧）
+
+### 5. `.cursor/rules/05-ci-cd.d/` - CI/CD設定ガイドライン
 
 - テスト実行スクリプトの設計原則
 - 環境変数の管理
 - PlaywrightのwebServer設定
 - GitHub Actions設定
-- パフォーマンス測定とテストのベストプラクティス
+
+**参照**: `.cursor/rules/05-ci-cd.d/README.md`（ディレクトリの説明とファイル一覧）
 
 ### テンプレート
 
@@ -84,7 +98,7 @@
 - ✅ **すべての変更はPR経由でmainにマージ**
 - ✅ **PRマージ後のみIssueをDoneに変更**
 
-**参照**: `.cursor/rules/03-git-workflow.md`（絶対禁止事項セクション）
+**参照**: `.cursor/rules/03-git-workflow.d/01-branch-management.md`（絶対禁止事項セクション）
 
 ### 1. 型安全性
 
@@ -93,7 +107,7 @@
 - ✅ **危険な型キャストの禁止**
 - ✅ **DTO設計**: リクエストは`class`、レスポンスは`interface`（Issue #22で学習）
 
-**参照**: `.cursor/rules/02-code-standards.md`
+**参照**: `.cursor/rules/02-code-standards.d/01-type-safety.md`
 
 ### 2. 自動コミット
 
@@ -101,7 +115,7 @@
 - ✅ **質問・確認なしで自動実行**
 - ❌ **「後でコミット」は禁止**
 
-**参照**: `.cursor/rules/03-git-workflow.md`
+**参照**: `.cursor/rules/03-git-workflow.d/02-commit-rules.md`
 
 ### 3. push前チェック（4ステップ）
 
@@ -119,7 +133,7 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 - **ソースコード変更時**: ステップ1〜4すべて実行（必須）
 - **マークダウン/ドキュメントのみ**: ステップ1・2のみでOK（テスト・E2E不要）
 
-詳細は「テスト実行の判断基準」を参照（`.cursor/rules/03-git-workflow.md`）
+詳細は「テスト実行の判断基準」を参照（`.cursor/rules/03-git-workflow.d/03-push-check.md`）
 
 **理由**: 
 - pushするとGitHub ActionsでCIが実行される
@@ -127,7 +141,7 @@ pnpm build  # ⭐ ビルドチェックを忘れない！
 - ローカルで事前にエラーを検出することで、無駄なCI実行を防止できる
 - 実例: Issue #22でビルドチェック忘れ → CI全滅 → 20分の時間損失
 
-**参照**: `.cursor/rules/03-git-workflow.md` / `.cursor/rules/02-code-standards.md`
+**参照**: `.cursor/rules/03-git-workflow.d/03-push-check.md` / `.cursor/rules/02-code-standards.d/10-push-check.md`
 
 ### 4. @start-task
 
@@ -154,7 +168,7 @@ Issue開始を自動化するスクリプトが利用可能です：
 ./scripts/github/workflow/start-task.sh #201
 ```
 
-**参照**: `.cursor/rules/04-github-integration.md`
+**参照**: `.cursor/rules/04-github-integration.d/04-start-task.md`
 
 ### 5. Geminiレビュー対応
 
@@ -162,21 +176,21 @@ Issue開始を自動化するスクリプトが利用可能です：
 - ❌ **複数の指摘をまとめて1つのcommitにすることは絶対に禁止**
 - ✅ **すべての指摘対応完了後、必ずPRコメントで返信**
 
-**参照**: `.cursor/rules/03-git-workflow.md`
+**参照**: `.cursor/rules/03-git-workflow.d/04-pr-review.md`
 
 ### 6. Issue報告
 
 - ✅ **commit完了後は必ずGitHub Issueに報告**
 - ✅ **テンプレートに従って詳細を記載**
 
-**参照**: `.cursor/rules/04-github-integration.md`
+**参照**: `.cursor/rules/04-github-integration.d/03-issue-reporting.md`
 
 ### 7. Issue作成方法
 
 - ✅ **必ず専用スクリプトを使用**: `./scripts/github/issues/create-issue.sh`
 - ❌ **`gh issue create`の直接使用は禁止**（プロジェクトに自動追加されないため）
 
-**参照**: `.cursor/rules/04-github-integration.md`
+**参照**: `.cursor/rules/04-github-integration.d/README.md`
 
 ---
 
@@ -196,7 +210,7 @@ Issue開始を自動化するスクリプトが利用可能です：
 5️⃣ マージ・完了報告
 ```
 
-**詳細**: `.cursor/rules/00-WORKFLOW-CHECKLIST.md`
+**詳細**: `.cursor/rules/00-workflow-checklist.d/README.md`
 
 ---
 
