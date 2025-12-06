@@ -6255,3 +6255,136 @@ export interface MonthlyBalanceResponse {
 **参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## PR #376 - Issue #374: FR-024 年間収支グラフをページに統合（Gemini Code Assistレビュー指摘）
+
+### 1. データ取得ロジックの重複解消（useCallbackの活用）
+
+**問題点**:
+
+再試行ボタンの`onClick`ハンドラ内のデータ取得ロジックが、`useEffect`フック内のロジックと重複していました。コードの重複は、将来のバグの原因となったり、メンテナンス性を低下させたりする可能性があります。
+
+**❌ 悪い例**:
+
+```typescript
+// useEffect内
+useEffect(() => {
+  const fetchYearlyData = async (): Promise<void> => {
+    try {
+      setYearlyLoading(true);
+      setYearlyError(null);
+      const yearlyResponse = await aggregationApi.getYearlyBalance(selectedYear);
+      setYearlyBalanceData(yearlyResponse);
+    } catch (_err) {
+      setYearlyError('年間データの取得に失敗しました');
+    } finally {
+      setYearlyLoading(false);
+    }
+  };
+  void fetchYearlyData();
+}, [selectedYear]);
+
+// 再試行ボタンのonClick内（重複）
+<button
+  onClick={() => {
+    void (async (): Promise<void> => {
+      try {
+        setYearlyLoading(true);
+        setYearlyError(null);
+        const yearlyResponse = await aggregationApi.getYearlyBalance(selectedYear);
+        setYearlyBalanceData(yearlyResponse);
+      } catch (_err) {
+        setYearlyError('年間データの取得に失敗しました');
+      } finally {
+        setYearlyLoading(false);
+      }
+    })();
+  }}
+>
+  再試行
+</button>
+```
+
+**✅ 良い例**:
+
+```typescript
+// useCallbackで関数を切り出し
+const fetchYearlyData = useCallback(async (): Promise<void> => {
+  try {
+    setYearlyLoading(true);
+    setYearlyError(null);
+    const yearlyResponse = await aggregationApi.getYearlyBalance(selectedYear);
+    setYearlyBalanceData(yearlyResponse);
+  } catch (_err) {
+    setYearlyError('年間データの取得に失敗しました');
+  } finally {
+    setYearlyLoading(false);
+  }
+}, [selectedYear]);
+
+// useEffectで使用
+useEffect(() => {
+  void fetchYearlyData();
+}, [fetchYearlyData]);
+
+// 再試行ボタンでも同じ関数を使用
+<button
+  onClick={() => {
+    void fetchYearlyData();
+  }}
+>
+  再試行
+</button>
+```
+
+**教訓**:
+
+- データ取得ロジックが複数箇所で使用される場合は、`useCallback`で関数として切り出す
+- `useEffect`とイベントハンドラの両方から同じ関数を呼び出すことで、コードの重複を排除
+- DRY原則に従い、一貫性を保つ
+- 変更時に1箇所の修正で済むようになる
+
+### 2. グラフコンポーネントの適切な選択（意味的な適切性）
+
+**問題点**:
+
+月別収支の積み上げ棒グラフの実装に`ComposedChart`が使用されていましたが、このグラフは`Bar`コンポーネントのみで構成されています。`ComposedChart`は、棒グラフや折れ線グラフなど、複数の種類のグラフを組み合わせる際に使用するものです。
+
+**❌ 悪い例**:
+
+```typescript
+<ComposedChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="month" />
+  <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
+  <Tooltip content={<CustomTooltip />} />
+  <Legend />
+  <Bar dataKey="income" stackId="a" fill={COLOR_INCOME} name="収入" />
+  <Bar dataKey="expense" stackId="a" fill={COLOR_EXPENSE} name="支出" />
+</ComposedChart>
+```
+
+**✅ 良い例**:
+
+```typescript
+<BarChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="month" />
+  <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
+  <Tooltip content={<CustomTooltip />} />
+  <Legend />
+  <Bar dataKey="income" stackId="a" fill={COLOR_INCOME} name="収入" />
+  <Bar dataKey="expense" stackId="a" fill={COLOR_EXPENSE} name="支出" />
+</BarChart>
+```
+
+**教訓**:
+
+- グラフコンポーネントは、使用するグラフの種類に応じて適切なものを選択する
+- `ComposedChart`は複数の種類のグラフを組み合わせる場合のみ使用する
+- `Bar`コンポーネントのみで構成される場合は、`BarChart`を使用する方が意味的に適切
+- コードの意図が明確になり、可読性が向上する
+
+**参照**: PR #376 - Issue #374: FR-024 年間収支グラフをページに統合（Gemini Code Assistレビュー指摘）
+
+---
