@@ -25,6 +25,12 @@ interface MonthlyBalanceGraphProps {
   data: MonthlyBalanceResponse;
 }
 
+// グラフのカラー定数
+const COLOR_INCOME = '#4CAF50';
+const COLOR_EXPENSE = '#F44336';
+const COLOR_BALANCE_POSITIVE = '#2196F3';
+const COLOR_BALANCE_NEGATIVE = '#FF9800';
+
 /**
  * 月間収支グラフコンポーネント
  * FR-023: 月間収支グラフ表示
@@ -36,17 +42,17 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
       {
         name: '収入',
         value: data.income.total,
-        color: '#4CAF50',
+        color: COLOR_INCOME,
       },
       {
         name: '支出',
         value: data.expense.total,
-        color: '#F44336',
+        color: COLOR_EXPENSE,
       },
       {
         name: '収支',
         value: data.balance,
-        color: data.balance >= 0 ? '#2196F3' : '#FF9800',
+        color: data.balance >= 0 ? COLOR_BALANCE_POSITIVE : COLOR_BALANCE_NEGATIVE,
       },
     ];
   }, [data]);
@@ -56,33 +62,28 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
     // 取引データを日付ごとに集計
     const dailyMap = new Map<string, { income: number; expense: number }>();
 
-    // 収入取引を日付ごとに集計
-    for (const transaction of data.income.transactions) {
-      const date = new Date(transaction.date);
-      const day = date.getDate();
-      const key = day.toString();
+    // 取引を処理するヘルパー関数
+    const processTransactions = (
+      transactions: MonthlyBalanceResponse['income']['transactions'],
+      type: 'income' | 'expense'
+    ): void => {
+      for (const transaction of transactions) {
+        const date = new Date(transaction.date);
+        const day = date.getDate();
+        const key = day.toString();
 
-      if (!dailyMap.has(key)) {
-        dailyMap.set(key, { income: 0, expense: 0 });
+        if (!dailyMap.has(key)) {
+          dailyMap.set(key, { income: 0, expense: 0 });
+        }
+
+        const daily = dailyMap.get(key)!;
+        daily[type] += Math.abs(transaction.amount);
       }
+    };
 
-      const daily = dailyMap.get(key)!;
-      daily.income += Math.abs(transaction.amount);
-    }
-
-    // 支出取引を日付ごとに集計
-    for (const transaction of data.expense.transactions) {
-      const date = new Date(transaction.date);
-      const day = date.getDate();
-      const key = day.toString();
-
-      if (!dailyMap.has(key)) {
-        dailyMap.set(key, { income: 0, expense: 0 });
-      }
-
-      const daily = dailyMap.get(key)!;
-      daily.expense += Math.abs(transaction.amount);
-    }
+    // 収入と支出の取引を処理
+    processTransactions(data.income.transactions, 'income');
+    processTransactions(data.expense.transactions, 'expense');
 
     // 月の日数を取得
     const [year, month] = data.month.split('-').map(Number);
@@ -168,7 +169,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
               <Line
                 type="monotone"
                 dataKey="income"
-                stroke="#4CAF50"
+                stroke={COLOR_INCOME}
                 strokeWidth={2}
                 name="収入"
                 dot={{ r: 4 }}
@@ -176,7 +177,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
               <Line
                 type="monotone"
                 dataKey="expense"
-                stroke="#F44336"
+                stroke={COLOR_EXPENSE}
                 strokeWidth={2}
                 name="支出"
                 dot={{ r: 4 }}
@@ -196,12 +197,12 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
             <AreaChart data={cumulativeData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <defs>
                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#4CAF50" stopOpacity={0} />
+                  <stop offset="5%" stopColor={COLOR_INCOME} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={COLOR_INCOME} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F44336" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#F44336" stopOpacity={0} />
+                  <stop offset="5%" stopColor={COLOR_EXPENSE} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={COLOR_EXPENSE} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
@@ -212,7 +213,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
               <Area
                 type="monotone"
                 dataKey="cumulativeIncome"
-                stroke="#4CAF50"
+                stroke={COLOR_INCOME}
                 fillOpacity={1}
                 fill="url(#colorIncome)"
                 name="累積収入"
@@ -220,7 +221,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
               <Area
                 type="monotone"
                 dataKey="cumulativeExpense"
-                stroke="#F44336"
+                stroke={COLOR_EXPENSE}
                 fillOpacity={1}
                 fill="url(#colorExpense)"
                 name="累積支出"
