@@ -53,81 +53,65 @@ export interface MonthlyCardSummaryListItem {
 /**
  * 月別収支集計レスポンス（FR-016）
  */
+
+// 取引情報
+interface MonthlyBalanceTransaction {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string;
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
+}
+
+// 内訳項目の基本情報
+interface MonthlyBalanceBreakdownItem {
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+// カテゴリ別内訳
+interface MonthlyBalanceCategoryBreakdown extends MonthlyBalanceBreakdownItem {
+  categoryId: string;
+  categoryName: string;
+}
+
+// 金融機関別内訳
+interface MonthlyBalanceInstitutionBreakdown extends MonthlyBalanceBreakdownItem {
+  institutionId: string;
+  institutionName: string;
+}
+
+// 収入・支出の詳細情報
+interface MonthlyBalanceDetails {
+  total: number;
+  count: number;
+  byCategory: MonthlyBalanceCategoryBreakdown[];
+  byInstitution: MonthlyBalanceInstitutionBreakdown[];
+  transactions: MonthlyBalanceTransaction[];
+}
+
+// 比較データ
+interface MonthlyComparison {
+  incomeDiff: number;
+  expenseDiff: number;
+  balanceDiff: number;
+  incomeChangeRate: number;
+  expenseChangeRate: number;
+}
+
 export interface MonthlyBalanceResponse {
   month: string; // YYYY-MM
-  income: {
-    total: number;
-    count: number;
-    byCategory: Array<{
-      categoryId: string;
-      categoryName: string;
-      amount: number;
-      count: number;
-      percentage: number;
-    }>;
-    byInstitution: Array<{
-      institutionId: string;
-      institutionName: string;
-      amount: number;
-      count: number;
-      percentage: number;
-    }>;
-    transactions: Array<{
-      id: string;
-      date: string; // ISO8601形式
-      amount: number;
-      categoryType: string;
-      categoryId: string;
-      institutionId: string;
-      accountId: string;
-      description: string;
-    }>;
-  };
-  expense: {
-    total: number;
-    count: number;
-    byCategory: Array<{
-      categoryId: string;
-      categoryName: string;
-      amount: number;
-      count: number;
-      percentage: number;
-    }>;
-    byInstitution: Array<{
-      institutionId: string;
-      institutionName: string;
-      amount: number;
-      count: number;
-      percentage: number;
-    }>;
-    transactions: Array<{
-      id: string;
-      date: string; // ISO8601形式
-      amount: number;
-      categoryType: string;
-      categoryId: string;
-      institutionId: string;
-      accountId: string;
-      description: string;
-    }>;
-  };
+  income: MonthlyBalanceDetails;
+  expense: MonthlyBalanceDetails;
   balance: number;
   savingsRate: number;
   comparison: {
-    previousMonth: {
-      incomeDiff: number;
-      expenseDiff: number;
-      balanceDiff: number;
-      incomeChangeRate: number;
-      expenseChangeRate: number;
-    } | null;
-    sameMonthLastYear: {
-      incomeDiff: number;
-      expenseDiff: number;
-      balanceDiff: number;
-      incomeChangeRate: number;
-      expenseChangeRate: number;
-    } | null;
+    previousMonth: MonthlyComparison | null;
+    sameMonthLastYear: MonthlyComparison | null;
   };
 }
 
