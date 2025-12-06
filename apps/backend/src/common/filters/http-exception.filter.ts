@@ -151,43 +151,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
         success: false,
         statusCode: HttpStatus.NOT_FOUND,
         message: exception.message,
-        code: 'AL001',
+        code: exception.code,
         errors: [],
         timestamp: new Date().toISOString(),
         path: request.url,
       });
     }
 
-    if (exception instanceof DuplicateAlertException) {
+    // Alert関連のUnprocessableEntityException例外を1つのifブロックにまとめる
+    if (
+      exception instanceof DuplicateAlertException ||
+      exception instanceof AlertAlreadyResolvedException ||
+      exception instanceof CriticalAlertDeletionException
+    ) {
       return new UnprocessableEntityException({
         success: false,
         statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         message: exception.message,
-        code: 'AL002',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      });
-    }
-
-    if (exception instanceof AlertAlreadyResolvedException) {
-      return new UnprocessableEntityException({
-        success: false,
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        message: exception.message,
-        code: 'AL003',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      });
-    }
-
-    if (exception instanceof CriticalAlertDeletionException) {
-      return new UnprocessableEntityException({
-        success: false,
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        message: exception.message,
-        code: 'AL004',
+        code: exception.code,
         errors: [],
         timestamp: new Date().toISOString(),
         path: request.url,
@@ -203,10 +184,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         success: false,
         statusCode: HttpStatus.NOT_FOUND,
         message: exception.message,
-        code:
-          exception instanceof ReconciliationNotFoundException
-            ? 'RC005'
-            : exception.code,
+        code: exception.code,
         errors: [],
         ...(exception.details || {}),
         timestamp: new Date().toISOString(),
@@ -244,6 +222,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // Error型の例外（文字列マッチングで判定）
+    // ⚠️ 警告: このロジックは堅牢性に欠けます。
+    // エラーメッセージの文字列に基づく判定は、予期せぬ挙動を引き起こす可能性があります。
+    // 例: 500系エラーのメッセージが「validation of external service response failed」の場合、
+    //     'validation'という単語が含まれているために、誤って400 BadRequestExceptionとして処理される可能性があります。
+    // TODO: 将来的には、アプリケーション全体でドメイン固有のカスタム例外クラスをスローするように
+    //       リファクタリングし、この文字列マッチングロジックを削除することを推奨します。
     if (exception instanceof Error) {
       // "not found"を含むエラーは404に変換
       if (exception.message.includes('not found')) {
