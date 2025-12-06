@@ -536,7 +536,7 @@ const handleError = (message: string): void => {
 />
 ```
 
-### 7-3. クロージャとuseCallbackの注意点
+### 7-10. クロージャとuseCallbackの注意点
 
 **問題**: `useCallback`の依存配列に状態を含めると、コールバックがその時点の値をキャプチャしてしまい、後で状態が変更されても古い値を参照し続ける
 
