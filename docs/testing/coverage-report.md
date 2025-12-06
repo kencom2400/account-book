@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-12-04 15:33:45  
-> **コミット**: `1e68385`  
-> **ブランチ**: `feature/issue-114-financial-institution-settings-screen`
+> **最終更新**: 2025-12-06 22:05:34  
+> **コミット**: `cee6c4c`  
+> **ブランチ**: `feature/issue-52-feature-fr-023`
 
 ## 概要
 
@@ -196,6 +196,56 @@ pnpm test -- --coverage
 - ✅ DeleteConfirmModalコンポーネントのテスト（100%カバレッジ）
 - ✅ sync.ts APIクライアントのテスト（100%カバレッジ）
 - ✅ banks/page.tsx ページコンポーネントのテスト（ラッパーコンポーネントのため0%）
+
+### Issue #52: FR-023 月間収支グラフ表示機能の実装
+
+**追加日**: 2025-12-06  
+**ブランチ**: `feature/issue-52-feature-fr-023`  
+**コミット**: `cee6c4c`
+
+#### 追加されたファイルとカバレッジ
+
+| ファイル                                                         | Lines  | Statements | Functions | Branches | 状態              |
+| ---------------------------------------------------------------- | ------ | ---------- | --------- | -------- | ----------------- |
+| `apps/frontend/src/components/dashboard/MonthlyBalanceGraph.tsx` | 93.33% | 93.47%     | 66.66%    | 100%     | ✅ テスト作成済み |
+| `apps/frontend/src/components/dashboard/CustomTooltip.tsx`       | 100%   | 100%       | 100%      | 100%     | ✅ テスト作成済み |
+| `apps/frontend/src/lib/api/aggregation.ts`                       | 88.88% | 88.88%     | 83.33%    | 100%     | ✅ テスト作成済み |
+
+#### カバレッジサマリー
+
+- **合計行数**: 約270行
+- **カバレッジ**: 94.07% (Lines: 94.07%, Statements: 94.12%, Functions: 83.33%, Branches: 100%)
+- **目標**: 80%以上
+- **状態**: ✅ **目標達成**
+
+#### 実装内容
+
+- 月間収支グラフコンポーネント（MonthlyBalanceGraph）
+  - 月間サマリーバーグラフ（横棒グラフ）
+  - 日別推移グラフ（折れ線グラフ）
+  - 累積グラフ（エリアグラフ）
+- カスタムツールチップコンポーネント（CustomTooltip）
+- 月別収支集計API関数（aggregationApi.getMonthlyBalance）
+
+#### テスト実装状況
+
+- ✅ MonthlyBalanceGraphコンポーネントのテスト（11テストケース、93.47%カバレッジ）
+  - グラフ表示の確認
+  - データ変換ロジックのテスト
+  - 収支の色分けロジック
+  - うるう年・平年の2月処理
+- ✅ CustomTooltipコンポーネントのテスト（6テストケース、100%カバレッジ）
+  - active/payloadの条件分岐
+  - ツールチップの表示ロジック
+- ✅ データ変換ロジックのテスト
+  - 同じ日の複数取引の集計
+  - 累積データの計算
+
+#### カバレッジ改善
+
+- **改善前**: 87.75% (Statements), 50% (Branch)
+- **改善後**: 93.47% (Statements), 100% (Branch)
+- **改善幅**: +5.72% (Statements), +50% (Branch)
 
 ## 参考資料
 
