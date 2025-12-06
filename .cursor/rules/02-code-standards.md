@@ -10940,3 +10940,264 @@ interface IEventRepository {
 **参照**: PR #363 - Issue #50: FR-021: イベントメモ機能の詳細設計（Geminiレビュー指摘）
 
 ---
+
+### 19-8. パフォーマンス最適化とアーキテクチャ改善 🟢 Medium
+
+**学習元**: Issue #50 / PR #365 - FR-021: イベントメモ機能の実装（Geminiレビュー指摘）
+
+#### 19-8-1. N+1クエリ問題の解消 🔴 Critical
+
+**問題点**:
+
+- ループ内で`findById`を呼び出すと、データベースへのクエリが大量に発行される
+- 関連データが多数ある場合にパフォーマンスが大幅に低下
+
+**解決策**:
+
+- リポジトリに`findByIds(ids: string[])`メソッドを追加
+- SQLの`IN`句を使って一度のクエリで全ての関連データを取得
+
+```typescript
+// ✅ 正しいパターン
+interface ITransactionRepository {
+  findByIds(ids: string[]): Promise<TransactionEntity[]>;
+}
+
+// 使用例
+const relatedTransactions = await this.transactionRepository.findByIds(transactionIds);
+```
+
+**教訓**:
+
+- 複数のIDでデータを取得する場合は、必ず`findByIds`のような一括取得メソッドを使用
+- N+1クエリ問題を事前に回避する設計を心がける
+
+#### 19-8-2. 不変エンティティの効率的な更新 🟡 High
+
+**問題点**:
+
+- 不変（immutable）エンティティで、全削除→全追加のアプローチは非効率
+- タグの数が多い場合、不要なインスタンス生成が発生
+
+**解決策**:
+
+- 差分のみを更新するアプローチに変更
+- `Set`を使用して追加/削除を効率的に判定
+
+```typescript
+// ✅ 正しいパターン
+if (dto.tags !== undefined) {
+  const currentTags = new Set(updatedEvent.tags);
+  const newTags = new Set(dto.tags);
+
+  // 不要になったタグを削除
+  for (const tag of currentTags) {
+    if (!newTags.has(tag)) {
+      eventWithTags = eventWithTags.removeTag(tag);
+    }
+  }
+
+  // 新しく追加されたタグを追加
+  for (const tag of newTags) {
+    if (!currentTags.has(tag)) {
+      eventWithTags = eventWithTags.addTag(tag);
+    }
+  }
+}
+```
+
+**教訓**:
+
+- 不変エンティティの更新は、差分のみを更新するアプローチを採用
+- 不要なインスタンス生成を最小限に抑える
+
+#### 19-8-3. Application層とPresentation層の責務分離 🟡 High
+
+**問題点**:
+
+- `GetEventByIdUseCase`がPresentation層のDTOに似たオブジェクトを返す
+- コントローラーで再度オブジェクトを組み直すという冗長な実装
+
+**解決策**:
+
+- Application層はドメインエンティティを返す
+- Presentation層でDTOに変換
+
+```typescript
+// ✅ 正しいパターン
+// Application層
+export interface GetEventByIdResult {
+  event: EventEntity;
+  relatedTransactions: TransactionEntity[];
+}
+
+// Presentation層
+const result = await this.getEventByIdUseCase.execute(id);
+return {
+  success: true,
+  data: toEventResponseDto(result.event, result.relatedTransactions),
+};
+```
+
+**教訓**:
+
+- Application層はドメインエンティティを含むオブジェクトを返す
+- Presentation層のDTOはPresentation層で定義・変換する
+- 各層の責務を明確に分離する
+
+#### 19-8-4. バリデーションロジックの一元化 🟢 Medium
+
+**問題点**:
+
+- コントローラー内で手動チェックを行う
+- DTOの定義と実装が一致しない
+
+**解決策**:
+
+- DTOで必須項目として定義
+- `class-validator`のデコレータでバリデーション
+- コントローラーから手動チェックを削除
+
+```typescript
+// ✅ 正しいパターン
+export class GetEventsByDateRangeQueryDto {
+  @ApiProperty({
+    description: '開始日（ISO 8601形式: YYYY-MM-DD）',
+    example: '2025-01-01',
+  })
+  @IsNotEmpty({ message: 'startDateは必須です' })
+  @IsDateString({}, { message: 'startDateは有効な日付形式である必要があります' })
+  startDate!: string;
+
+  @ApiProperty({
+    description: '終了日（ISO 8601形式: YYYY-MM-DD）',
+    example: '2025-12-31',
+  })
+  @IsNotEmpty({ message: 'endDateは必須です' })
+  @IsDateString({}, { message: 'endDateは有効な日付形式である必要があります' })
+  endDate!: string;
+}
+```
+
+**教訓**:
+
+- バリデーションロジックはDTOに一元化
+- コントローラーから手動チェックを削除してコードを簡潔に
+- DTOの定義と実装を一致させる
+
+#### 19-8-5. リクエストボディの型安全性 🟢 Medium
+
+**問題点**:
+
+- インラインの型定義を使用すると、バリデーションができない
+- 他のエンドポイントとの一貫性が保たれない
+
+**解決策**:
+
+- `class-validator`を使ったDTOクラスを定義
+- バリデーションパイプラインによる型チェックや存在チェックを可能にする
+
+```typescript
+// ✅ 正しいパターン
+export class LinkTransactionRequestDto {
+  @ApiProperty({
+    description: '取引ID',
+    example: 'txn_123',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'transactionIdは必須です' })
+  transactionId!: string;
+}
+```
+
+**教訓**:
+
+- リクエストボディは必ずDTOクラスとして定義
+- `class-validator`を使用してバリデーションを実施
+- 型安全性と一貫性を保つ
+
+#### 19-8-6. エンティティのカプセル化強化 🟢 Medium
+
+**問題点**:
+
+- バリデーションメソッドがpublicで、外部から直接呼び出せる
+- エンティティの内部的なロジックが外部に公開される
+
+**解決策**:
+
+- 内部的なバリデーションロジックは`private`にする
+- エンティティのカプセル化を強化
+
+```typescript
+// ✅ 正しいパターン
+export class EventEntity {
+  private validateTitle(title: string): void {
+    // ...
+  }
+
+  private validateDate(date: Date): void {
+    // ...
+  }
+}
+```
+
+**教訓**:
+
+- エンティティの内部的なバリデーションロジックは`private`にする
+- カプセル化を強化して、外部からの直接呼び出しを防ぐ
+
+#### 19-8-7. 重複チェックの削除 🟢 Medium
+
+**問題点**:
+
+- リポジトリ層で既に重複チェックが行われているのに、ユースケース層でも実施
+- 責務の重複
+
+**解決策**:
+
+- リポジトリ層で重複チェックが実施されている場合は、ユースケース層から削除
+- 責務を明確に分離
+
+**教訓**:
+
+- 重複チェックは一箇所で実施する
+- リポジトリ層で実施されている場合は、ユースケース層から削除
+- 責務の重複を避ける
+
+**参照**: PR #365 - Issue #50: FR-021: イベントメモ機能の実装（Geminiレビュー指摘）
+
+---
+
+### 20-8. E2Eテストのアサーションの厳密性 🟢 Medium
+
+**問題点**:
+
+- テストの期待値が曖昧で、実装の意図が明確でない
+- `toBeGreaterThanOrEqual(1)`のような緩いアサーションは、テストの意図を不明確にする
+
+**解決策**:
+
+- テストの期待値を明確に定義する
+- 可能な限り厳密なアサーションを使用する
+
+```typescript
+// ❌ 悪い例: 曖昧なアサーション
+expect(getEventResponse.body.data.relatedTransactions.length).toBeGreaterThanOrEqual(1);
+expect(getEventResponse.body.data.relatedTransactions).not.toContain(
+  expect.objectContaining({ id: createdTransactionId })
+);
+
+// ✅ 良い例: 明確なアサーション
+expect(getEventResponse.body.data.relatedTransactions).toHaveLength(1);
+expect(getEventResponse.body.data.relatedTransactions).toHaveLength(0);
+```
+
+**教訓**:
+
+- テストの期待値は可能な限り明確に定義する
+- `toHaveLength(n)`のような厳密なアサーションを使用する
+- テストの意図を明確にすることで、実装の意図も明確になる
+
+**参照**: PR #365 - Issue #50: FR-021: イベントメモ機能の実装（Geminiレビュー指摘 #8, #9）
+
+---

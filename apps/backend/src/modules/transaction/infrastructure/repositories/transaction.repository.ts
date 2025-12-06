@@ -61,6 +61,19 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * 複数のIDで取引を一括取得
+   */
+  async findByIds(ids: string[]): Promise<TransactionEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const allTransactions = await this.findAll();
+    const idSet = new Set(ids);
+    return allTransactions.filter((t) => idSet.has(t.id));
+  }
+
+  /**
    * すべての取引を取得
    */
   async findAll(): Promise<TransactionEntity[]> {

@@ -34,6 +34,23 @@ export class TransactionTypeOrmRepository implements ITransactionRepository {
   }
 
   /**
+   * 複数のIDで取引を一括取得
+   */
+  async findByIds(ids: string[]): Promise<TransactionEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const ormEntities: TransactionOrmEntity[] = await this.repository.find({
+      where: { id: In(ids) },
+    });
+
+    return ormEntities.map((entity: TransactionOrmEntity) =>
+      this.toDomain(entity),
+    );
+  }
+
+  /**
    * すべての取引を取得
    */
   async findAll(): Promise<TransactionEntity[]> {

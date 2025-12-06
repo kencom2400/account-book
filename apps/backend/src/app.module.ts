@@ -19,6 +19,7 @@ import { AggregationModule } from './modules/aggregation/aggregation.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { AlertModule } from './modules/alert/alert.module';
+import { EventModule } from './modules/event/event.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AlertModule } from './modules/alert/alert.module';
     ReconciliationModule,
     PaymentStatusModule,
     AlertModule,
+    EventModule,
   ],
   controllers: [AppController],
   providers: [AppService],
