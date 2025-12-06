@@ -27,7 +27,12 @@ import { EventNotFoundException } from '../../modules/event/domain/errors/event.
 /**
  * グローバル例外フィルター
  * すべての例外をキャッチし、統一されたエラーレスポンス形式で返す
+ *
  * Issue #366: Exception Filterの導入によるエラーハンドリングの一元化
+ * Issue #367: Exception Filterの導入によるエラーハンドリングの一元化（全体スコープ）
+ *   - すべてのコントローラーからtry-catchブロックを削除
+ *   - エラーレスポンス形式を統一（message, code, details, metadata）
+ *   - カスタム例外のHTTP例外への変換を一元化
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -69,17 +74,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ) {
         const messages = exceptionResponse.message;
         if (Array.isArray(messages)) {
-          // ValidationPipeが返すエラーメッセージ配列を変換
+          // ValidationPipeのexceptionFactoryで生成されたエラーメッセージ配列を変換
+          // Gemini Code Assistレビュー指摘: 文字列パースへの依存をなくすため、
+          // exceptionFactoryでValidationErrorオブジェクトから直接fieldとmessageを抽出
           details = messages.map((msg: string | object): ErrorDetail => {
-            if (typeof msg === 'string') {
-              // フィールド名を抽出（例: "name must be a string" -> field: "name"）
-              const fieldMatch = msg.match(/^(\w+)\s/);
-              return {
-                field: fieldMatch ? fieldMatch[1] : undefined,
-                message: msg,
-              };
-            }
-            // オブジェクト形式の場合（将来的な拡張用）
+            // オブジェクト形式の場合（exceptionFactoryで生成された形式）
             if (
               typeof msg === 'object' &&
               msg !== null &&
@@ -95,6 +94,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
                 field: errorObj.field,
                 message: errorObj.message,
                 code: errorObj.code,
+              };
+            }
+            // 文字列形式の場合（後方互換性のため）
+            if (typeof msg === 'string') {
+              // フォールバック: 正規表現でフィールド名を抽出
+              // 注意: この方法はネストされたオブジェクト（例: user.name）には対応できない
+              // 可能な限りexceptionFactoryを使用することを推奨
+              const fieldMatch = msg.match(/^(\w+)\s/);
+              return {
+                field: fieldMatch ? fieldMatch[1] : undefined,
+                message: msg,
               };
             }
             // フォールバック: オブジェクトを文字列化
@@ -205,7 +215,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // エラーメッセージの文字列に基づく判定は、予期せぬ挙動を引き起こす可能性があります。
     // 例: 500系エラーのメッセージが「validation of external service response failed」の場合、
     //     'validation'という単語が含まれているために、誤って400 BadRequestExceptionとして処理される可能性があります。
-    // TODO: 将来的には、アプリケーション全体でドメイン固有のカスタム例外クラスをスローするように
+    // 例: エラーメッセージに偶然'not found'という単語が含まれているだけで、500エラーが404エラーとして扱われてしまう危険性があります。
+    //
+    // Gemini Code Assistレビュー指摘: 将来的には、アプリケーション全体で汎用的な`Error`クラスの代わりに、
+    // ドメイン固有のカスタム例外をスローするようにリファクタリングすることを強く推奨します。
+    // これにより、エラーハンドリングがより堅牢で予測可能になります。
+    // TODO: アプリケーション全体でドメイン固有のカスタム例外クラスをスローするように
     //       リファクタリングし、この文字列マッチングロジックを削除することを推奨します。
     if (exception instanceof Error) {
       // "not found"を含むエラーは404に変換

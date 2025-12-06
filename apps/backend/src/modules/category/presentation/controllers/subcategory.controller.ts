@@ -7,9 +7,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
@@ -211,56 +209,37 @@ export class SubcategoryController {
       `取引を自動分類中: ${dto.description} (${dto.mainCategory})`,
     );
 
-    try {
-      // ユースケースで分類を実行（サブカテゴリ詳細と店舗情報を含む）
-      const result = await this.classifySubcategoryUseCase.execute({
-        description: dto.description,
-        amount: dto.amount,
-        mainCategory: dto.mainCategory,
-        transactionDate: dto.transactionDate
-          ? new Date(dto.transactionDate)
-          : undefined,
-      });
+    // ユースケースで分類を実行（サブカテゴリ詳細と店舗情報を含む）
+    // エラーハンドリングはHttpExceptionFilterが一元管理
+    const result = await this.classifySubcategoryUseCase.execute({
+      description: dto.description,
+      amount: dto.amount,
+      mainCategory: dto.mainCategory,
+      transactionDate: dto.transactionDate
+        ? new Date(dto.transactionDate)
+        : undefined,
+    });
 
-      return {
-        success: true,
-        data: {
-          subcategory: {
-            id: result.subcategoryId,
-            categoryType: result.categoryType,
-            name: result.subcategoryName,
-            parentId: result.parentId,
-            displayOrder: result.displayOrder,
-            icon: result.icon,
-            color: result.color,
-            isDefault: result.isDefault,
-            isActive: result.isActive,
-          },
-          confidence: result.confidence,
-          reason: result.reason,
-          merchantId: result.merchantId,
-          merchantName: result.merchantName,
+    return {
+      success: true,
+      data: {
+        subcategory: {
+          id: result.subcategoryId,
+          categoryType: result.categoryType,
+          name: result.subcategoryName,
+          parentId: result.parentId,
+          displayOrder: result.displayOrder,
+          icon: result.icon,
+          color: result.color,
+          isDefault: result.isDefault,
+          isActive: result.isActive,
         },
-      };
-    } catch (error) {
-      this.logger.error('分類処理に失敗しました', error);
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: {
-          code: 'CLASSIFICATION_FAILED',
-          message: '分類処理に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      });
-    }
+        confidence: result.confidence,
+        reason: result.reason,
+        merchantId: result.merchantId,
+        merchantName: result.merchantName,
+      },
+    };
   }
 
   /**
@@ -299,41 +278,22 @@ export class SubcategoryController {
       `取引 ${transactionId} のサブカテゴリを ${dto.subcategoryId} に更新中...`,
     );
 
-    try {
-      const result = await this.updateTransactionSubcategoryUseCase.execute({
-        transactionId,
-        subcategoryId: dto.subcategoryId,
-      });
+    // エラーハンドリングはHttpExceptionFilterが一元管理
+    const result = await this.updateTransactionSubcategoryUseCase.execute({
+      transactionId,
+      subcategoryId: dto.subcategoryId,
+    });
 
-      return {
-        success: true,
-        transaction: {
-          id: result.transactionId,
-          subcategoryId: result.subcategoryId,
-          subcategoryName: result.subcategoryName,
-          classificationConfidence: result.confidence,
-          classificationReason: result.reason,
-          confirmedAt: result.confirmedAt.toISOString(),
-        },
-      };
-    } catch (error) {
-      this.logger.error('サブカテゴリ更新に失敗しました', error);
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: {
-          code: 'UPDATE_FAILED',
-          message: 'サブカテゴリ更新に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      });
-    }
+    return {
+      success: true,
+      transaction: {
+        id: result.transactionId,
+        subcategoryId: result.subcategoryId,
+        subcategoryName: result.subcategoryName,
+        classificationConfidence: result.confidence,
+        classificationReason: result.reason,
+        confirmedAt: result.confirmedAt.toISOString(),
+      },
+    };
   }
 }

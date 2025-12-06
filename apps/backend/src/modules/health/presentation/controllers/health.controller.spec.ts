@@ -3,7 +3,6 @@ import { HealthController } from './health.controller';
 import { CheckConnectionStatusUseCase } from '../../application/use-cases/check-connection-status.use-case';
 import { GetConnectionHistoryUseCase } from '../../application/use-cases/get-connection-history.use-case';
 import { InstitutionAggregationService } from '../../application/services/institution-aggregation.service';
-import { HttpException } from '@nestjs/common';
 
 describe('HealthController', () => {
   let controller: HealthController;
@@ -105,13 +104,15 @@ describe('HealthController', () => {
       expect(result.errorCount).toBe(1);
     });
 
-    it('should throw HttpException on error', async () => {
+    it('should throw Error on error (handled by HttpExceptionFilter)', async () => {
       institutionAggregationService.getAllInstitutions.mockRejectedValue(
         new Error('Database error'),
       );
 
+      // エラーハンドリングはHttpExceptionFilterが一元管理するため、
+      // コントローラーからはErrorがそのままスローされる
       await expect(controller.checkInstitutionsHealth({})).rejects.toThrow(
-        HttpException,
+        'Database error',
       );
     });
   });
@@ -145,14 +146,16 @@ describe('HealthController', () => {
       expect(result.totalCount).toBe(0);
     });
 
-    it('should throw HttpException on error', async () => {
+    it('should throw Error on error (handled by HttpExceptionFilter)', async () => {
       getConnectionHistoryUseCase.execute.mockRejectedValue(
         new Error('Database error'),
       );
 
+      // エラーハンドリングはHttpExceptionFilterが一元管理するため、
+      // コントローラーからはErrorがそのままスローされる
       await expect(
         controller.getInstitutionHistory('inst_1', {}),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('Database error');
     });
   });
 });

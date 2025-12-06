@@ -11608,3 +11608,113 @@ expect(getEventResponse.body.data.relatedTransactions).toHaveLength(0);
 **参照**: PR #365 - Issue #50: FR-021: イベントメモ機能の実装（Geminiレビュー指摘 #8, #9）
 
 ---
+
+### 20-9. バリデーションエラーの処理方法 🟡 Medium
+
+**問題点**:
+
+- `HttpExceptionFilter`で正規表現 `/^(\w+)\s/` を使ってエラーメッセージからフィールド名を抽出している
+- ネストされたオブジェクトのバリデーション（例: `user.name must be a string`）や、メッセージの形式が少しでも変わった場合に、正しくフィールド名を取得できない可能性がある
+- 文字列パースへの依存により、堅牢性が低い
+
+**解決策**:
+
+- `ValidationPipe`の`exceptionFactory`オプションを利用して、`class-validator`が返す`ValidationError`オブジェクトを直接扱う
+- `error.property`や`error.constraints`を直接使用することで、より信頼性の高い方法で`field`や`message`を抽出できる
+
+```typescript
+// ✅ 正しいパターン: exceptionFactoryを使用
+app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    exceptionFactory: (errors: ValidationError[]): BadRequestException => {
+      const messages = errors.map((error) => {
+        const field = error.property;
+        const constraints = error.constraints
+          ? Object.values(error.constraints).join(', ')
+          : 'Validation failed';
+
+        // ネストされたプロパティのエラーも処理
+        if (error.children && error.children.length > 0) {
+          const nestedMessages = error.children
+            .map((child) => {
+              const childConstraints = child.constraints
+                ? Object.values(child.constraints).join(', ')
+                : '';
+              return childConstraints ? `${child.property}: ${childConstraints}` : '';
+            })
+            .filter((msg) => msg.length > 0);
+
+          if (nestedMessages.length > 0) {
+            return {
+              field,
+              message: `${constraints} (${nestedMessages.join('; ')})`,
+            };
+          }
+        }
+
+        return {
+          field,
+          message: constraints,
+        };
+      });
+
+      return new BadRequestException({ message: messages });
+    },
+  })
+);
+```
+
+**教訓**:
+
+- バリデーションエラーの処理には、`ValidationPipe`の`exceptionFactory`を使用する
+- `ValidationError`オブジェクトから直接`property`や`constraints`を取得することで、文字列パースへの依存をなくす
+- ネストされたオブジェクトのバリデーションにも対応できる
+- `HttpExceptionFilter`では、オブジェクト形式のメッセージを優先的に処理する
+
+**参照**: PR #372 - Issue #367: Exception Filterの導入によるエラーハンドリングの一元化（Gemini Code Assistレビュー指摘）
+
+---
+
+### 20-10. Error型の文字列マッチングによるエラー分類 🟡 Medium
+
+**問題点**:
+
+- `HttpExceptionFilter`で`message.includes('not found')`のような文字列マッチングによるエラー変換を使用している
+- エラーメッセージに偶然'not found'という単語が含まれているだけで、500エラーが404エラーとして扱われてしまう危険性がある
+- 意図しないエラー分類を引き起こす可能性がある
+
+**解決策**:
+
+- 将来的には、アプリケーション全体で汎用的な`Error`クラスの代わりに、ドメイン固有のカスタム例外をスローするようにリファクタリングする
+- これにより、エラーハンドリングがより堅牢で予測可能になる
+
+```typescript
+// ❌ 悪い例: 文字列マッチングによるエラー分類
+if (exception instanceof Error) {
+  if (exception.message.includes('not found')) {
+    return new NotFoundException({ message: exception.message });
+  }
+}
+
+// ✅ 良い例: ドメイン固有のカスタム例外を使用
+if (exception instanceof AlertNotFoundException) {
+  return new NotFoundException({
+    message: exception.message,
+    code: exception.code,
+  });
+}
+```
+
+**教訓**:
+
+- エラーメッセージの文字列マッチングによるエラー分類は避ける
+- ドメイン固有のカスタム例外クラスを定義し、それを使用する
+- カスタム例外からHTTP例外への変換は、`HttpExceptionFilter`で一元管理する
+- 文字列マッチングロジックは、将来的に削除することを目標とする
+
+**参照**: PR #372 - Issue #367: Exception Filterの導入によるエラーハンドリングの一元化（Gemini Code Assistレビュー指摘）
+
+---

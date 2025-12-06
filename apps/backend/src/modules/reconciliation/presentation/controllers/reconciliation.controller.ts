@@ -139,7 +139,11 @@ export class ReconciliationController {
     const reconciliation = await this.reconciliationRepository.findById(id);
 
     if (!reconciliation) {
-      throw new NotFoundException('照合結果が見つかりません');
+      // HttpExceptionFilterが統一されたエラーレスポンス形式で処理
+      throw new NotFoundException({
+        message: '照合結果が見つかりません',
+        code: 'RECONCILIATION_NOT_FOUND',
+      });
     }
 
     return {

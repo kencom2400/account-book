@@ -135,14 +135,10 @@ export class AlertController {
     const alert = await this.alertRepository.findById(id);
 
     if (!alert) {
+      // HttpExceptionFilterが統一されたエラーレスポンス形式で処理
       throw new NotFoundException({
-        success: false,
-        statusCode: 404,
         message: 'アラートが見つかりません',
         code: 'AL001',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: `/api/alerts/${id}`,
       });
     }
 
