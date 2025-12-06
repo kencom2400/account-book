@@ -6495,6 +6495,135 @@ export class DeleteInstitutionDto {
 - バリデーションエラーが発生しなくなる
 - ユーザー体験が向上する
 
+### 13-16. Exception Filter設計のベストプラクティス（PR #369）
+
+**学習元**: PR #369 - Issue #366: Exception Filterの導入によるエラーハンドリングの一元化（Geminiレビュー指摘）
+
+#### 13-16-1. 文字列マッチングによる例外変換の回避 🔴 High
+
+**問題**: エラーメッセージの文字列に基づく例外変換は堅牢性に欠ける
+
+```typescript
+// ❌ 悪い例: 文字列マッチングによる例外変換
+if (exception instanceof Error) {
+  if (exception.message.includes('validation')) {
+    return new BadRequestException({ ... });
+  }
+}
+```
+
+**問題点**:
+
+- 500系エラーのメッセージが「validation of external service response failed」の場合、誤って400 `BadRequestException`として処理される可能性
+- エラーメッセージの変更で挙動が変わる
+- 予期せぬ挙動を引き起こす可能性
+
+**解決策**: ドメイン固有のカスタム例外クラスをスローするようにリファクタリング
+
+```typescript
+// ✅ 良い例: カスタム例外クラスを使用
+if (exception instanceof ValidationError) {
+  return new BadRequestException({ ... });
+}
+```
+
+**推奨事項**:
+
+- 文字列マッチングロジックには警告コメントを追加
+- 将来的にはドメイン固有のカスタム例外クラスをスローするようにリファクタリング
+- 文字列マッチングロジックを削除することを目標とする
+
+#### 13-16-2. 例外処理のコード重複排除 🟡 Medium
+
+**問題**: 同じHTTP例外に変換される複数の例外クラスで、オブジェクト生成ロジックが重複している
+
+```typescript
+// ❌ 悪い例: コードが重複
+if (exception instanceof DuplicateAlertException) {
+  return new UnprocessableEntityException({ ... });
+}
+if (exception instanceof AlertAlreadyResolvedException) {
+  return new UnprocessableEntityException({ ... });
+}
+if (exception instanceof CriticalAlertDeletionException) {
+  return new UnprocessableEntityException({ ... });
+}
+```
+
+**解決策**: 同じHTTP例外に変換される例外を1つの`if`ブロックにまとめる
+
+```typescript
+// ✅ 良い例: 1つのifブロックにまとめる
+if (
+  exception instanceof DuplicateAlertException ||
+  exception instanceof AlertAlreadyResolvedException ||
+  exception instanceof CriticalAlertDeletionException
+) {
+  return new UnprocessableEntityException({
+    success: false,
+    statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+    message: exception.message,
+    code: exception.code, // 例外クラスのプロパティから取得
+    errors: [],
+    timestamp: new Date().toISOString(),
+    path: request.url,
+  });
+}
+```
+
+**理由**:
+
+- コードの重複を排除し、保守性を向上
+- 一貫性の観点からも、同様のケースをグループ化
+- 可読性が向上
+
+#### 13-16-3. エラーコードの管理をドメイン層に集約 🟡 Medium
+
+**問題**: 例外クラスに`code`プロパティを持たず、フィルター側でエラーコードをハードコードしている
+
+```typescript
+// ❌ 悪い例: フィルター側でエラーコードをハードコード
+if (exception instanceof AlertNotFoundException) {
+  return new NotFoundException({
+    code: 'AL001', // ハードコード
+    ...
+  });
+}
+```
+
+**解決策**: 例外クラスに`code`プロパティを追加し、フィルター側ではそのプロパティを参照する
+
+```typescript
+// ✅ 良い例: 例外クラスにcodeプロパティを追加
+export class AlertNotFoundException extends Error {
+  public readonly code = 'AL001';
+  constructor(public readonly alertId: string) {
+    super(`Alert not found: ${alertId}`);
+    this.name = 'AlertNotFoundException';
+  }
+}
+
+// フィルター側では例外のプロパティからコードを取得
+if (exception instanceof AlertNotFoundException) {
+  return new NotFoundException({
+    code: exception.code, // 例外のプロパティから取得
+    ...
+  });
+}
+```
+
+**理由**:
+
+- エラーコードの管理がドメイン層に閉じる
+- モジュール間の一貫性を高める
+- 保守性を向上させる（エラーコードの変更時に1箇所の修正で済む）
+
+**重要なポイント**:
+
+1. **エラーコードは例外クラスで定義**: ドメイン層でエラーコードを管理
+2. **フィルター側では参照のみ**: エラーコードをハードコードしない
+3. **モジュール間の一貫性**: すべての例外クラスで同じパターンを採用
+
 ## 14. Geminiレビューから学んだ観点（旧セクション14以降）
 
 ### 14-1. 型安全性の維持 🔴 Critical
