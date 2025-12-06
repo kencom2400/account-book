@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  Logger,
-  HttpStatus,
-  HttpException,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, Logger } from '@nestjs/common';
 import { CheckConnectionStatusUseCase } from '../../application/use-cases/check-connection-status.use-case';
 import type { ConnectionStatusResult } from '../../domain/types/connection-status-result.type';
 import {
@@ -49,49 +41,39 @@ export class HealthController {
   async checkInstitutionsHealth(
     @Query() query: CheckConnectionRequestDto,
   ): Promise<CheckConnectionResponseDto> {
-    try {
-      this.logger.log('接続状態チェック開始');
+    this.logger.log('接続状態チェック開始');
 
-      // 登録されている金融機関を取得（InstitutionAggregationServiceを使用）
-      const institutions =
-        await this.institutionAggregationService.getAllInstitutions();
+    // 登録されている金融機関を取得（InstitutionAggregationServiceを使用）
+    const institutions =
+      await this.institutionAggregationService.getAllInstitutions();
 
-      if (institutions.length === 0) {
-        return {
-          results: [],
-          totalCount: 0,
-          successCount: 0,
-          errorCount: 0,
-          checkedAt: new Date().toISOString(),
-        };
-      }
-
-      // 接続チェック実行
-      const results = await this.checkConnectionStatusUseCase.execute(
-        { institutionId: query.institutionId },
-        institutions,
-      );
-
-      const successCount = results.filter((r) => !r.errorMessage).length;
-      const errorCount = results.length - successCount;
-
+    if (institutions.length === 0) {
       return {
-        results: results.map((r) => this.toConnectionStatusDto(r)),
-        totalCount: results.length,
-        successCount,
-        errorCount,
+        results: [],
+        totalCount: 0,
+        successCount: 0,
+        errorCount: 0,
         checkedAt: new Date().toISOString(),
       };
-    } catch (error) {
-      this.logger.error(
-        '接続状態チェック中にエラーが発生しました',
-        error instanceof Error ? error.stack : String(error),
-      );
-      throw new HttpException(
-        '接続状態のチェックに失敗しました',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
+
+    // 接続チェック実行
+    // エラーハンドリングはHttpExceptionFilterが一元管理
+    const results = await this.checkConnectionStatusUseCase.execute(
+      { institutionId: query.institutionId },
+      institutions,
+    );
+
+    const successCount = results.filter((r) => !r.errorMessage).length;
+    const errorCount = results.length - successCount;
+
+    return {
+      results: results.map((r) => this.toConnectionStatusDto(r)),
+      totalCount: results.length,
+      successCount,
+      errorCount,
+      checkedAt: new Date().toISOString(),
+    };
   }
 
   /**
@@ -103,30 +85,20 @@ export class HealthController {
     @Param('id') institutionId: string,
     @Query() query: GetConnectionHistoryQueryDto,
   ): Promise<GetConnectionHistoryResponseDto> {
-    try {
-      this.logger.log(`接続履歴取得: ${institutionId}`);
+    this.logger.log(`接続履歴取得: ${institutionId}`);
 
-      const histories = await this.getConnectionHistoryUseCase.execute({
-        institutionId,
-        startDate: query.startDate ? new Date(query.startDate) : undefined,
-        endDate: query.endDate ? new Date(query.endDate) : undefined,
-        limit: query.limit,
-      });
+    // エラーハンドリングはHttpExceptionFilterが一元管理
+    const histories = await this.getConnectionHistoryUseCase.execute({
+      institutionId,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      limit: query.limit,
+    });
 
-      return {
-        histories: histories.map((h) => this.toConnectionHistoryDto(h)),
-        totalCount: histories.length,
-      };
-    } catch (error) {
-      this.logger.error(
-        `接続履歴の取得中にエラーが発生しました: ${institutionId}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-      throw new HttpException(
-        '接続履歴の取得に失敗しました',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return {
+      histories: histories.map((h) => this.toConnectionHistoryDto(h)),
+      totalCount: histories.length,
+    };
   }
 
   /**
@@ -135,26 +107,16 @@ export class HealthController {
    */
   @Get('institutions/latest/all')
   async getLatestStatuses(): Promise<GetConnectionHistoryResponseDto> {
-    try {
-      this.logger.log('最新の接続状態を取得');
+    this.logger.log('最新の接続状態を取得');
 
-      const histories =
-        await this.getConnectionHistoryUseCase.getLatestStatuses();
+    // エラーハンドリングはHttpExceptionFilterが一元管理
+    const histories =
+      await this.getConnectionHistoryUseCase.getLatestStatuses();
 
-      return {
-        histories: histories.map((h) => this.toConnectionHistoryDto(h)),
-        totalCount: histories.length,
-      };
-    } catch (error) {
-      this.logger.error(
-        '最新接続状態の取得中にエラーが発生しました',
-        error instanceof Error ? error.stack : String(error),
-      );
-      throw new HttpException(
-        '最新接続状態の取得に失敗しました',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return {
+      histories: histories.map((h) => this.toConnectionHistoryDto(h)),
+      totalCount: histories.length,
+    };
   }
 
   /**
