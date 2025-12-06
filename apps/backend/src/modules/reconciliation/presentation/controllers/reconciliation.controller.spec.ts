@@ -99,7 +99,7 @@ describe('ReconciliationController', () => {
           cardId: 'card-001',
           billingMonth: '2025-01',
         }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(CardSummaryNotFoundError);
     });
 
     it('引落予定日が未来の場合は422エラー', async () => {

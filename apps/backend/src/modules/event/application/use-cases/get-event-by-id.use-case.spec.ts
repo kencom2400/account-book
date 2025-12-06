@@ -149,7 +149,7 @@ describe('GetEventByIdUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute('nonexistent')).rejects.toThrow(
-        'Event with id nonexistent not found',
+        'Event not found: nonexistent',
       );
     });
 

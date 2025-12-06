@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { AlertController } from './alert.controller';
 import { CreateAlertUseCase } from '../../application/use-cases/create-alert.use-case';
 import { GetAlertsUseCase } from '../../application/use-cases/get-alerts.use-case';
@@ -146,7 +143,7 @@ describe('AlertController', () => {
         controller.createAlert({
           reconciliationId: 'reconciliation-001',
         }),
-      ).rejects.toThrow(UnprocessableEntityException);
+      ).rejects.toThrow(DuplicateAlertException);
     });
   });
 
@@ -239,7 +236,7 @@ describe('AlertController', () => {
         controller.resolveAlert('alert-001', {
           resolvedBy: 'user-001',
         }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(AlertNotFoundException);
     });
 
     it('既に解決済みの場合エラー', async () => {
@@ -251,7 +248,7 @@ describe('AlertController', () => {
         controller.resolveAlert('alert-001', {
           resolvedBy: 'user-001',
         }),
-      ).rejects.toThrow(UnprocessableEntityException);
+      ).rejects.toThrow(AlertAlreadyResolvedException);
     });
   });
 
@@ -287,7 +284,7 @@ describe('AlertController', () => {
       );
 
       await expect(controller.deleteAlert('alert-001')).rejects.toThrow(
-        UnprocessableEntityException,
+        CriticalAlertDeletionException,
       );
     });
   });

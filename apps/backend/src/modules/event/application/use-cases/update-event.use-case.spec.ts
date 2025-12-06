@@ -131,7 +131,7 @@ describe('UpdateEventUseCase', () => {
       // Act & Assert
       await expect(
         useCase.execute('nonexistent', { title: '新しいタイトル' }),
-      ).rejects.toThrow('Event with id nonexistent not found');
+      ).rejects.toThrow('Event not found: nonexistent');
     });
   });
 });
