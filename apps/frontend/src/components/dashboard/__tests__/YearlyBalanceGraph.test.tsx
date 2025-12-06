@@ -160,7 +160,7 @@ describe('YearlyBalanceGraph', () => {
     expect(screen.getAllByTestId('line-chart').length).toBeGreaterThan(0);
 
     // 積み上げ棒グラフ（月別収支）
-    expect(screen.getAllByTestId('composed-chart').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('bar-chart').length).toBeGreaterThan(1);
 
     // エリアグラフ（収支差額）
     expect(screen.getAllByTestId('area-chart').length).toBeGreaterThan(0);

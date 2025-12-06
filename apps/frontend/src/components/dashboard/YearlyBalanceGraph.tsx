@@ -14,7 +14,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart,
   Cell,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -184,7 +183,7 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <BarChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
@@ -192,7 +191,7 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
               <Legend />
               <Bar dataKey="income" stackId="a" fill={COLOR_INCOME} name="収入" />
               <Bar dataKey="expense" stackId="a" fill={COLOR_EXPENSE} name="支出" />
-            </ComposedChart>
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

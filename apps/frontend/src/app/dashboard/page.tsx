@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import { MonthlySummaryCard } from '@/components/dashboard/MonthlySummaryCard';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
@@ -61,22 +61,22 @@ export default function DashboardPage(): React.JSX.Element {
   }, [currentYear, currentMonth]);
 
   // 年間収支データの取得
-  useEffect(() => {
-    const fetchYearlyData = async (): Promise<void> => {
-      try {
-        setYearlyLoading(true);
-        setYearlyError(null);
-        const yearlyResponse = await aggregationApi.getYearlyBalance(selectedYear);
-        setYearlyBalanceData(yearlyResponse);
-      } catch (_err) {
-        setYearlyError('年間データの取得に失敗しました');
-      } finally {
-        setYearlyLoading(false);
-      }
-    };
-
-    void fetchYearlyData();
+  const fetchYearlyData = useCallback(async (): Promise<void> => {
+    try {
+      setYearlyLoading(true);
+      setYearlyError(null);
+      const yearlyResponse = await aggregationApi.getYearlyBalance(selectedYear);
+      setYearlyBalanceData(yearlyResponse);
+    } catch (_err) {
+      setYearlyError('年間データの取得に失敗しました');
+    } finally {
+      setYearlyLoading(false);
+    }
   }, [selectedYear]);
+
+  useEffect(() => {
+    void fetchYearlyData();
+  }, [fetchYearlyData]);
 
   if (loading) {
     return (
@@ -182,19 +182,7 @@ export default function DashboardPage(): React.JSX.Element {
                   <p className="text-red-600 mb-4">{yearlyError}</p>
                   <button
                     onClick={() => {
-                      void (async (): Promise<void> => {
-                        try {
-                          setYearlyLoading(true);
-                          setYearlyError(null);
-                          const yearlyResponse =
-                            await aggregationApi.getYearlyBalance(selectedYear);
-                          setYearlyBalanceData(yearlyResponse);
-                        } catch (_err) {
-                          setYearlyError('年間データの取得に失敗しました');
-                        } finally {
-                          setYearlyLoading(false);
-                        }
-                      })();
+                      void fetchYearlyData();
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                   >
