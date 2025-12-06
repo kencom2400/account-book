@@ -969,8 +969,12 @@ gh pr checks <PR番号>
 
 #### Step 5: PRコメントで対応完了を報告（必須）
 
+**🚨 重要: バッククォートなどの特殊文字を含むコメントは、必ず`comment-pr.sh`スクリプトを使用してください。**
+
 ```bash
-gh pr comment <PR番号> --body "## 🙏 Gemini Code Assistレビューへの対応完了
+# ✅ 推奨: comment-pr.shスクリプトを使用（特殊文字を安全に処理）
+./scripts/github/pr/comment-pr.sh <PR番号> << 'EOF'
+## 🙏 Gemini Code Assistレビューへの対応完了
 
 ご指摘いただいた<N>つの点について、すべて対応しました。
 
@@ -978,15 +982,42 @@ gh pr comment <PR番号> --body "## 🙏 Gemini Code Assistレビューへの対
 
 | # | 指摘内容 | コミット | ステータス |
 |---|---------|----------|-----------|
-| 1 | <指摘1> | \`<hash1>\` | ✅ 完了 |
-| 2 | <指摘2> | \`<hash2>\` | ✅ 完了 |
+| 1 | <指摘1> | `<hash1>` | ✅ 完了 |
+| 2 | <指摘2> | `<hash2>` | ✅ 完了 |
 
 ## ✅ テスト結果
 
 - ✅ ローカルビルド成功
 - ✅ Lintエラーなし
-- ✅ テスト成功"
+- ✅ テスト成功
+EOF
 ```
+
+**代替方法（ファイルから送信）:**
+
+```bash
+# コメントをファイルに保存
+cat > /tmp/pr-comment.md << 'EOF'
+## 🙏 Gemini Code Assistレビューへの対応完了
+...
+EOF
+
+# ファイルから送信
+./scripts/github/pr/comment-pr.sh <PR番号> /tmp/pr-comment.md
+```
+
+**❌ 非推奨: 直接`gh pr comment`を使用（特殊文字でエラーになる可能性）**
+
+```bash
+# ❌ バッククォートが含まれるとシェルエラーが発生する可能性
+gh pr comment <PR番号> --body "コメント内に\`コード\`が含まれるとエラー"
+```
+
+**スクリプトの詳細:**
+
+- スクリプト: `scripts/github/pr/comment-pr.sh`
+- 機能: バッククォートなどの特殊文字を安全に処理
+- 使用方法: `./scripts/github/pr/comment-pr.sh --help` でヘルプを表示
 
 #### Step 6: Issueにもコメント（必須）
 
