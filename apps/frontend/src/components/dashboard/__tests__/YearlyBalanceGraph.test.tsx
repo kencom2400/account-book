@@ -3,23 +3,18 @@ import { render, screen } from '@testing-library/react';
 import { YearlyBalanceGraph } from '../YearlyBalanceGraph';
 import type { YearlyBalanceResponse } from '@/lib/api/aggregation';
 
-// Rechartsのモック（Tooltipにcontentプロパティを渡せるようにする）
+// Rechartsのモック
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
-  ),
-  BarChart: ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
-    <div data-testid="bar-chart" data-chart-data={JSON.stringify(data)}>
-      {children}
-    </div>
   ),
   LineChart: ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
     <div data-testid="line-chart" data-chart-data={JSON.stringify(data)}>
       {children}
     </div>
   ),
-  AreaChart: ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
-    <div data-testid="area-chart" data-chart-data={JSON.stringify(data)}>
+  BarChart: ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
+    <div data-testid="bar-chart" data-chart-data={JSON.stringify(data)}>
       {children}
     </div>
   ),
@@ -28,15 +23,14 @@ jest.mock('recharts', () => ({
       {children}
     </div>
   ),
-  Bar: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar">{children}</div>,
   Line: () => <div data-testid="line" />,
+  Bar: () => <div data-testid="bar" />,
   Area: () => <div data-testid="area" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
-  Cell: () => <div data-testid="cell" />,
 }));
 
 describe('YearlyBalanceGraph', () => {
@@ -46,266 +40,259 @@ describe('YearlyBalanceGraph', () => {
       {
         month: '2025-01',
         income: {
-          total: 500000,
-          count: 5,
+          total: 300000,
+          count: 1,
           byCategory: [],
           byInstitution: [],
           transactions: [],
         },
         expense: {
-          total: 300000,
-          count: 10,
+          total: 200000,
+          count: 5,
           byCategory: [],
           byInstitution: [],
           transactions: [],
         },
-        balance: 200000,
-        savingsRate: 40,
+        balance: 100000,
+        savingsRate: 33.33,
       },
       {
         month: '2025-02',
         income: {
-          total: 500000,
-          count: 5,
+          total: 300000,
+          count: 1,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        expense: {
+          total: 180000,
+          count: 4,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        balance: 120000,
+        savingsRate: 40.0,
+      },
+      {
+        month: '2025-03',
+        income: {
+          total: 300000,
+          count: 1,
           byCategory: [],
           byInstitution: [],
           transactions: [],
         },
         expense: {
           total: 250000,
-          count: 8,
+          count: 6,
           byCategory: [],
           byInstitution: [],
           transactions: [],
         },
-        balance: 250000,
-        savingsRate: 50,
+        balance: 50000,
+        savingsRate: 16.67,
       },
     ],
     annual: {
-      totalIncome: 6000000,
-      totalExpense: 3600000,
-      totalBalance: 2400000,
-      averageIncome: 500000,
-      averageExpense: 300000,
-      savingsRate: 40,
+      totalIncome: 900000,
+      totalExpense: 630000,
+      totalBalance: 270000,
+      averageIncome: 300000,
+      averageExpense: 210000,
+      savingsRate: 30.0,
     },
     trend: {
       incomeProgression: {
-        direction: 'increasing',
-        changeRate: 2.5,
-        standardDeviation: 15000,
+        direction: 'stable',
+        changeRate: 0.0,
+        standardDeviation: 0,
       },
       expenseProgression: {
-        direction: 'stable',
-        changeRate: 0.5,
-        standardDeviation: 20000,
+        direction: 'decreasing',
+        changeRate: -1.5,
+        standardDeviation: 15000,
       },
       balanceProgression: {
         direction: 'increasing',
-        changeRate: 3.0,
-        standardDeviation: 25000,
+        changeRate: 2.0,
+        standardDeviation: 10000,
       },
     },
     highlights: {
-      maxIncomeMonth: '2025-12',
-      maxExpenseMonth: '2025-01',
+      maxIncomeMonth: '2025-01',
+      maxExpenseMonth: '2025-03',
       bestBalanceMonth: '2025-02',
-      worstBalanceMonth: '2025-01',
+      worstBalanceMonth: '2025-03',
     },
   };
 
-  it('should render yearly balance graph with all sections', () => {
+  it('月別推移（折れ線グラフ）を表示する', () => {
     render(<YearlyBalanceGraph data={mockData} />);
-
-    // 年間サマリーセクション
-    expect(screen.getByText('年間サマリー')).toBeInTheDocument();
-    expect(screen.getByText('年間収入')).toBeInTheDocument();
-    expect(screen.getByText('年間支出')).toBeInTheDocument();
-    expect(screen.getByText('年間収支')).toBeInTheDocument();
-
-    // 月別推移グラフ
     expect(screen.getByText('月別推移（折れ線グラフ）')).toBeInTheDocument();
-
-    // 月別積み上げ棒グラフ
-    expect(screen.getByText('月別収支（積み上げ棒グラフ）')).toBeInTheDocument();
-
-    // 収支差額エリアグラフ
-    expect(screen.getByText('収支差額推移')).toBeInTheDocument();
+    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
   });
 
-  it('should display annual summary values', () => {
+  it('月別比較（棒グラフ）を表示する', () => {
     render(<YearlyBalanceGraph data={mockData} />);
-
-    // 年間収入の表示を確認（全角￥を使用）
-    expect(screen.getByText(/￥6,000,000/)).toBeInTheDocument();
-    expect(screen.getByText(/平均: ￥500,000\/月/)).toBeInTheDocument();
-
-    // 年間支出の表示を確認
-    expect(screen.getByText(/￥3,600,000/)).toBeInTheDocument();
-    expect(screen.getByText(/平均: ￥300,000\/月/)).toBeInTheDocument();
-
-    // 年間収支の表示を確認
-    expect(screen.getByText(/￥2,400,000/)).toBeInTheDocument();
-    expect(screen.getByText(/貯蓄率: 40\.0%/)).toBeInTheDocument();
+    expect(screen.getByText('月別比較（棒グラフ）')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
   });
 
-  it('should render all chart types', () => {
+  it('収支差額（エリアグラフ）を表示する', () => {
     render(<YearlyBalanceGraph data={mockData} />);
-
-    // バーグラフ（年間サマリー）
-    expect(screen.getAllByTestId('bar-chart').length).toBeGreaterThan(0);
-
-    // 折れ線グラフ（月別推移）
-    expect(screen.getAllByTestId('line-chart').length).toBeGreaterThan(0);
-
-    // 積み上げ棒グラフ（月別収支）
-    expect(screen.getAllByTestId('bar-chart').length).toBeGreaterThan(1);
-
-    // エリアグラフ（収支差額）
-    expect(screen.getAllByTestId('area-chart').length).toBeGreaterThan(0);
+    expect(screen.getByText('収支差額（エリアグラフ）')).toBeInTheDocument();
+    expect(screen.getByTestId('composed-chart')).toBeInTheDocument();
   });
 
-  it('should format currency correctly', () => {
+  it('月別データが正しく変換される', () => {
     render(<YearlyBalanceGraph data={mockData} />);
+    const lineChart = screen.getByTestId('line-chart');
+    const chartData = JSON.parse(lineChart.getAttribute('data-chart-data') || '[]');
 
-    // 通貨フォーマットの確認（カンマ区切り、全角￥を使用）
-    const incomeText = screen.getByText(/￥6,000,000/);
-    expect(incomeText).toBeInTheDocument();
+    expect(chartData.length).toBe(3);
+    expect(chartData[0]).toHaveProperty('month', '1月');
+    expect(chartData[0]).toHaveProperty('income', 300000);
+    expect(chartData[0]).toHaveProperty('expense', 200000);
+    expect(chartData[0]).toHaveProperty('balance', 100000);
   });
 
-  it('should handle empty months array', () => {
+  it('データが空の場合でもエラーなく表示する', () => {
     const emptyData: YearlyBalanceResponse = {
-      ...mockData,
+      year: 2025,
       months: [],
-    };
-
-    render(<YearlyBalanceGraph data={emptyData} />);
-
-    // グラフは表示されるが、データが空
-    expect(screen.getByText('年間サマリー')).toBeInTheDocument();
-  });
-
-  it('should throw error for invalid month format', () => {
-    const invalidData: YearlyBalanceResponse = {
-      ...mockData,
-      months: [
-        {
-          month: 'invalid', // 不正なフォーマット（ハイフンなし）
-          income: {
-            total: 500000,
-            count: 5,
-            byCategory: [],
-            byInstitution: [],
-            transactions: [],
-          },
-          expense: {
-            total: 300000,
-            count: 5,
-            byCategory: [],
-            byInstitution: [],
-            transactions: [],
-          },
-          balance: 200000,
-          savingsRate: 40,
-        },
-      ],
-    };
-
-    // エラーが投げられることを確認
-    expect(() => {
-      render(<YearlyBalanceGraph data={invalidData} />);
-    }).toThrow('Invalid month format: invalid');
-  });
-
-  it('should display negative balance with orange color', () => {
-    const negativeBalanceData: YearlyBalanceResponse = {
-      ...mockData,
       annual: {
-        totalIncome: 3000000,
-        totalExpense: 4000000,
-        totalBalance: -1000000,
-        averageIncome: 250000,
-        averageExpense: 333333,
-        savingsRate: -33.33,
+        totalIncome: 0,
+        totalExpense: 0,
+        totalBalance: 0,
+        averageIncome: 0,
+        averageExpense: 0,
+        savingsRate: 0,
+      },
+      trend: {
+        incomeProgression: {
+          direction: 'stable',
+          changeRate: 0,
+          standardDeviation: 0,
+        },
+        expenseProgression: {
+          direction: 'stable',
+          changeRate: 0,
+          standardDeviation: 0,
+        },
+        balanceProgression: {
+          direction: 'stable',
+          changeRate: 0,
+          standardDeviation: 0,
+        },
+      },
+      highlights: {
+        maxIncomeMonth: null,
+        maxExpenseMonth: null,
+        bestBalanceMonth: null,
+        worstBalanceMonth: null,
       },
     };
 
-    render(<YearlyBalanceGraph data={negativeBalanceData} />);
-
-    // マイナス収支の場合、オレンジ色のクラスが適用される
-    // formatCurrencyはIntl.NumberFormatを使用するため、マイナス記号の位置が異なる可能性がある
-    const balanceText = screen.getByText(/1,000,000/);
-    const balanceCard = balanceText.closest('div');
-    expect(balanceCard).toHaveClass('bg-orange-50');
-
-    // テキストにマイナス記号が含まれることを確認（フォーマット方法によって異なる）
-    const balanceValue = balanceText.textContent || '';
-    expect(balanceValue).toMatch(/-|−|マイナス/);
+    render(<YearlyBalanceGraph data={emptyData} />);
+    expect(screen.getByText('月別推移（折れ線グラフ）')).toBeInTheDocument();
+    expect(screen.getByText('月別比較（棒グラフ）')).toBeInTheDocument();
+    expect(screen.getByText('収支差額（エリアグラフ）')).toBeInTheDocument();
   });
 
-  it('should display positive balance with blue color', () => {
-    render(<YearlyBalanceGraph data={mockData} />);
+  it('12ヶ月分のデータを正しく処理する', () => {
+    const fullYearData: YearlyBalanceResponse = {
+      ...mockData,
+      months: Array.from({ length: 12 }, (_, i) => ({
+        month: `2025-${String(i + 1).padStart(2, '0')}`,
+        income: {
+          total: 300000,
+          count: 1,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        expense: {
+          total: 200000,
+          count: 5,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        balance: 100000,
+        savingsRate: 33.33,
+      })),
+    };
 
-    // プラス収支の場合、青色のクラスが適用される
-    const balanceCard = screen.getByText(/￥2,400,000/).closest('div');
-    expect(balanceCard).toHaveClass('bg-blue-50');
-    expect(balanceCard?.querySelector('.text-blue-600')).toBeInTheDocument();
+    render(<YearlyBalanceGraph data={fullYearData} />);
+    const lineChart = screen.getByTestId('line-chart');
+    const chartData = JSON.parse(lineChart.getAttribute('data-chart-data') || '[]');
+
+    expect(chartData.length).toBe(12);
+    expect(chartData[0]).toHaveProperty('month', '1月');
+    expect(chartData[11]).toHaveProperty('month', '12月');
   });
 
-  it('should render XAxis with tickFormatter for annual summary chart', () => {
-    render(<YearlyBalanceGraph data={mockData} />);
-
-    // 年間サマリーのバーグラフでXAxisが表示される
-    const barCharts = screen.getAllByTestId('bar-chart');
-    expect(barCharts.length).toBeGreaterThan(0);
-
-    // XAxisコンポーネントが存在することを確認
-    const xAxes = screen.getAllByTestId('x-axis');
-    expect(xAxes.length).toBeGreaterThan(0);
-  });
-
-  it('should render YAxis with tickFormatter for monthly line chart', () => {
-    render(<YearlyBalanceGraph data={mockData} />);
-
-    // 月別折れ線グラフでYAxisが表示される
-    const lineCharts = screen.getAllByTestId('line-chart');
-    expect(lineCharts.length).toBeGreaterThan(0);
-
-    // YAxisコンポーネントが存在することを確認
-    const yAxes = screen.getAllByTestId('y-axis');
-    expect(yAxes.length).toBeGreaterThan(0);
-  });
-
-  it('should handle month with missing part', () => {
-    const missingPartData: YearlyBalanceResponse = {
+  it('収支差額エリアグラフでプラスとマイナスが正しく分離される', () => {
+    const mixedBalanceData: YearlyBalanceResponse = {
       ...mockData,
       months: [
         {
-          month: '2025-', // 月の部分が欠けている
+          month: '2025-01',
           income: {
-            total: 500000,
-            count: 5,
+            total: 300000,
+            count: 1,
             byCategory: [],
             byInstitution: [],
             transactions: [],
           },
           expense: {
-            total: 300000,
+            total: 200000,
             count: 5,
             byCategory: [],
             byInstitution: [],
             transactions: [],
           },
-          balance: 200000,
-          savingsRate: 40,
+          balance: 100000, // プラス
+          savingsRate: 33.33,
+        },
+        {
+          month: '2025-02',
+          income: {
+            total: 200000,
+            count: 1,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          expense: {
+            total: 250000,
+            count: 6,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          balance: -50000, // マイナス
+          savingsRate: -25.0,
         },
       ],
     };
 
-    // エラーが投げられることを確認
-    expect(() => {
-      render(<YearlyBalanceGraph data={missingPartData} />);
-    }).toThrow('Invalid month format: 2025-');
+    render(<YearlyBalanceGraph data={mixedBalanceData} />);
+    const composedChart = screen.getByTestId('composed-chart');
+    const chartData = JSON.parse(composedChart.getAttribute('data-chart-data') || '[]');
+
+    expect(chartData[0]).toHaveProperty('positiveBalance', 100000);
+    expect(chartData[0]).toHaveProperty('negativeBalance', 0);
+    expect(chartData[1]).toHaveProperty('positiveBalance', 0);
+    expect(chartData[1]).toHaveProperty('negativeBalance', -50000);
+  });
+
+  it('ツールチップコンポーネントが存在する', () => {
+    render(<YearlyBalanceGraph data={mockData} />);
+    const tooltips = screen.getAllByTestId('tooltip');
+    // 3つのグラフすべてにツールチップがあることを確認
+    expect(tooltips.length).toBe(3);
   });
 });

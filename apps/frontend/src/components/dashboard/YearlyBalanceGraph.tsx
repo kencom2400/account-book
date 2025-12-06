@@ -6,7 +6,6 @@ import {
   Bar,
   LineChart,
   Line,
-  AreaChart,
   Area,
   XAxis,
   YAxis,
@@ -14,7 +13,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
+  ComposedChart,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency } from '@account-book/utils';
@@ -38,9 +37,10 @@ const COLOR_BALANCE_NEGATIVE = '#FF9800';
 export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX.Element {
   // 一意なIDを生成（linearGradientのID衝突を防ぐ）
   const uniqueId = useId();
-  const balanceGradientId = `colorBalance-${uniqueId}`;
+  const balancePositiveGradientId = `colorBalancePositive-${uniqueId}`;
+  const balanceNegativeGradientId = `colorBalanceNegative-${uniqueId}`;
 
-  // 月別データをグラフ用に変換
+  // 月別データをグラフ用に変換（1月〜12月）
   const monthlyData = useMemo(() => {
     return data.months.map((month) => {
       // month.monthはYYYY-MM形式であることが保証されている
@@ -49,8 +49,10 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
         throw new Error(`Invalid month format: ${month.month}`);
       }
       const monthNum = parseInt(monthPart, 10);
+      const monthLabel = `${monthNum}月`;
+
       return {
-        month: `${monthNum}月`,
+        month: monthLabel,
         monthNum,
         income: month.income.total,
         expense: month.expense.total,
@@ -58,94 +60,32 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
         savingsRate: month.savingsRate,
       };
     });
-  }, [data]);
+  }, [data.months]);
 
-  // 年間サマリーデータ
-  const annualSummary = useMemo(() => {
-    return [
-      {
-        name: '年間収入',
-        value: data.annual.totalIncome,
-        color: COLOR_INCOME,
-      },
-      {
-        name: '年間支出',
-        value: data.annual.totalExpense,
-        color: COLOR_EXPENSE,
-      },
-      {
-        name: '年間収支',
-        value: data.annual.totalBalance,
-        color: data.annual.totalBalance >= 0 ? COLOR_BALANCE_POSITIVE : COLOR_BALANCE_NEGATIVE,
-      },
-    ];
-  }, [data]);
+  // 月別折れ線グラフ用データ（収入・支出・収支の3本の線）
+  const lineChartData = useMemo(() => {
+    return monthlyData;
+  }, [monthlyData]);
+
+  // 月別積み上げ棒グラフ用データ（収入バーと支出バー）
+  const barChartData = useMemo(() => {
+    return monthlyData;
+  }, [monthlyData]);
+
+  // 収支差額エリアグラフ用データ（0を基準にプラス/マイナス）
+  // プラスとマイナスを分けて描画するため、2つのデータセットを作成
+  const areaChartData = useMemo(() => {
+    return monthlyData.map((item) => ({
+      month: item.month,
+      monthNum: item.monthNum,
+      balance: item.balance,
+      positiveBalance: item.balance >= 0 ? item.balance : 0,
+      negativeBalance: item.balance < 0 ? item.balance : 0,
+    }));
+  }, [monthlyData]);
 
   return (
     <div className="space-y-6">
-      {/* 年間サマリーバーグラフ */}
-      <Card>
-        <CardHeader>
-          <CardTitle>年間サマリー</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">年間収入</p>
-              <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(data.annual.totalIncome)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                平均: {formatCurrency(data.annual.averageIncome)}/月
-              </p>
-            </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">年間支出</p>
-              <p className="text-2xl font-bold text-red-600">
-                {formatCurrency(data.annual.totalExpense)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                平均: {formatCurrency(data.annual.averageExpense)}/月
-              </p>
-            </div>
-            <div
-              className={`text-center p-4 rounded-lg ${
-                data.annual.totalBalance >= 0 ? 'bg-blue-50' : 'bg-orange-50'
-              }`}
-            >
-              <p className="text-sm text-gray-600 mb-1">年間収支</p>
-              <p
-                className={`text-2xl font-bold ${
-                  data.annual.totalBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
-                }`}
-              >
-                {formatCurrency(data.annual.totalBalance)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                貯蓄率: {data.annual.savingsRate.toFixed(1)}%
-              </p>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={annualSummary}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(value: number) => formatCurrency(value)} />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value">
-                {annualSummary.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
       {/* 月別折れ線グラフ */}
       <Card>
         <CardHeader>
@@ -153,7 +93,7 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={lineChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
@@ -178,11 +118,12 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
               <Line
                 type="monotone"
                 dataKey="balance"
-                stroke={COLOR_BALANCE_POSITIVE}
+                stroke={
+                  data.annual.totalBalance >= 0 ? COLOR_BALANCE_POSITIVE : COLOR_BALANCE_NEGATIVE
+                }
                 strokeWidth={2}
                 name="収支"
                 dot={{ r: 4 }}
-                strokeDasharray="5 5"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -192,18 +133,18 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
       {/* 月別積み上げ棒グラフ */}
       <Card>
         <CardHeader>
-          <CardTitle>月別収支（積み上げ棒グラフ）</CardTitle>
+          <CardTitle>月別比較（棒グラフ）</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <BarChart data={barChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey="income" stackId="a" fill={COLOR_INCOME} name="収入" />
-              <Bar dataKey="expense" stackId="a" fill={COLOR_EXPENSE} name="支出" />
+              <Bar dataKey="income" fill={COLOR_INCOME} name="収入" />
+              <Bar dataKey="expense" fill={COLOR_EXPENSE} name="支出" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -212,15 +153,19 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
       {/* 収支差額エリアグラフ */}
       <Card>
         <CardHeader>
-          <CardTitle>収支差額推移</CardTitle>
+          <CardTitle>収支差額（エリアグラフ）</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <ComposedChart data={areaChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <defs>
-                <linearGradient id={balanceGradientId} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={balancePositiveGradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLOR_BALANCE_POSITIVE} stopOpacity={0.8} />
                   <stop offset="95%" stopColor={COLOR_BALANCE_POSITIVE} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id={balanceNegativeGradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={COLOR_BALANCE_NEGATIVE} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={COLOR_BALANCE_NEGATIVE} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
@@ -228,14 +173,25 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
               <YAxis tickFormatter={(value: number) => formatCurrency(value)} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
+              {/* プラスのエリア */}
               <Area
                 type="monotone"
-                dataKey="balance"
+                dataKey="positiveBalance"
                 stroke={COLOR_BALANCE_POSITIVE}
-                fill={`url(#${balanceGradientId})`}
-                name="収支"
+                fillOpacity={1}
+                fill={`url(#${balancePositiveGradientId})`}
+                name="収支（プラス）"
               />
-            </AreaChart>
+              {/* マイナスのエリア */}
+              <Area
+                type="monotone"
+                dataKey="negativeBalance"
+                stroke={COLOR_BALANCE_NEGATIVE}
+                fillOpacity={1}
+                fill={`url(#${balanceNegativeGradientId})`}
+                name="収支（マイナス）"
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

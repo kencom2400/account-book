@@ -2,7 +2,7 @@
  * 月別集計APIクライアント
  * FR-012: クレジットカード月別集計
  * FR-016: 月別収支集計
- * FR-020: 年間収支集計
+ * FR-020: 年間収支推移表示
  */
 
 import { CategoryAmount } from '@account-book/types';
@@ -120,24 +120,22 @@ export interface MonthlyBalanceResponse {
  * 年間収支集計レスポンス（FR-020）
  */
 
-// 月別サマリー（年間集計用の簡略版）
-export interface YearlyMonthlyBalanceSummary {
-  month: string; // YYYY-MM
-  income: MonthlyBalanceDetails;
-  expense: MonthlyBalanceDetails;
-  balance: number;
-  savingsRate: number;
-}
-
 // トレンド分析
-export interface TrendAnalysisDto {
+export interface TrendAnalysis {
   direction: 'increasing' | 'decreasing' | 'stable';
   changeRate: number;
   standardDeviation: number;
 }
 
+// トレンドデータ
+export interface TrendData {
+  incomeProgression: TrendAnalysis;
+  expenseProgression: TrendAnalysis;
+  balanceProgression: TrendAnalysis;
+}
+
 // 年間サマリー
-export interface AnnualSummaryData {
+export interface AnnualSummary {
   totalIncome: number;
   totalExpense: number;
   totalBalance: number;
@@ -146,27 +144,30 @@ export interface AnnualSummaryData {
   savingsRate: number;
 }
 
-// トレンドデータ
-export interface TrendData {
-  incomeProgression: TrendAnalysisDto;
-  expenseProgression: TrendAnalysisDto;
-  balanceProgression: TrendAnalysisDto;
+// ハイライト情報
+export interface Highlights {
+  maxIncomeMonth: string | null; // YYYY-MM
+  maxExpenseMonth: string | null; // YYYY-MM
+  bestBalanceMonth: string | null; // YYYY-MM
+  worstBalanceMonth: string | null; // YYYY-MM
 }
 
-// ハイライトデータ
-export interface HighlightsData {
-  maxIncomeMonth: string | null;
-  maxExpenseMonth: string | null;
-  bestBalanceMonth: string | null;
-  worstBalanceMonth: string | null;
+// 月別サマリー（年間集計用の簡略版、comparisonフィールドなし）
+export interface MonthlyBalanceSummary {
+  month: string; // YYYY-MM
+  income: MonthlyBalanceDetails;
+  expense: MonthlyBalanceDetails;
+  balance: number;
+  savingsRate: number;
 }
 
+// 年間収支集計レスポンス
 export interface YearlyBalanceResponse {
   year: number;
-  months: YearlyMonthlyBalanceSummary[];
-  annual: AnnualSummaryData;
+  months: MonthlyBalanceSummary[];
+  annual: AnnualSummary;
   trend: TrendData;
-  highlights: HighlightsData;
+  highlights: Highlights;
 }
 
 /**
