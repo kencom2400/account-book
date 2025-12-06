@@ -434,8 +434,6 @@ private toResult(history: ConnectionHistory): ConnectionHistoryResult {
 - コードの意図が明確になる
 - デバッグ時にログで問題を追跡できる
 
-````
-
 #### 型エイリアスによる型定義の一元管理
 
 **原則**: 文字列リテラルユニオン型は型エイリアスとして定義し、一元管理する
@@ -457,7 +455,7 @@ export interface ConnectionHistoryDto {
 export interface ConnectionStatusResult {
   status: 'CONNECTED' | 'DISCONNECTED' | 'NEED_REAUTH'; // 同じ型を重複定義
 }
-````
+```
 
 **問題点**:
 

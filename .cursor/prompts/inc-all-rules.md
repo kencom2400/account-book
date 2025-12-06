@@ -67,15 +67,23 @@ const ruleDirectories = [
 
 // 各ディレクトリ内の全.mdファイルを動的に取得して読み込み
 for (const dir of ruleDirectories) {
+  const dirPath = `.cursor/rules/${dir}`;
+
   // ディレクトリ内の全.mdファイルを取得
   // 注意: 実際の実装では、list_dirツールを使用してファイル一覧を取得
-  // 例: const files = await list_dir(`.cursor/rules/${dir}`, { glob: '*.md' });
-  // ファイル名でソート（先頭の数字で優先度順、ただし逆順）
-  // README.mdは常に最初、その後は数値プレフィックスで逆順にソート
-  // 例: ['README.md', '04-xxx.md', '03-yyy.md', '02-zzz.md', '01-aaa.md', ...]
+  const files = await list_dir(dirPath, { glob: '*.md' });
+
+  // ファイル名でソート（README.mdは常に最初、その後は数値プレフィックスで逆順にソート）
   // 重要: 優先度の高いルール（01-XX）を後から読み込むことで、矛盾する内容がある場合に優先度の高いルールが優先される
-  // ソート済みファイルを順次読み込み
-  // await Promise.all(files.map((file) => read_file(`.cursor/rules/${dir}/${file}`).catch(() => null)));
+  files.sort((a, b) => {
+    if (a === 'README.md') return -1;
+    if (b === 'README.md') return 1;
+    // 数値プレフィックスで逆順にソート（04-XX → 03-XX → 02-XX → 01-XX）
+    return b.localeCompare(a, undefined, { numeric: true });
+  });
+
+  // ソート済みファイルを並列で読み込み
+  await Promise.all(files.map((file) => read_file(`${dirPath}/${file}`).catch(() => null)));
 }
 
 // テンプレートも読み込む
