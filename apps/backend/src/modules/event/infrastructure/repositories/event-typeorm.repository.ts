@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
 import { EventOrmEntity } from '../entities/event.orm-entity';
 import { EventTransactionRelationOrmEntity } from '../entities/event-transaction-relation.orm-entity';
 import { EventEntity } from '../../domain/entities/event.entity';
@@ -53,31 +53,28 @@ export class EventTypeOrmRepository implements IEventRepository {
     startDate: Date,
     endDate: Date,
   ): Promise<EventEntity[]> {
-    // date型のカラムに対しては、UTCの日付として扱う
-    // タイムゾーンの影響を回避するため、日付文字列からUTCのDateオブジェクトを作成
+    // date型のカラムに対しては、タイムゾーンの影響を回避するため
+    // 日付文字列（YYYY-MM-DD）として比較する
     const startDateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const endDateStr = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // 日付文字列からUTCのDateオブジェクトを作成（00:00:00 UTC）
-    const start = new Date(`${startDateStr}T00:00:00.000Z`);
-
-    // date型のカラムに対しては、Dateオブジェクトを使用
+    // Rawを使って、date型カラムを文字列として比較
+    // DATE()関数でdate型カラムを文字列に変換し、文字列比較を行う
     const ormEntities: EventOrmEntity[] = await this.eventRepository.find({
       where: {
-        date: MoreThanOrEqual(start),
+        date: Raw(
+          (alias) =>
+            `DATE(${alias}) >= :startDate AND DATE(${alias}) <= :endDate`,
+          {
+            startDate: startDateStr,
+            endDate: endDateStr,
+          },
+        ),
       },
       order: { date: 'ASC', createdAt: 'ASC' },
     });
 
-    // メモリ上でendDateでフィルタリング（date型のカラムは時刻部分を持たないため）
-    const filtered = ormEntities.filter((entity) => {
-      const entityDate =
-        entity.date instanceof Date ? entity.date : new Date(entity.date);
-      const entityDateStr = entityDate.toISOString().split('T')[0];
-      return entityDateStr <= endDateStr;
-    });
-
-    return filtered.map((entity: EventOrmEntity) => this.toDomain(entity));
+    return ormEntities.map((entity: EventOrmEntity) => this.toDomain(entity));
   }
 
   /**
