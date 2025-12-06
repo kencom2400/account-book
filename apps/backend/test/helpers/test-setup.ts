@@ -1,5 +1,10 @@
 import { TestingModuleBuilder } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  BadRequestException,
+} from '@nestjs/common';
+import { ValidationError } from 'class-validator';
 import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
 
 /**
@@ -102,12 +107,48 @@ export async function createTestApp(
 
   // ValidationPipeを適用（main.tsと同じ設定）
   if (enableValidationPipe) {
+    // main.tsと同じexceptionFactoryを使用
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: validationPipeOptions?.whitelist ?? true,
         forbidNonWhitelisted:
           validationPipeOptions?.forbidNonWhitelisted ?? true,
         transform: validationPipeOptions?.transform ?? true,
+        exceptionFactory: (errors: ValidationError[]): BadRequestException => {
+          const messages = errors.map((error) => {
+            const field = error.property;
+            const constraints = error.constraints
+              ? Object.values(error.constraints).join(', ')
+              : 'Validation failed';
+
+            if (error.children && error.children.length > 0) {
+              const nestedMessages = error.children
+                .map((child) => {
+                  const childConstraints = child.constraints
+                    ? Object.values(child.constraints).join(', ')
+                    : '';
+                  return childConstraints
+                    ? `${child.property}: ${childConstraints}`
+                    : '';
+                })
+                .filter((msg) => msg.length > 0);
+
+              if (nestedMessages.length > 0) {
+                return {
+                  field,
+                  message: `${constraints} (${nestedMessages.join('; ')})`,
+                };
+              }
+            }
+
+            return {
+              field,
+              message: constraints,
+            };
+          });
+
+          return new BadRequestException({ message: messages });
+        },
       }),
     );
   }
