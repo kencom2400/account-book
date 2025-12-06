@@ -167,6 +167,33 @@ describe('EventTypeOrmRepository', () => {
       expect(result[0]).toBeInstanceOf(EventEntity);
       expect(result[1]).toBeInstanceOf(EventEntity);
       expect(mockEventRepository.find).toHaveBeenCalled();
+      // Raw関数が呼び出されたことを確認（where条件にdateとRawが含まれている）
+      const findCall = mockEventRepository.find.mock.calls[0][0];
+      expect(findCall).toBeDefined();
+      expect(findCall.where).toBeDefined();
+      expect(findCall.where.date).toBeDefined();
+    });
+
+    it('should find events with date range boundary values', async () => {
+      // Arrange
+      const startDate = new Date('2025-04-01T00:00:00');
+      const endDate = new Date('2025-04-01T23:59:59');
+
+      mockEventRepository.find.mockResolvedValue([
+        mockOrmEntity as EventOrmEntity,
+      ]);
+
+      // Act
+      const result = await repository.findByDateRange(startDate, endDate);
+
+      // Assert
+      expect(result).toHaveLength(1);
+      expect(mockEventRepository.find).toHaveBeenCalled();
+      // Raw関数が呼び出されたことを確認
+      const findCall = mockEventRepository.find.mock.calls[0][0];
+      expect(findCall).toBeDefined();
+      expect(findCall.where).toBeDefined();
+      expect(findCall.where.date).toBeDefined();
     });
   });
 

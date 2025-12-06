@@ -160,6 +160,54 @@ describe('EventEntity', () => {
           ),
       ).toThrow('Tags must be an array');
     });
+
+    it('should throw error when createdAt is missing', () => {
+      expect(
+        () =>
+          new EventEntity(
+            validEventData.id,
+            validEventData.date,
+            validEventData.title,
+            validEventData.description,
+            validEventData.category,
+            validEventData.tags,
+            null as any,
+            validEventData.updatedAt,
+          ),
+      ).toThrow('CreatedAt is required');
+    });
+
+    it('should throw error when updatedAt is missing', () => {
+      expect(
+        () =>
+          new EventEntity(
+            validEventData.id,
+            validEventData.date,
+            validEventData.title,
+            validEventData.description,
+            validEventData.category,
+            validEventData.tags,
+            validEventData.createdAt,
+            null as any,
+          ),
+      ).toThrow('UpdatedAt is required');
+    });
+
+    it('should throw error when date is null', () => {
+      expect(
+        () =>
+          new EventEntity(
+            validEventData.id,
+            null as any,
+            validEventData.title,
+            validEventData.description,
+            validEventData.category,
+            validEventData.tags,
+            validEventData.createdAt,
+            validEventData.updatedAt,
+          ),
+      ).toThrow('Date is required');
+    });
   });
 
   describe('addTag', () => {
@@ -389,6 +437,24 @@ describe('EventEntity', () => {
       expect(() => event.update('')).toThrow('Title is required');
       expect(() => event.update('a'.repeat(101))).toThrow(
         'Title must be 100 characters or less',
+      );
+    });
+
+    it('should throw error when updated description exceeds 1000 characters', () => {
+      const event = new EventEntity(
+        validEventData.id,
+        validEventData.date,
+        validEventData.title,
+        validEventData.description,
+        validEventData.category,
+        validEventData.tags,
+        validEventData.createdAt,
+        validEventData.updatedAt,
+      );
+
+      const longDescription = 'a'.repeat(1001);
+      expect(() => event.update(undefined, undefined, longDescription)).toThrow(
+        'Description must be 1000 characters or less',
       );
     });
   });
