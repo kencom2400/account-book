@@ -98,36 +98,69 @@ Phase 2のリファクタリングにより、ルールファイルは以下の�
 以下のように、各ディレクトリ内のすべての`.md`ファイルを読み込んでください：
 
 ```typescript
-// ディレクトリごとに読み込み
-const directories = [
-  '00-workflow-checklist.d',
-  '01-project.d',
-  '02-code-standards.d',
-  '03-git-workflow.d',
-  '04-github-integration.d',
-  '05-ci-cd.d',
-];
+// ディレクトリごとに読み込むファイルを定義
+const filesToReadByDir = {
+  '00-workflow-checklist.d': [
+    'README.md',
+    '01-overview.md',
+    '02-task-start.md',
+    '03-implementation.md',
+    '04-push-check.md',
+    '05-pr-review.md',
+    '06-completion.md',
+  ],
+  '01-project.d': [
+    'README.md',
+    '01-overview.md',
+    '02-tech-stack.md',
+    '03-architecture.md',
+    '04-coding-standards.md',
+    '05-issue-management.md',
+  ],
+  '02-code-standards.d': [
+    'README.md',
+    '01-type-safety.md',
+    '02-test-requirements.md',
+    '03-data-access.md',
+    '04-architecture.md',
+    '05-test-guidelines.md',
+    '06-eslint-config.md',
+    '07-react-ui.md',
+    '08-implementation-checklist.md',
+    '09-script-tools.md',
+    '10-push-check.md',
+    '11-shell-scripts.md',
+    '12-gemini-learnings.md',
+  ],
+  '03-git-workflow.d': [
+    'README.md',
+    '01-branch-management.md',
+    '02-commit-rules.md',
+    '03-push-check.md',
+    '04-pr-review.md',
+  ],
+  '04-github-integration.d': [
+    'README.md',
+    '01-projects-setup.md',
+    '02-status-management.md',
+    '03-issue-reporting.md',
+    '04-start-task.md',
+  ],
+  '05-ci-cd.d': [
+    'README.md',
+    '01-test-scripts.md',
+    '02-env-management.md',
+    '03-playwright-config.md',
+    '04-github-actions.md',
+  ],
+};
 
 // 各ディレクトリ内の全ファイルを読み込み
-for (const dir of directories) {
-  const files = [
-    `${dir}/README.md`,
-    `${dir}/01-*.md`,
-    `${dir}/02-*.md`,
-    `${dir}/03-*.md`,
-    `${dir}/04-*.md`,
-    `${dir}/05-*.md`,
-    `${dir}/06-*.md`,
-    `${dir}/07-*.md`,
-    `${dir}/08-*.md`,
-    `${dir}/09-*.md`,
-    `${dir}/10-*.md`,
-    `${dir}/11-*.md`,
-    `${dir}/12-*.md`,
-  ];
-
-  // 存在するファイルのみ読み込む
-  await Promise.all(files.map((file) => read_file(`.cursor/rules/${file}`).catch(() => null)));
+for (const dir in filesToReadByDir) {
+  const files = filesToReadByDir[dir];
+  await Promise.all(
+    files.map((file) => read_file(`.cursor/rules/${dir}/${file}`).catch(() => null))
+  );
 }
 
 // テンプレートも読み込む
