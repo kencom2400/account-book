@@ -34,14 +34,7 @@ export class LinkTransactionToEventUseCase {
       throw new Error(`Transaction with id ${transactionId} not found`);
     }
 
-    // 重複チェック（既に紐付けられているか）
-    const transactionIds =
-      await this.eventRepository.getTransactionIdsByEventId(eventId);
-    if (transactionIds.includes(transactionId)) {
-      return; // 既に紐付けられている場合は何もしない
-    }
-
-    // 紐付けを実行
+    // 紐付けを実行（重複チェックはEventTypeOrmRepository内で実施）
     await this.eventRepository.linkTransaction(eventId, transactionId);
   }
 }
