@@ -325,9 +325,7 @@ describe('Event Controller (e2e)', () => {
         .get(`/api/events/${createdEventId}`)
         .expect(200);
 
-      expect(
-        getEventResponse.body.data.relatedTransactions.length,
-      ).toBeGreaterThanOrEqual(1);
+      expect(getEventResponse.body.data.relatedTransactions).toHaveLength(1);
     });
 
     it('should return 404 for non-existent event', async () => {
@@ -396,9 +394,7 @@ describe('Event Controller (e2e)', () => {
         .get(`/api/events/${createdEventId}`)
         .expect(200);
 
-      expect(getEventResponse.body.data.relatedTransactions).not.toContain(
-        expect.objectContaining({ id: createdTransactionId }),
-      );
+      expect(getEventResponse.body.data.relatedTransactions).toHaveLength(0);
     });
 
     it('should return 404 for non-existent event', async () => {

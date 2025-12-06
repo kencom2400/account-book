@@ -11167,3 +11167,37 @@ export class EventEntity {
 **参照**: PR #365 - Issue #50: FR-021: イベントメモ機能の実装（Geminiレビュー指摘）
 
 ---
+
+### 20-8. E2Eテストのアサーションの厳密性 🟢 Medium
+
+**問題点**:
+
+- テストの期待値が曖昧で、実装の意図が明確でない
+- `toBeGreaterThanOrEqual(1)`のような緩いアサーションは、テストの意図を不明確にする
+
+**解決策**:
+
+- テストの期待値を明確に定義する
+- 可能な限り厳密なアサーションを使用する
+
+```typescript
+// ❌ 悪い例: 曖昧なアサーション
+expect(getEventResponse.body.data.relatedTransactions.length).toBeGreaterThanOrEqual(1);
+expect(getEventResponse.body.data.relatedTransactions).not.toContain(
+  expect.objectContaining({ id: createdTransactionId })
+);
+
+// ✅ 良い例: 明確なアサーション
+expect(getEventResponse.body.data.relatedTransactions).toHaveLength(1);
+expect(getEventResponse.body.data.relatedTransactions).toHaveLength(0);
+```
+
+**教訓**:
+
+- テストの期待値は可能な限り明確に定義する
+- `toHaveLength(n)`のような厳密なアサーションを使用する
+- テストの意図を明確にすることで、実装の意図も明確になる
+
+**参照**: PR #365 - Issue #50: FR-021: イベントメモ機能の実装（Geminiレビュー指摘 #8, #9）
+
+---
