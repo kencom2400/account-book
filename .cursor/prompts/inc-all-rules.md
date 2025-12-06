@@ -27,140 +27,52 @@ Phase 2のリファクタリングにより、ルールファイルは以下の�
 
 ### 読込対象ファイル
 
-以下のディレクトリ内のすべての`.md`ファイルを読み込んでください：
+**重要**: 各`.d`ディレクトリ内のすべての`.md`ファイルを**動的に検出**して読み込みます。ファイルを追加した際に、このファイル（`inc-all-rules.md`）を更新する必要はありません。
 
-#### 1. ワークフロー・チェックリスト（最優先）
+**読み込み順序**:
 
-- `.cursor/rules/00-workflow-checklist.d/README.md`
-- `.cursor/rules/00-workflow-checklist.d/01-overview.md`
-- `.cursor/rules/00-workflow-checklist.d/02-task-start.md`
-- `.cursor/rules/00-workflow-checklist.d/03-implementation.md`
-- `.cursor/rules/00-workflow-checklist.d/04-push-check.md`
-- `.cursor/rules/00-workflow-checklist.d/05-pr-review.md`
-- `.cursor/rules/00-workflow-checklist.d/06-completion.md`
+1. 各`.d`ディレクトリを順番に処理
+2. 各ディレクトリ内で、`README.md`を最初に読み込み
+3. その後、ファイル名の先頭数字（`01-`, `02-`, ...）でソートして順次読み込み
+4. 最後に`templates/`ディレクトリのファイルを読み込み
 
-#### 2. プロジェクト全体のガイドライン
+**現在のファイル構成（参考）**:
 
-- `.cursor/rules/01-project.d/README.md`
-- `.cursor/rules/01-project.d/01-overview.md`
-- `.cursor/rules/01-project.d/02-tech-stack.md`
-- `.cursor/rules/01-project.d/03-architecture.md`
-- `.cursor/rules/01-project.d/04-coding-standards.md`
-- `.cursor/rules/01-project.d/05-issue-management.md`
+- `00-workflow-checklist.d/`: 7ファイル
+- `01-project.d/`: 6ファイル
+- `02-code-standards.d/`: 13ファイル
+- `03-git-workflow.d/`: 5ファイル
+- `04-github-integration.d/`: 5ファイル
+- `05-ci-cd.d/`: 5ファイル
+- `templates/`: 2ファイル
 
-#### 3. コード品質基準とテスト
-
-- `.cursor/rules/02-code-standards.d/README.md`
-- `.cursor/rules/02-code-standards.d/01-type-safety.md` ⭐ 最優先
-- `.cursor/rules/02-code-standards.d/02-test-requirements.md`
-- `.cursor/rules/02-code-standards.d/03-data-access.md`
-- `.cursor/rules/02-code-standards.d/04-architecture.md`
-- `.cursor/rules/02-code-standards.d/05-test-guidelines.md`
-- `.cursor/rules/02-code-standards.d/06-eslint-config.md`
-- `.cursor/rules/02-code-standards.d/07-react-ui.md`
-- `.cursor/rules/02-code-standards.d/08-implementation-checklist.md`
-- `.cursor/rules/02-code-standards.d/09-script-tools.md`
-- `.cursor/rules/02-code-standards.d/10-push-check.md`
-- `.cursor/rules/02-code-standards.d/11-shell-scripts.md`
-- `.cursor/rules/02-code-standards.d/12-gemini-learnings.md`
-
-#### 4. Git ワークフロー
-
-- `.cursor/rules/03-git-workflow.d/README.md`
-- `.cursor/rules/03-git-workflow.d/01-branch-management.md`
-- `.cursor/rules/03-git-workflow.d/02-commit-rules.md`
-- `.cursor/rules/03-git-workflow.d/03-push-check.md`
-- `.cursor/rules/03-git-workflow.d/04-pr-review.md`
-
-#### 5. GitHub統合
-
-- `.cursor/rules/04-github-integration.d/README.md`
-- `.cursor/rules/04-github-integration.d/01-projects-setup.md`
-- `.cursor/rules/04-github-integration.d/02-status-management.md`
-- `.cursor/rules/04-github-integration.d/03-issue-reporting.md`
-- `.cursor/rules/04-github-integration.d/04-start-task.md`
-
-#### 6. CI/CD設定ガイドライン
-
-- `.cursor/rules/05-ci-cd.d/README.md`
-- `.cursor/rules/05-ci-cd.d/01-test-scripts.md`
-- `.cursor/rules/05-ci-cd.d/02-env-management.md`
-- `.cursor/rules/05-ci-cd.d/03-playwright-config.md`
-- `.cursor/rules/05-ci-cd.d/04-github-actions.md`
-
-#### 7. テンプレート
-
-- `.cursor/rules/templates/issue-report.md`
-- `.cursor/rules/templates/pr-description.md`
+**注意**: 上記は現在の構成です。新しいファイルを追加しても、自動的に検出されます。
 
 ## 実行方法
 
-以下のように、各ディレクトリ内のすべての`.md`ファイルを読み込んでください：
+以下のように、各`.d`ディレクトリを動的にスキャンして、すべての`.md`ファイルを優先度順（ファイル名の先頭数字）で読み込んでください：
 
 ```typescript
-// ディレクトリごとに読み込むファイルを定義
-const filesToReadByDir = {
-  '00-workflow-checklist.d': [
-    'README.md',
-    '01-overview.md',
-    '02-task-start.md',
-    '03-implementation.md',
-    '04-push-check.md',
-    '05-pr-review.md',
-    '06-completion.md',
-  ],
-  '01-project.d': [
-    'README.md',
-    '01-overview.md',
-    '02-tech-stack.md',
-    '03-architecture.md',
-    '04-coding-standards.md',
-    '05-issue-management.md',
-  ],
-  '02-code-standards.d': [
-    'README.md',
-    '01-type-safety.md',
-    '02-test-requirements.md',
-    '03-data-access.md',
-    '04-architecture.md',
-    '05-test-guidelines.md',
-    '06-eslint-config.md',
-    '07-react-ui.md',
-    '08-implementation-checklist.md',
-    '09-script-tools.md',
-    '10-push-check.md',
-    '11-shell-scripts.md',
-    '12-gemini-learnings.md',
-  ],
-  '03-git-workflow.d': [
-    'README.md',
-    '01-branch-management.md',
-    '02-commit-rules.md',
-    '03-push-check.md',
-    '04-pr-review.md',
-  ],
-  '04-github-integration.d': [
-    'README.md',
-    '01-projects-setup.md',
-    '02-status-management.md',
-    '03-issue-reporting.md',
-    '04-start-task.md',
-  ],
-  '05-ci-cd.d': [
-    'README.md',
-    '01-test-scripts.md',
-    '02-env-management.md',
-    '03-playwright-config.md',
-    '04-github-actions.md',
-  ],
-};
+// ディレクトリ一覧（固定）
+const ruleDirectories = [
+  '00-workflow-checklist.d',
+  '01-project.d',
+  '02-code-standards.d',
+  '03-git-workflow.d',
+  '04-github-integration.d',
+  '05-ci-cd.d',
+];
 
-// 各ディレクトリ内の全ファイルを読み込み
-for (const dir in filesToReadByDir) {
-  const files = filesToReadByDir[dir];
-  await Promise.all(
-    files.map((file) => read_file(`.cursor/rules/${dir}/${file}`).catch(() => null))
-  );
+// 各ディレクトリ内の全.mdファイルを動的に取得して読み込み
+for (const dir of ruleDirectories) {
+  // ディレクトリ内の全.mdファイルを取得
+  // 注意: 実際の実装では、list_dirツールを使用してファイル一覧を取得
+  // 例: const files = await list_dir(`.cursor/rules/${dir}`, { glob: '*.md' });
+  // ファイル名でソート（先頭の数字で優先度順）
+  // README.mdは常に最初、その後は数値プレフィックスでソート
+  // 例: ['README.md', '01-xxx.md', '02-yyy.md', ...]
+  // ソート済みファイルを順次読み込み
+  // await Promise.all(files.map((file) => read_file(`.cursor/rules/${dir}/${file}`).catch(() => null)));
 }
 
 // テンプレートも読み込む
@@ -170,7 +82,18 @@ await Promise.all([
 ]);
 ```
 
-**実用的なアプローチ**: 各ディレクトリの`README.md`を確認し、そこに記載されているファイル一覧に基づいて読み込むことを推奨します。
+**実装のポイント**:
+
+1. **動的ファイル検出**: 各`.d`ディレクトリ内の`.md`ファイルを自動的に検出
+2. **優先度順ソート**: ファイル名の先頭数字（`01-`, `02-`, ...）でソートして読み込み
+3. **README.md優先**: `README.md`は常に最初に読み込む
+4. **拡張性**: 新しいファイルを追加しても、`inc-all-rules.md`の更新は不要
+
+**ファイル名の命名規則**:
+
+- 現在: 2桁の数値プレフィックス（`01-`, `02-`, ..., `99-`）
+- 将来の拡張: 100ファイルを超える場合は3桁（`001-`, `002-`, ..., `999-`）に拡張可能
+- 優先度: 数値が小さいほど優先度が高い（`01-` > `02-` > ... > `99-`）
 
 ## 完了メッセージ
 
@@ -213,6 +136,23 @@ await Promise.all([
 
 ## 注意事項
 
+### ファイル名の命名規則と優先度
+
+- **数値プレフィックス**: ファイル名の先頭数字（`01-`, `02-`, ...）が優先度を示します
+- **現在の形式**: 2桁の数値プレフィックス（`01-` ～ `99-`）
+- **将来の拡張**: 100ファイルを超える場合は3桁（`001-` ～ `999-`）に拡張可能
+- **優先度順**: 数値が小さいほど優先度が高い（`01-` > `02-` > ... > `99-`）
+- **README.md**: 常に最初に読み込まれます（優先度0として扱う）
+
+### 動的読み込みの利点
+
+- **メンテナンス不要**: 新しいファイルを追加しても、`inc-all-rules.md`の更新は不要
+- **自動検出**: 各`.d`ディレクトリ内の`.md`ファイルを自動的に検出
+- **優先度保持**: ファイル名の先頭数字で自動的にソートされ、優先度順に読み込まれる
+- **拡張性**: ディレクトリやファイルが増えても対応可能
+
+### 実装時の注意点
+
 - 各`.d`ディレクトリには`README.md`が含まれており、ディレクトリの説明とファイル一覧が記載されています
-- ファイル名は`01-`, `02-`などの数値プレフィックスで優先順位が示されています
-- 最優先ファイル（例: `01-type-safety.md`）は最初に読み込むことを推奨します
+- ファイル名の数値プレフィックスでソートすることで、優先度順に読み込まれます
+- 最優先ファイル（例: `01-type-safety.md`）は自動的に最初に読み込まれます
