@@ -4777,6 +4777,156 @@ fi
 
 ---
 
+### 11-4. コードの簡素化とDRY原則（PR #368から学習）
+
+#### 原則: 不要な処理を削除し、重複を排除する
+
+シェルスクリプトでは、不要な変数や処理を削除し、コードの重複を排除することで可読性と保守性を向上させます。
+
+#### ❌ 悪い例1: 未使用変数の定義
+
+```bash
+# スクリプトのディレクトリを取得
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# この変数は使用されていない
+```
+
+**問題点:**
+
+- 不要なコードが可読性を損なう
+- メンテナンスの対象が増える
+- コードの意図が不明確になる
+
+**✅ 良い例: 未使用変数を削除**
+
+```bash
+# 使用されていない変数は定義しない
+set -euo pipefail
+```
+
+#### ❌ 悪い例2: 一時ファイルの不必要な使用
+
+```bash
+# 一時ファイルのパス
+TEMP_FILE=""
+
+# クリーンアップ関数
+cleanup() {
+  if [ -n "$TEMP_FILE" ] && [ -f "$TEMP_FILE" ]; then
+    rm -f "$TEMP_FILE"
+  fi
+}
+
+# 終了時にクリーンアップを実行
+trap cleanup EXIT
+
+# 標準入力から読み込む
+TEMP_FILE=$(mktemp)
+cat > "$TEMP_FILE"
+gh pr comment "$PR_NUMBER" --body-file "$TEMP_FILE"
+```
+
+**問題点:**
+
+- 一時ファイルの管理が複雑
+- `trap`と`cleanup`関数が必要
+- エラーハンドリングが複雑になる
+
+**✅ 良い例: 標準入力から直接読み込む**
+
+```bash
+# 標準入力から直接読み込む（一時ファイル不要）
+gh pr comment "$PR_NUMBER" --body-file -
+```
+
+**改善点:**
+
+- 一時ファイル、`trap`、`cleanup`関数が不要
+- コードが大幅にシンプルになる
+- エラーハンドリングが簡潔になる
+
+#### ❌ 悪い例3: コードの重複
+
+```bash
+if [ -n "$COMMENT_FILE" ]; then
+  # ファイルが指定されている場合
+  if [ ! -f "$COMMENT_FILE" ]; then
+    echo "❌ エラー: ファイルが見つかりません: $COMMENT_FILE" >&2
+    exit 1
+  fi
+
+  # ファイルから直接送信
+  echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
+  gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE"
+else
+  # 標準入力から読み込む
+  TEMP_FILE=$(mktemp)
+  cat > "$TEMP_FILE"
+
+  # ファイルが空でないことを確認
+  if [ ! -s "$TEMP_FILE" ]; then
+    echo "❌ エラー: コメント本文が空です" >&2
+    exit 1
+  fi
+
+  # 一時ファイルから送信
+  echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
+  gh pr comment "$PR_NUMBER" --body-file "$TEMP_FILE"
+fi
+```
+
+**問題点:**
+
+- `gh pr comment`の呼び出しが重複
+- エラーメッセージの表示が重複
+- メンテナンス性が低い
+
+**✅ 良い例: DRY原則に従ったリファクタリング**
+
+```bash
+# コメントファイルパスの決定
+COMMENT_FILE_PATH="${2:-}"
+
+if [ -z "$COMMENT_FILE_PATH" ]; then
+  # 標準入力から読み込む場合、-を使用
+  COMMENT_FILE_PATH="-"
+else
+  # ファイルが指定されている場合、存在確認
+  if [ ! -f "$COMMENT_FILE_PATH" ]; then
+    echo "❌ エラー: ファイルが見つかりません: $COMMENT_FILE_PATH" >&2
+    exit 1
+  fi
+fi
+
+# コメントファイルの内容確認（ファイル指定の場合のみ）
+if [ "$COMMENT_FILE_PATH" != "-" ] && [ ! -s "$COMMENT_FILE_PATH" ]; then
+  echo "❌ エラー: コメント本文が空です" >&2
+  exit 1
+fi
+
+# コメントを送信（共通処理）
+echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
+gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE_PATH"
+```
+
+**改善点:**
+
+- `gh pr comment`の呼び出しが1箇所に集約
+- コードの重複が解消
+- メンテナンス性が向上
+
+**重要なポイント:**
+
+1. **未使用変数の削除**: 使用されていない変数は定義しない
+2. **一時ファイルの回避**: 可能な限り標準入力から直接読み込む（`--body-file -`など）
+3. **DRY原則の遵守**: 同じ処理は1箇所に集約
+4. **コードの簡素化**: 不要な処理（`trap`、`cleanup`など）を削除
+
+**参考:** PR #368 - Geminiレビュー指摘より
+
+---
+
 ## 12. まとめ
 
 ### 最優先事項
