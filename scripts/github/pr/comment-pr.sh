@@ -115,24 +115,18 @@ if [ -z "$COMMENT_FILE_PATH" ]; then
   
   # 標準入力から読み込んで一時ファイルに保存
   cat > "$TEMP_FILE"
-  
-  # ファイルが空でないことを確認
-  if [ ! -s "$TEMP_FILE" ]; then
-    echo "❌ エラー: コメント本文が空です" >&2
-    exit 1
-  fi
 else
   # ファイルが指定されている場合、存在確認
   if [ ! -f "$COMMENT_FILE_PATH" ]; then
     echo "❌ エラー: ファイルが見つかりません: $COMMENT_FILE_PATH" >&2
     exit 1
   fi
-  
-  # ファイルが空でないことを確認
-  if [ ! -s "$COMMENT_FILE_PATH" ]; then
-    echo "❌ エラー: コメント本文が空です" >&2
-    exit 1
-  fi
+fi
+
+# ファイルが空でないことを確認（共通処理）
+if [ ! -s "$COMMENT_FILE_PATH" ]; then
+  echo "❌ エラー: コメント本文が空です" >&2
+  exit 1
 fi
 
 # コメントを送信（すべてファイル経由）
