@@ -8,8 +8,6 @@ import {
   Post,
   Query,
   NotFoundException,
-  UnprocessableEntityException,
-  BadGatewayException,
   Inject,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -21,12 +19,6 @@ import {
   ReconciliationResponseDto,
   ReconciliationListItemDto,
 } from '../dto/reconciliation.dto';
-import {
-  CardSummaryNotFoundError,
-  BankTransactionNotFoundError,
-  InvalidPaymentDateError,
-  MultipleCandidateError,
-} from '../../domain/errors/reconciliation.errors';
 import { RECONCILIATION_REPOSITORY } from '../../reconciliation.tokens';
 
 /**
@@ -65,20 +57,15 @@ export class ReconciliationController {
     success: boolean;
     data: ReconciliationResponseDto;
   }> {
-    try {
-      const reconciliation = await this.reconcileCreditCardUseCase.execute(
-        dto.cardId,
-        dto.billingMonth,
-      );
+    const reconciliation = await this.reconcileCreditCardUseCase.execute(
+      dto.cardId,
+      dto.billingMonth,
+    );
 
-      return {
-        success: true,
-        data: this.toResponseDto(reconciliation),
-      };
-    } catch (error) {
-      this.handleError(error);
-      // handleErrorは常に例外をスローするため、ここには到達しない
-    }
+    return {
+      success: true,
+      data: this.toResponseDto(reconciliation),
+    };
   }
 
   /**
@@ -159,83 +146,6 @@ export class ReconciliationController {
       success: true,
       data: this.toResponseDto(reconciliation),
     };
-  }
-
-  /**
-   * エラーハンドリング
-   */
-  private handleError(error: unknown): never {
-    if (error instanceof NotFoundException) {
-      const innerError = (error as { cause?: unknown }).cause;
-      if (innerError instanceof CardSummaryNotFoundError) {
-        throw new NotFoundException({
-          success: false,
-          statusCode: 404,
-          message: innerError.message,
-          code: innerError.code,
-          errors: [],
-          ...innerError.details,
-          timestamp: new Date().toISOString(),
-          path: '/api/reconciliations',
-        });
-      }
-      throw error;
-    }
-
-    if (error instanceof CardSummaryNotFoundError) {
-      throw new NotFoundException({
-        success: false,
-        statusCode: 404,
-        message: error.message,
-        code: error.code,
-        errors: [],
-        ...error.details,
-        timestamp: new Date().toISOString(),
-        path: '/api/reconciliations',
-      });
-    }
-
-    if (error instanceof BankTransactionNotFoundError) {
-      throw new BadGatewayException({
-        success: false,
-        statusCode: 502,
-        message: error.message,
-        code: error.code,
-        errors: [],
-        ...error.details,
-        timestamp: new Date().toISOString(),
-        path: '/api/reconciliations',
-      });
-    }
-
-    if (error instanceof InvalidPaymentDateError) {
-      throw new UnprocessableEntityException({
-        success: false,
-        statusCode: 422,
-        message: error.message,
-        code: error.code,
-        errors: [],
-        ...error.details,
-        timestamp: new Date().toISOString(),
-        path: '/api/reconciliations',
-      });
-    }
-
-    if (error instanceof MultipleCandidateError) {
-      throw new UnprocessableEntityException({
-        success: false,
-        statusCode: 422,
-        message: error.message,
-        code: error.code,
-        errors: [],
-        ...error.details,
-        timestamp: new Date().toISOString(),
-        path: '/api/reconciliations',
-      });
-    }
-
-    // その他のエラー
-    throw error;
   }
 
   /**

@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   NotFoundException,
-  UnprocessableEntityException,
   Inject,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -27,13 +26,6 @@ import {
 } from '../dto/alert.dto';
 import { CreateAlertRequestDto } from '../dto/create-alert.dto';
 import { ResolveAlertRequestDto } from '../dto/resolve-alert.dto';
-import {
-  AlertNotFoundException,
-  DuplicateAlertException,
-  AlertAlreadyResolvedException,
-  CriticalAlertDeletionException,
-} from '../../domain/errors/alert.errors';
-import { ReconciliationNotFoundException } from '../../../reconciliation/domain/errors/reconciliation.errors';
 import { ALERT_REPOSITORY } from '../../alert.tokens';
 
 /**
@@ -71,16 +63,12 @@ export class AlertController {
     success: boolean;
     data: AlertResponseDto;
   }> {
-    try {
-      const alert = await this.createAlertUseCase.execute(dto.reconciliationId);
+    const alert = await this.createAlertUseCase.execute(dto.reconciliationId);
 
-      return {
-        success: true,
-        data: this.toResponseDto(alert),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: this.toResponseDto(alert),
+    };
   }
 
   /**
@@ -185,20 +173,16 @@ export class AlertController {
     success: boolean;
     data: AlertResponseDto;
   }> {
-    try {
-      const alert = await this.resolveAlertUseCase.execute(
-        id,
-        dto.resolvedBy,
-        dto.resolutionNote,
-      );
+    const alert = await this.resolveAlertUseCase.execute(
+      id,
+      dto.resolvedBy,
+      dto.resolutionNote,
+    );
 
-      return {
-        success: true,
-        data: this.toResponseDto(alert),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: this.toResponseDto(alert),
+    };
   }
 
   /**
@@ -218,16 +202,12 @@ export class AlertController {
     success: boolean;
     data: AlertResponseDto;
   }> {
-    try {
-      const alert = await this.markAlertAsReadUseCase.execute(id);
+    const alert = await this.markAlertAsReadUseCase.execute(id);
 
-      return {
-        success: true,
-        data: this.toResponseDto(alert),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: this.toResponseDto(alert),
+    };
   }
 
   /**
@@ -241,71 +221,8 @@ export class AlertController {
   @ApiResponse({ status: 404, description: 'アラートが見つからない' })
   @ApiResponse({ status: 422, description: 'CRITICALアラート削除不可' })
   async deleteAlert(@Param('id') id: string): Promise<void> {
-    try {
-      // deleteメソッド内で存在確認と削除をまとめて行う
-      await this.alertRepository.delete(id);
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  /**
-   * エラーハンドリング
-   */
-  private handleError(error: unknown): never {
-    if (
-      error instanceof AlertNotFoundException ||
-      error instanceof ReconciliationNotFoundException
-    ) {
-      throw new NotFoundException({
-        success: false,
-        statusCode: 404,
-        message: error.message,
-        code: 'AL001',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: '/api/alerts',
-      });
-    }
-
-    if (error instanceof DuplicateAlertException) {
-      throw new UnprocessableEntityException({
-        success: false,
-        statusCode: 422,
-        message: error.message,
-        code: 'AL002',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: '/api/alerts',
-      });
-    }
-
-    if (error instanceof AlertAlreadyResolvedException) {
-      throw new UnprocessableEntityException({
-        success: false,
-        statusCode: 422,
-        message: error.message,
-        code: 'AL003',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: '/api/alerts',
-      });
-    }
-
-    if (error instanceof CriticalAlertDeletionException) {
-      throw new UnprocessableEntityException({
-        success: false,
-        statusCode: 422,
-        message: error.message,
-        code: 'AL004',
-        errors: [],
-        timestamp: new Date().toISOString(),
-        path: '/api/alerts',
-      });
-    }
-
-    // その他のエラー
-    throw error;
+    // deleteメソッド内で存在確認と削除をまとめて行う
+    await this.alertRepository.delete(id);
   }
 
   /**

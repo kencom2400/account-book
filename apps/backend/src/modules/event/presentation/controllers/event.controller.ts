@@ -9,8 +9,6 @@ import {
   Post,
   Put,
   Query,
-  NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateEventUseCase } from '../../application/use-cases/create-event.use-case';
@@ -58,22 +56,18 @@ export class EventController {
   async create(
     @Body() dto: CreateEventRequestDto,
   ): Promise<{ success: boolean; data: EventResponseDto }> {
-    try {
-      const event = await this.createEventUseCase.execute({
-        date: new Date(dto.date),
-        title: dto.title,
-        description: dto.description ?? null,
-        category: dto.category,
-        tags: dto.tags ?? [],
-      });
+    const event = await this.createEventUseCase.execute({
+      date: new Date(dto.date),
+      title: dto.title,
+      description: dto.description ?? null,
+      category: dto.category,
+      tags: dto.tags ?? [],
+    });
 
-      return {
-        success: true,
-        data: toEventResponseDto(event, []),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: toEventResponseDto(event, []),
+    };
   }
 
   /**
@@ -88,19 +82,15 @@ export class EventController {
   async findByDateRange(
     @Query() query: GetEventsByDateRangeQueryDto,
   ): Promise<{ success: boolean; data: EventResponseDto[] }> {
-    try {
-      const events = await this.getEventsByDateRangeUseCase.execute(
-        new Date(query.startDate),
-        new Date(query.endDate),
-      );
+    const events = await this.getEventsByDateRangeUseCase.execute(
+      new Date(query.startDate),
+      new Date(query.endDate),
+    );
 
-      return {
-        success: true,
-        data: events.map((event) => toEventResponseDto(event, [])),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: events.map((event) => toEventResponseDto(event, [])),
+    };
   }
 
   /**
@@ -115,16 +105,12 @@ export class EventController {
   async findById(
     @Param('id') id: string,
   ): Promise<{ success: boolean; data: EventResponseDto }> {
-    try {
-      const result = await this.getEventByIdUseCase.execute(id);
+    const result = await this.getEventByIdUseCase.execute(id);
 
-      return {
-        success: true,
-        data: toEventResponseDto(result.event, result.relatedTransactions),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: toEventResponseDto(result.event, result.relatedTransactions),
+    };
   }
 
   /**
@@ -140,22 +126,18 @@ export class EventController {
     @Param('id') id: string,
     @Body() dto: UpdateEventRequestDto,
   ): Promise<{ success: boolean; data: EventResponseDto }> {
-    try {
-      const event = await this.updateEventUseCase.execute(id, {
-        date: dto.date ? new Date(dto.date) : undefined,
-        title: dto.title,
-        description: dto.description,
-        category: dto.category,
-        tags: dto.tags,
-      });
+    const event = await this.updateEventUseCase.execute(id, {
+      date: dto.date ? new Date(dto.date) : undefined,
+      title: dto.title,
+      description: dto.description,
+      category: dto.category,
+      tags: dto.tags,
+    });
 
-      return {
-        success: true,
-        data: toEventResponseDto(event, []),
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: toEventResponseDto(event, []),
+    };
   }
 
   /**
@@ -170,16 +152,12 @@ export class EventController {
   async delete(
     @Param('id') id: string,
   ): Promise<{ success: boolean; data: { message: string } }> {
-    try {
-      await this.deleteEventUseCase.execute(id);
+    await this.deleteEventUseCase.execute(id);
 
-      return {
-        success: true,
-        data: { message: 'イベントを削除しました' },
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: { message: 'イベントを削除しました' },
+    };
   }
 
   /**
@@ -198,19 +176,15 @@ export class EventController {
     @Param('id') eventId: string,
     @Body() body: LinkTransactionRequestDto,
   ): Promise<{ success: boolean; data: { message: string } }> {
-    try {
-      await this.linkTransactionToEventUseCase.execute(
-        eventId,
-        body.transactionId,
-      );
+    await this.linkTransactionToEventUseCase.execute(
+      eventId,
+      body.transactionId,
+    );
 
-      return {
-        success: true,
-        data: { message: '取引とイベントを紐付けました' },
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    return {
+      success: true,
+      data: { message: '取引とイベントを紐付けました' },
+    };
   }
 
   /**
@@ -226,59 +200,14 @@ export class EventController {
     @Param('id') eventId: string,
     @Param('transactionId') transactionId: string,
   ): Promise<{ success: boolean; data: { message: string } }> {
-    try {
-      await this.unlinkTransactionFromEventUseCase.execute(
-        eventId,
-        transactionId,
-      );
+    await this.unlinkTransactionFromEventUseCase.execute(
+      eventId,
+      transactionId,
+    );
 
-      return {
-        success: true,
-        data: { message: '取引とイベントの紐付けを解除しました' },
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  /**
-   * エラーハンドリング
-   */
-  private handleError(error: unknown): never {
-    if (error instanceof NotFoundException) {
-      throw new NotFoundException({
-        success: false,
-        statusCode: 404,
-        message: error.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    if (error instanceof Error) {
-      if (error.message.includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          statusCode: 404,
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      if (
-        error.message.includes('required') ||
-        error.message.includes('must be') ||
-        error.message.includes('validation')
-      ) {
-        throw new BadRequestException({
-          success: false,
-          statusCode: 400,
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    }
-
-    // その他のエラー
-    throw error;
+    return {
+      success: true,
+      data: { message: '取引とイベントの紐付けを解除しました' },
+    };
   }
 }
