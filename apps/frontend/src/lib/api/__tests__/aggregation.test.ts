@@ -209,4 +209,97 @@ describe('Aggregation API Client', () => {
       expect(mockApiClient.delete).toHaveBeenCalledWith(`/api/aggregation/card/monthly/${id}`);
     });
   });
+
+  describe('getMonthlyBalance', () => {
+    it('月別収支集計情報を取得できる', async () => {
+      const year = 2025;
+      const month = 1;
+      const mockResponse: aggregationApi.MonthlyBalanceResponse = {
+        month: '2025-01',
+        income: {
+          total: 500000,
+          count: 5,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        expense: {
+          total: 300000,
+          count: 5,
+          byCategory: [],
+          byInstitution: [],
+          transactions: [],
+        },
+        balance: 200000,
+        savingsRate: 40,
+      };
+
+      mockApiClient.get.mockResolvedValue(mockResponse);
+
+      const result = await aggregationApi.getMonthlyBalance(year, month);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        `/api/aggregation/monthly-balance?year=${year}&month=${month}`
+      );
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('getYearlyBalance', () => {
+    it('年間収支集計情報を取得できる', async () => {
+      const year = 2025;
+      const mockResponse: aggregationApi.YearlyBalanceResponse = {
+        year: 2025,
+        months: [
+          {
+            month: '2025-01',
+            income: {
+              total: 500000,
+              count: 5,
+              byCategory: [],
+              byInstitution: [],
+              transactions: [],
+            },
+            expense: {
+              total: 300000,
+              count: 5,
+              byCategory: [],
+              byInstitution: [],
+              transactions: [],
+            },
+            balance: 200000,
+            savingsRate: 40,
+          },
+        ],
+        annual: {
+          totalIncome: 6000000,
+          totalExpense: 3600000,
+          totalBalance: 2400000,
+          averageIncome: 500000,
+          averageExpense: 300000,
+          savingsRate: 40,
+        },
+        trend: {
+          incomeProgression: { direction: 'stable', changeRate: 0, standardDeviation: 0 },
+          expenseProgression: { direction: 'stable', changeRate: 0, standardDeviation: 0 },
+          balanceProgression: { direction: 'stable', changeRate: 0, standardDeviation: 0 },
+        },
+        highlights: {
+          maxIncomeMonth: '2025-01',
+          maxExpenseMonth: '2025-01',
+          bestBalanceMonth: '2025-01',
+          worstBalanceMonth: null,
+        },
+      };
+
+      mockApiClient.get.mockResolvedValue(mockResponse);
+
+      const result = await aggregationApi.getYearlyBalance(year);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        `/api/aggregation/yearly-balance?year=${year}`
+      );
+      expect(result).toEqual(mockResponse);
+    });
+  });
 });

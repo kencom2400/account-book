@@ -43,8 +43,12 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
   // 月別データをグラフ用に変換（1月〜12月）
   const monthlyData = useMemo(() => {
     return data.months.map((month) => {
-      // 月のラベル（1月、2月...）
-      const monthNum = parseInt(month.month.split('-')[1] || '0', 10);
+      // month.monthはYYYY-MM形式であることが保証されている
+      const monthPart = month.month.split('-')[1];
+      if (!monthPart) {
+        throw new Error(`Invalid month format: ${month.month}`);
+      }
+      const monthNum = parseInt(monthPart, 10);
       const monthLabel = `${monthNum}月`;
 
       return {
