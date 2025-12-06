@@ -27,6 +27,7 @@ import {
   toEventResponseDto,
 } from '../dto/event-response.dto';
 import { GetEventsByDateRangeQueryDto } from '../dto/get-events-query.dto';
+import { LinkTransactionRequestDto } from '../dto/link-transaction.dto';
 
 /**
  * EventController
@@ -87,14 +88,6 @@ export class EventController {
   async findByDateRange(
     @Query() query: GetEventsByDateRangeQueryDto,
   ): Promise<{ success: boolean; data: EventResponseDto[] }> {
-    if (!query.startDate || !query.endDate) {
-      throw new BadRequestException({
-        success: false,
-        statusCode: 400,
-        message: 'startDateとendDateは必須です',
-      });
-    }
-
     try {
       const events = await this.getEventsByDateRangeUseCase.execute(
         new Date(query.startDate),
@@ -203,7 +196,7 @@ export class EventController {
   })
   async linkTransaction(
     @Param('id') eventId: string,
-    @Body() body: { transactionId: string },
+    @Body() body: LinkTransactionRequestDto,
   ): Promise<{ success: boolean; data: { message: string } }> {
     try {
       await this.linkTransactionToEventUseCase.execute(

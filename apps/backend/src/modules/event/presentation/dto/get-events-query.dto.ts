@@ -1,5 +1,12 @@
-import { IsOptional, IsNumber, Min, Max } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsNotEmpty,
+  IsDateString,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 /**
@@ -37,17 +44,22 @@ export class GetEventsQueryDto {
  * 日付範囲でのイベント取得のクエリパラメータDTO
  */
 export class GetEventsByDateRangeQueryDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '開始日（ISO 8601形式: YYYY-MM-DD）',
     example: '2025-01-01',
   })
-  @IsOptional()
-  startDate?: string;
+  @IsNotEmpty({ message: 'startDateは必須です' })
+  @IsDateString(
+    {},
+    { message: 'startDateは有効な日付形式である必要があります' },
+  )
+  startDate!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '終了日（ISO 8601形式: YYYY-MM-DD）',
     example: '2025-12-31',
   })
-  @IsOptional()
-  endDate?: string;
+  @IsNotEmpty({ message: 'endDateは必須です' })
+  @IsDateString({}, { message: 'endDateは有効な日付形式である必要があります' })
+  endDate!: string;
 }
