@@ -8,51 +8,67 @@
 
 ## ファイル一覧と優先順位
 
+### 必須レベル（01-XX）
+
 1. **`README.md`** - このファイル（ディレクトリの説明）
-2. **`01-type-safety.md`** - 型安全性（最優先）⭐
-3. **`02-test-requirements.md`** - テスト作成の必須化
-4. **`03-data-access.md`** - データアクセスと配列操作
-5. **`04-architecture.md`** - アーキテクチャとモジュール設計
-6. **`05-test-guidelines.md`** - テスト実装ガイドライン
-7. **`06-eslint-config.md`** - ESLint設定
-8. **`07-react-ui.md`** - React/UIコンポーネント
-9. **`08-implementation-checklist.md`** - 実装フローチェックリスト
-10. **`09-script-tools.md`** - スクリプト・ツール開発のベストプラクティス
-11. **`10-push-check.md`** - push前の必須チェック
-12. **`11-shell-scripts.md`** - シェルスクリプトのベストプラクティス
-13. **`12-gemini-learnings.md`** - Geminiレビューから学んだ観点
+2. **`01-01-type-safety.md`** - 型安全性（最優先）⭐
+3. **`01-02-test-requirements.md`** - テスト作成の必須化
+4. **`01-03-push-check.md`** - push前の必須チェック
+
+### 優先レベル（02-XX）
+
+5. **`02-01-data-access.md`** - データアクセスと配列操作
+6. **`02-02-architecture.md`** - アーキテクチャとモジュール設計
+
+### 一般レベル（03-XX）
+
+7. **`03-01-test-guidelines.md`** - テスト実装ガイドライン
+8. **`03-02-eslint-config.md`** - ESLint設定
+9. **`03-03-react-ui.md`** - React/UIコンポーネント
+10. **`03-04-implementation-checklist.md`** - 実装フローチェックリスト
+11. **`03-05-script-tools.md`** - スクリプト・ツール開発のベストプラクティス
+12. **`03-06-shell-scripts.md`** - シェルスクリプトのベストプラクティス
+
+### メモレベル（04-XX）
+
+13. **`04-01-gemini-learnings.md`** - Geminiレビューから学んだ観点
 
 ## セクション間の関係性
 
 ```
-01-type-safety.md (最優先)
+01-01-type-safety.md (最優先・必須)
     ↓
-02-test-requirements.md
+01-02-test-requirements.md (必須)
     ↓
-03-data-access.md → 04-architecture.md
+01-03-push-check.md (必須)
     ↓
-05-test-guidelines.md
+02-01-data-access.md → 02-02-architecture.md (優先)
     ↓
-06-eslint-config.md
+03-01-test-guidelines.md (一般)
     ↓
-07-react-ui.md
+03-02-eslint-config.md (一般)
     ↓
-08-implementation-checklist.md
+03-03-react-ui.md (一般)
     ↓
-09-script-tools.md
+03-04-implementation-checklist.md (一般)
     ↓
-10-push-check.md
+03-05-script-tools.md (一般)
     ↓
-11-shell-scripts.md
+03-06-shell-scripts.md (一般)
     ↓
-12-gemini-learnings.md (参考情報)
+04-01-gemini-learnings.md (メモ・参考情報)
 ```
 
-## 最優先事項
+## 最優先事項（必須レベル）
 
-1. **型安全性**: `01-type-safety.md`を最優先で参照
-2. **テスト作成**: `02-test-requirements.md`に従い、すべての実装にテストを作成
-3. **データアクセス**: `03-data-access.md`に従い、IDベースのマッピングを使用
+1. **型安全性**: `01-01-type-safety.md`を最優先で参照
+2. **テスト作成**: `01-02-test-requirements.md`に従い、すべての実装にテストを作成
+3. **push前チェック**: `01-03-push-check.md`に従い、push前に必ずチェックを実行
+
+## 優先事項（優先レベル）
+
+4. **データアクセス**: `02-01-data-access.md`に従い、IDベースのマッピングを使用
+5. **アーキテクチャ**: `02-02-architecture.md`に従い、適切な設計パターンを適用
 
 ## 関連する他のディレクトリ
 

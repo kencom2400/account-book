@@ -14,8 +14,10 @@
 
 **例**:
 
-- `01-type-safety.md` - 型安全性（最優先）
-- `13-new-feature.md` - 新しい機能のルール（13番目）
+- `01-01-type-safety.md` - 型安全性（必須レベル、1番目）
+- `02-01-data-access.md` - データアクセス（優先レベル、1番目）
+- `03-01-test-guidelines.md` - テスト実装ガイドライン（一般レベル、1番目）
+- `04-01-gemini-learnings.md` - Geminiレビューから学んだ観点（メモレベル、1番目）
 
 ### 優先度番号の意味
 
@@ -32,18 +34,29 @@
 
 ### 現在の優先度構成
 
-1. `01-type-safety.md` - 型安全性（最優先）⭐
-2. `02-test-requirements.md` - テスト作成の必須化
-3. `03-data-access.md` - データアクセスと配列操作
-4. `04-architecture.md` - アーキテクチャとモジュール設計
-5. `05-test-guidelines.md` - テスト実装ガイドライン
-6. `06-eslint-config.md` - ESLint設定
-7. `07-react-ui.md` - React/UIコンポーネント
-8. `08-implementation-checklist.md` - 実装フローチェックリスト
-9. `09-script-tools.md` - スクリプト・ツール開発のベストプラクティス
-10. `10-push-check.md` - push前の必須チェック
-11. `11-shell-scripts.md` - シェルスクリプトのベストプラクティス
-12. `12-gemini-learnings.md` - Geminiレビューから学んだ観点
+#### 必須レベル（01-XX）
+
+1. `01-01-type-safety.md` - 型安全性（最優先）⭐
+2. `01-02-test-requirements.md` - テスト作成の必須化
+3. `01-03-push-check.md` - push前の必須チェック
+
+#### 優先レベル（02-XX）
+
+4. `02-01-data-access.md` - データアクセスと配列操作
+5. `02-02-architecture.md` - アーキテクチャとモジュール設計
+
+#### 一般レベル（03-XX）
+
+6. `03-01-test-guidelines.md` - テスト実装ガイドライン
+7. `03-02-eslint-config.md` - ESLint設定
+8. `03-03-react-ui.md` - React/UIコンポーネント
+9. `03-04-implementation-checklist.md` - 実装フローチェックリスト
+10. `03-05-script-tools.md` - スクリプト・ツール開発のベストプラクティス
+11. `03-06-shell-scripts.md` - シェルスクリプトのベストプラクティス
+
+#### メモレベル（04-XX）
+
+12. `04-01-gemini-learnings.md` - Geminiレビューから学んだ観点
 
 ## 新しいルールファイルを追加する場合
 
@@ -61,8 +74,10 @@
    - 既存のルールと比較して、どの位置に挿入すべきか決定
 
 2. **適切な番号を決定**
-   - 例: `01-type-safety.md`と同等の優先度 → `01-`または`02-`
-   - 例: `12-gemini-learnings.md`より優先度が低い → `13-`以降
+   - 例: `01-01-type-safety.md`と同等の優先度（必須レベル） → `01-XX`形式
+   - 例: `02-01-data-access.md`と同等の優先度（優先レベル） → `02-XX`形式
+   - 例: `03-01-test-guidelines.md`と同等の優先度（一般レベル） → `03-XX`形式
+   - 例: `04-01-gemini-learnings.md`より優先度が低い（メモレベル） → `04-XX`以降
 
 3. **ファイルを作成**
    - 決定した番号でファイルを作成
@@ -70,9 +85,9 @@
 
 4. **既存ファイルの番号を調整（必要な場合）**
    - 新しいファイルが既存の番号と重複する場合、既存ファイルを1つずつ繰り下げる
-   - 例: `02-new-rule.md`を追加する場合
-     - `02-test-requirements.md` → `03-test-requirements.md`
-     - `03-data-access.md` → `04-data-access.md`
+   - 例: `01-02-new-rule.md`を追加する場合（必須レベル、2番目）
+     - `01-02-test-requirements.md` → `01-03-test-requirements.md`
+     - `01-03-push-check.md` → `01-04-push-check.md`
      - ...（以降すべて繰り下げ）
 
 5. **README.mdを更新**
@@ -81,60 +96,59 @@
 
 ### 実装例
 
-#### 例1: 優先度の高いルールを追加（`01-type-safety.md`と同等）
+#### 例1: 優先度の高いルールを追加（`01-01-type-safety.md`と同等・必須レベル）
 
 ```bash
-# 1. 新しいファイルを作成（02番として）
-cat > .cursor/rules/02-code-standards.d/02-security.md << 'EOF'
-# セキュリティ（最優先）
+# 1. 新しいファイルを作成（01-02番として）
+cat > .cursor/rules/02-code-standards.d/01-02-security.md << 'EOF'
+# セキュリティ（最優先・必須）
 
 このルールは、型安全性と同等の優先度です。
 EOF
 
 # 2. 既存ファイルを繰り下げ
-git mv 02-test-requirements.md 03-test-requirements.md
-git mv 03-data-access.md 04-data-access.md
-git mv 04-architecture.md 05-architecture.md
+git mv 01-02-test-requirements.md 01-03-test-requirements.md
+git mv 01-03-push-check.md 01-04-push-check.md
 # ... 以降すべて繰り下げ
 
 # 3. README.mdを更新
 # 「ファイル一覧と優先順位」セクションを更新
-# 「最優先事項」セクションに追加
+# 「最優先事項（必須レベル）」セクションに追加
 ```
 
-#### 例2: 優先度が中程度のルールを追加（`06-eslint-config.md`と`07-react-ui.md`の間）
+#### 例2: 優先度が中程度のルールを追加（`03-02-eslint-config.md`と`03-03-react-ui.md`の間・一般レベル）
 
 ```bash
-# 1. 新しいファイルを作成（07番として）
-cat > .cursor/rules/02-code-standards.d/07-accessibility.md << 'EOF'
+# 1. 新しいファイルを作成（03-03番として）
+cat > .cursor/rules/02-code-standards.d/03-03-accessibility.md << 'EOF'
 # アクセシビリティ
 
 このルールは、アクセシビリティに関するガイドラインです。
 EOF
 
 # 2. 既存ファイルを繰り下げ
-git mv 07-react-ui.md 08-react-ui.md
-git mv 08-implementation-checklist.md 09-implementation-checklist.md
+git mv 03-03-react-ui.md 03-04-react-ui.md
+git mv 03-04-implementation-checklist.md 03-05-implementation-checklist.md
 # ... 以降すべて繰り下げ
 
 # 3. README.mdを更新
 ```
 
-#### 例3: 優先度が低いルールを追加（末尾に追加）
+#### 例3: 優先度が低いルールを追加（メモレベルに追加）
 
 ```bash
-# 1. 新しいファイルを作成（13番として）
-cat > .cursor/rules/02-code-standards.d/13-performance.md << 'EOF'
+# 1. 新しいファイルを作成（04-02番として）
+cat > .cursor/rules/02-code-standards.d/04-02-performance.md << 'EOF'
 # パフォーマンス最適化
 
-このルールは、パフォーマンスに関するガイドラインです。
+このルールは、パフォーマンスに関するガイドラインです（メモレベル）。
 EOF
 
 # 2. README.mdを更新
-# 「ファイル一覧と優先順位」セクションに追加
+# 「ファイル一覧と優先順位」セクションの「メモレベル（04-XX）」に追加
 ```
 
-**注意**: 例3のように末尾に追加するのは、**そのルールの優先度が実際に低い場合のみ**です。優先度が高いルールを末尾に追加することは避けてください。
+**注意**: 例3のようにメモレベルに追加するのは、**そのルールの優先度が実際にメモレベル（参考情報）の場合のみ**です。優先度が高いルールをメモレベルに追加することは避けてください。
 
 ## 推奨オペレーション
 
@@ -172,9 +186,9 @@ EOF
 
 上記の「新しいルールファイルを追加する場合」セクションに、3つの実装例を記載しています：
 
-1. **例1**: 優先度の高いルールを追加（`01-type-safety.md`と同等）
-2. **例2**: 優先度が中程度のルールを追加（中間位置に挿入）
-3. **例3**: 優先度が低いルールを追加（末尾に追加）
+1. **例1**: 優先度の高いルールを追加（`01-01-type-safety.md`と同等・必須レベル）
+2. **例2**: 優先度が中程度のルールを追加（`03-02-eslint-config.md`と`03-03-react-ui.md`の間・一般レベル）
+3. **例3**: 優先度が低いルールを追加（メモレベルに追加）
 
 すべての例で、**優先度に応じた適切な番号を付ける**ことを前提としています。
 
