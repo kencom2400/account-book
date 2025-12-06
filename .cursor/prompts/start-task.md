@@ -72,4 +72,4 @@ Issueの内容に従って即座に作業を開始してください。
 
 ## 詳細
 
-詳細は `.cursor/rules/04-github-integration.md` の「@start-task統合」セクションを参照してください.
+詳細は `.cursor/rules/04-github-integration.d/04-start-task.md` を参照してください。

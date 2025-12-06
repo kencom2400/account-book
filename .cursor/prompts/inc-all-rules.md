@@ -8,40 +8,105 @@
 
 `.cursor/rules/` ディレクトリ内のすべてのルールファイルを再読込します。
 
+### 新しいディレクトリ構造
+
+Phase 2のリファクタリングにより、ルールファイルは以下のディレクトリ構造に整理されました：
+
+```
+.cursor/rules/
+├── 00-workflow-checklist.d/    # ワークフロー・チェックリスト
+├── 01-project.d/                # プロジェクト全体のガイドライン
+├── 02-code-standards.d/         # コード品質基準とテスト
+├── 03-git-workflow.d/           # Git ワークフロー
+├── 04-github-integration.d/     # GitHub統合
+├── 05-ci-cd.d/                  # CI/CD設定ガイドライン
+└── templates/                    # テンプレート
+```
+
+各`.d`ディレクトリには、機能別に分割されたルールファイルが含まれています。
+
 ### 読込対象ファイル
 
-以下のファイルをすべて読み込んでください：
+**重要**: 各`.d`ディレクトリ内のすべての`.md`ファイルを**動的に検出**して読み込みます。ファイルを追加した際に、このファイル（`inc-all-rules.md`）を更新する必要はありません。
 
-- **`.cursor/rules/00-WORKFLOW-CHECKLIST.md`** - ワークフロー・チェックリスト（最優先ガイド）
-- **`.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md`** - Gitワークフロー遵守チェックリスト（再発防止ガイド）
-- **`.cursor/rules/01-project.md`** - プロジェクト全体のガイドライン
-- **`.cursor/rules/02-code-standards.md`** - コード品質基準とテスト
-- **`.cursor/rules/03-git-workflow.md`** - Git ワークフロー
-- **`.cursor/rules/04-github-integration.md`** - GitHub統合
-- **`.cursor/rules/05-ci-cd.md`** - CI/CD設定ガイドライン
-- **`.cursor/rules/templates/issue-report.md`** - Issue報告テンプレート
-- **`.cursor/rules/templates/pr-description.md`** - PR説明テンプレート
-- **`.cursor/rules/learned-from-gemini-perf-review.md`** - Geminiレビューからの学習内容
+**読み込み順序**:
+
+1. 各`.d`ディレクトリを順番に処理
+2. 各ディレクトリ内で、`README.md`を最初に読み込み
+3. その後、ファイル名の先頭数字（`01-`, `02-`, ...）で**逆順にソート**して順次読み込み
+   - **重要**: 優先度の高いルール（`01-XX`）を後から読み込むことで、矛盾する内容がある場合に優先度の高いルールが優先される
+   - 読み込み順序: `04-XX`（メモ）→ `03-XX`（一般）→ `02-XX`（優先）→ `01-XX`（必須）
+4. 最後に`templates/`ディレクトリのファイルを読み込み
+
+**現在のファイル構成（参考）**:
+
+- `00-workflow-checklist.d/`: 7ファイル
+- `01-project.d/`: 6ファイル
+- `02-code-standards.d/`: 13ファイル
+- `03-git-workflow.d/`: 5ファイル
+- `04-github-integration.d/`: 5ファイル
+- `05-ci-cd.d/`: 5ファイル
+- `templates/`: 2ファイル
+
+**注意**: 上記は現在の構成です。新しいファイルを追加しても、自動的に検出されます。
 
 ## 実行方法
 
-以下のコマンドですべてのルールファイルを読み込んでください：
+以下のように、各`.d`ディレクトリを動的にスキャンして、すべての`.md`ファイルを優先度順（ファイル名の先頭数字）で読み込んでください：
 
 ```typescript
-// すべてのルールファイルをread_fileツールで読み込む
+// ディレクトリ一覧（固定）
+const ruleDirectories = [
+  '00-workflow-checklist.d',
+  '01-project.d',
+  '02-code-standards.d',
+  '03-git-workflow.d',
+  '04-github-integration.d',
+  '05-ci-cd.d',
+];
+
+// 各ディレクトリ内の全.mdファイルを動的に取得して読み込み
+for (const dir of ruleDirectories) {
+  const dirPath = `.cursor/rules/${dir}`;
+
+  // ディレクトリ内の全.mdファイルを取得
+  // 注意: 実際の実装では、list_dirツールを使用してファイル一覧を取得
+  const files = await list_dir(dirPath, { glob: '*.md' });
+
+  // ファイル名でソート（README.mdは常に最初、その後は数値プレフィックスで逆順にソート）
+  // 重要: 優先度の高いルール（01-XX）を後から読み込むことで、矛盾する内容がある場合に優先度の高いルールが優先される
+  files.sort((a, b) => {
+    if (a === 'README.md') return -1;
+    if (b === 'README.md') return 1;
+    // 数値プレフィックスで逆順にソート（04-XX → 03-XX → 02-XX → 01-XX）
+    return b.localeCompare(a, undefined, { numeric: true });
+  });
+
+  // ソート済みファイルを並列で読み込み
+  await Promise.all(files.map((file) => read_file(`${dirPath}/${file}`).catch(() => null)));
+}
+
+// テンプレートも読み込む
 await Promise.all([
-  read_file('.cursor/rules/00-WORKFLOW-CHECKLIST.md'),
-  read_file('.cursor/rules/GIT-WORKFLOW-ENFORCEMENT.md'),
-  read_file('.cursor/rules/01-project.md'),
-  read_file('.cursor/rules/02-code-standards.md'),
-  read_file('.cursor/rules/03-git-workflow.md'),
-  read_file('.cursor/rules/04-github-integration.md'),
-  read_file('.cursor/rules/05-ci-cd.md'),
   read_file('.cursor/rules/templates/issue-report.md'),
   read_file('.cursor/rules/templates/pr-description.md'),
-  read_file('.cursor/rules/learned-from-gemini-perf-review.md'),
 ]);
 ```
+
+**実装のポイント**:
+
+1. **動的ファイル検出**: 各`.d`ディレクトリ内の`.md`ファイルを自動的に検出
+2. **優先度順ソート（逆順）**: ファイル名の先頭数字（`01-`, `02-`, ...）で**逆順にソート**して読み込み
+   - **重要**: 優先度の高いルール（`01-XX`）を後から読み込むことで、矛盾する内容がある場合に優先度の高いルールが優先される
+   - 読み込み順序: `04-XX`（メモ）→ `03-XX`（一般）→ `02-XX`（優先）→ `01-XX`（必須）
+3. **README.md優先**: `README.md`は常に最初に読み込む
+4. **拡張性**: 新しいファイルを追加しても、`inc-all-rules.md`の更新は不要
+
+**ファイル名の命名規則**:
+
+- 現在: 2桁の数値プレフィックス（`01-`, `02-`, ..., `99-`）
+- 将来の拡張: 100ファイルを超える場合は3桁（`001-`, `002-`, ..., `999-`）に拡張可能
+- 優先度: 数値が小さいほど優先度が高い（`01-` > `02-` > ... > `99-`）
 
 ## 完了メッセージ
 
@@ -51,16 +116,15 @@ await Promise.all([
 ✅ すべてのルールファイルを再読込しました
 
 📋 読込完了:
-- 00-WORKFLOW-CHECKLIST.md
-- GIT-WORKFLOW-ENFORCEMENT.md
-- 01-project.md
-- 02-code-standards.md
-- 03-git-workflow.md
-- 04-github-integration.md
-- 05-ci-cd.md
-- templates/issue-report.md
-- templates/pr-description.md
-- learned-from-gemini-perf-review.md
+- 00-workflow-checklist.d/ (7ファイル)
+- 01-project.d/ (6ファイル)
+- 02-code-standards.d/ (13ファイル)
+- 03-git-workflow.d/ (5ファイル)
+- 04-github-integration.d/ (5ファイル)
+- 05-ci-cd.d/ (5ファイル)
+- templates/ (2ファイル)
+
+合計: 43ファイル
 
 🚀 準備完了！プロジェクトルールに従って作業を開始できます。
 ```
@@ -68,6 +132,8 @@ await Promise.all([
 ## 重要事項
 
 - ✅ すべてのルールファイルを漏れなく読み込む
+- ✅ 各ディレクトリの`README.md`を最初に読み込んで、ファイル一覧を確認
+- ✅ 存在しないファイルの読み込みエラーは無視（オプショナルファイルのため）
 - ✅ 読み込み完了を確認メッセージで通知
 - ✅ エラーが発生した場合は具体的なエラー内容を報告
 - ✅ 並列読み込みで効率化（可能な場合）
@@ -80,3 +146,33 @@ await Promise.all([
 - ルールファイルの更新後の再読込
 - 新しいセッション開始時の初期化
 - 長時間作業後のルール確認
+
+## 注意事項
+
+### ファイル名の命名規則と優先度
+
+- **数値プレフィックス**: ファイル名の先頭数字（`01-`, `02-`, ...）が優先度を示します
+- **現在の形式**: 2桁の数値プレフィックス（`01-` ～ `99-`）
+- **将来の拡張**: 100ファイルを超える場合は3桁（`001-` ～ `999-`）に拡張可能
+- **優先度レベル**:
+  - `01-XX`: 必須（MUST）- 絶対に守るべきルール
+  - `02-XX`: 優先（SHOULD）- できる限り守るべきルール
+  - `03-XX`: 一般（MAY）- 推奨されるルール
+  - `04-XX`: メモ（NOTE）- 参考情報・学習記録
+- **読み込み順序（重要）**: 優先度の高いルールを後から読み込む（逆順）
+  - 読み込み順序: `04-XX`（メモ）→ `03-XX`（一般）→ `02-XX`（優先）→ `01-XX`（必須）
+  - **理由**: 後から読み込まれたルールが優先されるため、矛盾する内容がある場合に優先度の高いルールが優先される
+- **README.md**: 常に最初に読み込まれます（優先度0として扱う）
+
+### 動的読み込みの利点
+
+- **メンテナンス不要**: 新しいファイルを追加しても、`inc-all-rules.md`の更新は不要
+- **自動検出**: 各`.d`ディレクトリ内の`.md`ファイルを自動的に検出
+- **優先度保持**: ファイル名の先頭数字で自動的にソートされ、優先度順（逆順）に読み込まれる
+- **拡張性**: ディレクトリやファイルが増えても対応可能
+
+### 実装時の注意点
+
+- 各`.d`ディレクトリには`README.md`が含まれており、ディレクトリの説明とファイル一覧が記載されています
+- ファイル名の数値プレフィックスで**逆順にソート**することで、優先度の高いルールが後から読み込まれます
+- 最優先ファイル（例: `01-01-type-safety.md`）は自動的に最後に読み込まれ、矛盾する内容がある場合に優先されます
