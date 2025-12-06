@@ -10,19 +10,6 @@
 
 set -euo pipefail
 
-# 一時ファイルのパス
-TEMP_FILE=""
-
-# クリーンアップ関数
-cleanup() {
-  if [ -n "$TEMP_FILE" ] && [ -f "$TEMP_FILE" ]; then
-    rm -f "$TEMP_FILE"
-  fi
-}
-
-# 終了時にクリーンアップを実行
-trap cleanup EXIT
-
 # 使い方表示
 show_usage() {
   cat << EOF
@@ -104,35 +91,29 @@ if ! gh pr view "$PR_NUMBER" > /dev/null 2>&1; then
 fi
 
 # コメント本文の準備
-COMMENT_FILE="${2:-}"
+COMMENT_FILE_PATH="${2:-}"
 
-if [ -n "$COMMENT_FILE" ]; then
-  # ファイルが指定されている場合
-  if [ ! -f "$COMMENT_FILE" ]; then
-    echo "❌ エラー: ファイルが見つかりません: $COMMENT_FILE" >&2
-    exit 1
-  fi
-  
-  # ファイルから直接送信
-  echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
-  gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE"
+# コメントファイルパスの決定
+if [ -z "$COMMENT_FILE_PATH" ]; then
+  # 標準入力から読み込む場合、-を使用（gh pr commentが標準入力から読み込む）
+  COMMENT_FILE_PATH="-"
 else
-  # 標準入力から読み込む
-  TEMP_FILE=$(mktemp)
-  
-  # 標準入力から読み込んで一時ファイルに保存
-  cat > "$TEMP_FILE"
-  
-  # ファイルが空でないことを確認
-  if [ ! -s "$TEMP_FILE" ]; then
-    echo "❌ エラー: コメント本文が空です" >&2
+  # ファイルが指定されている場合、存在確認
+  if [ ! -f "$COMMENT_FILE_PATH" ]; then
+    echo "❌ エラー: ファイルが見つかりません: $COMMENT_FILE_PATH" >&2
     exit 1
   fi
-  
-  # 一時ファイルから送信
-  echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
-  gh pr comment "$PR_NUMBER" --body-file "$TEMP_FILE"
 fi
+
+# コメントファイルの内容確認（ファイル指定の場合のみ）
+if [ "$COMMENT_FILE_PATH" != "-" ] && [ ! -s "$COMMENT_FILE_PATH" ]; then
+  echo "❌ エラー: コメント本文が空です" >&2
+  exit 1
+fi
+
+# コメントを送信
+echo "📝 PR #${PR_NUMBER} にコメントを送信中..." >&2
+gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE_PATH"
 
 echo "✅ PR #${PR_NUMBER} にコメントを送信しました" >&2
 
