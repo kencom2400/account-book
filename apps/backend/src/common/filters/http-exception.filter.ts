@@ -27,7 +27,12 @@ import { EventNotFoundException } from '../../modules/event/domain/errors/event.
 /**
  * グローバル例外フィルター
  * すべての例外をキャッチし、統一されたエラーレスポンス形式で返す
+ *
  * Issue #366: Exception Filterの導入によるエラーハンドリングの一元化
+ * Issue #367: Exception Filterの導入によるエラーハンドリングの一元化（全体スコープ）
+ *   - すべてのコントローラーからtry-catchブロックを削除
+ *   - エラーレスポンス形式を統一（message, code, details, metadata）
+ *   - カスタム例外のHTTP例外への変換を一元化
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
