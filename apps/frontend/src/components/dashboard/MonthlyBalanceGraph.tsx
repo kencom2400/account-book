@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useId } from 'react';
 import {
   BarChart,
   Bar,
@@ -36,6 +36,11 @@ const COLOR_BALANCE_NEGATIVE = '#FF9800';
  * FR-023: 月間収支グラフ表示
  */
 export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.JSX.Element {
+  // 一意なIDを生成（linearGradientのID衝突を防ぐ）
+  const uniqueId = useId();
+  const incomeGradientId = `colorIncome-${uniqueId}`;
+  const expenseGradientId = `colorExpense-${uniqueId}`;
+
   // 月間サマリーデータ（横棒グラフ用）
   const summaryData = useMemo(() => {
     return [
@@ -196,11 +201,11 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={cumulativeData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <defs>
-                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={incomeGradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLOR_INCOME} stopOpacity={0.8} />
                   <stop offset="95%" stopColor={COLOR_INCOME} stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={expenseGradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLOR_EXPENSE} stopOpacity={0.8} />
                   <stop offset="95%" stopColor={COLOR_EXPENSE} stopOpacity={0} />
                 </linearGradient>
@@ -215,7 +220,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
                 dataKey="cumulativeIncome"
                 stroke={COLOR_INCOME}
                 fillOpacity={1}
-                fill="url(#colorIncome)"
+                fill={`url(#${incomeGradientId})`}
                 name="累積収入"
               />
               <Area
@@ -223,7 +228,7 @@ export function MonthlyBalanceGraph({ data }: MonthlyBalanceGraphProps): React.J
                 dataKey="cumulativeExpense"
                 stroke={COLOR_EXPENSE}
                 fillOpacity={1}
-                fill="url(#colorExpense)"
+                fill={`url(#${expenseGradientId})`}
                 name="累積支出"
               />
             </AreaChart>
