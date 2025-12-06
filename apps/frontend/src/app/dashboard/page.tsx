@@ -28,6 +28,10 @@ export default function DashboardPage(): React.JSX.Element {
   const [yearlyLoading, setYearlyLoading] = useState(false);
   const [yearlyError, setYearlyError] = useState<string | null>(null);
 
+  // 年の選択範囲の定数
+  const YEAR_SELECTION_RANGE = 10; // 選択可能な年の数
+  const YEAR_SELECTION_OFFSET = 5; // 現在年から前後何年まで表示するか
+
   // 現在の年月を取得
   const now: Date = new Date();
   const currentYear: number = now.getFullYear();
@@ -160,7 +164,10 @@ export default function DashboardPage(): React.JSX.Element {
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map((year) => (
+                    {Array.from(
+                      { length: YEAR_SELECTION_RANGE },
+                      (_, i) => currentYear - YEAR_SELECTION_OFFSET + i
+                    ).map((year) => (
                       <option key={year} value={year}>
                         {year}年
                       </option>

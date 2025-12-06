@@ -43,7 +43,12 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
   // 月別データをグラフ用に変換
   const monthlyData = useMemo(() => {
     return data.months.map((month) => {
-      const monthNum = parseInt(month.month.split('-')[1] || '1', 10);
+      // month.monthはYYYY-MM形式であることが保証されている
+      const monthPart = month.month.split('-')[1];
+      if (!monthPart) {
+        throw new Error(`Invalid month format: ${month.month}`);
+      }
+      const monthNum = parseInt(monthPart, 10);
       return {
         month: `${monthNum}月`,
         monthNum,
@@ -103,9 +108,17 @@ export function YearlyBalanceGraph({ data }: YearlyBalanceGraphProps): React.JSX
                 平均: {formatCurrency(data.annual.averageExpense)}/月
               </p>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div
+              className={`text-center p-4 rounded-lg ${
+                data.annual.totalBalance >= 0 ? 'bg-blue-50' : 'bg-orange-50'
+              }`}
+            >
               <p className="text-sm text-gray-600 mb-1">年間収支</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p
+                className={`text-2xl font-bold ${
+                  data.annual.totalBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
+                }`}
+              >
                 {formatCurrency(data.annual.totalBalance)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
