@@ -1393,7 +1393,7 @@ export class SyncAllTransactionsUseCase {
 
 ---
 
-### 4-13. Enum値とリテラル型の一貫性
+### 4-18. Enum値とリテラル型の一貫性
 
 #### 🟡 推奨: Enum値と使用箇所の型を統一する
 
