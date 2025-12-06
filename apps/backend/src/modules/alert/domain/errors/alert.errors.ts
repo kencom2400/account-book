@@ -6,6 +6,8 @@
  * アラートが見つからないエラー
  */
 export class AlertNotFoundException extends Error {
+  public readonly code = 'AL001';
+
   constructor(public readonly alertId: string) {
     super(`Alert not found: ${alertId}`);
     this.name = 'AlertNotFoundException';
@@ -16,6 +18,8 @@ export class AlertNotFoundException extends Error {
  * 重複アラート生成エラー
  */
 export class DuplicateAlertException extends Error {
+  public readonly code = 'AL002';
+
   constructor(public readonly reconciliationId: string) {
     super(
       `Duplicate alert already exists for reconciliation: ${reconciliationId}`,
@@ -28,6 +32,8 @@ export class DuplicateAlertException extends Error {
  * 既に解決済みのアラートエラー
  */
 export class AlertAlreadyResolvedException extends Error {
+  public readonly code = 'AL003';
+
   constructor(public readonly alertId: string) {
     super(`Alert is already resolved: ${alertId}`);
     this.name = 'AlertAlreadyResolvedException';
@@ -38,6 +44,8 @@ export class AlertAlreadyResolvedException extends Error {
  * CRITICALアラート削除不可エラー
  */
 export class CriticalAlertDeletionException extends Error {
+  public readonly code = 'AL004';
+
   constructor(public readonly alertId: string) {
     super(`CRITICAL alert cannot be deleted: ${alertId}`);
     this.name = 'CriticalAlertDeletionException';
