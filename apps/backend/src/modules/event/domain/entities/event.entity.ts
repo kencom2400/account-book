@@ -54,7 +54,7 @@ export class EventEntity {
   /**
    * タイトルのバリデーション（1-100文字）
    */
-  validateTitle(title: string): void {
+  private validateTitle(title: string): void {
     if (!title || title.trim().length === 0) {
       throw new Error('Title is required');
     }
@@ -67,7 +67,7 @@ export class EventEntity {
   /**
    * 日付のバリデーション
    */
-  validateDate(date: Date): void {
+  private validateDate(date: Date): void {
     if (!date) {
       throw new Error('Date is required');
     }
