@@ -1,6 +1,7 @@
 /**
  * 月別集計APIクライアント
  * FR-012: クレジットカード月別集計
+ * FR-016: 月別収支集計
  */
 
 import { CategoryAmount } from '@account-book/types';
@@ -50,6 +51,71 @@ export interface MonthlyCardSummaryListItem {
 }
 
 /**
+ * 月別収支集計レスポンス（FR-016）
+ */
+
+// 取引情報
+interface MonthlyBalanceTransaction {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string;
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
+}
+
+// 内訳項目の基本情報
+interface MonthlyBalanceBreakdownItem {
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+// カテゴリ別内訳
+interface MonthlyBalanceCategoryBreakdown extends MonthlyBalanceBreakdownItem {
+  categoryId: string;
+  categoryName: string;
+}
+
+// 金融機関別内訳
+interface MonthlyBalanceInstitutionBreakdown extends MonthlyBalanceBreakdownItem {
+  institutionId: string;
+  institutionName: string;
+}
+
+// 収入・支出の詳細情報
+interface MonthlyBalanceDetails {
+  total: number;
+  count: number;
+  byCategory: MonthlyBalanceCategoryBreakdown[];
+  byInstitution: MonthlyBalanceInstitutionBreakdown[];
+  transactions: MonthlyBalanceTransaction[];
+}
+
+// 比較データ
+interface MonthlyComparison {
+  incomeDiff: number;
+  expenseDiff: number;
+  balanceDiff: number;
+  incomeChangeRate: number;
+  expenseChangeRate: number;
+}
+
+export interface MonthlyBalanceResponse {
+  month: string; // YYYY-MM
+  income: MonthlyBalanceDetails;
+  expense: MonthlyBalanceDetails;
+  balance: number;
+  savingsRate: number;
+  comparison: {
+    previousMonth: MonthlyComparison | null;
+    sameMonthLastYear: MonthlyComparison | null;
+  };
+}
+
+/**
  * 月別集計APIクライアント
  */
 export const aggregationApi = {
@@ -88,5 +154,14 @@ export const aggregationApi = {
    */
   delete: async (id: string): Promise<void> => {
     return await apiClient.delete(`/api/aggregation/card/monthly/${id}`);
+  },
+
+  /**
+   * 月別収支集計情報を取得（FR-016）
+   */
+  getMonthlyBalance: async (year: number, month: number): Promise<MonthlyBalanceResponse> => {
+    return await apiClient.get<MonthlyBalanceResponse>(
+      `/api/aggregation/monthly-balance?year=${year}&month=${month}`
+    );
   },
 };
