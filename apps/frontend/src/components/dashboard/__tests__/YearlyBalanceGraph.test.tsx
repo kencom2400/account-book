@@ -185,4 +185,127 @@ describe('YearlyBalanceGraph', () => {
     // グラフは表示されるが、データが空
     expect(screen.getByText('年間サマリー')).toBeInTheDocument();
   });
+
+  it('should throw error for invalid month format', () => {
+    const invalidData: YearlyBalanceResponse = {
+      ...mockData,
+      months: [
+        {
+          month: 'invalid', // 不正なフォーマット（ハイフンなし）
+          income: {
+            total: 500000,
+            count: 5,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          expense: {
+            total: 300000,
+            count: 5,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          balance: 200000,
+          savingsRate: 40,
+        },
+      ],
+    };
+
+    // エラーが投げられることを確認
+    expect(() => {
+      render(<YearlyBalanceGraph data={invalidData} />);
+    }).toThrow('Invalid month format: invalid');
+  });
+
+  it('should display negative balance with orange color', () => {
+    const negativeBalanceData: YearlyBalanceResponse = {
+      ...mockData,
+      annual: {
+        totalIncome: 3000000,
+        totalExpense: 4000000,
+        totalBalance: -1000000,
+        averageIncome: 250000,
+        averageExpense: 333333,
+        savingsRate: -33.33,
+      },
+    };
+
+    render(<YearlyBalanceGraph data={negativeBalanceData} />);
+
+    // マイナス収支の場合、オレンジ色のクラスが適用される
+    // formatCurrencyはIntl.NumberFormatを使用するため、マイナス記号の位置が異なる可能性がある
+    const balanceText = screen.getByText(/1,000,000/);
+    const balanceCard = balanceText.closest('div');
+    expect(balanceCard).toHaveClass('bg-orange-50');
+
+    // テキストにマイナス記号が含まれることを確認（フォーマット方法によって異なる）
+    const balanceValue = balanceText.textContent || '';
+    expect(balanceValue).toMatch(/-|−|マイナス/);
+  });
+
+  it('should display positive balance with blue color', () => {
+    render(<YearlyBalanceGraph data={mockData} />);
+
+    // プラス収支の場合、青色のクラスが適用される
+    const balanceCard = screen.getByText(/￥2,400,000/).closest('div');
+    expect(balanceCard).toHaveClass('bg-blue-50');
+    expect(balanceCard?.querySelector('.text-blue-600')).toBeInTheDocument();
+  });
+
+  it('should render XAxis with tickFormatter for annual summary chart', () => {
+    render(<YearlyBalanceGraph data={mockData} />);
+
+    // 年間サマリーのバーグラフでXAxisが表示される
+    const barCharts = screen.getAllByTestId('bar-chart');
+    expect(barCharts.length).toBeGreaterThan(0);
+
+    // XAxisコンポーネントが存在することを確認
+    const xAxes = screen.getAllByTestId('x-axis');
+    expect(xAxes.length).toBeGreaterThan(0);
+  });
+
+  it('should render YAxis with tickFormatter for monthly line chart', () => {
+    render(<YearlyBalanceGraph data={mockData} />);
+
+    // 月別折れ線グラフでYAxisが表示される
+    const lineCharts = screen.getAllByTestId('line-chart');
+    expect(lineCharts.length).toBeGreaterThan(0);
+
+    // YAxisコンポーネントが存在することを確認
+    const yAxes = screen.getAllByTestId('y-axis');
+    expect(yAxes.length).toBeGreaterThan(0);
+  });
+
+  it('should handle month with missing part', () => {
+    const missingPartData: YearlyBalanceResponse = {
+      ...mockData,
+      months: [
+        {
+          month: '2025-', // 月の部分が欠けている
+          income: {
+            total: 500000,
+            count: 5,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          expense: {
+            total: 300000,
+            count: 5,
+            byCategory: [],
+            byInstitution: [],
+            transactions: [],
+          },
+          balance: 200000,
+          savingsRate: 40,
+        },
+      ],
+    };
+
+    // エラーが投げられることを確認
+    expect(() => {
+      render(<YearlyBalanceGraph data={missingPartData} />);
+    }).toThrow('Invalid month format: 2025-');
+  });
 });
