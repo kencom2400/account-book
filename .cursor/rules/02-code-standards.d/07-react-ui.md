@@ -510,7 +510,7 @@ const handleRetry = async (): Promise<void> => {
 };
 ```
 
-### 7-2. 日時の固定化
+### 7-9. 日時の固定化
 
 ❌ **悪い例**:
 
