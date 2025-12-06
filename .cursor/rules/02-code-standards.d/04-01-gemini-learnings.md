@@ -5843,3 +5843,222 @@ if (exception instanceof AlertNotFoundException) {
 **参照**: PR #372 - Issue #367: Exception Filterの導入によるエラーハンドリングの一元化（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 21-1. カラーコードの定数化 🟡 Medium
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- コンポーネント内でカラーコードがハードコーディングされている
+- 複数箇所で同じカラーコードが使用されているが、変更時にすべての箇所を修正する必要がある
+- テーマ対応や色の変更が困難
+
+**解決策**:
+
+- カラーコードをコンポーネントのトップレベルで定数として定義する
+- すべての箇所で定数を使用する
+
+```typescript
+// ❌ 悪い例: カラーコードがハードコーディング
+const summaryData = useMemo(() => {
+  return [
+    {
+      name: '収入',
+      value: data.income.total,
+      color: '#4CAF50',
+    },
+    {
+      name: '支出',
+      value: data.expense.total,
+      color: '#F44336',
+    },
+  ];
+}, [data]);
+
+<Line
+  type="monotone"
+  dataKey="income"
+  stroke="#4CAF50"
+  strokeWidth={2}
+  name="収入"
+/>
+
+// ✅ 良い例: カラーコードを定数として定義
+const COLOR_INCOME = '#4CAF50';
+const COLOR_EXPENSE = '#F44336';
+const COLOR_BALANCE_POSITIVE = '#2196F3';
+const COLOR_BALANCE_NEGATIVE = '#FF9800';
+
+const summaryData = useMemo(() => {
+  return [
+    {
+      name: '収入',
+      value: data.income.total,
+      color: COLOR_INCOME,
+    },
+    {
+      name: '支出',
+      value: data.expense.total,
+      color: COLOR_EXPENSE,
+    },
+  ];
+}, [data]);
+
+<Line
+  type="monotone"
+  dataKey="income"
+  stroke={COLOR_INCOME}
+  strokeWidth={2}
+  name="収入"
+/>
+```
+
+**教訓**:
+
+- カラーコードなどのマジックナンバーは定数として定義する
+- 定数化により、コードの可読性が向上し、将来の変更が容易になる
+- テーマ対応や色の変更が1箇所の修正で済む
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-2. 重複ロジックのヘルパー関数化 🟡 Medium
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- 収入と支出の取引を処理するロジックが重複している
+- 同じパターンのコードが2回繰り返されている
+- コードの保守性が低下し、変更時に複数箇所の修正が必要
+
+**解決策**:
+
+- 重複しているロジックをヘルパー関数にまとめる
+- 関数の引数で種別（'income'または'expense'）を指定する
+
+```typescript
+// ❌ 悪い例: ロジックが重複
+const dailyData = useMemo(() => {
+  const dailyMap = new Map<string, { income: number; expense: number }>();
+
+  // 収入取引を日付ごとに集計
+  for (const transaction of data.income.transactions) {
+    const date = new Date(transaction.date);
+    const day = date.getDate();
+    const key = day.toString();
+
+    if (!dailyMap.has(key)) {
+      dailyMap.set(key, { income: 0, expense: 0 });
+    }
+
+    const daily = dailyMap.get(key)!;
+    daily.income += Math.abs(transaction.amount);
+  }
+
+  // 支出取引を日付ごとに集計（同じロジックが重複）
+  for (const transaction of data.expense.transactions) {
+    const date = new Date(transaction.date);
+    const day = date.getDate();
+    const key = day.toString();
+
+    if (!dailyMap.has(key)) {
+      dailyMap.set(key, { income: 0, expense: 0 });
+    }
+
+    const daily = dailyMap.get(key)!;
+    daily.expense += Math.abs(transaction.amount);
+  }
+  // ...
+}, [data]);
+
+// ✅ 良い例: ヘルパー関数にまとめる
+const dailyData = useMemo(() => {
+  const dailyMap = new Map<string, { income: number; expense: number }>();
+
+  // 取引を処理するヘルパー関数
+  const processTransactions = (
+    transactions: MonthlyBalanceResponse['income']['transactions'],
+    type: 'income' | 'expense'
+  ): void => {
+    for (const transaction of transactions) {
+      const date = new Date(transaction.date);
+      const day = date.getDate();
+      const key = day.toString();
+
+      if (!dailyMap.has(key)) {
+        dailyMap.set(key, { income: 0, expense: 0 });
+      }
+
+      const daily = dailyMap.get(key)!;
+      daily[type] += Math.abs(transaction.amount);
+    }
+  };
+
+  // 収入と支出の取引を処理
+  processTransactions(data.income.transactions, 'income');
+  processTransactions(data.expense.transactions, 'expense');
+  // ...
+}, [data]);
+```
+
+**教訓**:
+
+- 重複しているロジックはヘルパー関数にまとめる
+- DRY原則（Don't Repeat Yourself）を遵守する
+- コードの可読性と保守性が向上する
+- 変更時に1箇所の修正で済む
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-3. Props型のinterface定義 🟡 Medium
+
+**学習元**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+**問題点**:
+
+- コンポーネントのpropsの型がインラインで定義されている
+- 可読性と再利用性が低下している
+- 型定義が複雑になると、コードが読みにくくなる
+
+**解決策**:
+
+- propsの型を別の`interface`として定義する
+- コンポーネントの外で定義することで、再利用性が向上する
+
+```typescript
+// ❌ 悪い例: propsの型がインライン定義
+const CustomTooltip = ({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+}): React.JSX.Element | null => {
+  // ...
+};
+
+// ✅ 良い例: interfaceとして定義
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps): React.JSX.Element | null => {
+  // ...
+};
+```
+
+**教訓**:
+
+- コンポーネントのpropsの型は`interface`として定義する
+- 型定義をコンポーネントの外に置くことで、可読性と再利用性が向上する
+- 複雑な型定義は特に、別の`interface`として定義することを推奨
+
+**参照**: PR #373 - Issue #52: FR-023 月間収支グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
