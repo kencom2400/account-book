@@ -564,7 +564,7 @@ export class TransactionModule {}
   - 文字列リテラルではなく、`Symbol('InterfaceName')`の形式で定義する
   - 例：`export const REPOSITORY_TOKEN = Symbol('IRepository');`
 
-### 3-2. Domain層の設計原則とパフォーマンス考慮
+### 3-4. Domain層の設計原則とパフォーマンス考慮
 
 #### ❌ 避けるべきパターン1: Domain ServiceでfindAll()してメモリフィルタリング
 
