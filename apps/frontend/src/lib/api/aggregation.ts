@@ -7,7 +7,13 @@
  * FR-026: 金融機関別資産残高表示
  */
 
-import { CategoryAmount, CategoryType, InstitutionType, AccountType } from '@account-book/types';
+import {
+  CategoryAmount,
+  CategoryType,
+  InstitutionType,
+  AccountType,
+  TrendAnalysisResponse,
+} from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -206,48 +212,6 @@ export interface AssetBalanceResponse {
   asOfDate: string; // ISO8601形式
   previousMonth: AssetComparisonDto;
   previousYear: AssetComparisonDto;
-}
-
-/**
- * トレンド分析レスポンス（FR-027）
- */
-export interface TrendAnalysisResponse {
-  period: {
-    start: string; // YYYY-MM
-    end: string; // YYYY-MM
-  };
-  targetType: 'income' | 'expense' | 'balance';
-  actual: Array<{
-    date: string; // YYYY-MM
-    value: number;
-  }>;
-  movingAverage: {
-    period: number;
-    data: Array<{
-      date: string; // YYYY-MM
-      value: number;
-    }>;
-  };
-  trendLine: {
-    slope: number;
-    intercept: number;
-    points: Array<{
-      date: string; // YYYY-MM
-      value: number;
-    }>;
-  };
-  statistics: {
-    mean: number;
-    standardDeviation: number;
-    coefficientOfVariation: number;
-  };
-  insights: Array<{
-    type: 'trend' | 'pattern' | 'anomaly';
-    severity: 'info' | 'warning' | 'critical';
-    title: string;
-    description: string;
-    recommendation?: string;
-  }>;
 }
 
 /**

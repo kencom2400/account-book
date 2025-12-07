@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency } from '@account-book/utils';
-import type { TrendAnalysisResponse } from '@/lib/api/aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 import { CustomTooltip } from './CustomTooltip';
 
 interface TrendGraphProps {

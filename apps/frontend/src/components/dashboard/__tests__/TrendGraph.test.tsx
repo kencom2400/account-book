@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { TrendGraph } from '../TrendGraph';
-import type { TrendAnalysisResponse } from '@/lib/api/aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 
 // Rechartsのモック
 jest.mock('recharts', () => ({

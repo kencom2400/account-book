@@ -16,8 +16,8 @@ import {
   aggregationApi,
   type MonthlyBalanceResponse,
   type YearlyBalanceResponse,
-  type TrendAnalysisResponse,
 } from '@/lib/api/aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 import { Transaction } from '@account-book/types';
 
 /**

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import type { TrendAnalysisResponse } from '@/lib/api/aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 
 interface TrendInsightsProps {
   data: TrendAnalysisResponse;

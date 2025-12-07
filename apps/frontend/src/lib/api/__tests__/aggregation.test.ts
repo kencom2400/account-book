@@ -6,6 +6,7 @@
 import { CategoryType } from '@account-book/types';
 import { apiClient } from '../client';
 import { aggregationApi, type AggregateCardTransactionsRequest } from '../aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 
 // apiClientをモック
 jest.mock('../client', () => ({
@@ -305,7 +306,7 @@ describe('Aggregation API Client', () => {
 
   describe('getTrendAnalysis', () => {
     it('トレンド分析情報を取得できる', async () => {
-      const mockResponse: aggregationApi.TrendAnalysisResponse = {
+      const mockResponse: TrendAnalysisResponse = {
         period: {
           start: '2024-01',
           end: '2024-12',
@@ -352,7 +353,7 @@ describe('Aggregation API Client', () => {
     });
 
     it('オプションパラメータなしでトレンド分析情報を取得できる', async () => {
-      const mockResponse: aggregationApi.TrendAnalysisResponse = {
+      const mockResponse: TrendAnalysisResponse = {
         period: {
           start: '2024-01',
           end: '2024-12',

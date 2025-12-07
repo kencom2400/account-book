@@ -3,6 +3,7 @@ export * from './institution.types';
 export * from './bank.types';
 export * from './api.types';
 export * from './api/error-response';
+export * from './api/trend-analysis-response';
 export * from './user.types';
 export * from './report.types';
 export * from './sync.types';
