@@ -109,7 +109,7 @@ sequenceDiagram
     participant API as SyncSettingsController
     participant UC as UpdateSyncSettingsUseCase
     participant Repo as SyncSettingsRepository
-    participant Scheduler as ScheduledSyncJob
+    participant Scheduler as ISchedulerService
 
     User->>FE: 設定を変更して「保存」ボタンクリック
     FE->>FE: バリデーション
@@ -133,10 +133,11 @@ sequenceDiagram
         API-->>FE: 400 Bad Request<br/>{error: {...}}
         FE-->>User: エラーメッセージ表示
     else バリデーション成功
+        UC->>UC: 次回同期時刻を計算
         UC->>Repo: save(settings)
         Repo-->>UC: SyncSettings
 
-        UC->>Scheduler: updateSchedule(cronExpression)
+        UC->>Scheduler: updateSchedule(settings)
         Scheduler->>Scheduler: SchedulerRegistryで更新
         Scheduler-->>UC: 完了
 
@@ -271,7 +272,7 @@ sequenceDiagram
     participant API as SyncSettingsController
     participant UC as UpdateInstitutionSyncSettingsUseCase
     participant Repo as SyncSettingsRepository
-    participant Scheduler as ScheduledSyncJob
+    participant Scheduler as ISchedulerService
 
     User->>FE: 金融機関の設定を変更して「保存」ボタンクリック
     FE->>FE: バリデーション
@@ -299,7 +300,7 @@ sequenceDiagram
         UC->>Repo: saveInstitutionSettings(settings)
         Repo-->>UC: InstitutionSyncSettings
 
-        UC->>Scheduler: updateInstitutionSchedule(institutionId, cronExpression)
+        UC->>Scheduler: updateInstitutionSchedule(institutionId, settings)
         Scheduler->>Scheduler: SchedulerRegistryで更新
         Scheduler-->>UC: 完了
 

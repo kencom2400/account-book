@@ -184,7 +184,7 @@ classDiagram
 
     class UpdateSyncSettingsUseCase {
         -ISyncSettingsRepository repository
-        -ScheduledSyncJob scheduler
+        -ISchedulerService scheduler
         +execute(dto) Promise~SyncSettingsDto~
         -updateSchedule(settings) void
     }
@@ -196,9 +196,15 @@ classDiagram
 
     class UpdateInstitutionSyncSettingsUseCase {
         -ISyncSettingsRepository repository
-        -ScheduledSyncJob scheduler
+        -ISchedulerService scheduler
         +execute(institutionId, dto) Promise~InstitutionSyncSettingsDto~
         -updateSchedule(institutionId, settings) void
+    }
+
+    class ISchedulerService {
+        <<interface>>
+        +updateSchedule(settings) void
+        +updateInstitutionSchedule(institutionId, settings) void
     }
 
     class SyncSettingsDto {
@@ -236,10 +242,10 @@ classDiagram
 
     GetSyncSettingsUseCase --> ISyncSettingsRepository
     UpdateSyncSettingsUseCase --> ISyncSettingsRepository
-    UpdateSyncSettingsUseCase --> ScheduledSyncJob
+    UpdateSyncSettingsUseCase --> ISchedulerService
     GetInstitutionSyncSettingsUseCase --> ISyncSettingsRepository
     UpdateInstitutionSyncSettingsUseCase --> ISyncSettingsRepository
-    UpdateInstitutionSyncSettingsUseCase --> ScheduledSyncJob
+    UpdateInstitutionSyncSettingsUseCase --> ISchedulerService
 ```
 
 **クラス説明**:
@@ -255,7 +261,7 @@ classDiagram
 - **責務**: 全体設定の更新、スケジュールの動的更新
 - **主要メソッド**:
   - `execute(dto)`: 設定を更新し、スケジュールを更新
-  - `updateSchedule(settings)`: ScheduledSyncJobのスケジュールを更新
+  - `updateSchedule(settings)`: ISchedulerServiceを通じてスケジュールを更新
 
 #### GetInstitutionSyncSettingsUseCase
 
@@ -268,7 +274,14 @@ classDiagram
 - **責務**: 金融機関ごとの設定更新、スケジュールの動的更新
 - **主要メソッド**:
   - `execute(institutionId, dto)`: 設定を更新し、スケジュールを更新
-  - `updateSchedule(institutionId, settings)`: 特定金融機関のスケジュールを更新
+  - `updateSchedule(institutionId, settings)`: ISchedulerServiceを通じて特定金融機関のスケジュールを更新
+
+#### ISchedulerService
+
+- **責務**: スケジュール更新のインターフェース（Application層で定義）
+- **主要メソッド**:
+  - `updateSchedule(settings)`: 全体のスケジュールを更新
+  - `updateInstitutionSchedule(institutionId, settings)`: 特定金融機関のスケジュールを更新
 
 ---
 
@@ -296,13 +309,12 @@ classDiagram
     class ScheduledSyncJob {
         -SchedulerRegistry schedulerRegistry
         -string currentSchedule
-        -updateSchedule(cronExpression) void
-        -updateInstitutionSchedule(institutionId, cronExpression) void
+        +updateSchedule(settings) void
+        +updateInstitutionSchedule(institutionId, settings) void
     }
 
     SyncSettingsRepositoryImpl ..|> ISyncSettingsRepository
-    UpdateSyncSettingsUseCase --> ScheduledSyncJob
-    UpdateInstitutionSyncSettingsUseCase --> ScheduledSyncJob
+    ScheduledSyncJob ..|> ISchedulerService
 ```
 
 **クラス説明**:
@@ -320,10 +332,10 @@ classDiagram
 
 #### ScheduledSyncJob
 
-- **責務**: 動的スケジュール更新（既存のScheduledSyncJobを拡張）
+- **責務**: 動的スケジュール更新（既存のScheduledSyncJobを拡張）、ISchedulerServiceの実装
 - **主要メソッド**:
-  - `updateSchedule(cronExpression)`: 全体のスケジュールを更新
-  - `updateInstitutionSchedule(institutionId, cronExpression)`: 特定金融機関のスケジュールを更新
+  - `updateSchedule(settings)`: 全体のスケジュールを更新（ISchedulerServiceインターフェースの実装）
+  - `updateInstitutionSchedule(institutionId, settings)`: 特定金融機関のスケジュールを更新（ISchedulerServiceインターフェースの実装）
 
 ---
 

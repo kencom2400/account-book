@@ -16,13 +16,13 @@
 
 ### 同期設定 - FR-030
 
-| Method | Path                                  | 説明                     | 認証 |
-| ------ | ------------------------------------- | ------------------------ | ---- |
-| GET    | `/api/sync-settings`                  | 全体設定を取得           | 必要 |
-| PUT    | `/api/sync-settings`                  | 全体設定を更新           | 必要 |
-| GET    | `/api/sync-settings/institutions`     | 全金融機関の設定を取得   | 必要 |
-| GET    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得 | 必要 |
-| PUT    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新 | 必要 |
+| Method | Path                                  | 説明                       | 認証 |
+| ------ | ------------------------------------- | -------------------------- | ---- |
+| GET    | `/api/sync-settings`                  | 全体設定を取得             | 必要 |
+| PATCH  | `/api/sync-settings`                  | 全体設定を更新（部分更新） | 必要 |
+| GET    | `/api/sync-settings/institutions`     | 全金融機関の設定を取得     | 必要 |
+| GET    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得   | 必要 |
+| PUT    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新   | 必要 |
 
 ### 補足
 
@@ -96,9 +96,9 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
-### PUT /api/sync-settings
+### PATCH /api/sync-settings
 
-全体の同期設定を更新します。
+全体の同期設定を更新します（部分更新をサポートします）。
 
 **Request Headers:**
 
@@ -511,16 +511,16 @@ export interface InstitutionSyncSettingsResponseDto {
 
 ### エラーコード一覧
 
-| エラーコード | HTTPステータス | 説明                           |
-| ------------ | -------------- | ------------------------------ |
-| SY001        | 400            | 不正な同期間隔                 |
-| SY002        | 400            | 夜間モード時刻の形式エラー     |
-| SY003        | 400            | 夜間モード開始時刻 >= 終了時刻 |
-| SY004        | 400            | カスタム間隔の値が範囲外       |
-| SY005        | 400            | カスタム間隔の単位が未指定     |
-| SY006        | 500            | 設定保存失敗                   |
-| SY007        | 500            | スケジュール更新失敗           |
-| INST001      | 404            | 金融機関が見つかりません       |
+| エラーコード | HTTPステータス | 説明                                        |
+| ------------ | -------------- | ------------------------------------------- |
+| SY001        | 400            | 不正な同期間隔                              |
+| SY002        | 400            | 夜間モード時刻の形式エラー                  |
+| SY003        | 400            | 夜間モード開始時刻 = 終了時刻（不正な設定） |
+| SY004        | 400            | カスタム間隔の値が範囲外                    |
+| SY005        | 400            | カスタム間隔の単位が未指定                  |
+| SY006        | 500            | 設定保存失敗                                |
+| SY007        | 500            | スケジュール更新失敗                        |
+| INST001      | 404            | 金融機関が見つかりません                    |
 
 ---
 
@@ -550,7 +550,10 @@ export interface InstitutionSyncSettingsResponseDto {
 2. **nightModeStart / nightModeEnd**
    - 形式: `HH:mm`（24時間形式）
    - `nightModeSuspend`が`true`の場合、両方必須
-   - `nightModeStart` < `nightModeEnd`であること
+   - バリデーションルール:
+     - `nightModeStart === nightModeEnd` の場合はエラー（不正な設定）
+     - `nightModeStart > nightModeEnd` の場合は日付をまたぐ設定として許容（例: `22:00` から `06:00`）
+     - `nightModeStart < nightModeEnd` の場合は同日内の設定として許容（例: `22:00` から `23:00`）
    - 例: `nightModeStart: "22:00"`, `nightModeEnd: "06:00"`（翌日6時まで）
 
 ### カスタム間隔の換算例
