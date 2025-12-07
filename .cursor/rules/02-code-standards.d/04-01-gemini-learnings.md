@@ -8166,3 +8166,156 @@ const BAR_CHART_COLOR = '#2196F3'; // blue-500相当
 **参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-XX. マジックストリングの排除とenum型の使用（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### マジックストリングをenum型に置き換える
+
+**問題**: メソッドがマジックストリング（例: `'SAVINGS'`）を返していると、型安全性が低下し、将来のメンテナンスが困難になる
+
+**解決策**: `@account-book/types`のような共有ライブラリにenumを定義し、メソッドがそのenumを返すようにする
+
+```typescript
+// ❌ 悪い例: マジックストリングを返す
+private inferAccountType(accountName: string): string {
+  if (name.includes('普通')) {
+    return 'SAVINGS';
+  }
+  return 'OTHER';
+}
+
+// ✅ 良い例: enum型を返す
+import { AccountType } from '@account-book/types';
+
+private inferAccountType(accountName: string): AccountType {
+  if (name.includes('普通')) {
+    return AccountType.SAVINGS;
+  }
+  return AccountType.OTHER;
+}
+```
+
+**DTOでもenum型を使用**:
+
+```typescript
+// ❌ 悪い例: string型
+export interface AccountAssetDto {
+  accountType: string;
+}
+
+// ✅ 良い例: enum型
+import { AccountType } from '@account-book/types';
+
+export interface AccountAssetDto {
+  accountType: AccountType;
+}
+```
+
+**理由**:
+
+- 型安全性が向上し、コンパイル時にエラーを検出できる
+- フロントエンドとバックエンド間で型定義が統一される
+- IDEの補完機能が正しく動作する
+- マジックストリングによる誤字を防げる
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
+
+### 13-XX. バリデーターのユニットテスト作成（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### カスタムバリデーターのテストを作成する
+
+**問題**: カスタムバリデーターが`new Date()`を使用している場合、テストが存在しないとロジックの検証ができない
+
+**解決策**: バリデーターのユニットテストを作成し、`jest.useFakeTimers()`と`jest.setSystemTime()`を使用して時刻を固定化する
+
+```typescript
+// get-asset-balance.dto.spec.ts
+import { IsNotFutureDateConstraint } from './get-asset-balance.dto';
+
+describe('IsNotFutureDateConstraint', () => {
+  let constraint: IsNotFutureDateConstraint;
+
+  beforeEach(() => {
+    constraint = new IsNotFutureDateConstraint();
+  });
+
+  it('should return false when asOfDate is in the future', () => {
+    const mockDate = new Date('2025-01-20T12:00:00.000Z');
+    jest.useFakeTimers();
+    jest.setSystemTime(mockDate);
+
+    const result = constraint.validate('2025-01-21');
+
+    expect(result).toBe(false);
+
+    jest.useRealTimers();
+  });
+});
+```
+
+**理由**:
+
+- バリデーターのロジックを確実にテストできる
+- 時刻依存のロジックを安定してテストできる
+- エッジケース（今日の終わり、未来日など）を網羅できる
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
+
+### 13-XX. APIレスポンス例の数値整合性チェック（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### ドキュメントの数値が実装ロジックと一致しているか確認
+
+**問題**: APIレスポンス例の数値が実装ロジックと一致していないと、混乱を招く
+
+**解決策**: レスポンス例の数値を実装ロジックに基づいて計算し、整合性を確認する
+
+**確認項目**:
+
+- `totalAssets`が`institutions`内の資産の合計と一致しているか
+- `netWorth`が`totalAssets - totalLiabilities`と一致しているか
+- `percentage`が`(institution.total / totalAssets) * 100`と一致しているか
+
+**例**:
+
+```json
+// ❌ 悪い例: 数値が不一致
+{
+  "totalAssets": 5234567,
+  "netWorth": 5111111,
+  "institutions": [
+    { "total": 3234567, "percentage": 61.8 },
+    { "total": 2123456, "percentage": 40.6 }
+  ]
+}
+// totalAssets = 3234567 + 2123456 = 5358023 なのに 5234567 となっている
+
+// ✅ 良い例: 数値が一致
+{
+  "totalAssets": 5358023,
+  "netWorth": 5234567,
+  "institutions": [
+    { "total": 3234567, "percentage": 60.4 },
+    { "total": 2123456, "percentage": 39.6 }
+  ]
+}
+```
+
+**理由**:
+
+- ドキュメントと実装の整合性を保つ
+- 実装時の混乱を防ぐ
+- レビュー時の誤解を避ける
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
