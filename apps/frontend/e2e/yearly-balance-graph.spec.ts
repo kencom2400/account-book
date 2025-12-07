@@ -1,11 +1,18 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// 定数定義
+const LOADING_TEXT = '読み込み中...';
+const NO_DATA_TEXT = 'データがありません';
+const API_ERROR_TEXT = '年間データの取得に失敗しました';
+const YEAR_LABEL = '年:';
+const RETRY_BUTTON_NAME = '再試行';
+
 test.describe('年間収支グラフ表示機能 (FR-024)', () => {
   // ローディング完了を待機するヘルパー関数
   async function waitForYearlyLoadingComplete(page: Page): Promise<void> {
     // ローディング状態が消えるまで待機
     await page
-      .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
+      .waitForSelector(`text=${LOADING_TEXT}`, { state: 'hidden', timeout: 10000 })
       .catch(() => {
         // ローディングが表示されない場合（既に読み込み完了）は無視
       });
@@ -19,7 +26,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
   // データがない場合にテストをスキップするヘルパー関数
   async function skipIfNoData(page: Page): Promise<void> {
     const noData = await page
-      .getByText('データがありません')
+      .getByText(NO_DATA_TEXT)
       .isVisible()
       .catch(() => false);
     if (noData) {
@@ -30,7 +37,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
   // データまたはグラフが表示されていることを確認するヘルパー関数
   async function expectDataOrGraphDisplayed(page: Page): Promise<void> {
     const hasNoDataMessage = await page
-      .getByText('データがありません')
+      .getByText(NO_DATA_TEXT)
       .isVisible()
       .catch(() => false);
     const hasGraph = await page
@@ -46,7 +53,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await page.goto('/dashboard');
     // ページのローディング完了を待機
     await page
-      .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
+      .waitForSelector(`text=${LOADING_TEXT}`, { state: 'hidden', timeout: 10000 })
       .catch(() => {
         // ローディングが表示されない場合は無視
       });
@@ -72,7 +79,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     const currentYear = new Date().getFullYear();
 
     // 年選択ドロップダウンの値が現在の年であることを確認
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
     await expect(yearSelect).toHaveValue(String(currentYear));
 
     // データが表示されているか、または空データメッセージが表示されていることを確認
@@ -84,7 +91,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
     // 現在の年を取得
     const currentYear = new Date().getFullYear();
@@ -100,17 +107,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(yearSelect).toHaveValue(String(previousYear));
 
     // データが表示されているか、または空データメッセージが表示されていることを確認
-    const hasData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    const hasGraph = await page
-      .locator('svg')
-      .first()
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasData || hasGraph).toBe(true);
+    await expectDataOrGraphDisplayed(page);
   });
 
   test('3種類のグラフ（折れ線、棒、エリア）が表示される', async ({ page }) => {
@@ -192,16 +189,15 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
-    // 選択可能な年の範囲を確認
-    const options = await yearSelect.locator('option').allTextContents();
-    const years = options
-      .map((opt) => {
-        const match = opt.match(/(\d+)年/);
-        return match ? parseInt(match[1], 10) : null;
-      })
-      .filter((year): year is number => year !== null)
+    // 選択可能な年の範囲を確認（value属性を直接取得）
+    const optionValues = await yearSelect
+      .locator('option')
+      .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+    const years = optionValues
+      .map((v) => parseInt(v, 10))
+      .filter((v) => !isNaN(v))
       .sort((a, b) => a - b);
 
     if (years.length === 0) {
@@ -216,13 +212,13 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
 
     // データがない場合のメッセージが表示されるか確認
     const hasNoDataMessage = await page
-      .getByText('データがありません')
+      .getByText(NO_DATA_TEXT)
       .isVisible()
       .catch(() => false);
 
     if (hasNoDataMessage) {
       // メッセージが表示されていればテスト成功
-      await expect(page.getByText('データがありません')).toBeVisible();
+      await expect(page.getByText(NO_DATA_TEXT)).toBeVisible();
     } else {
       // グラフが表示された場合は、テスト対象のデータがないためスキップ
       test.skip(
@@ -238,7 +234,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
     // 現在の年を取得
     const currentYear = new Date().getFullYear();
@@ -256,7 +252,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
     // 現在の年を取得
     const currentYear = new Date().getFullYear();
@@ -274,22 +270,12 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(yearSelect).toHaveValue(String(previousYear));
 
     // データが表示されているか、または空データメッセージが表示されていることを確認
-    const hasData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    const hasGraph = await page
-      .locator('svg')
-      .first()
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasData || hasGraph).toBe(true);
+    await expectDataOrGraphDisplayed(page);
   });
 
   test('ローディング状態が適切に表示される', async ({ page }) => {
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
     // 現在の年を取得
     const currentYear = new Date().getFullYear();
@@ -301,7 +287,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     // ローディング状態が表示されることを確認（一瞬表示される可能性がある）
     // ローディングが表示されない場合でも、テストは成功とする（既にデータがキャッシュされている可能性がある）
     const loadingVisible = await page
-      .getByText('読み込み中...')
+      .getByText(LOADING_TEXT)
       .isVisible()
       .catch(() => false);
 
@@ -309,7 +295,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     if (loadingVisible) {
       await waitForYearlyLoadingComplete(page);
       const stillLoading = await page
-        .getByText('読み込み中...')
+        .getByText(LOADING_TEXT)
         .isVisible()
         .catch(() => false);
       expect(stillLoading).toBe(false);
@@ -325,17 +311,17 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     });
 
     // 年を変更してAPIエラーを発生させる
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
     const currentYear = new Date().getFullYear();
     const previousYear = currentYear - 1;
     await yearSelect.selectOption(String(previousYear));
 
     // エラーメッセージが表示されるのを待機
-    const errorMessage = page.getByText('年間データの取得に失敗しました');
+    const errorMessage = page.getByText(API_ERROR_TEXT);
     await expect(errorMessage).toBeVisible();
 
     // 再試行ボタンが表示されることを確認
-    await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+    await expect(page.getByRole('button', { name: RETRY_BUTTON_NAME })).toBeVisible();
   });
 
   test('ネットワークエラー時のエラーハンドリング', async ({ page, context }) => {
@@ -343,7 +329,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await context.setOffline(true);
 
     // 年選択ドロップダウンを取得
-    const yearSelect = page.getByLabel('年:');
+    const yearSelect = page.getByLabel(YEAR_LABEL);
 
     // 現在の年を取得
     const currentYear = new Date().getFullYear();
