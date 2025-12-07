@@ -8319,3 +8319,84 @@ describe('IsNotFutureDateConstraint', () => {
 **参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---
+
+### 13-42. 冗長な計算の排除と型安全性の向上（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘）
+
+#### 既に計算済みの値を再計算しない
+
+**問題**: メソッド内で既に計算済みの値を再計算している
+
+**解決策**: 計算済みの値を引数として渡す
+
+```typescript
+// ❌ 悪い例: 冗長な計算
+private generateInsights(
+  targetType: TrendTargetType,
+  values: number[],
+  trendLine: TrendLineDto,
+  standardDeviation: number,
+  coefficientOfVariation: number,
+  monthCount: number,
+): InsightDto[] {
+  // meanを再計算している（executeメソッドで既に計算済み）
+  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+  const isIncreasing = trendLine.slope > mean * 0.01;
+  // ...
+}
+
+// ✅ 良い例: 計算済みの値を引数として渡す
+private generateInsights(
+  targetType: TrendTargetType,
+  values: number[],
+  trendLine: TrendLineDto,
+  mean: number, // 既に計算済みの値を引数として受け取る
+  standardDeviation: number,
+  coefficientOfVariation: number,
+  monthCount: number,
+): InsightDto[] {
+  const isIncreasing = trendLine.slope > mean * 0.01;
+  // ...
+}
+```
+
+**理由**:
+
+- 冗長な計算を排除し、パフォーマンスを向上
+- コードの意図が明確になる
+- 計算ロジックの一貫性を保つ
+
+#### 型安全性の向上
+
+**問題**: `unknown[]`型を使用しているため、型安全性が低下
+
+**解決策**: 具体的な型を使用する
+
+```typescript
+// ❌ 悪い例: unknown型を使用
+private generateInsights(
+  trendLine: { slope: number; intercept: number; points: unknown[] },
+  // ...
+): InsightDto[] {
+  // pointsの型が不明確
+}
+
+// ✅ 良い例: 具体的な型を使用
+private generateInsights(
+  trendLine: { slope: number; intercept: number; points: DataPointDto[] },
+  // ...
+): InsightDto[] {
+  // pointsの型が明確で、型安全性が向上
+}
+```
+
+**理由**:
+
+- 型安全性が向上し、コンパイル時にエラーを検出できる
+- IDEの補完が効くようになる
+- コードの可読性が向上
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
