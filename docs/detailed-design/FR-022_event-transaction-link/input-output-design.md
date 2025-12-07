@@ -402,9 +402,23 @@ export interface SuccessResponse<T> {
 ```json
 {
   "success": true,
-  "data": {
-    "suggestions": [...]
-  },
+  "data": [
+    {
+      "transaction": {
+        "id": "txn_001",
+        "date": "2025-08-10",
+        "amount": -50000,
+        "categoryType": "EXPENSE",
+        "categoryId": "cat_001",
+        "categoryName": "交通費",
+        "institutionId": "inst_001",
+        "accountId": "acc_001",
+        "description": "新幹線代"
+      },
+      "score": 85,
+      "reasons": ["日付が近い（0日差）", "高額取引（5万円以上）", "カテゴリが関連（交通費）"]
+    }
+  ],
   "metadata": {
     "timestamp": "2025-01-27T10:00:00Z",
     "version": "1.0.0"

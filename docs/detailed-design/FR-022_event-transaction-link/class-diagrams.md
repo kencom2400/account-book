@@ -258,8 +258,8 @@ classDiagram
     class EventController {
         -SuggestRelatedTransactionsUseCase suggestUseCase
         -GetEventFinancialSummaryUseCase summaryUseCase
-        +suggestRelatedTransactions(eventId) Promise~SuggestedTransaction[]~
-        +getFinancialSummary(eventId) Promise~EventFinancialSummary~
+        +suggestRelatedTransactions(eventId) Promise<SuggestedTransactionDto[]>
+        +getFinancialSummary(eventId) Promise<EventFinancialSummaryResponseDto>
     }
 
     class SuggestedTransactionDto {
@@ -380,7 +380,6 @@ sequenceDiagram
     participant UC as SuggestRelatedTransactionsUseCase
     participant ER as EventRepository
     participant TR as TransactionRepository
-    participant DTO as SuggestedTransactionDto
 
     C->>UC: execute(eventId)
     UC->>ER: findById(eventId)
@@ -391,9 +390,8 @@ sequenceDiagram
     UC->>UC: sortByScore()
     UC->>UC: slice(0, 10)
     UC-->>C: SuggestedTransaction[]
-    C->>DTO: toDto(suggestions)
-    DTO-->>C: SuggestedTransactionDto[]
-    C-->>C: レスポンス構築
+    C->>C: toDto(suggestions)<br/>(EntityからDTOへ変換)
+    C-->>C: レスポンス構築<br/>(SuggestedTransactionDto[])
 ```
 
 ---
