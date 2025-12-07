@@ -73,7 +73,8 @@
 - **主なコンポーネント**:
   - GetSyncSettingsUseCase: 全体設定の取得
   - UpdateSyncSettingsUseCase: 全体設定の更新
-  - GetInstitutionSyncSettingsUseCase: 金融機関ごとの設定取得
+  - GetInstitutionSyncSettingsUseCase: 特定金融機関の設定取得
+  - GetAllInstitutionSyncSettingsUseCase: 全金融機関の設定取得
   - UpdateInstitutionSyncSettingsUseCase: 金融機関ごとの設定更新
 
 #### Domain Layer（ドメイン層）
@@ -110,7 +111,7 @@
 **実装箇所**:
 
 - Controller: `SyncSettingsController.getInstitutionSettings()`, `SyncSettingsController.updateInstitutionSettings()`
-- UseCase: `GetInstitutionSyncSettingsUseCase`, `UpdateInstitutionSyncSettingsUseCase`
+- UseCase: `GetInstitutionSyncSettingsUseCase`, `GetAllInstitutionSyncSettingsUseCase`, `UpdateInstitutionSyncSettingsUseCase`
 - Entity: `InstitutionSyncSettings`
 
 ### 3. 動的スケジュール更新

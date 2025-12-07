@@ -365,7 +365,7 @@ Content-Type: application/json
 
 | フィールド | 型              | 必須 | 説明      | 制約 |
 | ---------- | --------------- | ---- | --------- | ---- |
-| interval   | SyncIntervalDto | ✅   | 同期間隔  | -    |
+| interval   | SyncIntervalDto | ⬜   | 同期間隔  | -    |
 | enabled    | boolean         | ⬜   | 有効/無効 | -    |
 
 **Response (200 OK):**

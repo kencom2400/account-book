@@ -324,7 +324,7 @@ sequenceDiagram
    - 必須項目のチェック
 
 3. **API リクエスト**
-   - エンドポイント: `PUT /api/sync-settings/institutions/:id`
+   - エンドポイント: `PATCH /api/sync-settings/institutions/:id`（部分更新をサポート）
    - RequestDTO: `UpdateInstitutionSyncSettingsRequestDto`
 
 4. **設定更新**
