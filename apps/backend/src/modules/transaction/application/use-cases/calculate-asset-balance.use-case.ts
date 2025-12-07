@@ -125,10 +125,14 @@ export class CalculateAssetBalanceUseCase {
       this.assetBalanceDomainService.calculateInstitutionTotal(institution);
 
     // 構成比を計算（総資産に対する割合）
-    const percentage = this.assetBalanceDomainService.calculatePercentage(
-      total,
-      classification.totalAssets,
-    );
+    // 負債（totalがマイナス）の場合は0.0を返す
+    const percentage =
+      total < 0
+        ? 0.0
+        : this.assetBalanceDomainService.calculatePercentage(
+            total,
+            classification.totalAssets,
+          );
 
     // アイコンを取得
     const icon = this.getInstitutionIcon(institution.type);
