@@ -5,10 +5,12 @@ import { CalculateYearlyBalanceUseCase } from '../../application/use-cases/calcu
 import { CalculateCategoryAggregationUseCase } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
+import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
+import type { AssetBalanceResponseDto } from '../../application/use-cases/calculate-asset-balance.use-case';
 import { InstitutionType } from '@account-book/types';
 
 describe('AggregationController', () => {
@@ -19,6 +21,7 @@ describe('AggregationController', () => {
   let calculateCategoryAggregationUseCase: jest.Mocked<CalculateCategoryAggregationUseCase>;
   let calculateSubcategoryAggregationUseCase: jest.Mocked<CalculateSubcategoryAggregationUseCase>;
   let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
+  let calculateAssetBalanceUseCase: jest.Mocked<CalculateAssetBalanceUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
     month: '2024-01',
@@ -68,6 +71,10 @@ describe('AggregationController', () => {
           provide: CalculateInstitutionSummaryUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: CalculateAssetBalanceUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -83,6 +90,7 @@ describe('AggregationController', () => {
     calculateInstitutionSummaryUseCase = module.get(
       CalculateInstitutionSummaryUseCase,
     );
+    calculateAssetBalanceUseCase = module.get(CalculateAssetBalanceUseCase);
   });
 
   describe('getMonthlyBalance', () => {
@@ -498,6 +506,70 @@ describe('AggregationController', () => {
       });
 
       expect(calculateYearlyBalanceUseCase.execute).toHaveBeenCalledWith(2024);
+    });
+  });
+
+  describe('getAssetBalance', () => {
+    const mockAssetBalanceResponse: AssetBalanceResponseDto = {
+      totalAssets: 5234567,
+      totalLiabilities: 123456,
+      netWorth: 5111111,
+      institutions: [
+        {
+          institutionId: 'inst-001',
+          institutionName: '三菱UFJ銀行',
+          institutionType: InstitutionType.BANK,
+          icon: '🏦',
+          accounts: [
+            {
+              accountId: 'acc-001',
+              accountName: '普通預金',
+              accountType: 'SAVINGS',
+              balance: 1234567,
+              currency: 'JPY',
+            },
+          ],
+          total: 1234567,
+          percentage: 23.6,
+        },
+      ],
+      asOfDate: '2025-01-27T00:00:00.000Z',
+      previousMonth: {
+        diff: 0,
+        rate: 0,
+      },
+      previousYear: {
+        diff: 0,
+        rate: 0,
+      },
+    };
+
+    it('should return asset balance data', async () => {
+      calculateAssetBalanceUseCase.execute.mockResolvedValue(
+        mockAssetBalanceResponse,
+      );
+
+      const result = await controller.getAssetBalance({});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockAssetBalanceResponse);
+      expect(calculateAssetBalanceUseCase.execute).toHaveBeenCalledWith(
+        undefined,
+      );
+    });
+
+    it('should call use case with asOfDate parameter', async () => {
+      calculateAssetBalanceUseCase.execute.mockResolvedValue(
+        mockAssetBalanceResponse,
+      );
+
+      await controller.getAssetBalance({
+        asOfDate: '2025-01-15',
+      });
+
+      expect(calculateAssetBalanceUseCase.execute).toHaveBeenCalledWith(
+        new Date('2025-01-15'),
+      );
     });
   });
 });
