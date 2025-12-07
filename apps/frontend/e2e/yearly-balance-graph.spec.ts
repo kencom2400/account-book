@@ -143,13 +143,9 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(page.getByText('月別推移（折れ線グラフ）')).toBeVisible();
 
     // 凡例に「収入」「支出」「収支」が表示されることを確認
-    // Rechartsの凡例は通常、グラフ内のテキスト要素として表示される
-    const legendText = await page.locator('text').allTextContents();
-    const hasIncome = legendText.some((text) => text.includes('収入'));
-    const hasExpense = legendText.some((text) => text.includes('支出'));
-    const hasBalance = legendText.some((text) => text.includes('収支'));
-
-    expect(hasIncome || hasExpense || hasBalance).toBe(true);
+    await expect(page.getByText('収入', { exact: true })).toBeVisible();
+    await expect(page.getByText('支出', { exact: true })).toBeVisible();
+    await expect(page.getByText('収支', { exact: true })).toBeVisible();
   });
 
   test('月別積み上げ棒グラフに収入バーと支出バーが表示される', async ({ page }) => {
@@ -163,11 +159,8 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(page.getByText('月別比較（棒グラフ）')).toBeVisible();
 
     // 凡例に「収入」「支出」が表示されることを確認
-    const legendText = await page.locator('text').allTextContents();
-    const hasIncome = legendText.some((text) => text.includes('収入'));
-    const hasExpense = legendText.some((text) => text.includes('支出'));
-
-    expect(hasIncome || hasExpense).toBe(true);
+    await expect(page.getByText('収入', { exact: true })).toBeVisible();
+    await expect(page.getByText('支出', { exact: true })).toBeVisible();
   });
 
   test('収支差額エリアグラフが表示される（プラス/マイナスで色分け）', async ({ page }) => {
@@ -181,11 +174,14 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(page.getByText('収支差額（エリアグラフ）')).toBeVisible();
 
     // 凡例に「収支（プラス）」「収支（マイナス）」が表示されることを確認
-    // Rechartsの凡例は通常、グラフ内のテキスト要素として表示される
-    // より広範囲にテキストを検索
-    const pageText = await page.textContent('body');
-    const hasBalancePositive = pageText?.includes('収支（プラス）') ?? false;
-    const hasBalanceNegative = pageText?.includes('収支（マイナス）') ?? false;
+    const hasBalancePositive = await page
+      .getByText('収支（プラス）')
+      .isVisible()
+      .catch(() => false);
+    const hasBalanceNegative = await page
+      .getByText('収支（マイナス）')
+      .isVisible()
+      .catch(() => false);
 
     // どちらかが表示されていればOK（データによっては片方のみ表示される可能性がある）
     expect(hasBalancePositive || hasBalanceNegative).toBe(true);
