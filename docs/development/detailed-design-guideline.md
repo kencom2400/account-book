@@ -357,7 +357,7 @@ docs/detailed-design/
     - ドメインオブジェクト用のDTO（例: `TrendAnalysisDto`、`HighlightsDto`）を別途定義すること
     - UseCase層でドメインオブジェクトからDTOへのマッピングを実施すること
     - これにより、レイヤー間の分離が明確になり、疎結合が維持される
-- [ ] **設計書間の整合性確認（Geminiレビュー PR#347、PR#379から学習）**
+- [ ] **設計書間の整合性確認（Geminiレビュー PR#347、PR#379、PR#387から学習）**
   - **クラス図と入出力設計の整合性**: UseCaseの戻り値型が`input-output-design.md`のレスポンス例と一致しているか（配列 vs 単一オブジェクト）
   - **ControllerとUseCaseの整合性**: Controllerの戻り値型とUseCaseの戻り値型が一致しているか
   - **シーケンス図の条件分岐の明確化**: 「全カテゴリ集計」と「特定カテゴリ集計」のシナリオで、カテゴリ取得方法が適切に分岐しているか（全カテゴリの場合は特定カテゴリタイプに限定しない）
@@ -372,6 +372,11 @@ docs/detailed-design/
   - **スコアリングロジックの具体的な定義**: スコアリングロジックで「関連カテゴリ」などの用語を使用する場合、具体的なマッピング（例: `TRAVEL` → 交通費、宿泊費）を定義する。設計の曖昧さをなくし、実装時の手戻りを防ぐ
   - **シーケンス図の参加者の適切性**: DTOはデータ構造であり、メッセージを受け取るアクティブなオブジェクトではないため、シーケンス図の参加者としては不適切。DTOへの変換処理は、Controllerから自身へのメッセージ（`C->>C: toDto(...)`）として表現するか、`Mapper`という参加者を導入して表現する
   - **レスポンス形式の統一の例の整合性**: 「レスポンス形式の統一」の項で示されている例が、ドキュメント内の他のAPIレスポンス例と形式が一致しているか確認する。すべての例で`data`フィールドが直接ペイロードの配列やオブジェクトを保持しているか確認する
+  - **シーケンス図の処理ステップの一貫性（Geminiレビュー PR#387から学習）**: 同じような処理（例: 設定更新）で、一方のシーケンス図に記載されているステップ（例: 次回同期時刻の計算）が、もう一方のシーケンス図にも記載されているか確認する。処理フローの一貫性を保つ
+  - **日付をまたぐ時刻設定のバリデーション（Geminiレビュー PR#387から学習）**: 時刻の比較バリデーション（例: `nightModeStart < nightModeEnd`）で、日付をまたぐ設定（例: `22:00` から `06:00`）を考慮できているか確認する。単純な文字列比較では日付をまたぐ設定が不正と判断されるため、適切なロジックを定義する
+  - **HTTPメソッドの適切な選択（Geminiレビュー PR#387から学習）**: 部分更新を意図している場合は`PATCH`を使用し、全体置換を意図している場合は`PUT`を使用する。`PUT`で部分更新を行う場合は、ドキュメントに注釈を追記する
+  - **UseCaseの責務の単一化（Geminiレビュー PR#387から学習）**: 単一取得と全件取得を同じUseCaseで処理するのではなく、別々のUseCaseに分割する。これにより、各UseCaseの責務が単一になり、型安全性が向上する
+  - **設定変更の影響範囲の明確化（Geminiレビュー PR#387から学習）**: 設定変更（例: デフォルト同期間隔の変更）が他のエンティティ（例: デフォルト設定を利用している全金融機関）に与える影響を明確に記載する。シーケンス図にも影響範囲を示すステップを追加する
 - [ ] **パフォーマンス最適化の考慮（Geminiレビュー PR#347から学習）**
   - **データベース層でのフィルタリング**: アプリケーション層で全データを取得してからフィルタリングするのではなく、データベース層（Repository）でフィルタリングする設計か（例: `findByCategoryType(categoryType, start, end)`）
   - **カテゴリIDの配列でのフィルタリング**: 複数のカテゴリIDでフィルタリングする場合は、`findByCategoryIdsAndDateRange(categoryIds, start, end)`のようなメソッドを使用し、データベース層でフィルタリングする設計か
@@ -541,13 +546,25 @@ docs/detailed-design/
   - キーセレクター関数を引数に取る汎用メソッドを作成することで、コードの重複を削減できる
   - 例: `aggregateByCategory`と`aggregateByInstitution`は、汎用的な`aggregateBy`メソッドに統合可能
 
-### 13-12. Onion Architecture原則の徹底（Gemini PR#343レビューから学習）
+### 13-12. Onion Architecture原則の徹底（Gemini PR#343、PR#387レビューから学習）
 
 - [ ] **Domain層のValue Object設計**
   - Domain層のValue Objectには、Application層で取得する情報（カテゴリ名など）を含めない
   - Domain層は`categoryId`のみを知っているべきで、`categoryName`はApplication層で`CategoryRepository`から取得してDTOに設定する
   - 例: `SubcategoryAggregationData`には`subcategoryId`のみを含め、`subcategoryName`は含めない
   - これにより、関心事の分離が明確になり、Onion Architecture原則に準拠する
+
+- [ ] **Application層からInfrastructure層への直接依存の禁止（Gemini PR#387から学習）**
+  - Application層のUseCaseがInfrastructure層の具象クラス（例: `ScheduledSyncJob`）に直接依存してはならない
+  - Application層にインターフェース（例: `ISchedulerService`）を定義し、UseCaseはそのインターフェースに依存する
+  - Infrastructure層の具象クラスがそのインターフェースを実装する構成にする
+  - これにより、依存関係の方向が正しくなり、テストや将来の変更が容易になる
+  - クラス図とシーケンス図の両方で依存関係を正しく表現する
+
+- [ ] **UseCaseの責務の単一化（Gemini PR#387から学習）**
+  - 単一取得と全件取得を同じUseCaseで処理するのではなく、別々のUseCaseに分割する
+  - 例: `GetInstitutionSyncSettingsUseCase`（単一取得）と`GetAllInstitutionSyncSettingsUseCase`（全件取得）に分割
+  - これにより、各UseCaseの責務が単一になり、型安全性が向上する
 
 - [ ] **APIレスポンスの一貫性**
   - クライアント側のデータハンドリングをシンプルにするため、レスポンス形式を統一する
