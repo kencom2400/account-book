@@ -7103,4 +7103,144 @@ private calculateSummary(transactions: TransactionEntity[]): {
 
 **参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘）
 
+#### 仕様と実装の整合性確認
+
+**問題**: PRの説明やコメントで記載されている仕様（例: スコアの配点）と実装が一致していない。
+
+**解決策**: 仕様と実装を一致させる
+
+```typescript
+// ❌ 悪い例: PR説明で「カテゴリマッチ20点」と記載されているのに、実装では15点
+// 関連カテゴリ名に含まれる場合は15点
+if (relatedCategoryNames.some((relatedName) => categoryName.includes(relatedName.toLowerCase()))) {
+  return {
+    score: 15, // PR説明では20点と記載されている
+    reason: `カテゴリが関連（${transaction.category.name}）`,
+  };
+}
+
+// ✅ 良い例: 仕様と実装を一致させる
+// 関連カテゴリ名に含まれる場合は20点
+if (relatedCategoryNames.some((relatedName) => categoryName.includes(relatedName.toLowerCase()))) {
+  return {
+    score: 20, // PR説明と一致
+    reason: `カテゴリが関連（${transaction.category.name}）`,
+  };
+}
+```
+
+**理由**:
+
+- 仕様と実装の不一致はバグの原因となる
+- コードレビュー時に混乱を招く
+- 仕様変更がある場合は、PR説明やコメントも更新する
+
+#### 冗長なデータ構造の簡略化
+
+**問題**: `includes`メソッドを使用する場合、短いキーワードだけで長いキーワードにもマッチするため、冗長なキーワードが含まれている。
+
+**解決策**: より短い（基本的な）キーワードのみを残す
+
+```typescript
+// ❌ 悪い例: 冗長なキーワードが含まれている
+const mapping: Record<EventCategory, string[]> = {
+  [EventCategory.TRAVEL]: [
+    '交通費', // '交通'でマッチするため冗長
+    '宿泊費', // '宿泊'でマッチするため冗長
+    '飲食費', // '飲食'でマッチするため冗長
+    '娯楽費', // '娯楽'でマッチするため冗長
+    '交通',
+    '宿泊',
+    '飲食',
+    '娯楽',
+  ],
+  [EventCategory.EDUCATION]: [
+    '教育費', // '教育'でマッチするため冗長
+    '書籍費', // '書籍'でマッチするため冗長
+    '文具費', // '文具'でマッチするため冗長
+    '教育',
+    '書籍',
+    '文具',
+  ],
+  // ...
+};
+
+// ✅ 良い例: 短いキーワードのみを残す
+const mapping: Record<EventCategory, string[]> = {
+  [EventCategory.TRAVEL]: ['交通', '宿泊', '飲食', '娯楽'],
+  [EventCategory.EDUCATION]: ['教育', '書籍', '文具'],
+  [EventCategory.PURCHASE]: ['家具', '家電', '自動車', '住宅', '購入'],
+  [EventCategory.MEDICAL]: ['医療', '薬', '健康診断'],
+  [EventCategory.LIFE_EVENT]: ['結婚', '出産', '引越'],
+  [EventCategory.INVESTMENT]: ['投資', '証券'],
+  [EventCategory.OTHER]: [],
+};
+```
+
+**理由**:
+
+- データ構造がシンプルになり、意図が明確になる
+- メンテナンス性が向上する
+- `includes`メソッドを使用する場合、短いキーワードだけで十分
+
+#### 到達不能コードの削除
+
+**問題**: 事前にフィルタリングされているデータに対して、常にtrueとなる条件分岐は到達不能コードとなる。
+
+**解決策**: 到達不能コードを削除してコードを簡潔にする
+
+```typescript
+// ❌ 悪い例: 到達不能コードが含まれている
+private calculateDateScore(
+  transactionDate: Date,
+  eventDate: Date,
+): { score: number; reason: string | null } {
+  const diffDays = Math.abs(
+    Math.floor(
+      (transactionDate.getTime() - eventDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  const scores = [50, 45, 40, 35, 30, 25, 20, 15];
+  if (diffDays <= 7) {
+    return {
+      score: scores[diffDays],
+      reason: `日付が近い（${diffDays}日差）`,
+    };
+  }
+  // このreturn文は到達不能（トランザクションは既に前後7日以内にフィルタリング済み）
+  return { score: 0, reason: null };
+}
+
+// ✅ 良い例: 到達不能コードを削除
+private calculateDateScore(
+  transactionDate: Date,
+  eventDate: Date,
+): { score: number; reason: string | null } {
+  const diffDays = Math.abs(
+    Math.floor(
+      (transactionDate.getTime() - eventDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  const scores = [50, 45, 40, 35, 30, 25, 20, 15];
+  // トランザクションは既にイベント日付の前後7日以内にフィルタリングされているため、
+  // diffDays <= 7は常にtrueとなる
+  return {
+    score: scores[diffDays],
+    reason: `日付が近い（${diffDays}日差）`,
+  };
+}
+```
+
+**理由**:
+
+- コードが簡潔になる
+- 意図が明確になる
+- 到達不能コードは混乱を招く
+
+**参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
 ---

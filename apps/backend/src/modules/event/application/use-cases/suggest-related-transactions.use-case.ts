@@ -117,35 +117,12 @@ export class SuggestRelatedTransactionsUseCase {
    */
   private getRelatedCategoryNames(eventCategory: EventCategory): string[] {
     const mapping: Record<EventCategory, string[]> = {
-      [EventCategory.TRAVEL]: [
-        '交通費',
-        '宿泊費',
-        '飲食費',
-        '娯楽費',
-        '交通',
-        '宿泊',
-        '飲食',
-        '娯楽',
-      ],
-      [EventCategory.EDUCATION]: [
-        '教育費',
-        '書籍費',
-        '文具費',
-        '教育',
-        '書籍',
-        '文具',
-      ],
+      [EventCategory.TRAVEL]: ['交通', '宿泊', '飲食', '娯楽'],
+      [EventCategory.EDUCATION]: ['教育', '書籍', '文具'],
       [EventCategory.PURCHASE]: ['家具', '家電', '自動車', '住宅', '購入'],
-      [EventCategory.MEDICAL]: [
-        '医療費',
-        '薬代',
-        '健康診断費',
-        '医療',
-        '薬',
-        '健康診断',
-      ],
-      [EventCategory.LIFE_EVENT]: ['結婚式', '出産', '引越し', '結婚', '引越'],
-      [EventCategory.INVESTMENT]: ['投資', '証券', '投資関連', '証券関連'],
+      [EventCategory.MEDICAL]: ['医療', '薬', '健康診断'],
+      [EventCategory.LIFE_EVENT]: ['結婚', '出産', '引越'],
+      [EventCategory.INVESTMENT]: ['投資', '証券'],
       [EventCategory.OTHER]: [],
     };
 
@@ -167,13 +144,12 @@ export class SuggestRelatedTransactionsUseCase {
     );
 
     const scores = [50, 45, 40, 35, 30, 25, 20, 15];
-    if (diffDays <= 7) {
-      return {
-        score: scores[diffDays],
-        reason: `日付が近い（${diffDays}日差）`,
-      };
-    }
-    return { score: 0, reason: null };
+    // トランザクションは既にイベント日付の前後7日以内にフィルタリングされているため、
+    // diffDays <= 7は常にtrueとなる
+    return {
+      score: scores[diffDays],
+      reason: `日付が近い（${diffDays}日差）`,
+    };
   }
 
   /**
@@ -215,14 +191,14 @@ export class SuggestRelatedTransactionsUseCase {
     const categoryName = transaction.category.name.toLowerCase();
     const relatedCategoryNames = this.getRelatedCategoryNames(eventCategory);
 
-    // 関連カテゴリ名に含まれる場合は15点
+    // 関連カテゴリ名に含まれる場合は20点
     if (
       relatedCategoryNames.some((relatedName) =>
         categoryName.includes(relatedName.toLowerCase()),
       )
     ) {
       return {
-        score: 15,
+        score: 20,
         reason: `カテゴリが関連（${transaction.category.name}）`,
       };
     }
