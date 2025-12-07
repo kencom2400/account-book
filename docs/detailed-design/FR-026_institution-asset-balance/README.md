@@ -152,7 +152,6 @@ interface InstitutionEntity {
   id: string;
   name: string;
   type: InstitutionType; // BANK, CREDIT_CARD, SECURITIES
-  credentials: EncryptedCredentials;
   accounts: AccountEntity[];
   isConnected: boolean;
   lastSyncedAt: Date | null;
@@ -178,9 +177,9 @@ interface AccountEntity {
 
 ```typescript
 interface AssetSummary {
-  totalAssets: number; // 総資産（プラス残高の合計）
-  totalLiabilities: number; // 総負債（マイナス残高の合計の絶対値）
-  netWorth: number; // 純資産（総資産 - 総負債）
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
   institutions: InstitutionAsset[];
   asOfDate: Date;
   comparison: {
@@ -202,18 +201,9 @@ interface InstitutionAsset {
 interface AccountAsset {
   accountId: string;
   accountName: string;
-  accountType: AccountType;
+  accountType: string;
   balance: number;
   currency: string;
-}
-
-enum AccountType {
-  SAVINGS = 'SAVINGS',
-  TIME_DEPOSIT = 'TIME_DEPOSIT',
-  CREDIT_CARD = 'CREDIT_CARD',
-  STOCK = 'STOCK',
-  MUTUAL_FUND = 'MUTUAL_FUND',
-  OTHER = 'OTHER',
 }
 
 interface AssetComparison {
@@ -237,7 +227,7 @@ interface AssetComparison {
 - [ ] 認証・認可の実装（将来対応）
 - [x] 入力値のバリデーション（基準日の妥当性チェック）
 - [x] SQLインジェクション対策（パラメータ化クエリ使用）
-- [x] XSS対策（ReactのJSXによる自動エスケープを基本とする。ユーザーが入力したHTMLを意図的に表示する必要がある場合は、DOMPurifyなどのライブラリを使用してサニタイズ処理を必須とする）
+- [ ] XSS対策（フロントエンド側で対応）
 - [ ] CSRF対策（将来対応）
 - [ ] APIレート制限（将来対応）
 

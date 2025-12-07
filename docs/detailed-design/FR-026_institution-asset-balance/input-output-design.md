@@ -60,7 +60,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-001",
         "institutionName": "三菱UFJ銀行",
-        "institutionType": "bank",
+        "institutionType": "BANK",
         "icon": "🏦",
         "accounts": [
           {
@@ -84,7 +84,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-002",
         "institutionName": "楽天カード",
-        "institutionType": "credit-card",
+        "institutionType": "CREDIT_CARD",
         "icon": "💳",
         "accounts": [
           {
@@ -101,7 +101,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-003",
         "institutionName": "SBI証券",
-        "institutionType": "securities",
+        "institutionType": "SECURITIES",
         "icon": "📈",
         "accounts": [
           {
@@ -154,7 +154,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 | --------------- | ----------------- | -------------------------------------------------- |
 | institutionId   | string            | 金融機関ID                                         |
 | institutionName | string            | 金融機関名                                         |
-| institutionType | InstitutionType   | 金融機関タイプ（bank, credit-card, securities）    |
+| institutionType | InstitutionType   | 金融機関タイプ（BANK, CREDIT_CARD, SECURITIES）    |
 | icon            | string            | アイコン（絵文字）                                 |
 | accounts        | AccountAssetDto[] | 口座別資産情報配列                                 |
 | total           | number            | 機関別合計（全口座の合計）                         |
@@ -162,13 +162,13 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 
 **AccountAssetDto:**
 
-| フィールド  | 型          | 説明       |
-| ----------- | ----------- | ---------- |
-| accountId   | string      | 口座ID     |
-| accountName | string      | 口座名     |
-| accountType | AccountType | 口座タイプ |
-| balance     | number      | 残高       |
-| currency    | string      | 通貨       |
+| フィールド  | 型          | 説明                                                                        |
+| ----------- | ----------- | --------------------------------------------------------------------------- |
+| accountId   | string      | 口座ID                                                                      |
+| accountName | string      | 口座名                                                                      |
+| accountType | AccountType | 口座タイプ（SAVINGS, TIME_DEPOSIT, CREDIT_CARD, STOCK, MUTUAL_FUND, OTHER） |
+| balance     | number      | 残高                                                                        |
+| currency    | string      | 通貨                                                                        |
 
 **AssetComparisonDto:**
 
@@ -215,6 +215,14 @@ export interface InstitutionAssetDto {
   percentage: number;
 }
 
+export interface AccountAssetDto {
+  accountId: string;
+  accountName: string;
+  accountType: AccountType;
+  balance: number;
+  currency: string;
+}
+
 export enum AccountType {
   SAVINGS = 'SAVINGS',
   TIME_DEPOSIT = 'TIME_DEPOSIT',
@@ -224,23 +232,15 @@ export enum AccountType {
   OTHER = 'OTHER',
 }
 
-export interface AccountAssetDto {
-  accountId: string;
-  accountName: string;
-  accountType: AccountType;
-  balance: number;
-  currency: string;
-}
-
 export interface AssetComparisonDto {
   diff: number;
   rate: number;
 }
 
 export enum InstitutionType {
-  BANK = 'bank',
-  CREDIT_CARD = 'credit-card',
-  SECURITIES = 'securities',
+  BANK = 'BANK',
+  CREDIT_CARD = 'CREDIT_CARD',
+  SECURITIES = 'SECURITIES',
 }
 ```
 
@@ -281,8 +281,7 @@ export enum InstitutionType {
 export interface InstitutionEntity {
   id: string;
   name: string;
-  type: InstitutionType; // bank, credit-card, securities
-  credentials: EncryptedCredentials;
+  type: InstitutionType; // BANK, CREDIT_CARD, SECURITIES
   accounts: AccountEntity[];
   isConnected: boolean;
   lastSyncedAt: Date | null;
@@ -308,9 +307,9 @@ export interface AccountEntity {
 
 ```typescript
 export enum InstitutionType {
-  BANK = 'bank', // 銀行
-  CREDIT_CARD = 'credit-card', // クレジットカード
-  SECURITIES = 'securities', // 証券会社
+  BANK = 'BANK', // 銀行
+  CREDIT_CARD = 'CREDIT_CARD', // クレジットカード
+  SECURITIES = 'SECURITIES', // 証券会社
 }
 ```
 

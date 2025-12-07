@@ -7917,3 +7917,405 @@ class InstitutionOrmEntity {
 **参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第3回）
 
 ---
+
+### 13-XX. フロントエンドでの型安全性向上（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### バックエンドとフロントエンドで型定義を統一
+
+**問題**: バックエンドでenum型を使用している場合、フロントエンドでも`string`型として定義していると型安全性が低下する
+
+**解決策**: フロントエンドでも`@account-book/types`からenum型をインポートして使用する
+
+```typescript
+// ❌ 悪い例: string型で定義
+export interface InstitutionAssetDto {
+  institutionType: string; // 'bank' | 'credit-card' | 'securities'
+}
+
+// ✅ 良い例: enum型を使用
+import { InstitutionType } from '@account-book/types';
+
+export interface InstitutionAssetDto {
+  institutionType: InstitutionType;
+}
+```
+
+**理由**:
+
+- 型安全性が向上し、コンパイル時にエラーを検出できる
+- バックエンドとフロントエンドで型定義が統一される
+- IDEの補完機能が正しく動作する
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. テストの時刻依存性の排除（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### テストで`new Date()`を直接使用しない
+
+**問題**: `new Date()`を直接使用してテストの実行前後で時刻を比較する方法は、実行環境やタイミングによってテストが失敗する可能性（flakiness）がある
+
+**解決策**: `jest.useFakeTimers()`と`jest.setSystemTime()`を使用して時刻を固定する
+
+```typescript
+// ❌ 悪い例: new Date()を直接使用
+it('should use current date when asOfDate is not provided', async () => {
+  const beforeExecute = new Date();
+  const result = await useCase.execute();
+  const afterExecute = new Date();
+
+  const resultDate = new Date(result.asOfDate);
+  expect(resultDate.getTime()).toBeGreaterThanOrEqual(beforeExecute.getTime());
+  expect(resultDate.getTime()).toBeLessThanOrEqual(afterExecute.getTime());
+});
+
+// ✅ 良い例: jest.useFakeTimers()で時刻を固定
+it('should use current date when asOfDate is not provided', async () => {
+  const mockDate = new Date('2025-01-20T10:00:00.000Z');
+  jest.useFakeTimers();
+  jest.setSystemTime(mockDate);
+
+  const result = await useCase.execute();
+
+  expect(result.asOfDate).toBe(mockDate.toISOString());
+
+  jest.useRealTimers();
+});
+```
+
+**理由**:
+
+- テストの再現性が高まる
+- 実行環境やタイミングに依存しない安定したテストになる
+- テストの実行速度が向上する可能性がある
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. DTOのファイル構成の統一（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### レスポンスDTOも`presentation/dto`に配置
+
+**問題**: リクエストDTOは`presentation/dto`に分離されているが、レスポンスDTOがユースケースファイル内に直接定義されていると一貫性がない
+
+**解決策**: レスポンスDTOも`presentation/dto`配下のファイルに移動する
+
+```typescript
+// ❌ 悪い例: ユースケースファイル内にDTOを定義
+// calculate-asset-balance.use-case.ts
+export interface AssetBalanceResponseDto {
+  // ...
+}
+
+// ✅ 良い例: presentation/dtoに分離
+// presentation/dto/asset-balance-response.dto.ts
+export interface AssetBalanceResponseDto {
+  // ...
+}
+
+// calculate-asset-balance.use-case.ts
+import type { AssetBalanceResponseDto } from '../../presentation/dto/asset-balance-response.dto';
+```
+
+**理由**:
+
+- 関心事が分離され、コードの見通しが良くなる
+- リクエストDTOとレスポンスDTOの配置が統一される
+- DTOの再利用性が向上する
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. 文字列ベースのロジックの堅牢性強化（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### 文字列マッチングの優先順位を考慮
+
+**問題**: 口座名に特定の文字列が含まれるかで判定するロジックは、意図しない分類を引き起こす可能性がある（例: 「クレジットカード株式」の場合、`includes('カード')`が先に評価され`CREDIT_CARD`に分類される）
+
+**解決策**: より具体的なキーワードを優先的に判定する
+
+```typescript
+// ❌ 悪い例: 順序を考慮しない
+if (name.includes('カード')) {
+  return 'CREDIT_CARD';
+}
+if (name.includes('株式')) {
+  return 'STOCK';
+}
+
+// ✅ 良い例: より具体的なキーワードを先に判定
+// 株式は「クレジットカード」より先に判定
+if (name.includes('株式') || name.includes('stock')) {
+  return 'STOCK';
+}
+// カードは最後に判定
+if (name.includes('カード') || name.includes('card')) {
+  return 'CREDIT_CARD';
+}
+```
+
+**理由**:
+
+- 意図しない分類を防ぐ
+- より正確な判定が可能になる
+- エッジケースに対応できる
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. グラフコンポーネントの色の管理（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### ハードコードされた色を定数化
+
+**問題**: グラフのバーの色が`fill="#2196F3"`としてハードコードされていると、デザインの一貫性を保ちにくく、将来的なテーマ変更が困難
+
+**解決策**: 色を定数として定義し、将来的にテーマカラーに変更可能にする
+
+```typescript
+// ❌ 悪い例: ハードコードされた色と冗長なCell
+<Bar dataKey="value" name="資産残高" fill="#2196F3" radius={[0, 4, 4, 0]}>
+  {graphData.map((entry, index) => (
+    <Cell key={`cell-${index}`} fill="#2196F3" />
+  ))}
+</Bar>
+
+// ✅ 良い例: 定数として定義し、冗長なCellを削除
+const BAR_CHART_COLOR = '#2196F3'; // blue-500相当
+
+<Bar dataKey="value" name="資産残高" fill={BAR_CHART_COLOR} radius={[0, 4, 4, 0]} />
+```
+
+**理由**:
+
+- デザインの一貫性を保ちやすい
+- 将来的なテーマ変更が容易になる
+- コードがシンプルになる（冗長な`<Cell>`を削除）
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. ドキュメントと実装の整合性チェック（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+#### ドキュメントの値と実装を一致させる
+
+**問題**: APIレスポンス例において、実装と異なる値が記載されていると混乱を招く
+
+**解決策**: 実装を確認し、ドキュメントの値を実装と一致させる
+
+**確認項目**:
+
+- レスポンス例の数値が実装と一致しているか
+- フィールドの説明が実装の動作と一致しているか
+- 重要な仕様の注釈が記載されているか
+
+**例**:
+
+```markdown
+<!-- ❌ 悪い例: 実装と異なる値 -->
+
+"percentage": -2.4
+
+<!-- ✅ 良い例: 実装と一致 -->
+
+"percentage": 0.0
+```
+
+```markdown
+<!-- ❌ 悪い例: 説明が曖昧 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計） |
+
+<!-- ✅ 良い例: 明確な説明 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計の絶対値） |
+```
+
+```markdown
+<!-- ❌ 悪い例: 重要な注釈が欠落 -->
+
+| percentage | number | 構成比（%）（総資産に対する割合） |
+
+<!-- ✅ 良い例: 重要な注釈を追加 -->
+
+| percentage | number | 構成比（%）（総資産に対する割合）。負債の場合は0.0 |
+```
+
+**理由**:
+
+- ドキュメントと実装の整合性を保つ
+- 実装時の混乱を防ぐ
+- レビュー時の誤解を避ける
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-XX. マジックストリングの排除とenum型の使用（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### マジックストリングをenum型に置き換える
+
+**問題**: メソッドがマジックストリング（例: `'SAVINGS'`）を返していると、型安全性が低下し、将来のメンテナンスが困難になる
+
+**解決策**: `@account-book/types`のような共有ライブラリにenumを定義し、メソッドがそのenumを返すようにする
+
+```typescript
+// ❌ 悪い例: マジックストリングを返す
+private inferAccountType(accountName: string): string {
+  if (name.includes('普通')) {
+    return 'SAVINGS';
+  }
+  return 'OTHER';
+}
+
+// ✅ 良い例: enum型を返す
+import { AccountType } from '@account-book/types';
+
+private inferAccountType(accountName: string): AccountType {
+  if (name.includes('普通')) {
+    return AccountType.SAVINGS;
+  }
+  return AccountType.OTHER;
+}
+```
+
+**DTOでもenum型を使用**:
+
+```typescript
+// ❌ 悪い例: string型
+export interface AccountAssetDto {
+  accountType: string;
+}
+
+// ✅ 良い例: enum型
+import { AccountType } from '@account-book/types';
+
+export interface AccountAssetDto {
+  accountType: AccountType;
+}
+```
+
+**理由**:
+
+- 型安全性が向上し、コンパイル時にエラーを検出できる
+- フロントエンドとバックエンド間で型定義が統一される
+- IDEの補完機能が正しく動作する
+- マジックストリングによる誤字を防げる
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
+
+### 13-XX. バリデーターのユニットテスト作成（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### カスタムバリデーターのテストを作成する
+
+**問題**: カスタムバリデーターが`new Date()`を使用している場合、テストが存在しないとロジックの検証ができない
+
+**解決策**: バリデーターのユニットテストを作成し、`jest.useFakeTimers()`と`jest.setSystemTime()`を使用して時刻を固定化する
+
+```typescript
+// get-asset-balance.dto.spec.ts
+import { IsNotFutureDateConstraint } from './get-asset-balance.dto';
+
+describe('IsNotFutureDateConstraint', () => {
+  let constraint: IsNotFutureDateConstraint;
+
+  beforeEach(() => {
+    constraint = new IsNotFutureDateConstraint();
+  });
+
+  it('should return false when asOfDate is in the future', () => {
+    const mockDate = new Date('2025-01-20T12:00:00.000Z');
+    jest.useFakeTimers();
+    jest.setSystemTime(mockDate);
+
+    const result = constraint.validate('2025-01-21');
+
+    expect(result).toBe(false);
+
+    jest.useRealTimers();
+  });
+});
+```
+
+**理由**:
+
+- バリデーターのロジックを確実にテストできる
+- 時刻依存のロジックを安定してテストできる
+- エッジケース（今日の終わり、未来日など）を網羅できる
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
+
+### 13-XX. APIレスポンス例の数値整合性チェック（PR #384）
+
+**学習元**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+#### ドキュメントの数値が実装ロジックと一致しているか確認
+
+**問題**: APIレスポンス例の数値が実装ロジックと一致していないと、混乱を招く
+
+**解決策**: レスポンス例の数値を実装ロジックに基づいて計算し、整合性を確認する
+
+**確認項目**:
+
+- `totalAssets`が`institutions`内の資産の合計と一致しているか
+- `netWorth`が`totalAssets - totalLiabilities`と一致しているか
+- `percentage`が`(institution.total / totalAssets) * 100`と一致しているか
+
+**例**:
+
+```json
+// ❌ 悪い例: 数値が不一致
+{
+  "totalAssets": 5234567,
+  "netWorth": 5111111,
+  "institutions": [
+    { "total": 3234567, "percentage": 61.8 },
+    { "total": 2123456, "percentage": 40.6 }
+  ]
+}
+// totalAssets = 3234567 + 2123456 = 5358023 なのに 5234567 となっている
+
+// ✅ 良い例: 数値が一致
+{
+  "totalAssets": 5358023,
+  "netWorth": 5234567,
+  "institutions": [
+    { "total": 3234567, "percentage": 60.4 },
+    { "total": 2123456, "percentage": 39.6 }
+  ]
+}
+```
+
+**理由**:
+
+- ドキュメントと実装の整合性を保つ
+- 実装時の混乱を防ぐ
+- レビュー時の誤解を避ける
+
+**参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
