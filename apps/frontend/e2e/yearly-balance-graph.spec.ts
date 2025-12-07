@@ -137,12 +137,13 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await skipIfNoData(page);
 
     // 折れ線グラフのセクションを確認
-    await expect(page.getByText('月別推移（折れ線グラフ）')).toBeVisible();
+    const lineChartSection = page.getByText('月別推移（折れ線グラフ）').locator('..');
+    await expect(lineChartSection).toBeVisible();
 
-    // 凡例に「収入」「支出」「収支」が表示されることを確認
-    await expect(page.getByText('収入', { exact: true })).toBeVisible();
-    await expect(page.getByText('支出', { exact: true })).toBeVisible();
-    await expect(page.getByText('収支', { exact: true })).toBeVisible();
+    // 凡例に「収入」「支出」「収支」が表示されることを確認（グラフセクション内に限定）
+    await expect(lineChartSection.getByText('収入', { exact: true }).first()).toBeVisible();
+    await expect(lineChartSection.getByText('支出', { exact: true }).first()).toBeVisible();
+    await expect(lineChartSection.getByText('収支', { exact: true }).first()).toBeVisible();
   });
 
   test('月別積み上げ棒グラフに収入バーと支出バーが表示される', async ({ page }) => {
@@ -153,11 +154,12 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await skipIfNoData(page);
 
     // 棒グラフのセクションを確認
-    await expect(page.getByText('月別比較（棒グラフ）')).toBeVisible();
+    const barChartSection = page.getByText('月別比較（棒グラフ）').locator('..');
+    await expect(barChartSection).toBeVisible();
 
-    // 凡例に「収入」「支出」が表示されることを確認
-    await expect(page.getByText('収入', { exact: true })).toBeVisible();
-    await expect(page.getByText('支出', { exact: true })).toBeVisible();
+    // 凡例に「収入」「支出」が表示されることを確認（グラフセクション内に限定）
+    await expect(barChartSection.getByText('収入', { exact: true }).first()).toBeVisible();
+    await expect(barChartSection.getByText('支出', { exact: true }).first()).toBeVisible();
   });
 
   test('収支差額エリアグラフが表示される（プラス/マイナスで色分け）', async ({ page }) => {
