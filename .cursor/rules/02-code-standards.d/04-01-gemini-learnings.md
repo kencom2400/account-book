@@ -7713,4 +7713,66 @@ classDiagram
 
 **参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘）
 
+### 13-XX. 詳細設計書の既存コードとの整合性（PR #382 - 第2回）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘 - 第2回）
+
+#### 既存の型定義との整合性チェック
+
+**問題**: 設計書で定義したenum値が既存のコードベースと異なる（`BANK` vs `bank`）
+
+**解決策**: 設計書を作成する前に、既存の型定義ファイルを確認し、既存の定義に合わせる
+
+```typescript
+// ❌ 悪い例: 既存コードと異なる値
+export enum InstitutionType {
+  BANK = 'BANK', // 既存コードでは 'bank'
+  CREDIT_CARD = 'CREDIT_CARD', // 既存コードでは 'credit-card'
+  SECURITIES = 'SECURITIES', // 既存コードでは 'securities'
+}
+
+// ✅ 良い例: 既存コードに合わせる
+export enum InstitutionType {
+  BANK = 'bank',
+  CREDIT_CARD = 'credit-card',
+  SECURITIES = 'securities',
+}
+```
+
+**確認方法**:
+
+- `libs/types/src/`配下の型定義ファイルを確認
+- 既存のUseCaseやControllerでの使用例を確認
+- レスポンス例の値も既存コードに合わせる
+
+**理由**:
+
+- 実装時の混乱を防ぐ
+- 型エラーを防ぐ
+- 既存コードとの一貫性を保つ
+
+#### フィールド説明の明確化
+
+**問題**: `totalLiabilities`の説明が「マイナス残高の合計」とあるが、レスポンス例では正数が返されている
+
+**解決策**: フィールドの説明は、実際のレスポンス形式と一致させる
+
+```markdown
+<!-- ❌ 悪い例: 曖昧な説明 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計） |
+
+<!-- ✅ 良い例: 明確な説明 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計の絶対値） |
+```
+
+**理由**:
+
+- 実装者が誤解しない
+- レスポンス形式が明確になる
+- 実装時の混乱を防ぐ
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第2回）
+
 ---

@@ -233,9 +233,19 @@ classDiagram
     class AccountAssetDto {
         +string accountId
         +string accountName
-        +string accountType
+        +AccountType accountType
         +number balance
         +string currency
+    }
+
+    class AccountType {
+        <<enumeration>>
+        SAVINGS
+        TIME_DEPOSIT
+        CREDIT_CARD
+        STOCK
+        MUTUAL_FUND
+        OTHER
     }
 
     class AssetComparisonDto {
@@ -250,6 +260,7 @@ classDiagram
     AssetBalanceResponseDto --> AccountAssetDto
     AssetBalanceResponseDto --> AssetComparisonDto
     InstitutionAssetDto --> AccountAssetDto
+    AccountAssetDto --> AccountType
 ```
 
 **クラス説明**:

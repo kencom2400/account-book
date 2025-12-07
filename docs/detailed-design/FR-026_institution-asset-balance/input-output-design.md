@@ -60,7 +60,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-001",
         "institutionName": "三菱UFJ銀行",
-        "institutionType": "BANK",
+        "institutionType": "bank",
         "icon": "🏦",
         "accounts": [
           {
@@ -84,7 +84,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-002",
         "institutionName": "楽天カード",
-        "institutionType": "CREDIT_CARD",
+        "institutionType": "credit-card",
         "icon": "💳",
         "accounts": [
           {
@@ -101,7 +101,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
       {
         "institutionId": "inst-003",
         "institutionName": "SBI証券",
-        "institutionType": "SECURITIES",
+        "institutionType": "securities",
         "icon": "📈",
         "accounts": [
           {
@@ -141,7 +141,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 | フィールド       | 型                    | 説明                                     |
 | ---------------- | --------------------- | ---------------------------------------- |
 | totalAssets      | number                | 総資産（プラス残高の合計）               |
-| totalLiabilities | number                | 総負債（マイナス残高の合計）             |
+| totalLiabilities | number                | 総負債（マイナス残高の合計の絶対値）     |
 | netWorth         | number                | 純資産（totalAssets - totalLiabilities） |
 | institutions     | InstitutionAssetDto[] | 金融機関別資産情報配列                   |
 | asOfDate         | string                | 基準日（ISO8601形式）                    |
@@ -154,7 +154,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 | --------------- | ----------------- | -------------------------------------------------- |
 | institutionId   | string            | 金融機関ID                                         |
 | institutionName | string            | 金融機関名                                         |
-| institutionType | InstitutionType   | 金融機関タイプ（BANK, CREDIT_CARD, SECURITIES）    |
+| institutionType | InstitutionType   | 金融機関タイプ（bank, credit-card, securities）    |
 | icon            | string            | アイコン（絵文字）                                 |
 | accounts        | AccountAssetDto[] | 口座別資産情報配列                                 |
 | total           | number            | 機関別合計（全口座の合計）                         |
@@ -238,9 +238,9 @@ export interface AssetComparisonDto {
 }
 
 export enum InstitutionType {
-  BANK = 'BANK',
-  CREDIT_CARD = 'CREDIT_CARD',
-  SECURITIES = 'SECURITIES',
+  BANK = 'bank',
+  CREDIT_CARD = 'credit-card',
+  SECURITIES = 'securities',
 }
 ```
 
