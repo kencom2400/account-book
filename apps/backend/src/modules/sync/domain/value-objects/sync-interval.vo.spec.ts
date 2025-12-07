@@ -168,6 +168,14 @@ describe('SyncInterval', () => {
       expect(nextSyncAt.getTime()).toBeGreaterThan(lastSyncAt.getTime());
     });
 
+    it('初回同期の場合は現在時刻を返す', () => {
+      const interval = new SyncInterval(SyncIntervalType.FREQUENT);
+      const nextSyncAt = interval.calculateNextSyncAt(null);
+
+      expect(nextSyncAt).toBeInstanceOf(Date);
+      expect(nextSyncAt.getTime()).toBeGreaterThanOrEqual(Date.now() - 1000); // 1秒の誤差を許容
+    });
+
     it('手動同期タイプはエラーを投げる', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
       expect(() => {

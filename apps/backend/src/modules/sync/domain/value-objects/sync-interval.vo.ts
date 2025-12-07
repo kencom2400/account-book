@@ -82,7 +82,7 @@ export class SyncInterval {
   /**
    * 分単位に換算
    */
-  private toMinutes(): number {
+  public toMinutes(): number {
     if (this.type === SyncIntervalType.MANUAL) {
       return 0;
     }
