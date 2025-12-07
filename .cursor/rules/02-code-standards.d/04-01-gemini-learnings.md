@@ -7508,4 +7508,83 @@ it('percentageが数値でない場合でもエラーにならない', () => {
 
 **参照**: PR #381 - Issue #54: FR-025 カテゴリ別円グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
 
+### 9. ドキュメントと実装の一貫性確保 🟡 Medium
+
+**問題**: ドキュメントと実装に不整合がある。
+
+**具体例**:
+
+- ドキュメントで`CustomTooltip`を既存のUIコンポーネントとして記載しているが、実際には`PieChartTooltip`という名前で新規作成されている
+- クラス図に記載されているメソッドやプロパティが実装されていない
+- Props定義が実際の実装と一致していない
+
+**解決策**: ドキュメントを実装に合わせて修正する。
+
+```markdown
+<!-- ❌ 悪い例: 実装と異なる記載 -->
+
+- 既存のUIコンポーネント（`Card`、`CustomTooltip`）を再利用
+
+<!-- ✅ 良い例: 実装に合わせた記載 -->
+
+- 既存のUIコンポーネント（`Card`）を再利用
+- 円グラフ用のツールチップ（`PieChartTooltip`）は`CategoryPieChart.tsx`内で新規作成
+```
+
+```typescript
+// ❌ 悪い例: 実装されていない機能をドキュメントに記載
+interface CategoryPieChartProps {
+  data: CategoryAggregationResponseDto[];
+  selectedCategoryType?: CategoryType; // 実装されていない
+  onCategoryTypeChange?: (categoryType?: CategoryType) => void; // 実装されていない
+  loading?: boolean;
+  error?: string | null;
+}
+
+// ✅ 良い例: 実装に合わせた記載
+interface CategoryPieChartProps {
+  data: CategoryAggregationResponseDto[];
+  loading?: boolean;
+  error?: string | null;
+}
+// 注意: selectedCategoryTypeとonCategoryTypeChangeは実装されていません。
+// カテゴリタイプのフィルタリングはCategoryPieChartContainerのcategoryType propで制御されます。
+```
+
+**理由**:
+
+- ドキュメントと実装の一貫性が保たれる
+- 混乱を防ぐ
+- 実装時の誤解を防ぐ
+
+### 10. 未実装機能のテスト削除 🟡 Medium
+
+**問題**: 実装されていない機能や存在しないプロパティをテストしようとしている。
+
+**解決策**: 実装されていない機能のテストは削除する。
+
+```typescript
+// ❌ 悪い例: 実装されていない機能をテスト
+it('カテゴリタイプ変更コールバックが呼び出される', async () => {
+  const onCategoryTypeChange = jest.fn();
+  render(
+    <CategoryPieChartContainer
+      onCategoryTypeChange={onCategoryTypeChange} // 実装されていない
+    />
+  );
+  // ...
+});
+
+// ✅ 良い例: 実装されていない機能のテストを削除
+// （実装されるまでテストを書かない）
+```
+
+**理由**:
+
+- 型エラーを防ぐ
+- テストの意図が明確になる
+- 混乱を防ぐ
+
+**参照**: PR #381 - Issue #54: FR-025 カテゴリ別円グラフ表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
 ---

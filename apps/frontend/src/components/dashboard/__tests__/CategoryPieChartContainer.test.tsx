@@ -155,25 +155,4 @@ describe('CategoryPieChartContainer', () => {
 
     expect(screen.getByText('読み込み中...')).toBeInTheDocument();
   });
-
-  it('カテゴリタイプ変更コールバックが呼び出される', async () => {
-    mockGetCategoryAggregation.mockResolvedValue(mockData);
-
-    const onCategoryTypeChange = jest.fn();
-
-    render(
-      <CategoryPieChartContainer
-        categoryType={CategoryType.EXPENSE}
-        onCategoryTypeChange={onCategoryTypeChange}
-      />
-    );
-
-    await waitFor(() => {
-      expect(mockGetCategoryAggregation).toHaveBeenCalled();
-    });
-
-    // コンテナコンポーネントは直接カテゴリタイプ変更をトリガーしないため、
-    // コールバックは呼び出されない（将来の機能拡張用）
-    // このテストは将来の機能拡張時に有効になる
-  });
 });

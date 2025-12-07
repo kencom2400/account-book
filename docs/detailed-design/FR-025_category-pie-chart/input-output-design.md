@@ -273,22 +273,23 @@ interface CategoryPieChartContainerProps {
   startDate?: Date; // デフォルト: 当月の開始日
   endDate?: Date; // デフォルト: 当月の終了日
   categoryType?: CategoryType; // デフォルト: undefined（全カテゴリ）
-  onDateChange?: (startDate: Date, endDate: Date) => void; // 期間変更コールバック
-  onCategoryTypeChange?: (categoryType?: CategoryType) => void; // カテゴリタイプ変更コールバック
+  onDateChange?: (startDate: Date, endDate: Date) => void; // 期間変更コールバック（将来対応）
 }
 ```
+
+**注意**: `onDateChange`は現在実装されていません。将来の機能拡張用のプレースホルダーです。
 
 ### CategoryPieChart Props
 
 ```typescript
 interface CategoryPieChartProps {
   data: CategoryAggregationResponseDto[];
-  selectedCategoryType?: CategoryType;
-  onCategoryTypeChange?: (categoryType?: CategoryType) => void;
   loading?: boolean;
   error?: string | null;
 }
 ```
+
+**注意**: `selectedCategoryType`と`onCategoryTypeChange`は実装されていません。カテゴリタイプのフィルタリングは`CategoryPieChartContainer`の`categoryType` propで制御されます。
 
 ---
 

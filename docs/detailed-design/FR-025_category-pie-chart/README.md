@@ -223,7 +223,8 @@ interface PieChartData {
 
 2. **既存実装との一貫性**
    - 既存のグラフコンポーネント（`YearlyBalanceGraph`、`MonthlyBalanceGraph`）の実装パターンに従う
-   - 既存のUIコンポーネント（`Card`、`CustomTooltip`）を再利用
+   - 既存のUIコンポーネント（`Card`）を再利用
+   - 円グラフ用のツールチップ（`PieChartTooltip`）は`CategoryPieChart.tsx`内で新規作成
 
 3. **エラーハンドリング**
    - すべての非同期処理にエラーハンドリング

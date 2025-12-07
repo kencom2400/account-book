@@ -23,19 +23,16 @@ classDiagram
         -string? error
         +useEffect() void
         +fetchData() Promise~void~
-        +handleDateChange(startDate, endDate) void
-        +handleCategoryTypeChange(categoryType) void
     }
 
     class CategoryPieChart {
         +CategoryAggregationResponseDto[] data
-        +CategoryType? selectedCategoryType
-        +onCategoryTypeChange(categoryType) void
+        +boolean? loading
+        +string? error
         +render() React.JSX.Element
         -transformToPieChartData(data) PieChartData[]
         -getColorForCategory(categoryName) string
-        -handleSegmentClick(data) void
-        -handleSegmentHover(data, isActive) void
+        -getColorForCategoryType(categoryType) string
     }
 
     class PieChartData {
@@ -86,7 +83,7 @@ classDiagram
 
     class Tooltip {
         <<Recharts>>
-        +CustomTooltip content
+        +PieChartTooltip content
     }
 
     class Legend {
@@ -115,7 +112,7 @@ classDiagram
         +ReactNode children
     }
 
-    class CustomTooltip {
+    class PieChartTooltip {
         <<UI Component>>
         +boolean? active
         +Payload[]? payload
@@ -134,7 +131,7 @@ classDiagram
     CategoryPieChart --> CardHeader
     CategoryPieChart --> CardTitle
     CategoryPieChart --> CardContent
-    CategoryPieChart --> CustomTooltip
+    CategoryPieChart --> PieChartTooltip
     PieChart --> PieChartData
     CategoryAggregationResponseDto --> SubcategoryAggregationResponseDto
     aggregationApi ..> CategoryAggregationResponseDto
@@ -155,22 +152,19 @@ classDiagram
 - **主要メソッド**:
   - `useEffect()`: データ取得のトリガー
   - `fetchData()`: APIからデータを取得
-  - `handleDateChange(startDate, endDate)`: 期間変更ハンドラ
-  - `handleCategoryTypeChange(categoryType)`: カテゴリタイプ変更ハンドラ
 
 #### CategoryPieChart（新規作成）
 
 - **責務**: 円グラフの描画とインタラクション処理
 - **主要プロパティ**:
   - `data: CategoryAggregationResponseDto[]`: 表示する集計データ
-  - `selectedCategoryType?: CategoryType`: 選択されたカテゴリタイプ
-  - `onCategoryTypeChange(categoryType)`: カテゴリタイプ変更コールバック
+  - `loading?: boolean`: ローディング状態
+  - `error?: string | null`: エラーメッセージ
 - **主要メソッド**:
   - `render()`: コンポーネントの描画
   - `transformToPieChartData(data)`: APIレスポンスをグラフ用データに変換
   - `getColorForCategory(categoryName)`: カテゴリ名に応じた色を取得
-  - `handleSegmentClick(data)`: セグメントクリックハンドラ（将来対応：ドリルダウン）
-  - `handleSegmentHover(data, isActive)`: セグメントホバーハンドラ
+  - `getColorForCategoryType(categoryType)`: カテゴリタイプに応じた色を取得
 
 #### PieChartData（Value Object）
 
