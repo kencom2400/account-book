@@ -156,9 +156,14 @@ export class TrendAnalysisDomainService {
    * 変動係数（Coefficient of Variation）を計算
    * @param data 月別の金額配列
    * @param mean 平均値（省略可能、指定されない場合は計算）
+   * @param stdDev 標準偏差（省略可能、指定されない場合は計算）
    * @returns 変動係数
    */
-  calculateCoefficientOfVariation(data: number[], mean?: number): number {
+  calculateCoefficientOfVariation(
+    data: number[],
+    mean?: number,
+    stdDev?: number,
+  ): number {
     if (data.length === 0) {
       return 0;
     }
@@ -169,7 +174,9 @@ export class TrendAnalysisDomainService {
       return 0;
     }
 
-    const stdDev = this.calculateStandardDeviation(data, dataMean);
-    return stdDev / dataMean;
+    const standardDeviation =
+      stdDev ?? this.calculateStandardDeviation(data, dataMean);
+    // 平均値が負の場合も考慮し、絶対値で割る
+    return standardDeviation / Math.abs(dataMean);
   }
 }

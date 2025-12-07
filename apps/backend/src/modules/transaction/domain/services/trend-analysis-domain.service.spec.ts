@@ -285,5 +285,37 @@ describe('TrendAnalysisDomainService', () => {
       // 提供されたmeanを使用して計算される
       expect(result).toBeCloseTo(0.118, 2);
     });
+
+    it('should use provided stdDev when given', () => {
+      const data = [100, 110, 120, 130, 140];
+      const providedMean = 120;
+      const providedStdDev = 14.14;
+
+      const result = service.calculateCoefficientOfVariation(
+        data,
+        providedMean,
+        providedStdDev,
+      );
+
+      expect(result).toBeGreaterThan(0);
+      // 提供されたstdDevを使用して計算される
+      expect(result).toBeCloseTo(0.118, 2);
+    });
+
+    it('should handle negative mean correctly', () => {
+      // 収支が赤字の場合（負の値）
+      const data = [-10000, -11000, -12000, -13000, -14000];
+      const providedMean = -12000;
+
+      const result = service.calculateCoefficientOfVariation(
+        data,
+        providedMean,
+      );
+
+      // 平均値が負でも、絶対値で割るため結果は正の値になる
+      expect(result).toBeGreaterThan(0);
+      // 変動係数は常に正の値
+      expect(result).toBeCloseTo(0.118, 2);
+    });
   });
 });

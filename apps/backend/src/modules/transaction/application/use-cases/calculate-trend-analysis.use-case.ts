@@ -131,6 +131,7 @@ export class CalculateTrendAnalysisUseCase {
       this.trendAnalysisDomainService.calculateCoefficientOfVariation(
         values,
         mean,
+        standardDeviation,
       );
 
     // インサイトを生成
@@ -169,6 +170,18 @@ export class CalculateTrendAnalysisUseCase {
   }
 
   /**
+   * 日付をYYYY-MM形式の文字列に変換
+   * @param date 日付
+   * @returns YYYY-MM形式の文字列
+   */
+  private toMonthString(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      '0',
+    )}`;
+  }
+
+  /**
    * 取引データを月ごとにグループ化
    * @param transactions 取引データ
    * @param startYear 開始年
@@ -199,9 +212,7 @@ export class CalculateTrendAnalysisUseCase {
     const endDate = new Date(endYear, endMonth, 0);
 
     while (currentDate <= endDate) {
-      const monthString = `${currentDate.getFullYear()}-${String(
-        currentDate.getMonth() + 1,
-      ).padStart(2, '0')}`;
+      const monthString = this.toMonthString(currentDate);
       monthlyMap.set(monthString, { income: 0, expense: 0, balance: 0 });
 
       // 次の月へ
@@ -210,9 +221,7 @@ export class CalculateTrendAnalysisUseCase {
 
     // 取引データを月ごとに集計
     for (const transaction of transactions) {
-      const monthString = `${transaction.date.getFullYear()}-${String(
-        transaction.date.getMonth() + 1,
-      ).padStart(2, '0')}`;
+      const monthString = this.toMonthString(transaction.date);
 
       const monthly = monthlyMap.get(monthString);
       if (!monthly) {
