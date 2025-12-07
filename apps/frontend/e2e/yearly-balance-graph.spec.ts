@@ -16,6 +16,31 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await page.waitForSelector('text=年間収支グラフ', { timeout: 10000 });
   }
 
+  // データがない場合にテストをスキップするヘルパー関数
+  async function skipIfNoData(page: Page): Promise<void> {
+    const noData = await page
+      .getByText('データがありません')
+      .isVisible()
+      .catch(() => false);
+    if (noData) {
+      test.skip('データがないためテストをスキップします。');
+    }
+  }
+
+  // データまたはグラフが表示されていることを確認するヘルパー関数
+  async function expectDataOrGraphDisplayed(page: Page): Promise<void> {
+    const hasNoDataMessage = await page
+      .getByText('データがありません')
+      .isVisible()
+      .catch(() => false);
+    const hasGraph = await page
+      .locator('svg')
+      .first()
+      .isVisible()
+      .catch(() => false);
+    expect(hasNoDataMessage || hasGraph).toBe(true);
+  }
+
   test.beforeEach(async ({ page }) => {
     // ダッシュボードページに移動
     await page.goto('/dashboard');
@@ -51,18 +76,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await expect(yearSelect).toHaveValue(String(currentYear));
 
     // データが表示されているか、または空データメッセージが表示されていることを確認
-    const hasData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    const hasGraph = await page
-      .locator('svg')
-      .first()
-      .isVisible()
-      .catch(() => false);
-
-    // データがある場合はグラフが表示される、データがない場合はメッセージが表示される
-    expect(hasData || hasGraph).toBe(true);
+    await expectDataOrGraphDisplayed(page);
   });
 
   test('年を選択してデータを取得できる', async ({ page }) => {
@@ -104,13 +118,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // データがない場合はスキップ
-    const hasNoData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    if (hasNoData) {
-      test.skip();
-    }
+    await skipIfNoData(page);
 
     // グラフのタイトルを確認
     await expect(page.getByText('月別推移（折れ線グラフ）')).toBeVisible();
@@ -129,13 +137,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // データがない場合はスキップ
-    const hasNoData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    if (hasNoData) {
-      test.skip();
-    }
+    await skipIfNoData(page);
 
     // 折れ線グラフのセクションを確認
     await expect(page.getByText('月別推移（折れ線グラフ）')).toBeVisible();
@@ -155,13 +157,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // データがない場合はスキップ
-    const hasNoData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    if (hasNoData) {
-      test.skip();
-    }
+    await skipIfNoData(page);
 
     // 棒グラフのセクションを確認
     await expect(page.getByText('月別比較（棒グラフ）')).toBeVisible();
@@ -179,13 +175,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     await waitForYearlyLoadingComplete(page);
 
     // データがない場合はスキップ
-    const hasNoData = await page
-      .getByText('データがありません')
-      .isVisible()
-      .catch(() => false);
-    if (hasNoData) {
-      test.skip();
-    }
+    await skipIfNoData(page);
 
     // エリアグラフのセクションを確認
     await expect(page.getByText('収支差額（エリアグラフ）')).toBeVisible();
