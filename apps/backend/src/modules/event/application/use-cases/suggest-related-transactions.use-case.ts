@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EventEntity } from '../../domain/entities/event.entity';
 import { EventCategory } from '../../domain/enums/event-category.enum';
 import type { IEventRepository } from '../../domain/repositories/event.repository.interface';
 import { EVENT_REPOSITORY } from '../../domain/repositories/event.repository.interface';
@@ -61,8 +60,20 @@ export class SuggestRelatedTransactionsUseCase {
 
     // 4. スコアリング
     const scoredTransactions = filteredTransactions.map((transaction) => {
-      const score = this.calculateScore(transaction, event);
-      const reasons = this.generateReasons(transaction, event, score);
+      const scoreAndReasonParts = [
+        this.calculateDateScore(transaction.date, event.date),
+        this.calculateAmountScore(transaction.amount),
+        this.calculateCategoryScore(transaction, event.category),
+      ];
+
+      const score = scoreAndReasonParts.reduce(
+        (sum, part) => sum + part.score,
+        0,
+      );
+      const reasons = scoreAndReasonParts
+        .map((part) => part.reason)
+        .filter((reason): reason is string => reason !== null);
+
       return {
         transaction,
         score,
@@ -133,14 +144,7 @@ export class SuggestRelatedTransactionsUseCase {
         '薬',
         '健康診断',
       ],
-      [EventCategory.LIFE_EVENT]: [
-        '結婚式',
-        '出産',
-        '引越し',
-        '結婚',
-        '出産',
-        '引越',
-      ],
+      [EventCategory.LIFE_EVENT]: ['結婚式', '出産', '引越し', '結婚', '引越'],
       [EventCategory.INVESTMENT]: ['投資', '証券', '投資関連', '証券関連'],
       [EventCategory.OTHER]: [],
     };
@@ -149,26 +153,12 @@ export class SuggestRelatedTransactionsUseCase {
   }
 
   /**
-   * スコアを計算
-   */
-  private calculateScore(
-    transaction: TransactionEntity,
-    event: EventEntity,
-  ): number {
-    const dateScore = this.calculateDateScore(transaction.date, event.date);
-    const amountScore = this.calculateAmountScore(transaction.amount);
-    const categoryScore = this.calculateCategoryScore(
-      transaction,
-      event.category,
-    );
-
-    return dateScore + amountScore + categoryScore;
-  }
-
-  /**
    * 日付の近さによるスコア（50点満点）
    */
-  private calculateDateScore(transactionDate: Date, eventDate: Date): number {
+  private calculateDateScore(
+    transactionDate: Date,
+    eventDate: Date,
+  ): { score: number; reason: string | null } {
     const diffDays = Math.abs(
       Math.floor(
         (transactionDate.getTime() - eventDate.getTime()) /
@@ -176,29 +166,38 @@ export class SuggestRelatedTransactionsUseCase {
       ),
     );
 
-    if (diffDays === 0) return 50;
-    if (diffDays === 1) return 45;
-    if (diffDays === 2) return 40;
-    if (diffDays === 3) return 35;
-    if (diffDays === 4) return 30;
-    if (diffDays === 5) return 25;
-    if (diffDays === 6) return 20;
-    if (diffDays === 7) return 15;
-    return 0;
+    const scores = [50, 45, 40, 35, 30, 25, 20, 15];
+    if (diffDays <= 7) {
+      return {
+        score: scores[diffDays],
+        reason: `日付が近い（${diffDays}日差）`,
+      };
+    }
+    return { score: 0, reason: null };
   }
 
   /**
    * 金額の大きさによるスコア（30点満点）
    */
-  private calculateAmountScore(amount: number): number {
+  private calculateAmountScore(amount: number): {
+    score: number;
+    reason: string | null;
+  } {
     const absAmount = Math.abs(amount);
+    const thresholds = [
+      { limit: 100000, score: 30, reason: '高額取引（10万円以上）' },
+      { limit: 50000, score: 25, reason: '高額取引（5万円以上）' },
+      { limit: 30000, score: 20, reason: '高額取引（3万円以上）' },
+      { limit: 10000, score: 15, reason: '高額取引（1万円以上）' },
+      { limit: 5000, score: 10, reason: null },
+    ];
 
-    if (absAmount >= 100000) return 30;
-    if (absAmount >= 50000) return 25;
-    if (absAmount >= 30000) return 20;
-    if (absAmount >= 10000) return 15;
-    if (absAmount >= 5000) return 10;
-    return 5;
+    for (const threshold of thresholds) {
+      if (absAmount >= threshold.limit) {
+        return { score: threshold.score, reason: threshold.reason };
+      }
+    }
+    return { score: 5, reason: null };
   }
 
   /**
@@ -207,18 +206,14 @@ export class SuggestRelatedTransactionsUseCase {
   private calculateCategoryScore(
     transaction: TransactionEntity,
     eventCategory: EventCategory,
-  ): number {
+  ): { score: number; reason: string | null } {
     // OTHERカテゴリの場合は5点
     if (eventCategory === EventCategory.OTHER) {
-      return 5;
+      return { score: 5, reason: null };
     }
 
     const categoryName = transaction.category.name.toLowerCase();
     const relatedCategoryNames = this.getRelatedCategoryNames(eventCategory);
-
-    // 完全一致チェック（イベントカテゴリ名と取引カテゴリ名が一致する場合）
-    // これは実装が複雑になるため、関連カテゴリ名に含まれる場合は15点とする
-    // 完全一致の判定は将来的に拡張可能
 
     // 関連カテゴリ名に含まれる場合は15点
     if (
@@ -226,55 +221,13 @@ export class SuggestRelatedTransactionsUseCase {
         categoryName.includes(relatedName.toLowerCase()),
       )
     ) {
-      return 15;
+      return {
+        score: 15,
+        reason: `カテゴリが関連（${transaction.category.name}）`,
+      };
     }
 
     // その他の場合は5点
-    return 5;
-  }
-
-  /**
-   * 推奨理由を生成
-   */
-  private generateReasons(
-    transaction: TransactionEntity,
-    event: EventEntity,
-    _score: number,
-  ): string[] {
-    const reasons: string[] = [];
-
-    // 日付の近さ
-    const diffDays = Math.abs(
-      Math.floor(
-        (transaction.date.getTime() - event.date.getTime()) /
-          (1000 * 60 * 60 * 24),
-      ),
-    );
-    if (diffDays <= 7) {
-      reasons.push(`日付が近い（${diffDays}日差）`);
-    }
-
-    // 金額の大きさ
-    const absAmount = Math.abs(transaction.amount);
-    if (absAmount >= 100000) {
-      reasons.push('高額取引（10万円以上）');
-    } else if (absAmount >= 50000) {
-      reasons.push('高額取引（5万円以上）');
-    } else if (absAmount >= 30000) {
-      reasons.push('高額取引（3万円以上）');
-    } else if (absAmount >= 10000) {
-      reasons.push('高額取引（1万円以上）');
-    }
-
-    // カテゴリマッチ
-    const categoryScore = this.calculateCategoryScore(
-      transaction,
-      event.category,
-    );
-    if (categoryScore >= 15) {
-      reasons.push(`カテゴリが関連（${transaction.category.name}）`);
-    }
-
-    return reasons;
+    return { score: 5, reason: null };
   }
 }

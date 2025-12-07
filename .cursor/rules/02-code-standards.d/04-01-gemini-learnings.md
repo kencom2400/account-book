@@ -6907,4 +6907,200 @@ const years = optionValues
 
 **参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘 - 第2回）
 
+### 13-XX. コードの可読性と保守性の向上（PR #380）
+
+**学習元**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘）
+
+#### DRY原則の遵守とロジックの統合
+
+**問題**: スコア計算と理由生成のロジックが重複しており、将来の変更が困難でバグの原因となる可能性がある。
+
+**解決策**: スコア計算メソッドがスコアと理由の両方をオブジェクトとして返すようにリファクタリングする
+
+```typescript
+// ❌ 悪い例: ロジックが重複
+private calculateAmountScore(amount: number): number {
+  const absAmount = Math.abs(amount);
+  if (absAmount >= 100000) return 30;
+  if (absAmount >= 50000) return 25;
+  // ...
+}
+
+private generateReasons(transaction: TransactionEntity, event: EventEntity, _score: number): string[] {
+  const reasons: string[] = [];
+  const absAmount = Math.abs(transaction.amount);
+  if (absAmount >= 100000) {
+    reasons.push('高額取引（10万円以上）');
+  } else if (absAmount >= 50000) {
+    reasons.push('高額取引（5万円以上）');
+  }
+  // ...
+}
+
+// ✅ 良い例: スコアと理由を同時に返す
+private calculateAmountScore(amount: number): { score: number; reason: string | null } {
+  const absAmount = Math.abs(amount);
+  const thresholds = [
+    { limit: 100000, score: 30, reason: '高額取引（10万円以上）' },
+    { limit: 50000, score: 25, reason: '高額取引（5万円以上）' },
+    { limit: 30000, score: 20, reason: '高額取引（3万円以上）' },
+    { limit: 10000, score: 15, reason: '高額取引（1万円以上）' },
+    { limit: 5000, score: 10, reason: null },
+  ];
+
+  for (const threshold of thresholds) {
+    if (absAmount >= threshold.limit) {
+      return { score: threshold.score, reason: threshold.reason };
+    }
+  }
+  return { score: 5, reason: null };
+}
+
+// 使用例
+const scoreAndReasonParts = [
+  this.calculateDateScore(transaction.date, event.date),
+  this.calculateAmountScore(transaction.amount),
+  this.calculateCategoryScore(transaction, event.category),
+];
+
+const score = scoreAndReasonParts.reduce((sum, part) => sum + part.score, 0);
+const reasons = scoreAndReasonParts
+  .map((part) => part.reason)
+  .filter((reason): reason is string => reason !== null);
+```
+
+**理由**:
+
+- ロジックが1箇所に集約され、保守性が向上
+- スコア計算と理由生成の整合性が保証される
+- 将来の変更が容易になる
+
+#### マジックナンバーの定数化
+
+**問題**: スコアリングのしきい値（例: `100000`, `50000`）がハードコードされており、可読性と保守性が低い。
+
+**解決策**: しきい値をデータ構造として定義し、意味のある名前を付ける
+
+```typescript
+// ❌ 悪い例: マジックナンバー
+if (absAmount >= 100000) return 30;
+if (absAmount >= 50000) return 25;
+
+// ✅ 良い例: データ構造として定義
+const thresholds = [
+  { limit: 100000, score: 30, reason: '高額取引（10万円以上）' },
+  { limit: 50000, score: 25, reason: '高額取引（5万円以上）' },
+  // ...
+];
+```
+
+**理由**:
+
+- 可読性が向上する
+- 保守性が向上する（変更が容易）
+- テストが容易になる
+
+#### 配列操作の適切な使用（reduce）
+
+**問題**: `for`ループを使用した集計処理が冗長で、不変性が保証されない。
+
+**解決策**: `Array.prototype.reduce()`を使用してより簡潔で宣言的にリファクタリングする
+
+```typescript
+// ❌ 悪い例: forループ
+private calculateSummary(transactions: TransactionEntity[]): {
+  totalIncome: number;
+  totalExpense: number;
+  netAmount: number;
+  transactionCount: number;
+} {
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  for (const transaction of transactions) {
+    if (transaction.category.type === CategoryType.INCOME) {
+      totalIncome += transaction.amount;
+    } else if (transaction.category.type === CategoryType.EXPENSE) {
+      totalExpense += Math.abs(transaction.amount);
+    }
+  }
+
+  const netAmount = totalIncome - totalExpense;
+  const transactionCount = transactions.length;
+
+  return { totalIncome, totalExpense, netAmount, transactionCount };
+}
+
+// ✅ 良い例: reduceを使用
+private calculateSummary(transactions: TransactionEntity[]): {
+  totalIncome: number;
+  totalExpense: number;
+  netAmount: number;
+  transactionCount: number;
+} {
+  const summary = transactions.reduce(
+    (acc, transaction) => {
+      if (transaction.category.type === CategoryType.INCOME) {
+        acc.totalIncome += transaction.amount;
+      } else if (transaction.category.type === CategoryType.EXPENSE) {
+        acc.totalExpense += Math.abs(transaction.amount);
+      }
+      return acc;
+    },
+    { totalIncome: 0, totalExpense: 0 },
+  );
+
+  const netAmount = summary.totalIncome - summary.totalExpense;
+  const transactionCount = transactions.length;
+
+  return {
+    totalIncome: summary.totalIncome,
+    totalExpense: summary.totalExpense,
+    netAmount,
+    transactionCount,
+  };
+}
+```
+
+**理由**:
+
+- より簡潔で宣言的なコードになる
+- 不変性が促進される
+- 関数型プログラミングのパターンに準拠
+
+#### データ構造の重複チェック
+
+**問題**: 配列やマッピングに重複した値が含まれていると、コードの品質とメンテナンス性が低下する。
+
+**解決策**: データ構造を定義する際に重複がないか確認する
+
+```typescript
+// ❌ 悪い例: 重複がある
+[EventCategory.LIFE_EVENT]: [
+  '結婚式',
+  '出産',
+  '引越し',
+  '結婚',
+  '出産',  // 重複
+  '引越',
+],
+
+// ✅ 良い例: 重複を削除
+[EventCategory.LIFE_EVENT]: [
+  '結婚式',
+  '出産',
+  '引越し',
+  '結婚',
+  '引越',
+],
+```
+
+**理由**:
+
+- コードの品質が向上する
+- メンテナンス性が向上する
+- 意図しない動作を防ぐ
+
+**参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘）
+
 ---

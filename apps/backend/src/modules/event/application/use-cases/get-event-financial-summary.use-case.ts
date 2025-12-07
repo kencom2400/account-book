@@ -78,25 +78,26 @@ export class GetEventFinancialSummaryUseCase {
     netAmount: number;
     transactionCount: number;
   } {
-    let totalIncome = 0;
-    let totalExpense = 0;
+    const summary = transactions.reduce(
+      (acc, transaction) => {
+        if (transaction.category.type === CategoryType.INCOME) {
+          acc.totalIncome += transaction.amount;
+        } else if (transaction.category.type === CategoryType.EXPENSE) {
+          // 支出は負の値として記録されている可能性があるため、絶対値を取る
+          acc.totalExpense += Math.abs(transaction.amount);
+        }
+        // TRANSFER、REPAYMENT、INVESTMENTは集計対象外
+        return acc;
+      },
+      { totalIncome: 0, totalExpense: 0 },
+    );
 
-    for (const transaction of transactions) {
-      if (transaction.category.type === CategoryType.INCOME) {
-        totalIncome += transaction.amount;
-      } else if (transaction.category.type === CategoryType.EXPENSE) {
-        // 支出は負の値として記録されている可能性があるため、絶対値を取る
-        totalExpense += Math.abs(transaction.amount);
-      }
-      // TRANSFER、REPAYMENT、INVESTMENTは集計対象外
-    }
-
-    const netAmount = totalIncome - totalExpense;
+    const netAmount = summary.totalIncome - summary.totalExpense;
     const transactionCount = transactions.length;
 
     return {
-      totalIncome,
-      totalExpense,
+      totalIncome: summary.totalIncome,
+      totalExpense: summary.totalExpense,
       netAmount,
       transactionCount,
     };
