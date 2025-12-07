@@ -4,6 +4,7 @@
  * FR-016: 月別収支集計
  * FR-020: 年間収支推移表示
  * FR-025: カテゴリ別円グラフ表示
+ * FR-026: 金融機関別資産残高表示
  */
 
 import { CategoryAmount, CategoryType } from '@account-book/types';
@@ -172,6 +173,42 @@ export interface YearlyBalanceResponse {
 }
 
 /**
+ * 資産残高レスポンス（FR-026）
+ */
+export interface AccountAssetDto {
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  balance: number;
+  currency: string;
+}
+
+export interface InstitutionAssetDto {
+  institutionId: string;
+  institutionName: string;
+  institutionType: string; // 'bank' | 'credit-card' | 'securities'
+  icon: string;
+  accounts: AccountAssetDto[];
+  total: number;
+  percentage: number;
+}
+
+export interface AssetComparisonDto {
+  diff: number;
+  rate: number;
+}
+
+export interface AssetBalanceResponse {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  institutions: InstitutionAssetDto[];
+  asOfDate: string; // ISO8601形式
+  previousMonth: AssetComparisonDto;
+  previousYear: AssetComparisonDto;
+}
+
+/**
  * カテゴリ別集計レスポンス（FR-018, FR-025）
  */
 
@@ -296,6 +333,21 @@ export const aggregationApi = {
       success: boolean;
       data: CategoryAggregationResponseDto[];
     }>(`/api/aggregation/category?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * 資産残高情報を取得（FR-026）
+   */
+  getAssetBalance: async (asOfDate?: string): Promise<AssetBalanceResponse> => {
+    const params = new URLSearchParams();
+    if (asOfDate) {
+      params.append('asOfDate', asOfDate);
+    }
+    const response = await apiClient.get<{
+      success: boolean;
+      data: AssetBalanceResponse;
+    }>(`/api/aggregation/asset-balance?${params.toString()}`);
     return response.data;
   },
 };
