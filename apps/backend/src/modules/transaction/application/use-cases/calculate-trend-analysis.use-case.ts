@@ -179,7 +179,8 @@ export class CalculateTrendAnalysisUseCase {
     const insights = this.generateInsights(
       targetType,
       values,
-      trendLine,
+      trendLineDto,
+      mean,
       standardDeviation,
       coefficientOfVariation,
       monthlyData.length,
@@ -288,6 +289,7 @@ export class CalculateTrendAnalysisUseCase {
    * @param targetType 表示対象
    * @param values 値の配列
    * @param trendLine トレンドライン
+   * @param mean 平均値
    * @param standardDeviation 標準偏差
    * @param coefficientOfVariation 変動係数
    * @param monthCount 月数
@@ -296,7 +298,8 @@ export class CalculateTrendAnalysisUseCase {
   private generateInsights(
     targetType: TrendTargetType,
     values: number[],
-    trendLine: { slope: number; intercept: number; points: unknown[] },
+    trendLine: { slope: number; intercept: number; points: DataPointDto[] },
+    mean: number,
     standardDeviation: number,
     coefficientOfVariation: number,
     monthCount: number,
@@ -304,7 +307,6 @@ export class CalculateTrendAnalysisUseCase {
     const insights: InsightDto[] = [];
 
     // トレンド方向の判定
-    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const isIncreasing = trendLine.slope > mean * 0.01;
     const isDecreasing = trendLine.slope < -mean * 0.01;
 
