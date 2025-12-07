@@ -17,6 +17,9 @@ import { GetSubcategoryAggregationQueryDto } from '../dto/get-subcategory-aggreg
 import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
 import type { AssetBalanceResponseDto } from '../dto/asset-balance-response.dto';
 import { GetAssetBalanceDto } from '../dto/get-asset-balance.dto';
+import { CalculateTrendAnalysisUseCase } from '../../application/use-cases/calculate-trend-analysis.use-case';
+import type { TrendAnalysisResponseDto } from '../../application/use-cases/calculate-trend-analysis.use-case';
+import { GetTrendAnalysisDto } from '../dto/get-trend-analysis.dto';
 
 /**
  * AggregationController
@@ -31,6 +34,7 @@ export class AggregationController {
     private readonly calculateInstitutionSummaryUseCase: CalculateInstitutionSummaryUseCase,
     private readonly calculateSubcategoryAggregationUseCase: CalculateSubcategoryAggregationUseCase,
     private readonly calculateAssetBalanceUseCase: CalculateAssetBalanceUseCase,
+    private readonly calculateTrendAnalysisUseCase: CalculateTrendAnalysisUseCase,
   ) {}
 
   /**
@@ -152,6 +156,31 @@ export class AggregationController {
   }> {
     const asOfDate = query.asOfDate ? new Date(query.asOfDate) : undefined;
     const result = await this.calculateAssetBalanceUseCase.execute(asOfDate);
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * トレンド分析情報を取得
+   * GET /api/aggregation/trend?startYear=2024&startMonth=1&endYear=2024&endMonth=12&targetType=balance&movingAveragePeriod=6
+   * FR-027: 収支推移のトレンド表示
+   */
+  @Get('trend')
+  async getTrendAnalysis(@Query() query: GetTrendAnalysisDto): Promise<{
+    success: boolean;
+    data: TrendAnalysisResponseDto;
+  }> {
+    const result = await this.calculateTrendAnalysisUseCase.execute(
+      query.startYear,
+      query.startMonth,
+      query.endYear,
+      query.endMonth,
+      query.targetType,
+      query.movingAveragePeriod,
+    );
 
     return {
       success: true,

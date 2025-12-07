@@ -209,6 +209,48 @@ export interface AssetBalanceResponse {
 }
 
 /**
+ * トレンド分析レスポンス（FR-027）
+ */
+export interface TrendAnalysisResponse {
+  period: {
+    start: string; // YYYY-MM
+    end: string; // YYYY-MM
+  };
+  targetType: 'income' | 'expense' | 'balance';
+  actual: Array<{
+    date: string; // YYYY-MM
+    value: number;
+  }>;
+  movingAverage: {
+    period: number;
+    data: Array<{
+      date: string; // YYYY-MM
+      value: number;
+    }>;
+  };
+  trendLine: {
+    slope: number;
+    intercept: number;
+    points: Array<{
+      date: string; // YYYY-MM
+      value: number;
+    }>;
+  };
+  statistics: {
+    mean: number;
+    standardDeviation: number;
+    coefficientOfVariation: number;
+  };
+  insights: Array<{
+    type: 'trend' | 'pattern' | 'anomaly';
+    severity: 'info' | 'warning' | 'critical';
+    title: string;
+    description: string;
+    recommendation?: string;
+  }>;
+}
+
+/**
  * カテゴリ別集計レスポンス（FR-018, FR-025）
  */
 
@@ -348,6 +390,36 @@ export const aggregationApi = {
       success: boolean;
       data: AssetBalanceResponse;
     }>(`/api/aggregation/asset-balance?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * トレンド分析情報を取得（FR-027）
+   */
+  getTrendAnalysis: async (
+    startYear: number,
+    startMonth: number,
+    endYear: number,
+    endMonth: number,
+    targetType?: 'income' | 'expense' | 'balance',
+    movingAveragePeriod?: 3 | 6 | 12
+  ): Promise<TrendAnalysisResponse> => {
+    const params = new URLSearchParams({
+      startYear: startYear.toString(),
+      startMonth: startMonth.toString(),
+      endYear: endYear.toString(),
+      endMonth: endMonth.toString(),
+    });
+    if (targetType) {
+      params.append('targetType', targetType);
+    }
+    if (movingAveragePeriod) {
+      params.append('movingAveragePeriod', movingAveragePeriod.toString());
+    }
+    const response = await apiClient.get<{
+      success: boolean;
+      data: TrendAnalysisResponse;
+    }>(`/api/aggregation/trend?${params.toString()}`);
     return response.data;
   },
 };

@@ -8,12 +8,15 @@ import { MonthlyBalanceGraph } from '@/components/dashboard/MonthlyBalanceGraph'
 import { YearlyBalanceGraph } from '@/components/dashboard/YearlyBalanceGraph';
 import { CategoryPieChartContainer } from '@/components/dashboard/CategoryPieChartContainer';
 import { AssetBalanceContainer } from '@/components/dashboard/AssetBalanceContainer';
+import { TrendGraph } from '@/components/dashboard/TrendGraph';
+import { TrendInsights } from '@/components/dashboard/TrendInsights';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { getTransactions, getMonthlySummary, type MonthlySummary } from '@/lib/api/transactions';
 import {
   aggregationApi,
   type MonthlyBalanceResponse,
   type YearlyBalanceResponse,
+  type TrendAnalysisResponse,
 } from '@/lib/api/aggregation';
 import { Transaction } from '@account-book/types';
 
@@ -25,10 +28,13 @@ export default function DashboardPage(): React.JSX.Element {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [balanceData, setBalanceData] = useState<MonthlyBalanceResponse | null>(null);
   const [yearlyBalanceData, setYearlyBalanceData] = useState<YearlyBalanceResponse | null>(null);
+  const [trendData, setTrendData] = useState<TrendAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [yearlyLoading, setYearlyLoading] = useState(false);
   const [yearlyError, setYearlyError] = useState<string | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendError, setTrendError] = useState<string | null>(null);
 
   // 年の選択範囲の定数
   const YEAR_SELECTION_RANGE = 10; // 選択可能な年の数
@@ -83,6 +89,36 @@ export default function DashboardPage(): React.JSX.Element {
   useEffect(() => {
     void fetchYearlyData();
   }, [fetchYearlyData]);
+
+  // トレンド分析データの取得（過去12ヶ月）
+  const fetchTrendData = useCallback(async (): Promise<void> => {
+    try {
+      setTrendLoading(true);
+      setTrendError(null);
+      // 過去12ヶ月のデータを取得
+      const endDate = new Date(currentYear, currentMonth - 1, 1);
+      const startDate = new Date(endDate);
+      startDate.setMonth(startDate.getMonth() - 11); // 12ヶ月前
+
+      const trendResponse = await aggregationApi.getTrendAnalysis(
+        startDate.getFullYear(),
+        startDate.getMonth() + 1,
+        endDate.getFullYear(),
+        endDate.getMonth() + 1,
+        'balance', // 収支をデフォルト
+        6 // 6ヶ月移動平均
+      );
+      setTrendData(trendResponse);
+    } catch (_err) {
+      setTrendError('トレンド分析データの取得に失敗しました');
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [currentYear, currentMonth]);
+
+  useEffect(() => {
+    void fetchTrendData();
+  }, [fetchTrendData]);
 
   if (loading) {
     return (
@@ -217,6 +253,16 @@ export default function DashboardPage(): React.JSX.Element {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* トレンド分析セクション（FR-027） */}
+        <div className="mb-8 space-y-6">
+          {trendData && (
+            <>
+              <TrendGraph data={trendData} loading={trendLoading} error={trendError} />
+              <TrendInsights data={trendData} />
+            </>
+          )}
         </div>
 
         {/* 取引一覧セクション */}

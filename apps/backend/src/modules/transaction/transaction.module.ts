@@ -9,6 +9,7 @@ import { TransactionCategoryChangeHistoryOrmEntity } from './infrastructure/enti
 import { TransactionDomainService } from './domain/services/transaction-domain.service';
 import { MonthlyBalanceDomainService } from './domain/services/monthly-balance-domain.service';
 import { YearlyBalanceDomainService } from './domain/services/yearly-balance-domain.service';
+import { TrendAnalysisDomainService } from './domain/services/trend-analysis-domain.service';
 import { CategoryAggregationDomainService } from './domain/services/category-aggregation-domain.service';
 import { SubcategoryAggregationDomainService } from './domain/services/subcategory-aggregation-domain.service';
 import { InstitutionAggregationDomainService } from './domain/services/institution-aggregation-domain.service';
@@ -24,6 +25,7 @@ import { CalculateCategoryAggregationUseCase } from './application/use-cases/cal
 import { CalculateSubcategoryAggregationUseCase } from './application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from './application/use-cases/calculate-institution-summary.use-case';
 import { CalculateAssetBalanceUseCase } from './application/use-cases/calculate-asset-balance.use-case';
+import { CalculateTrendAnalysisUseCase } from './application/use-cases/calculate-trend-analysis.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from './domain/repositories/transaction-category-change-history.repository.interface';
@@ -54,6 +56,7 @@ import { InstitutionModule } from '../institution/institution.module';
     TransactionDomainService,
     MonthlyBalanceDomainService,
     YearlyBalanceDomainService,
+    TrendAnalysisDomainService,
     CategoryAggregationDomainService,
     SubcategoryAggregationDomainService,
     InstitutionAggregationDomainService,
@@ -70,6 +73,7 @@ import { InstitutionModule } from '../institution/institution.module';
     CalculateSubcategoryAggregationUseCase,
     CalculateInstitutionSummaryUseCase,
     CalculateAssetBalanceUseCase,
+    CalculateTrendAnalysisUseCase,
     ClassifyTransactionUseCase,
   ],
   exports: [
