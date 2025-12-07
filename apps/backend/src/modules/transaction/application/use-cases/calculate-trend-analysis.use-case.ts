@@ -307,8 +307,10 @@ export class CalculateTrendAnalysisUseCase {
     const insights: InsightDto[] = [];
 
     // トレンド方向の判定
-    const isIncreasing = trendLine.slope > mean * 0.01;
-    const isDecreasing = trendLine.slope < -mean * 0.01;
+    // meanが負の値（収支が赤字）の場合も正しく判定するため、Math.absを使用
+    const threshold = Math.abs(mean) * 0.01;
+    const isIncreasing = trendLine.slope > threshold;
+    const isDecreasing = trendLine.slope < -threshold;
 
     // 支出増加トレンド
     if (targetType === TrendTargetType.EXPENSE && isIncreasing) {
@@ -355,10 +357,7 @@ export class CalculateTrendAnalysisUseCase {
     }
 
     // 安定している場合
-    if (
-      Math.abs(trendLine.slope) < mean * 0.01 &&
-      coefficientOfVariation < 0.1
-    ) {
+    if (Math.abs(trendLine.slope) < threshold && coefficientOfVariation < 0.1) {
       insights.push({
         type: 'pattern',
         severity: 'info',
