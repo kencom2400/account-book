@@ -7587,4 +7587,333 @@ it('カテゴリタイプ変更コールバックが呼び出される', async (
 
 **参照**: PR #381 - Issue #54: FR-025 カテゴリ別円グラフ表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
 
+### 13-XX. 詳細設計書のレスポンス例の整合性（PR #382）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘）
+
+#### レスポンス例の数値の整合性チェック
+
+**問題**: レスポンス例のJSONデータに不整合がある（totalAssetsの計算が合わない、percentageの計算が合わない）
+
+**解決策**: レスポンス例の数値は必ず整合性を確認する
+
+```typescript
+// ❌ 悪い例: 数値が不整合
+{
+  "totalAssets": 5234567,  // 実際の合計: 5358023
+  "institutions": [
+    {
+      "total": 3234567,
+      "percentage": 61.8  // 実際: 60.4%
+    }
+  ]
+}
+
+// ✅ 良い例: 数値を正確に計算
+{
+  "totalAssets": 5358023,  // 1234567 + 2000000 + 1500000 + 623456
+  "institutions": [
+    {
+      "total": 3234567,
+      "percentage": 60.4  // 3234567 / 5358023 * 100
+    }
+  ]
+}
+```
+
+**理由**:
+
+- 実装時の混乱を防ぐ
+- 設計書の信頼性を保つ
+- レビュー時の指摘を減らす
+
+#### accountTypeなどの特定の値を持つプロパティはenum型で定義
+
+**問題**: `accountType`が`string`型として定義されているが、特定の値（SAVINGS, TIME_DEPOSITなど）を取る
+
+**解決策**: 型安全性を高めるため、`enum`型として定義する
+
+```typescript
+// ❌ 悪い例: string型
+interface AccountAssetDto {
+  accountType: string; // 予期せぬ値が入る可能性
+}
+
+// ✅ 良い例: enum型
+export enum AccountType {
+  SAVINGS = 'SAVINGS',
+  TIME_DEPOSIT = 'TIME_DEPOSIT',
+  CREDIT_CARD = 'CREDIT_CARD',
+  STOCK = 'STOCK',
+  MUTUAL_FUND = 'MUTUAL_FUND',
+  OTHER = 'OTHER',
+}
+
+interface AccountAssetDto {
+  accountType: AccountType; // 型安全
+}
+```
+
+**理由**:
+
+- 型安全性を向上
+- 予期せぬ値の使用を防ぐ
+- IDEの補完が効く
+
+#### XSS対策の記述は具体的に
+
+**問題**: 「フロントエンド側で対応」という抽象的な記述
+
+**解決策**: 具体的な対策方法を明記する
+
+```markdown
+<!-- ❌ 悪い例: 抽象的 -->
+
+- [ ] XSS対策（フロントエンド側で対応）
+
+<!-- ✅ 良い例: 具体的 -->
+
+- [x] XSS対策（ReactのJSXによる自動エスケープを基本とする。ユーザーが入力したHTMLを意図的に表示する必要がある場合は、DOMPurifyなどのライブラリを使用してサニタイズ処理を必須とする）
+```
+
+**理由**:
+
+- 実装者が具体的な対策を理解しやすくなる
+- セキュリティ要件が明確になる
+- 実装時の迷いを減らす
+
+#### クラス図の重複定義を避ける
+
+**問題**: 同じDTOが複数のレイヤのクラス図で再定義されている
+
+**解決策**: 定義済みのDTOは再定義せず、注釈で参照を明記する
+
+```mermaid
+<!-- ❌ 悪い例: 重複定義 -->
+classDiagram
+    class AssetBalanceResponseDto {
+        +number totalAssets
+        ...
+    }
+    note for AssetBalanceResponseDto "Presentation層で定義済み"
+
+<!-- ✅ 良い例: 参照のみ -->
+classDiagram
+    class aggregationApi {
+        +getAssetBalance() Promise~AssetBalanceResponseDto~
+    }
+    note for aggregationApi "AssetBalanceResponseDtoはPresentation層で定義済み"
+```
+
+**理由**:
+
+- 定義の不整合を防ぐ
+- メンテナンス性が向上
+- 単一の定義源を参照できる
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘）
+
+### 13-XX. 詳細設計書の既存コードとの整合性（PR #382 - 第2回）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘 - 第2回）
+
+#### 既存の型定義との整合性チェック
+
+**問題**: 設計書で定義したenum値が既存のコードベースと異なる（`BANK` vs `bank`）
+
+**解決策**: 設計書を作成する前に、既存の型定義ファイルを確認し、既存の定義に合わせる
+
+```typescript
+// ❌ 悪い例: 既存コードと異なる値
+export enum InstitutionType {
+  BANK = 'BANK', // 既存コードでは 'bank'
+  CREDIT_CARD = 'CREDIT_CARD', // 既存コードでは 'credit-card'
+  SECURITIES = 'SECURITIES', // 既存コードでは 'securities'
+}
+
+// ✅ 良い例: 既存コードに合わせる
+export enum InstitutionType {
+  BANK = 'bank',
+  CREDIT_CARD = 'credit-card',
+  SECURITIES = 'securities',
+}
+```
+
+**確認方法**:
+
+- `libs/types/src/`配下の型定義ファイルを確認
+- 既存のUseCaseやControllerでの使用例を確認
+- レスポンス例の値も既存コードに合わせる
+
+**理由**:
+
+- 実装時の混乱を防ぐ
+- 型エラーを防ぐ
+- 既存コードとの一貫性を保つ
+
+#### フィールド説明の明確化
+
+**問題**: `totalLiabilities`の説明が「マイナス残高の合計」とあるが、レスポンス例では正数が返されている
+
+**解決策**: フィールドの説明は、実際のレスポンス形式と一致させる
+
+```markdown
+<!-- ❌ 悪い例: 曖昧な説明 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計） |
+
+<!-- ✅ 良い例: 明確な説明 -->
+
+| totalLiabilities | number | 総負債（マイナス残高の合計の絶対値） |
+```
+
+**理由**:
+
+- 実装者が誤解しない
+- レスポンス形式が明確になる
+- 実装時の混乱を防ぐ
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第2回）
+
+### 13-XX. 詳細設計書のエンティティ定義の完全性（PR #382 - 第3回）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘 - 第3回）
+
+#### 既存エンティティの完全な定義
+
+**問題**: 設計書で定義したエンティティに、既存実装に存在するプロパティが欠けている（`InstitutionEntity`に`credentials`プロパティがない）
+
+**解決策**: 設計書を作成する前に、既存のエンティティ定義を確認し、すべてのプロパティを含める
+
+```typescript
+// ❌ 悪い例: プロパティが欠けている
+interface InstitutionEntity {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  accounts: AccountEntity[];
+  // credentialsプロパティが欠けている
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ✅ 良い例: 既存実装と一致
+interface InstitutionEntity {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  credentials: EncryptedCredentials; // 既存実装に存在するプロパティ
+  accounts: AccountEntity[];
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+**確認方法**:
+
+- `apps/backend/src/modules/*/domain/entities/`配下のエンティティファイルを確認
+- 既存のリポジトリ実装での使用例を確認
+- クラス図にもすべてのプロパティを含める
+
+**理由**:
+
+- 設計書の正確性を保つ
+- 実装時の混乱を防ぐ
+- 既存コードとの一貫性を保つ
+
+#### インターフェース定義に説明コメントを追加
+
+**問題**: `AssetSummary`インターフェースのプロパティに説明コメントがなく、特に`totalLiabilities`が正の値なのか負の値なのかが不明確
+
+**解決策**: 重要なプロパティには説明コメントを追加し、ドキュメント間の整合性を保つ
+
+```typescript
+// ❌ 悪い例: 説明コメントがない
+interface AssetSummary {
+  totalAssets: number;
+  totalLiabilities: number; // 正の値なのか負の値なのか不明確
+  netWorth: number;
+  institutions: InstitutionAsset[];
+  asOfDate: Date;
+  comparison: {
+    previousMonth: AssetComparison;
+    previousYear: AssetComparison;
+  };
+}
+
+// ✅ 良い例: 説明コメントを追加
+interface AssetSummary {
+  totalAssets: number; // 総資産（プラス残高の合計）
+  totalLiabilities: number; // 総負債（マイナス残高の合計の絶対値）
+  netWorth: number; // 純資産（総資産 - 総負債）
+  institutions: InstitutionAsset[];
+  asOfDate: Date;
+  comparison: {
+    previousMonth: AssetComparison;
+    previousYear: AssetComparison;
+  };
+}
+```
+
+**理由**:
+
+- ドキュメント間の整合性を保つ
+- 実装者が誤解しない
+- 設計意図が明確になる
+
+#### Infrastructure層のORMエンティティの完全な定義
+
+**問題**: Infrastructure層のクラス図の`InstitutionOrmEntity`に認証情報関連のプロパティがない
+
+**解決策**: ORMエンティティには、データベーススキーマに存在するすべてのフィールドを含める
+
+```mermaid
+<!-- ❌ 悪い例: 認証情報関連のプロパティが欠けている -->
+class InstitutionOrmEntity {
+    +string id
+    +string name
+    +InstitutionType type
+    +AccountOrmEntity[] accounts
+    +boolean isConnected
+    +Date|null lastSyncedAt
+    +Date createdAt
+    +Date updatedAt
+}
+
+<!-- ✅ 良い例: すべてのプロパティを含める -->
+class InstitutionOrmEntity {
+    +string id
+    +string name
+    +InstitutionType type
+    +string credentialsEncrypted
+    +string credentialsIv
+    +string credentialsAuthTag
+    +string credentialsAlgorithm
+    +string credentialsVersion
+    +AccountOrmEntity[] accounts
+    +boolean isConnected
+    +Date|null lastSyncedAt
+    +Date createdAt
+    +Date updatedAt
+}
+```
+
+**確認方法**:
+
+- `apps/backend/src/modules/*/infrastructure/`配下のORMエンティティファイルを確認
+- データベーススキーマ定義を確認
+- リポジトリ実装での使用例を確認
+
+**理由**:
+
+- ドキュメントの整合性を保つ
+- 実装時の混乱を防ぐ
+- データベーススキーマとの一貫性を保つ
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第3回）
+
 ---
