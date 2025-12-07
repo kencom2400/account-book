@@ -7775,4 +7775,145 @@ export enum InstitutionType {
 
 **参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第2回）
 
+### 13-XX. 詳細設計書のエンティティ定義の完全性（PR #382 - 第3回）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘 - 第3回）
+
+#### 既存エンティティの完全な定義
+
+**問題**: 設計書で定義したエンティティに、既存実装に存在するプロパティが欠けている（`InstitutionEntity`に`credentials`プロパティがない）
+
+**解決策**: 設計書を作成する前に、既存のエンティティ定義を確認し、すべてのプロパティを含める
+
+```typescript
+// ❌ 悪い例: プロパティが欠けている
+interface InstitutionEntity {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  accounts: AccountEntity[];
+  // credentialsプロパティが欠けている
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ✅ 良い例: 既存実装と一致
+interface InstitutionEntity {
+  id: string;
+  name: string;
+  type: InstitutionType;
+  credentials: EncryptedCredentials; // 既存実装に存在するプロパティ
+  accounts: AccountEntity[];
+  isConnected: boolean;
+  lastSyncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+**確認方法**:
+
+- `apps/backend/src/modules/*/domain/entities/`配下のエンティティファイルを確認
+- 既存のリポジトリ実装での使用例を確認
+- クラス図にもすべてのプロパティを含める
+
+**理由**:
+
+- 設計書の正確性を保つ
+- 実装時の混乱を防ぐ
+- 既存コードとの一貫性を保つ
+
+#### インターフェース定義に説明コメントを追加
+
+**問題**: `AssetSummary`インターフェースのプロパティに説明コメントがなく、特に`totalLiabilities`が正の値なのか負の値なのかが不明確
+
+**解決策**: 重要なプロパティには説明コメントを追加し、ドキュメント間の整合性を保つ
+
+```typescript
+// ❌ 悪い例: 説明コメントがない
+interface AssetSummary {
+  totalAssets: number;
+  totalLiabilities: number; // 正の値なのか負の値なのか不明確
+  netWorth: number;
+  institutions: InstitutionAsset[];
+  asOfDate: Date;
+  comparison: {
+    previousMonth: AssetComparison;
+    previousYear: AssetComparison;
+  };
+}
+
+// ✅ 良い例: 説明コメントを追加
+interface AssetSummary {
+  totalAssets: number; // 総資産（プラス残高の合計）
+  totalLiabilities: number; // 総負債（マイナス残高の合計の絶対値）
+  netWorth: number; // 純資産（総資産 - 総負債）
+  institutions: InstitutionAsset[];
+  asOfDate: Date;
+  comparison: {
+    previousMonth: AssetComparison;
+    previousYear: AssetComparison;
+  };
+}
+```
+
+**理由**:
+
+- ドキュメント間の整合性を保つ
+- 実装者が誤解しない
+- 設計意図が明確になる
+
+#### Infrastructure層のORMエンティティの完全な定義
+
+**問題**: Infrastructure層のクラス図の`InstitutionOrmEntity`に認証情報関連のプロパティがない
+
+**解決策**: ORMエンティティには、データベーススキーマに存在するすべてのフィールドを含める
+
+```mermaid
+<!-- ❌ 悪い例: 認証情報関連のプロパティが欠けている -->
+class InstitutionOrmEntity {
+    +string id
+    +string name
+    +InstitutionType type
+    +AccountOrmEntity[] accounts
+    +boolean isConnected
+    +Date|null lastSyncedAt
+    +Date createdAt
+    +Date updatedAt
+}
+
+<!-- ✅ 良い例: すべてのプロパティを含める -->
+class InstitutionOrmEntity {
+    +string id
+    +string name
+    +InstitutionType type
+    +string credentialsEncrypted
+    +string credentialsIv
+    +string credentialsAuthTag
+    +string credentialsAlgorithm
+    +string credentialsVersion
+    +AccountOrmEntity[] accounts
+    +boolean isConnected
+    +Date|null lastSyncedAt
+    +Date createdAt
+    +Date updatedAt
+}
+```
+
+**確認方法**:
+
+- `apps/backend/src/modules/*/infrastructure/`配下のORMエンティティファイルを確認
+- データベーススキーマ定義を確認
+- リポジトリ実装での使用例を確認
+
+**理由**:
+
+- ドキュメントの整合性を保つ
+- 実装時の混乱を防ぐ
+- データベーススキーマとの一貫性を保つ
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘 - 第3回）
+
 ---

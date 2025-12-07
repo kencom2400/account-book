@@ -152,6 +152,7 @@ interface InstitutionEntity {
   id: string;
   name: string;
   type: InstitutionType; // BANK, CREDIT_CARD, SECURITIES
+  credentials: EncryptedCredentials;
   accounts: AccountEntity[];
   isConnected: boolean;
   lastSyncedAt: Date | null;
@@ -177,9 +178,9 @@ interface AccountEntity {
 
 ```typescript
 interface AssetSummary {
-  totalAssets: number;
-  totalLiabilities: number;
-  netWorth: number;
+  totalAssets: number; // 総資産（プラス残高の合計）
+  totalLiabilities: number; // 総負債（マイナス残高の合計の絶対値）
+  netWorth: number; // 純資産（総資産 - 総負債）
   institutions: InstitutionAsset[];
   asOfDate: Date;
   comparison: {

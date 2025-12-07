@@ -22,11 +22,21 @@ classDiagram
         +string id
         +string name
         +InstitutionType type
+        +EncryptedCredentials credentials
         +AccountEntity[] accounts
         +boolean isConnected
         +Date|null lastSyncedAt
         +Date createdAt
         +Date updatedAt
+    }
+
+    class EncryptedCredentials {
+        <<value object>>
+        +string encrypted
+        +string iv
+        +string authTag
+        +string algorithm
+        +string version
     }
 
     class AccountEntity {
@@ -66,6 +76,7 @@ classDiagram
     }
 
     InstitutionEntity --> InstitutionType
+    InstitutionEntity --> EncryptedCredentials
     InstitutionEntity --> AccountEntity
     AssetBalanceDomainService --> InstitutionEntity
     AssetBalanceDomainService --> AccountEntity
@@ -161,6 +172,11 @@ classDiagram
         +string id
         +string name
         +InstitutionType type
+        +string credentialsEncrypted
+        +string credentialsIv
+        +string credentialsAuthTag
+        +string credentialsAlgorithm
+        +string credentialsVersion
         +AccountOrmEntity[] accounts
         +boolean isConnected
         +Date|null lastSyncedAt

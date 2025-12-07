@@ -281,7 +281,8 @@ export enum InstitutionType {
 export interface InstitutionEntity {
   id: string;
   name: string;
-  type: InstitutionType; // BANK, CREDIT_CARD, SECURITIES
+  type: InstitutionType; // bank, credit-card, securities
+  credentials: EncryptedCredentials;
   accounts: AccountEntity[];
   isConnected: boolean;
   lastSyncedAt: Date | null;
@@ -307,9 +308,9 @@ export interface AccountEntity {
 
 ```typescript
 export enum InstitutionType {
-  BANK = 'BANK', // 銀行
-  CREDIT_CARD = 'CREDIT_CARD', // クレジットカード
-  SECURITIES = 'SECURITIES', // 証券会社
+  BANK = 'bank', // 銀行
+  CREDIT_CARD = 'credit-card', // クレジットカード
+  SECURITIES = 'securities', // 証券会社
 }
 ```
 
