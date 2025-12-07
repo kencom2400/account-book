@@ -330,78 +330,26 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     }
   });
 
-  test('エラー時に適切なメッセージが表示される', async ({ page }) => {
-    // このテストは、APIエラーをシミュレートする必要がある
-    // 実際のAPIエラーを発生させるのは難しいため、
-    // エラーメッセージの表示要素が存在することを確認する
-
-    // エラーメッセージの要素が存在することを確認（エラーが発生していない場合は表示されない）
-    const errorMessage = page.getByText('年間データの取得に失敗しました');
-    const errorVisible = await errorMessage.isVisible().catch(() => false);
-
-    // エラーが表示されている場合は、再試行ボタンが表示されることを確認
-    if (errorVisible) {
-      await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
-    }
-  });
-
   // ========== エラーハンドリングテスト ==========
 
-  test('APIエラー時にエラーメッセージが表示される', async ({ page }) => {
-    // このテストは、実際のAPIエラーを発生させる必要がある
-    // モックを使用するか、実際のエラーを発生させる必要がある
+  test('APIエラー時にエラーメッセージと再試行ボタンが表示される', async ({ page }) => {
+    // APIリクエストをインターセプトしてエラーをシミュレート
+    await page.route('**/api/aggregation/yearly-balance*', (route) => {
+      void route.abort();
+    });
 
-    // 現在の実装では、エラーメッセージの表示要素が存在することを確認
-    // 実際のエラーが発生していない場合は、エラーメッセージは表示されない
-    const errorMessage = page.getByText('年間データの取得に失敗しました');
-    const errorVisible = await errorMessage.isVisible().catch(() => false);
-
-    // エラーが表示されている場合は、再試行ボタンが表示されることを確認
-    if (errorVisible) {
-      await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
-    }
-  });
-
-  test('無効な年を選択した場合のエラーハンドリング', async ({ page }) => {
-    // ローディング完了を待機
-    await waitForYearlyLoadingComplete(page);
-
-    // 年選択ドロップダウンを取得
+    // 年を変更してAPIエラーを発生させる
     const yearSelect = page.getByLabel('年:');
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+    await yearSelect.selectOption(String(previousYear));
 
-    // 選択可能な年の範囲を確認
-    const options = await yearSelect.locator('option').allTextContents();
-    const years = options
-      .map((opt) => {
-        const match = opt.match(/(\d+)年/);
-        return match ? parseInt(match[1], 10) : null;
-      })
-      .filter((year): year is number => year !== null);
+    // エラーメッセージが表示されるのを待機
+    const errorMessage = page.getByText('年間データの取得に失敗しました');
+    await expect(errorMessage).toBeVisible();
 
-    // 選択可能な年の範囲内で、最も古い年を選択
-    if (years.length > 0) {
-      const oldestYear = Math.min(...years);
-      await yearSelect.selectOption(String(oldestYear));
-      await waitForYearlyLoadingComplete(page);
-
-      // エラーメッセージが表示されるか、またはデータが表示されることを確認
-      const hasError = await page
-        .getByText('年間データの取得に失敗しました')
-        .isVisible()
-        .catch(() => false);
-      const hasData = await page
-        .getByText('データがありません')
-        .isVisible()
-        .catch(() => false);
-      const hasGraph = await page
-        .locator('svg')
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      // エラー、空データ、またはグラフのいずれかが表示されることを確認
-      expect(hasError || hasData || hasGraph).toBe(true);
-    }
+    // 再試行ボタンが表示されることを確認
+    await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
   });
 
   test('ネットワークエラー時のエラーハンドリング', async ({ page, context }) => {
