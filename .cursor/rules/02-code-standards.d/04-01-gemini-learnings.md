@@ -8668,3 +8668,284 @@ import type { TrendAnalysisResponse } from '@account-book/types';
 **参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第3回）
 
 ---
+
+### 13-50. エンティティ更新時の新しい値を使用した計算（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### エンティティ更新時に新しい値を使って次回同期時刻を計算する
+
+**問題**: エンティティの更新メソッドで、更新前の古い値を使って次回同期時刻を計算してしまう
+
+**解決策**: 更新メソッドでは、新しい値を使って計算する
+
+```typescript
+// ❌ 悪い例: 古いintervalを使って計算
+updateInterval(interval: SyncInterval): InstitutionSyncSettings {
+  const nextSyncAt = this.calculateNextSyncAt(); // this.interval（古い値）を使用
+  return new InstitutionSyncSettings(..., interval, ..., nextSyncAt, ...);
+}
+
+// ✅ 良い例: 新しいintervalを使って計算
+updateInterval(interval: SyncInterval): InstitutionSyncSettings {
+  let nextSyncAt: Date | null;
+  if (this.enabled && interval.type !== SyncIntervalType.MANUAL) {
+    try {
+      nextSyncAt = interval.calculateNextSyncAt(this.lastSyncedAt); // 新しいintervalを使用
+    } catch {
+      nextSyncAt = null;
+    }
+  } else {
+    nextSyncAt = null;
+  }
+  return new InstitutionSyncSettings(..., interval, ..., nextSyncAt, ...);
+}
+```
+
+**理由**:
+
+- エンティティの状態が一貫性を保つ
+- 更新後の値と計算結果が一致する
+- バグの防止
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+### 13-51. デフォルト設定変更時の古い値との比較（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### デフォルト設定変更時に、更新前の古い値と比較して更新対象を決定する
+
+**問題**: デフォルト設定変更時に、更新後の新しい値と比較してしまうと、本来更新されるべき金融機関が更新されない
+
+**解決策**: 更新前の古い値を保持し、それと比較して更新対象を決定する
+
+```typescript
+// ❌ 悪い例: 新しいデフォルト間隔と比較
+async execute(dto: UpdateSyncSettingsDto): Promise<SyncSettings> {
+  let settings = await this.syncSettingsRepository.find();
+  if (dto.defaultInterval) {
+    settings = settings.updateDefaultInterval(interval);
+  }
+  // 新しいデフォルト間隔と比較（誤り）
+  await this.recalculateInstitutionNextSyncTimes(settings);
+}
+
+private async recalculateInstitutionNextSyncTimes(settings: SyncSettings) {
+  for (const institutionSettings of allInstitutionSettings) {
+    if (institutionSettings.interval.equals(settings.defaultInterval)) { // 新しい値と比較
+      // 更新処理
+    }
+  }
+}
+
+// ✅ 良い例: 古いデフォルト間隔と比較
+async execute(dto: UpdateSyncSettingsDto): Promise<SyncSettings> {
+  const oldSettings = await this.syncSettingsRepository.find();
+  let settings = oldSettings ?? SyncSettings.createDefault();
+  const oldDefaultInterval = settings.defaultInterval; // 古い値を保持
+
+  if (dto.defaultInterval) {
+    settings = settings.updateDefaultInterval(interval);
+  }
+
+  // 古いデフォルト間隔と比較
+  if (oldSettings && !settings.defaultInterval.equals(oldDefaultInterval)) {
+    await this.recalculateInstitutionNextSyncTimes(settings, oldDefaultInterval);
+  }
+}
+
+private async recalculateInstitutionNextSyncTimes(
+  settings: SyncSettings,
+  oldDefaultInterval: SyncInterval, // 古い値を引数で受け取る
+) {
+  for (const institutionSettings of allInstitutionSettings) {
+    if (institutionSettings.interval.equals(oldDefaultInterval)) { // 古い値と比較
+      // 更新処理
+    }
+  }
+}
+```
+
+**理由**:
+
+- 更新対象を正確に特定できる
+- 意図しない更新を防止
+- ロジックの正確性を保証
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+### 13-52. 複数金融機関設定から最も頻繁な間隔を算出（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### 金融機関ごとのスケジュール更新時に、全金融機関設定から最も頻繁な間隔を算出する
+
+**問題**: 特定金融機関の設定更新時に、その金融機関の間隔だけを全体スケジュールに適用してしまうと、他の金融機関の設定が無視される
+
+**解決策**: 全金融機関設定を取得し、その中で最も短い（最も頻繁な）有効な間隔を算出して全体スケジュールに適用する
+
+```typescript
+// ❌ 悪い例: 特定金融機関の間隔だけを適用
+updateInstitutionSchedule(institutionId: string, settings: InstitutionSyncSettings): void {
+  if (settings.enabled && settings.interval.type !== SyncIntervalType.MANUAL) {
+    const cronExpression = settings.interval.toCronExpression();
+    this.updateCronJob(cronExpression, this.timezone); // この金融機関の間隔だけを適用
+  }
+}
+
+// ✅ 良い例: 全金融機関設定から最も頻繁な間隔を算出
+async updateInstitutionSchedule(
+  institutionId: string,
+  settings: InstitutionSyncSettings,
+): Promise<void> {
+  const allInstitutionSettings = await this.syncSettingsRepository.findAllInstitutionSettings();
+
+  // 有効で、手動以外の設定のみを対象
+  const validSettings = allInstitutionSettings.filter(
+    (s) => s.enabled && s.interval.type !== SyncIntervalType.MANUAL,
+  );
+
+  if (validSettings.length === 0) {
+    return;
+  }
+
+  // 最も短い間隔（最も頻繁な間隔）を算出
+  let shortestInterval = validSettings[0].interval;
+  for (const s of validSettings) {
+    if (s.interval.toMinutes() < shortestInterval.toMinutes()) {
+      shortestInterval = s.interval;
+    }
+  }
+
+  const cronExpression = shortestInterval.toCronExpression();
+  if (cronExpression) {
+    this.updateCronJob(cronExpression, this.timezone);
+  }
+}
+```
+
+**理由**:
+
+- すべての金融機関の設定を考慮できる
+- 最も頻繁な間隔で同期することで、すべての金融機関のデータを確実に取得できる
+- 意図しない動作を防止
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+### 13-53. SchedulerRegistryのgetCronJobs()を使用した可読性向上（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### try-catchブロックの代わりにgetCronJobs()を使用して可読性を向上させる
+
+**問題**: `getCronJob()`はジョブが存在しない場合にエラーをスローするため、try-catchブロックが必要で可読性が低下する
+
+**解決策**: `getCronJobs().get()`を使用すると、ジョブが存在しない場合は`undefined`を返すため、より安全で宣言的な存在チェックが可能
+
+```typescript
+// ❌ 悪い例: try-catchブロックが必要
+private updateCronJob(cronExpression: string, timezone: string): void {
+  try {
+    try {
+      const existingJob = this.schedulerRegistry.getCronJob(this.jobName);
+      if (existingJob) {
+        existingJob.stop();
+        this.schedulerRegistry.deleteCronJob(this.jobName);
+      }
+    } catch {
+      // ジョブが存在しない場合は無視
+    }
+  } catch {
+    // エラーハンドリング
+  }
+}
+
+// ✅ 良い例: getCronJobs().get()を使用
+private updateCronJob(cronExpression: string, timezone: string): void {
+  const existingJob = this.schedulerRegistry.getCronJobs().get(this.jobName);
+  if (existingJob) {
+    existingJob.stop();
+    this.schedulerRegistry.deleteCronJob(this.jobName);
+  }
+}
+```
+
+**理由**:
+
+- 可読性の向上
+- エラーハンドリングの簡素化
+- より宣言的なコード
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+### 13-54. エラーハンドリングでHttpExceptionをそのままスロー（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### コントローラーでのエラーハンドリングで、HttpExceptionのインスタンスはそのままスローする
+
+**問題**: すべての`Error`を`BadRequestException`としてラップしてしまうと、`NotFoundException`（404）などの適切なHTTPステータスコードが失われる
+
+**解決策**: `HttpException`のインスタンスはそのままスローし、それ以外の`Error`のみをラップする
+
+```typescript
+// ❌ 悪い例: すべてのErrorをBadRequestExceptionに変換
+catch (error) {
+  this.logger.error('エラー', error);
+  if (error instanceof Error) {
+    throw new BadRequestException(error.message); // NotFoundExceptionも400になる
+  }
+  throw error;
+}
+
+// ✅ 良い例: HttpExceptionはそのままスロー
+catch (error) {
+  this.logger.error('エラー', error);
+  if (error instanceof HttpException) {
+    throw error; // 適切なHTTPステータスコードを保持
+  }
+  if (error instanceof Error) {
+    throw new BadRequestException(error.message);
+  }
+  throw error;
+}
+```
+
+**理由**:
+
+- 適切なHTTPステータスコードを保持できる
+- クライアント側でエラーの原因を正しく判断できる
+- RESTful APIの設計原則に従う
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+### 13-55. リポジトリでの検索条件の明確化（PR #388）
+
+**学習元**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Geminiレビュー指摘）
+
+#### リポジトリでの既存データ検索時は、ビジネス上の主キー（institutionId）のみで検索する
+
+**問題**: `id`と`institutionId`の両方で検索すると、役割が曖昧になり、混乱を招く
+
+**解決策**: `institutionId`はビジネス上の主キーであるため、こちらのみで検索する。`id`はエンティティの識別に使い、`institutionId`はリポジトリでの一意性の識別に使うと役割が明確になる
+
+```typescript
+// ❌ 悪い例: idとinstitutionIdの両方で検索
+const existingIndex = allSettings.findIndex(
+  (s) => s.id === settings.id || s.institutionId === settings.institutionId
+);
+
+// ✅ 良い例: institutionIdのみで検索
+const existingIndex = allSettings.findIndex((s) => s.institutionId === settings.institutionId);
+```
+
+**理由**:
+
+- 役割の明確化
+- ビジネスロジックの明確化
+- コードの可読性向上
+
+**参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
+
+---
