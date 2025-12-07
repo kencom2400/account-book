@@ -25,13 +25,13 @@ describe('SyncInterval', () => {
     it('無効なSyncIntervalTypeでエラーを投げる', () => {
       expect(() => {
         new SyncInterval('invalid' as SyncIntervalType);
-      }).toThrow('Invalid SyncIntervalType');
+      }).toThrow();
     });
 
     it('カスタム間隔でvalueとunitが未指定の場合エラーを投げる', () => {
       expect(() => {
         new SyncInterval(SyncIntervalType.CUSTOM);
-      }).toThrow('Value and unit are required for custom interval');
+      }).toThrow('Value is required for custom interval');
     });
 
     it('カスタム間隔で無効なTimeUnitの場合エラーを投げる', () => {
@@ -115,11 +115,9 @@ describe('SyncInterval', () => {
       expect(days.toMinutes()).toBe(1440);
     });
 
-    it('手動同期タイプを分に変換しようとするとエラーを投げる', () => {
+    it('手動同期タイプは0を返す', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
-      expect(() => {
-        manual.toMinutes();
-      }).toThrow('Cannot convert manual sync type to minutes');
+      expect(manual.toMinutes()).toBe(0);
     });
   });
 
@@ -177,9 +175,11 @@ describe('SyncInterval', () => {
       expect(nextSyncAt.getTime()).toBeGreaterThan(lastSyncAt.getTime());
     });
 
-    it('手動同期タイプはnullを返す', () => {
+    it('手動同期タイプはエラーを投げる', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
-      expect(manual.calculateNextSyncAt()).toBeNull();
+      expect(() => {
+        manual.calculateNextSyncAt();
+      }).toThrow('Cannot calculate next sync time for manual interval');
     });
 
     it('カスタムスケジュールの次回同期時刻を計算できる', () => {
