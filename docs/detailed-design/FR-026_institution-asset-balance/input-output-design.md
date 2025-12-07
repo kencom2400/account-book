@@ -53,14 +53,14 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 {
   "success": true,
   "data": {
-    "totalAssets": 5358023,
+    "totalAssets": 5234567,
     "totalLiabilities": 123456,
-    "netWorth": 5234567,
+    "netWorth": 5111111,
     "institutions": [
       {
         "institutionId": "inst-001",
         "institutionName": "三菱UFJ銀行",
-        "institutionType": "bank",
+        "institutionType": "BANK",
         "icon": "🏦",
         "accounts": [
           {
@@ -79,12 +79,12 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": 3234567,
-        "percentage": 60.4
+        "percentage": 61.8
       },
       {
         "institutionId": "inst-002",
         "institutionName": "楽天カード",
-        "institutionType": "credit-card",
+        "institutionType": "CREDIT_CARD",
         "icon": "💳",
         "accounts": [
           {
@@ -96,12 +96,12 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": -123456,
-        "percentage": 0.0
+        "percentage": -2.4
       },
       {
         "institutionId": "inst-003",
         "institutionName": "SBI証券",
-        "institutionType": "securities",
+        "institutionType": "SECURITIES",
         "icon": "📈",
         "accounts": [
           {
@@ -120,7 +120,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": 2123456,
-        "percentage": 39.6
+        "percentage": 40.6
       }
     ],
     "asOfDate": "2025-01-27T00:00:00.000Z",
@@ -141,7 +141,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 | フィールド       | 型                    | 説明                                     |
 | ---------------- | --------------------- | ---------------------------------------- |
 | totalAssets      | number                | 総資産（プラス残高の合計）               |
-| totalLiabilities | number                | 総負債（マイナス残高の合計の絶対値）     |
+| totalLiabilities | number                | 総負債（マイナス残高の合計）             |
 | netWorth         | number                | 純資産（totalAssets - totalLiabilities） |
 | institutions     | InstitutionAssetDto[] | 金融機関別資産情報配列                   |
 | asOfDate         | string                | 基準日（ISO8601形式）                    |
@@ -150,25 +150,25 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 
 **InstitutionAssetDto:**
 
-| フィールド      | 型                | 説明                                               |
-| --------------- | ----------------- | -------------------------------------------------- |
-| institutionId   | string            | 金融機関ID                                         |
-| institutionName | string            | 金融機関名                                         |
-| institutionType | InstitutionType   | 金融機関タイプ（bank, credit-card, securities）    |
-| icon            | string            | アイコン（絵文字）                                 |
-| accounts        | AccountAssetDto[] | 口座別資産情報配列                                 |
-| total           | number            | 機関別合計（全口座の合計）                         |
-| percentage      | number            | 構成比（%）（総資産に対する割合）。負債の場合は0.0 |
+| フィールド      | 型                | 説明                                            |
+| --------------- | ----------------- | ----------------------------------------------- |
+| institutionId   | string            | 金融機関ID                                      |
+| institutionName | string            | 金融機関名                                      |
+| institutionType | InstitutionType   | 金融機関タイプ（BANK, CREDIT_CARD, SECURITIES） |
+| icon            | string            | アイコン（絵文字）                              |
+| accounts        | AccountAssetDto[] | 口座別資産情報配列                              |
+| total           | number            | 機関別合計（全口座の合計）                      |
+| percentage      | number            | 構成比（%）（総資産に対する割合）               |
 
 **AccountAssetDto:**
 
-| フィールド  | 型          | 説明       |
-| ----------- | ----------- | ---------- |
-| accountId   | string      | 口座ID     |
-| accountName | string      | 口座名     |
-| accountType | AccountType | 口座タイプ |
-| balance     | number      | 残高       |
-| currency    | string      | 通貨       |
+| フィールド  | 型     | 説明       |
+| ----------- | ------ | ---------- |
+| accountId   | string | 口座ID     |
+| accountName | string | 口座名     |
+| accountType | string | 口座タイプ |
+| balance     | number | 残高       |
+| currency    | string | 通貨       |
 
 **AssetComparisonDto:**
 
@@ -215,19 +215,10 @@ export interface InstitutionAssetDto {
   percentage: number;
 }
 
-export enum AccountType {
-  SAVINGS = 'SAVINGS',
-  TIME_DEPOSIT = 'TIME_DEPOSIT',
-  CREDIT_CARD = 'CREDIT_CARD',
-  STOCK = 'STOCK',
-  MUTUAL_FUND = 'MUTUAL_FUND',
-  OTHER = 'OTHER',
-}
-
 export interface AccountAssetDto {
   accountId: string;
   accountName: string;
-  accountType: AccountType;
+  accountType: string;
   balance: number;
   currency: string;
 }
@@ -238,9 +229,9 @@ export interface AssetComparisonDto {
 }
 
 export enum InstitutionType {
-  BANK = 'bank',
-  CREDIT_CARD = 'credit-card',
-  SECURITIES = 'securities',
+  BANK = 'BANK',
+  CREDIT_CARD = 'CREDIT_CARD',
+  SECURITIES = 'SECURITIES',
 }
 ```
 
@@ -281,8 +272,7 @@ export enum InstitutionType {
 export interface InstitutionEntity {
   id: string;
   name: string;
-  type: InstitutionType; // bank, credit-card, securities
-  credentials: EncryptedCredentials;
+  type: InstitutionType; // BANK, CREDIT_CARD, SECURITIES
   accounts: AccountEntity[];
   isConnected: boolean;
   lastSyncedAt: Date | null;
@@ -308,9 +298,9 @@ export interface AccountEntity {
 
 ```typescript
 export enum InstitutionType {
-  BANK = 'bank', // 銀行
-  CREDIT_CARD = 'credit-card', // クレジットカード
-  SECURITIES = 'securities', // 証券会社
+  BANK = 'BANK', // 銀行
+  CREDIT_CARD = 'CREDIT_CARD', // クレジットカード
+  SECURITIES = 'SECURITIES', // 証券会社
 }
 ```
 

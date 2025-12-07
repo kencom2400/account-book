@@ -22,21 +22,11 @@ classDiagram
         +string id
         +string name
         +InstitutionType type
-        +EncryptedCredentials credentials
         +AccountEntity[] accounts
         +boolean isConnected
         +Date|null lastSyncedAt
         +Date createdAt
         +Date updatedAt
-    }
-
-    class EncryptedCredentials {
-        <<value object>>
-        +string encrypted
-        +string iv
-        +string authTag
-        +string algorithm
-        +string version
     }
 
     class AccountEntity {
@@ -76,7 +66,6 @@ classDiagram
     }
 
     InstitutionEntity --> InstitutionType
-    InstitutionEntity --> EncryptedCredentials
     InstitutionEntity --> AccountEntity
     AssetBalanceDomainService --> InstitutionEntity
     AssetBalanceDomainService --> AccountEntity
@@ -172,11 +161,6 @@ classDiagram
         +string id
         +string name
         +InstitutionType type
-        +string credentialsEncrypted
-        +string credentialsIv
-        +string credentialsAuthTag
-        +string credentialsAlgorithm
-        +string credentialsVersion
         +AccountOrmEntity[] accounts
         +boolean isConnected
         +Date|null lastSyncedAt
@@ -249,19 +233,9 @@ classDiagram
     class AccountAssetDto {
         +string accountId
         +string accountName
-        +AccountType accountType
+        +string accountType
         +number balance
         +string currency
-    }
-
-    class AccountType {
-        <<enumeration>>
-        SAVINGS
-        TIME_DEPOSIT
-        CREDIT_CARD
-        STOCK
-        MUTUAL_FUND
-        OTHER
     }
 
     class AssetComparisonDto {
@@ -276,7 +250,6 @@ classDiagram
     AssetBalanceResponseDto --> AccountAssetDto
     AssetBalanceResponseDto --> AssetComparisonDto
     InstitutionAssetDto --> AccountAssetDto
-    AccountAssetDto --> AccountType
 ```
 
 **クラス説明**:
@@ -363,7 +336,16 @@ classDiagram
         <<interface>>
         +getAssetBalance(asOfDate?) Promise~AssetBalanceResponseDto~
     }
-    note for aggregationApi "AssetBalanceResponseDtoはPresentation層で定義済み"
+
+    class AssetBalanceResponseDto {
+        +number totalAssets
+        +number totalLiabilities
+        +number netWorth
+        +InstitutionAssetDto[] institutions
+        +string asOfDate
+        +AssetComparisonDto previousMonth
+        +AssetComparisonDto previousYear
+    }
 
     class BarChart {
         <<Recharts>>
@@ -471,7 +453,6 @@ classDiagram
 - **責務**: 集計APIのクライアント
 - **主要メソッド**:
   - `getAssetBalance(asOfDate?)`: 資産残高データを取得
-- **注意**: `AssetBalanceResponseDto`はPresentation層で定義済み（重複定義を避けるため、クラス図では参照のみ）
 
 #### BarChart, Bar, XAxis, YAxis, Tooltip（Recharts）
 

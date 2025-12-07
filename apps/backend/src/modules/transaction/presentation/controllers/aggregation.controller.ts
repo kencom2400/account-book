@@ -14,6 +14,9 @@ import { GetInstitutionSummaryDto } from '../dto/get-institution-summary.dto';
 import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
 import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
 import { GetSubcategoryAggregationQueryDto } from '../dto/get-subcategory-aggregation.dto';
+import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
+import type { AssetBalanceResponseDto } from '../../application/use-cases/calculate-asset-balance.use-case';
+import { GetAssetBalanceDto } from '../dto/get-asset-balance.dto';
 
 /**
  * AggregationController
@@ -27,6 +30,7 @@ export class AggregationController {
     private readonly calculateCategoryAggregationUseCase: CalculateCategoryAggregationUseCase,
     private readonly calculateInstitutionSummaryUseCase: CalculateInstitutionSummaryUseCase,
     private readonly calculateSubcategoryAggregationUseCase: CalculateSubcategoryAggregationUseCase,
+    private readonly calculateAssetBalanceUseCase: CalculateAssetBalanceUseCase,
   ) {}
 
   /**
@@ -130,6 +134,24 @@ export class AggregationController {
       query.categoryType,
       query.itemId,
     );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 資産残高情報を取得
+   * GET /api/aggregation/asset-balance?asOfDate=2025-01-15
+   */
+  @Get('asset-balance')
+  async getAssetBalance(@Query() query: GetAssetBalanceDto): Promise<{
+    success: boolean;
+    data: AssetBalanceResponseDto;
+  }> {
+    const asOfDate = query.asOfDate ? new Date(query.asOfDate) : undefined;
+    const result = await this.calculateAssetBalanceUseCase.execute(asOfDate);
 
     return {
       success: true,
