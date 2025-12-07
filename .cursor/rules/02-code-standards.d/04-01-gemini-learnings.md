@@ -6763,4 +6763,148 @@ const hasBalanceNegative = await page
 
 **参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘）
 
+#### 13-XX-7. マジックストリングを定数化して保守性を向上
+
+**問題**: テストコード内で文字列リテラルが複数回使用されており、タイポのリスクや将来の変更が困難
+
+**❌ 悪い例**:
+
+```typescript
+test('テスト', async ({ page }) => {
+  await page.waitForSelector('text=読み込み中...', { state: 'hidden' });
+  const noData = await page.getByText('データがありません').isVisible();
+  const error = await page.getByText('年間データの取得に失敗しました').isVisible();
+  await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// 定数定義
+const LOADING_TEXT = '読み込み中...';
+const NO_DATA_TEXT = 'データがありません';
+const API_ERROR_TEXT = '年間データの取得に失敗しました';
+const RETRY_BUTTON_NAME = '再試行';
+
+test('テスト', async ({ page }) => {
+  await page.waitForSelector(`text=${LOADING_TEXT}`, { state: 'hidden' });
+  const noData = await page.getByText(NO_DATA_TEXT).isVisible();
+  const error = await page.getByText(API_ERROR_TEXT).isVisible();
+  await expect(page.getByRole('button', { name: RETRY_BUTTON_NAME })).toBeVisible();
+});
+```
+
+**理由**:
+
+- タイポを防ぎ、一貫性を保つ
+- 将来の変更（テキストの修正など）が容易になる
+- コードの可読性が向上
+
+#### 13-XX-8. ヘルパー関数を利用してコード重複を削減
+
+**問題**: 同じロジックが複数のテストで重複しており、保守性が低下
+
+**❌ 悪い例**:
+
+```typescript
+test('テスト1', async ({ page }) => {
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+});
+
+test('テスト2', async ({ page }) => {
+  // 同じロジックが重複
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// ヘルパー関数を定義
+async function expectDataOrGraphDisplayed(page: Page): Promise<void> {
+  const hasNoDataMessage = await page
+    .getByText(NO_DATA_TEXT)
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+}
+
+test('テスト1', async ({ page }) => {
+  await expectDataOrGraphDisplayed(page);
+});
+
+test('テスト2', async ({ page }) => {
+  await expectDataOrGraphDisplayed(page);
+});
+```
+
+**理由**:
+
+- コードの重複を排除し、DRY原則に従う
+- 保守性が向上し、将来のメンテナンスが容易になる
+- テストの意図が明確になる
+
+#### 13-XX-9. optionのvalue属性を直接取得して堅牢性を向上
+
+**問題**: 正規表現でテキストコンテンツをパースするのは脆弱で、フォーマット変更に弱い
+
+**❌ 悪い例**:
+
+```typescript
+// 正規表現でテキストコンテンツをパース（脆弱）
+const options = await yearSelect.locator('option').allTextContents();
+const years = options
+  .map((opt) => {
+    const match = opt.match(/(\d+)年/);
+    return match ? parseInt(match[1], 10) : null;
+  })
+  .filter((year): year is number => year !== null)
+  .sort((a, b) => a - b);
+```
+
+**✅ 良い例**:
+
+```typescript
+// value属性を直接取得（堅牢）
+const optionValues = await yearSelect
+  .locator('option')
+  .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+const years = optionValues
+  .map((v) => parseInt(v, 10))
+  .filter((v) => !isNaN(v))
+  .sort((a, b) => a - b);
+```
+
+**理由**:
+
+- フォーマット変更に強く、より堅牢な実装になる
+- 正規表現パースよりもシンプルで理解しやすい
+- DOMの構造に直接アクセスすることで、テストの信頼性が向上
+
+**参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘 - 第2回）
+
 ---
