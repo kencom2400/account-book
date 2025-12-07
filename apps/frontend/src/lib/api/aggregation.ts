@@ -7,7 +7,13 @@
  * FR-026: 金融機関別資産残高表示
  */
 
-import { CategoryAmount, CategoryType, InstitutionType, AccountType } from '@account-book/types';
+import {
+  CategoryAmount,
+  CategoryType,
+  InstitutionType,
+  AccountType,
+  TrendAnalysisResponse,
+} from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -348,6 +354,36 @@ export const aggregationApi = {
       success: boolean;
       data: AssetBalanceResponse;
     }>(`/api/aggregation/asset-balance?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * トレンド分析情報を取得（FR-027）
+   */
+  getTrendAnalysis: async (
+    startYear: number,
+    startMonth: number,
+    endYear: number,
+    endMonth: number,
+    targetType?: 'income' | 'expense' | 'balance',
+    movingAveragePeriod?: 3 | 6 | 12
+  ): Promise<TrendAnalysisResponse> => {
+    const params = new URLSearchParams({
+      startYear: startYear.toString(),
+      startMonth: startMonth.toString(),
+      endYear: endYear.toString(),
+      endMonth: endMonth.toString(),
+    });
+    if (targetType) {
+      params.append('targetType', targetType);
+    }
+    if (movingAveragePeriod) {
+      params.append('movingAveragePeriod', movingAveragePeriod.toString());
+    }
+    const response = await apiClient.get<{
+      success: boolean;
+      data: TrendAnalysisResponse;
+    }>(`/api/aggregation/trend?${params.toString()}`);
     return response.data;
   },
 };

@@ -6,6 +6,7 @@
 import { CategoryType } from '@account-book/types';
 import { apiClient } from '../client';
 import { aggregationApi, type AggregateCardTransactionsRequest } from '../aggregation';
+import type { TrendAnalysisResponse } from '@account-book/types';
 
 // apiClientをモック
 jest.mock('../client', () => ({
@@ -298,6 +299,93 @@ describe('Aggregation API Client', () => {
 
       expect(mockApiClient.get).toHaveBeenCalledWith(
         `/api/aggregation/yearly-balance?year=${year}`
+      );
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('getTrendAnalysis', () => {
+    it('トレンド分析情報を取得できる', async () => {
+      const mockResponse: TrendAnalysisResponse = {
+        period: {
+          start: '2024-01',
+          end: '2024-12',
+        },
+        targetType: 'balance',
+        actual: [
+          { date: '2024-01', value: 100000 },
+          { date: '2024-02', value: 110000 },
+        ],
+        movingAverage: {
+          period: 6,
+          data: [
+            { date: '2024-01', value: NaN },
+            { date: '2024-02', value: 105000 },
+          ],
+        },
+        trendLine: {
+          slope: 10000,
+          intercept: 90000,
+          points: [
+            { date: '2024-01', value: 100000 },
+            { date: '2024-02', value: 110000 },
+          ],
+        },
+        statistics: {
+          mean: 105000,
+          standardDeviation: 7071.07,
+          coefficientOfVariation: 0.067,
+        },
+        insights: [],
+      };
+
+      mockApiClient.get.mockResolvedValue({
+        success: true,
+        data: mockResponse,
+      });
+
+      const result = await aggregationApi.getTrendAnalysis(2024, 1, 2024, 12, 'balance', 6);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        '/api/aggregation/trend?startYear=2024&startMonth=1&endYear=2024&endMonth=12&targetType=balance&movingAveragePeriod=6'
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('オプションパラメータなしでトレンド分析情報を取得できる', async () => {
+      const mockResponse: TrendAnalysisResponse = {
+        period: {
+          start: '2024-01',
+          end: '2024-12',
+        },
+        targetType: 'balance',
+        actual: [{ date: '2024-01', value: 100000 }],
+        movingAverage: {
+          period: 6,
+          data: [{ date: '2024-01', value: 100000 }],
+        },
+        trendLine: {
+          slope: 0,
+          intercept: 100000,
+          points: [{ date: '2024-01', value: 100000 }],
+        },
+        statistics: {
+          mean: 100000,
+          standardDeviation: 0,
+          coefficientOfVariation: 0,
+        },
+        insights: [],
+      };
+
+      mockApiClient.get.mockResolvedValue({
+        success: true,
+        data: mockResponse,
+      });
+
+      const result = await aggregationApi.getTrendAnalysis(2024, 1, 2024, 12);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        '/api/aggregation/trend?startYear=2024&startMonth=1&endYear=2024&endMonth=12'
       );
       expect(result).toEqual(mockResponse);
     });

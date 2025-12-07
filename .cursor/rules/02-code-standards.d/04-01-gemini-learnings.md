@@ -8319,3 +8319,352 @@ describe('IsNotFutureDateConstraint', () => {
 **参照**: PR #384 - Issue #73: FR-026 金融機関別資産残高表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---
+
+### 13-42. 冗長な計算の排除と型安全性の向上（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘）
+
+#### 既に計算済みの値を再計算しない
+
+**問題**: メソッド内で既に計算済みの値を再計算している
+
+**解決策**: 計算済みの値を引数として渡す
+
+```typescript
+// ❌ 悪い例: 冗長な計算
+private generateInsights(
+  targetType: TrendTargetType,
+  values: number[],
+  trendLine: TrendLineDto,
+  standardDeviation: number,
+  coefficientOfVariation: number,
+  monthCount: number,
+): InsightDto[] {
+  // meanを再計算している（executeメソッドで既に計算済み）
+  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+  const isIncreasing = trendLine.slope > mean * 0.01;
+  // ...
+}
+
+// ✅ 良い例: 計算済みの値を引数として渡す
+private generateInsights(
+  targetType: TrendTargetType,
+  values: number[],
+  trendLine: TrendLineDto,
+  mean: number, // 既に計算済みの値を引数として受け取る
+  standardDeviation: number,
+  coefficientOfVariation: number,
+  monthCount: number,
+): InsightDto[] {
+  const isIncreasing = trendLine.slope > mean * 0.01;
+  // ...
+}
+```
+
+**理由**:
+
+- 冗長な計算を排除し、パフォーマンスを向上
+- コードの意図が明確になる
+- 計算ロジックの一貫性を保つ
+
+#### 型安全性の向上
+
+**問題**: `unknown[]`型を使用しているため、型安全性が低下
+
+**解決策**: 具体的な型を使用する
+
+```typescript
+// ❌ 悪い例: unknown型を使用
+private generateInsights(
+  trendLine: { slope: number; intercept: number; points: unknown[] },
+  // ...
+): InsightDto[] {
+  // pointsの型が不明確
+}
+
+// ✅ 良い例: 具体的な型を使用
+private generateInsights(
+  trendLine: { slope: number; intercept: number; points: DataPointDto[] },
+  // ...
+): InsightDto[] {
+  // pointsの型が明確で、型安全性が向上
+}
+```
+
+**理由**:
+
+- 型安全性が向上し、コンパイル時にエラーを検出できる
+- IDEの補完が効くようになる
+- コードの可読性が向上
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-43. 負の値に対する閾値計算の考慮（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第2回）
+
+#### 負の値に対する閾値計算
+
+**問題**: `mean`が負の値（収支が赤字）の場合、閾値計算が意図しない動作をする可能性がある
+
+**解決策**: `Math.abs(mean)`を使用して閾値を計算する
+
+```typescript
+// ❌ 悪い例: meanが負の値の場合に問題が発生
+const isIncreasing = trendLine.slope > mean * 0.01;
+const isDecreasing = trendLine.slope < -mean * 0.01;
+// meanが-10000の場合、mean * 0.01 = -100となり、
+// slope > -100でわずかな減少でも「増加傾向」と判定される可能性がある
+
+// ✅ 良い例: Math.absを使用して絶対値で判定
+const threshold = Math.abs(mean) * 0.01;
+const isIncreasing = trendLine.slope > threshold;
+const isDecreasing = trendLine.slope < -threshold;
+```
+
+**理由**:
+
+- 負の値でも正しく判定できる
+- 閾値の意味が明確になる
+- 一貫性のある判定ロジックを実現
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+### 13-44. ドメインサービスのメソッドで計算済み値を再利用（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第2回）
+
+#### 計算済みの値を引数として受け取る
+
+**問題**: ドメインサービスのメソッド内で既に計算済みの値を再計算している
+
+**解決策**: 計算済みの値を任意引数として受け取れるようにする
+
+```typescript
+// ❌ 悪い例: 毎回meanを再計算
+calculateStandardDeviation(data: number[]): number {
+  const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+  // ...
+}
+
+// UseCase側
+const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+const stdDev = service.calculateStandardDeviation(values); // 内部でmeanを再計算
+
+// ✅ 良い例: 計算済みの値を引数として受け取る
+calculateStandardDeviation(data: number[], mean?: number): number {
+  const dataMean = mean ?? data.reduce((sum, val) => sum + val, 0) / data.length;
+  // ...
+}
+
+// UseCase側
+const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+const stdDev = service.calculateStandardDeviation(values, mean); // 計算済みのmeanを再利用
+```
+
+**理由**:
+
+- 冗長な計算を排除し、パフォーマンスを向上
+- DRY原則に従う
+- 計算ロジックの一貫性を保つ
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+### 13-45. DTOの適切な層への配置（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第2回）
+
+#### 関心の分離とコードの重複排除
+
+**問題**: DTOがUseCaseファイル内に定義されており、関心の分離が不十分
+
+**解決策**: プレゼンテーション層のDTOは`presentation/dto`に配置し、ドメイン層の型は再利用する
+
+```typescript
+// ❌ 悪い例: UseCaseファイル内にDTOを定義
+// calculate-trend-analysis.use-case.ts
+export interface TrendAnalysisResponseDto { ... }
+export interface InsightDto { ... }
+export interface DataPointDto { ... } // ドメイン層のDataPointと重複
+
+// ✅ 良い例: 適切な層に配置
+// presentation/dto/trend-analysis-response.dto.ts
+import type { DataPoint } from '../../domain/services/trend-analysis-domain.service';
+export type DataPointDto = DataPoint; // ドメイン層の型を再利用
+export interface TrendAnalysisResponseDto { ... }
+export interface InsightDto { ... }
+```
+
+**理由**:
+
+- 関心の分離が明確になる
+- コードの重複を排除できる
+- 保守性が向上する
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
+
+### 13-46. 計算済み値の再利用とパフォーマンス向上（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第3回）
+
+#### 計算済みの値を引数として受け取る
+
+**問題**: メソッド内で既に計算済みの値を再計算している
+
+**解決策**: 計算済みの値を任意引数として受け取れるようにする
+
+```typescript
+// ❌ 悪い例: 毎回標準偏差を再計算
+calculateCoefficientOfVariation(data: number[], mean?: number): number {
+  const stdDev = this.calculateStandardDeviation(data, dataMean);
+  return stdDev / dataMean;
+}
+
+// UseCase側
+const standardDeviation = service.calculateStandardDeviation(values, mean);
+const coefficientOfVariation = service.calculateCoefficientOfVariation(values, mean);
+// 内部で再度calculateStandardDeviationが呼ばれる
+
+// ✅ 良い例: 計算済みの値を引数として受け取る
+calculateCoefficientOfVariation(
+  data: number[],
+  mean?: number,
+  stdDev?: number,
+): number {
+  const standardDeviation = stdDev ?? this.calculateStandardDeviation(data, dataMean);
+  return standardDeviation / Math.abs(dataMean);
+}
+
+// UseCase側
+const standardDeviation = service.calculateStandardDeviation(values, mean);
+const coefficientOfVariation = service.calculateCoefficientOfVariation(
+  values,
+  mean,
+  standardDeviation,
+); // 計算済みのstandardDeviationを再利用
+```
+
+**理由**:
+
+- 冗長な計算を排除し、パフォーマンスを向上
+- DRY原則に従う
+- 計算ロジックの一貫性を保つ
+
+### 13-47. 負の値に対する変動係数計算の考慮（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第3回）
+
+#### 平均値が負の場合の変動係数計算
+
+**問題**: 平均値が負（収支が赤字）の場合、変動係数が負となり、変動の大きさを正しく評価できない
+
+**解決策**: `Math.abs(dataMean)`を使用して絶対値で割る
+
+```typescript
+// ❌ 悪い例: 平均値が負の場合に問題が発生
+calculateCoefficientOfVariation(data: number[], mean?: number): number {
+  const dataMean = mean ?? ...;
+  const stdDev = this.calculateStandardDeviation(data, dataMean);
+  return stdDev / dataMean; // meanが負の場合、結果も負になる
+}
+
+// ✅ 良い例: 絶対値で割る
+calculateCoefficientOfVariation(
+  data: number[],
+  mean?: number,
+  stdDev?: number,
+): number {
+  const dataMean = mean ?? ...;
+  const standardDeviation = stdDev ?? ...;
+  // 平均値が負の場合も考慮し、絶対値で割る
+  return standardDeviation / Math.abs(dataMean);
+}
+```
+
+**理由**:
+
+- 平均値の符号に関わらず相対的な変動性を正しく測定できる
+- 変動係数は常に正の値になる
+- 数学的に正しい計算
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第3回）
+
+### 13-48. 重複コードのヘルパーメソッド抽出（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第3回）
+
+#### 繰り返し出現するロジックの抽出
+
+**問題**: 同じロジックが複数箇所で繰り返されている
+
+**解決策**: ヘルパーメソッドとして抽出する
+
+```typescript
+// ❌ 悪い例: 同じロジックが重複
+const monthString1 = `${date1.getFullYear()}-${String(
+  date1.getMonth() + 1,
+).padStart(2, '0')}`;
+const monthString2 = `${date2.getFullYear()}-${String(
+  date2.getMonth() + 1,
+).padStart(2, '0')}`;
+
+// ✅ 良い例: ヘルパーメソッドに抽出
+private toMonthString(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const monthString1 = this.toMonthString(date1);
+const monthString2 = this.toMonthString(date2);
+```
+
+**理由**:
+
+- DRY原則に従う
+- コードの重複を排除
+- 保守性が向上（変更時に1箇所の修正で済む）
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第3回）
+
+### 13-49. 型定義の共有パッケージへの移動（PR #385）
+
+**学習元**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Geminiレビュー指摘 - 第3回）
+
+#### フロントエンドとバックエンドで重複する型定義の一元管理
+
+**問題**: フロントエンドとバックエンドで同じ型定義が重複して定義されている
+
+**解決策**: 共有パッケージ（`@account-book/types`）に移動し、両方からインポートして使用する
+
+```typescript
+// ❌ 悪い例: 型定義が重複
+// apps/backend/src/modules/transaction/presentation/dto/trend-analysis-response.dto.ts
+export interface TrendAnalysisResponseDto { ... }
+
+// apps/frontend/src/lib/api/aggregation.ts
+export interface TrendAnalysisResponse { ... } // 同じ構造
+
+// ✅ 良い例: 共有パッケージに移動
+// libs/types/src/api/trend-analysis-response.ts
+export interface TrendAnalysisResponse { ... }
+
+// バックエンド
+import type { TrendAnalysisResponse } from '@account-book/types';
+
+// フロントエンド
+import type { TrendAnalysisResponse } from '@account-book/types';
+```
+
+**理由**:
+
+- 型定義の重複を排除
+- メンテナンスコストの削減
+- 不整合の防止
+- 単一の真実の源（Single Source of Truth）
+
+**参照**: PR #385 - Issue #74: FR-027 収支推移のトレンド表示機能の実装（Gemini Code Assistレビュー指摘 - 第3回）
+
+---

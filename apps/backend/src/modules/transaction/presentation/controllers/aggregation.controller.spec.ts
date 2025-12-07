@@ -6,6 +6,8 @@ import { CalculateCategoryAggregationUseCase } from '../../application/use-cases
 import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
+import { CalculateTrendAnalysisUseCase } from '../../application/use-cases/calculate-trend-analysis.use-case';
+import type { TrendAnalysisResponseDto } from '../dto/trend-analysis-response.dto';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
@@ -22,6 +24,7 @@ describe('AggregationController', () => {
   let calculateSubcategoryAggregationUseCase: jest.Mocked<CalculateSubcategoryAggregationUseCase>;
   let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
   let calculateAssetBalanceUseCase: jest.Mocked<CalculateAssetBalanceUseCase>;
+  let calculateTrendAnalysisUseCase: jest.Mocked<CalculateTrendAnalysisUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
     month: '2024-01',
@@ -75,6 +78,10 @@ describe('AggregationController', () => {
           provide: CalculateAssetBalanceUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: CalculateTrendAnalysisUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -91,6 +98,7 @@ describe('AggregationController', () => {
       CalculateInstitutionSummaryUseCase,
     );
     calculateAssetBalanceUseCase = module.get(CalculateAssetBalanceUseCase);
+    calculateTrendAnalysisUseCase = module.get(CalculateTrendAnalysisUseCase);
   });
 
   describe('getMonthlyBalance', () => {
@@ -581,6 +589,106 @@ describe('AggregationController', () => {
           asOfDate: '2025-01-15',
         }),
       ).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('getTrendAnalysis', () => {
+    const mockTrendAnalysisResponse: TrendAnalysisResponseDto = {
+      period: {
+        start: '2024-01',
+        end: '2024-12',
+      },
+      targetType: 'balance',
+      actual: [
+        { date: '2024-01', value: 100000 },
+        { date: '2024-02', value: 110000 },
+        { date: '2024-03', value: 120000 },
+      ],
+      movingAverage: {
+        period: 6,
+        data: [
+          { date: '2024-01', value: NaN },
+          { date: '2024-02', value: NaN },
+          { date: '2024-03', value: 110000 },
+        ],
+      },
+      trendLine: {
+        slope: 10000,
+        intercept: 90000,
+        points: [
+          { date: '2024-01', value: 100000 },
+          { date: '2024-02', value: 110000 },
+          { date: '2024-03', value: 120000 },
+        ],
+      },
+      statistics: {
+        mean: 110000,
+        standardDeviation: 8164.97,
+        coefficientOfVariation: 0.074,
+      },
+      insights: [],
+    };
+
+    it('should return trend analysis data', async () => {
+      calculateTrendAnalysisUseCase.execute.mockResolvedValue(
+        mockTrendAnalysisResponse,
+      );
+
+      const result = await controller.getTrendAnalysis({
+        startYear: 2024,
+        startMonth: 1,
+        endYear: 2024,
+        endMonth: 12,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockTrendAnalysisResponse);
+      expect(calculateTrendAnalysisUseCase.execute).toHaveBeenCalledWith(
+        2024,
+        1,
+        2024,
+        12,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should call use case with correct parameters', async () => {
+      calculateTrendAnalysisUseCase.execute.mockResolvedValue(
+        mockTrendAnalysisResponse,
+      );
+
+      await controller.getTrendAnalysis({
+        startYear: 2024,
+        startMonth: 1,
+        endYear: 2024,
+        endMonth: 12,
+        targetType: 'balance',
+        movingAveragePeriod: 6,
+      });
+
+      expect(calculateTrendAnalysisUseCase.execute).toHaveBeenCalledWith(
+        2024,
+        1,
+        2024,
+        12,
+        'balance',
+        6,
+      );
+    });
+
+    it('should handle error when use case throws', async () => {
+      const error = new Error('最低6ヶ月分のデータが必要です');
+      calculateTrendAnalysisUseCase.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.getTrendAnalysis({
+          startYear: 2024,
+          startMonth: 1,
+          endYear: 2024,
+          endMonth: 5,
+        }),
+      ).rejects.toThrow('最低6ヶ月分のデータが必要です');
     });
   });
 });
