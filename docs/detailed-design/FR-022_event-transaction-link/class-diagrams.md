@@ -103,14 +103,14 @@ classDiagram
     }
 
     class SuggestedTransaction {
-        +TransactionDto transaction
+        +TransactionEntity transaction
         +number score
         +string[] reasons
     }
 
     class EventFinancialSummary {
-        +EventResponseDto event
-        +TransactionDto[] relatedTransactions
+        +EventEntity event
+        +TransactionEntity[] relatedTransactions
         +number totalIncome
         +number totalExpense
         +number netAmount
@@ -163,22 +163,26 @@ classDiagram
 
 #### SuggestedTransaction
 
-- **責務**: 推奨取引のDTO
+- **責務**: 推奨取引のApplication層データ構造
+- **注意**: Onion Architecture原則により、Application層はドメインエンティティを使用し、Presentation層のDTOには依存しない
 - **フィールド**:
-  - `transaction`: 取引情報
+  - `transaction`: 取引エンティティ（`TransactionEntity`）
   - `score`: 推奨スコア（0-100）
   - `reasons`: 推奨理由の配列
+- **DTO変換**: Presentation層のControllerまたはマッパーで`TransactionEntity`を`TransactionDto`に変換
 
 #### EventFinancialSummary
 
-- **責務**: イベント別収支サマリーのDTO
+- **責務**: イベント別収支サマリーのApplication層データ構造
+- **注意**: Onion Architecture原則により、Application層はドメインエンティティを使用し、Presentation層のDTOには依存しない
 - **フィールド**:
-  - `event`: イベント情報
-  - `relatedTransactions`: 関連取引一覧
+  - `event`: イベントエンティティ（`EventEntity`）
+  - `relatedTransactions`: 関連取引エンティティ一覧（`TransactionEntity[]`）
   - `totalIncome`: 総収入
   - `totalExpense`: 総支出
   - `netAmount`: 純収支
   - `transactionCount`: 取引件数
+- **DTO変換**: Presentation層のControllerまたはマッパーで`EventEntity`と`TransactionEntity[]`を`EventFinancialSummaryResponseDto`に変換
 
 ---
 
@@ -258,10 +262,6 @@ classDiagram
         +getFinancialSummary(eventId) Promise~EventFinancialSummary~
     }
 
-    class SuggestTransactionsResponseDto {
-        +SuggestedTransactionDto[] suggestions
-    }
-
     class SuggestedTransactionDto {
         +TransactionDto transaction
         +number score
@@ -269,12 +269,23 @@ classDiagram
     }
 
     class EventFinancialSummaryResponseDto {
-        +EventResponseDto event
+        +EventSummaryDto event
         +TransactionDto[] relatedTransactions
         +number totalIncome
         +number totalExpense
         +number netAmount
         +number transactionCount
+    }
+
+    class EventSummaryDto {
+        +string id
+        +string date
+        +string title
+        +string|null description
+        +EventCategory category
+        +string[] tags
+        +string createdAt
+        +string updatedAt
     }
 
     class TransactionDto {
@@ -296,11 +307,10 @@ classDiagram
 
     EventController --> SuggestRelatedTransactionsUseCase
     EventController --> GetEventFinancialSummaryUseCase
-    EventController --> SuggestTransactionsResponseDto
+    EventController --> SuggestedTransactionDto
     EventController --> EventFinancialSummaryResponseDto
-    SuggestTransactionsResponseDto --> SuggestedTransactionDto
     SuggestedTransactionDto --> TransactionDto
-    EventFinancialSummaryResponseDto --> EventResponseDto
+    EventFinancialSummaryResponseDto --> EventSummaryDto
     EventFinancialSummaryResponseDto --> TransactionDto
 ```
 
@@ -314,16 +324,32 @@ classDiagram
   - `GET /api/events/:id/financial-summary`: イベント別収支サマリー取得
 - **注意**: FR-021で既に実装されている`EventController`に追加
 
-#### SuggestTransactionsResponseDto
+#### SuggestedTransactionDto
 
-- **責務**: 推奨取引レスポンスのDTO
+- **責務**: 推奨取引のレスポンスDTO
 - **フィールド**:
-  - `suggestions`: 推奨取引の配列
+  - `transaction`: 取引情報（`TransactionDto`）
+  - `score`: 推奨スコア（0-100）
+  - `reasons`: 推奨理由の配列
+- **注意**: レスポンスは`data: SuggestedTransactionDto[]`の形式で返却（配列の直下に配置）
 
 #### EventFinancialSummaryResponseDto
 
 - **責務**: イベント別収支サマリーレスポンスのDTO
-- **フィールド**: `EventFinancialSummary`と同じ
+- **フィールド**:
+  - `event`: イベント情報（`EventSummaryDto`、`relatedTransactions`を除外）
+  - `relatedTransactions`: 関連取引一覧（`TransactionDto[]`）
+  - `totalIncome`: 総収入
+  - `totalExpense`: 総支出
+  - `netAmount`: 純収支
+  - `transactionCount`: 取引件数
+- **注意**: `event.relatedTransactions`は冗長のため除外し、トップレベルの`relatedTransactions`のみを使用
+
+#### EventSummaryDto
+
+- **責務**: 収支サマリー専用のイベント情報DTO
+- **フィールド**: `EventResponseDto`から`relatedTransactions`を除外したもの
+- **用途**: `EventFinancialSummaryResponseDto`内で使用
 
 ---
 

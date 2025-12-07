@@ -28,7 +28,6 @@
 ┌─────────────────────────────────────────┐
 │     Presentation Layer                  │
 │  - EventController                      │
-│  - SuggestTransactionsRequestDto        │
 │  - EventFinancialSummaryResponseDto     │
 └──────────────┬──────────────────────────┘
                │
@@ -54,7 +53,7 @@
 │  - EventOrmRepository                   │
 │  - TransactionRepository                │
 │  - EventOrmEntity                       │
-│  - TransactionOrmEntity                  │
+│  - TransactionOrmEntity                 │
 │  - EventTransactionRelationOrmEntity    │
 └─────────────────────────────────────────┘
 ```
@@ -106,7 +105,7 @@
 
 1. イベント日付の前後7日間の取引を取得
 2. イベントカテゴリに応じたフィルタリング
-3. スコアリング（日付の近さ、金額の大きさ、説明文の類似度）
+3. スコアリング（日付の近さ、金額の大きさ、カテゴリマッチ）
 4. 上位10件を推奨として返却
 
 **スコアリングロジック**:
@@ -154,12 +153,12 @@
 
 ## データモデル
 
-### EventFinancialSummary (Response DTO)
+### EventFinancialSummary (Application層データ構造)
 
 ```typescript
 interface EventFinancialSummary {
-  event: EventResponseDto;
-  relatedTransactions: TransactionDto[];
+  event: EventEntity; // ドメインエンティティ
+  relatedTransactions: TransactionEntity[]; // ドメインエンティティ配列
   totalIncome: number; // 総収入（円）
   totalExpense: number; // 総支出（円）
   netAmount: number; // 純収支（totalIncome - totalExpense）
@@ -167,10 +166,48 @@ interface EventFinancialSummary {
 }
 ```
 
-### SuggestedTransaction (Response DTO)
+**注意**: Onion Architecture原則により、Application層はドメインエンティティを使用し、Presentation層のDTOには依存しない。DTOへの変換はPresentation層で実施する。
+
+### EventFinancialSummaryResponseDto (Response DTO)
+
+```typescript
+interface EventFinancialSummaryResponseDto {
+  event: EventSummaryDto; // relatedTransactionsを除外したイベント情報
+  relatedTransactions: TransactionDto[];
+  totalIncome: number; // 総収入（円）
+  totalExpense: number; // 総支出（円）
+  netAmount: number; // 純収支（totalIncome - totalExpense）
+  transactionCount: number; // 関連取引件数
+}
+
+interface EventSummaryDto {
+  id: string;
+  date: string; // ISO 8601 形式
+  title: string;
+  description: string | null;
+  category: EventCategory;
+  tags: string[];
+  createdAt: string; // ISO 8601 形式
+  updatedAt: string; // ISO 8601 形式
+}
+```
+
+### SuggestedTransaction (Application層データ構造)
 
 ```typescript
 interface SuggestedTransaction {
+  transaction: TransactionEntity; // ドメインエンティティ
+  score: number; // 推奨スコア（0-100）
+  reasons: string[]; // 推奨理由（例: ["日付が近い", "高額取引"]）
+}
+```
+
+**注意**: Onion Architecture原則により、Application層はドメインエンティティを使用し、Presentation層のDTOには依存しない。DTOへの変換はPresentation層で実施する。
+
+### SuggestedTransactionDto (Response DTO)
+
+```typescript
+interface SuggestedTransactionDto {
   transaction: TransactionDto;
   score: number; // 推奨スコア（0-100）
   reasons: string[]; // 推奨理由（例: ["日付が近い", "高額取引"]）
@@ -323,7 +360,8 @@ interface SuggestedTransaction {
    - `GetEventFinancialSummaryUseCase`実装
 3. **Phase 3**: Presentation層実装（API）
    - `EventController`にエンドポイント追加
-   - DTO定義（`SuggestTransactionsRequestDto`, `EventFinancialSummaryResponseDto`）
+   - DTO定義（`EventFinancialSummaryResponseDto`、`EventSummaryDto`）
+   - マッパー実装（Application層のデータ構造からDTOへの変換）
 4. **Phase 4**: テスト実装・統合
    - ユニットテスト
    - 統合テスト

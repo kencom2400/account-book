@@ -49,12 +49,24 @@ interface SuggestedTransactionDto {
 
 ```typescript
 interface EventFinancialSummaryResponseDto {
-  event: EventResponseDto;
+  event: EventSummaryDto; // relatedTransactionsを除外したイベント情報
   relatedTransactions: TransactionDto[];
   totalIncome: number; // 総収入（円）
   totalExpense: number; // 総支出（円）
   netAmount: number; // 純収支（totalIncome - totalExpense）
   transactionCount: number; // 関連取引件数
+}
+
+// 収支サマリー専用のイベント情報（relatedTransactionsを除外）
+interface EventSummaryDto {
+  id: string;
+  date: string; // ISO 8601 形式
+  title: string;
+  description: string | null;
+  category: EventCategory;
+  tags: string[];
+  createdAt: string; // ISO 8601 形式
+  updatedAt: string; // ISO 8601 形式
 }
 ```
 
@@ -120,9 +132,7 @@ GET /api/events/evt_001/suggest-transactions
 ```typescript
 interface SuggestTransactionsResponse {
   success: true;
-  data: {
-    suggestions: SuggestedTransactionDto[];
-  };
+  data: SuggestedTransactionDto[];
   metadata: {
     timestamp: string;
     version: string;
@@ -135,40 +145,38 @@ interface SuggestTransactionsResponse {
 ```json
 {
   "success": true,
-  "data": {
-    "suggestions": [
-      {
-        "transaction": {
-          "id": "txn_001",
-          "date": "2025-08-10",
-          "amount": -50000,
-          "categoryType": "EXPENSE",
-          "categoryId": "cat_001",
-          "categoryName": "交通費",
-          "institutionId": "inst_001",
-          "accountId": "acc_001",
-          "description": "新幹線代"
-        },
-        "score": 85,
-        "reasons": ["日付が近い（0日差）", "高額取引（5万円以上）", "カテゴリが関連（交通費）"]
+  "data": [
+    {
+      "transaction": {
+        "id": "txn_001",
+        "date": "2025-08-10",
+        "amount": -50000,
+        "categoryType": "EXPENSE",
+        "categoryId": "cat_001",
+        "categoryName": "交通費",
+        "institutionId": "inst_001",
+        "accountId": "acc_001",
+        "description": "新幹線代"
       },
-      {
-        "transaction": {
-          "id": "txn_002",
-          "date": "2025-08-11",
-          "amount": -30000,
-          "categoryType": "EXPENSE",
-          "categoryId": "cat_002",
-          "categoryName": "宿泊費",
-          "institutionId": "inst_001",
-          "accountId": "acc_001",
-          "description": "ホテル代"
-        },
-        "score": 75,
-        "reasons": ["日付が近い（1日差）", "高額取引（3万円以上）", "カテゴリが関連（宿泊費）"]
-      }
-    ]
-  },
+      "score": 85,
+      "reasons": ["日付が近い（0日差）", "高額取引（5万円以上）", "カテゴリが関連（交通費）"]
+    },
+    {
+      "transaction": {
+        "id": "txn_002",
+        "date": "2025-08-11",
+        "amount": -30000,
+        "categoryType": "EXPENSE",
+        "categoryId": "cat_002",
+        "categoryName": "宿泊費",
+        "institutionId": "inst_001",
+        "accountId": "acc_001",
+        "description": "ホテル代"
+      },
+      "score": 75,
+      "reasons": ["日付が近い（1日差）", "高額取引（3万円以上）", "カテゴリが関連（宿泊費）"]
+    }
+  ],
   "metadata": {
     "timestamp": "2025-01-27T10:00:00Z",
     "version": "1.0.0"
@@ -239,7 +247,6 @@ interface EventFinancialSummaryResponse {
       "description": "家族旅行",
       "category": "travel",
       "tags": ["旅行", "沖縄"],
-      "relatedTransactions": [],
       "createdAt": "2025-01-27T10:00:00Z",
       "updatedAt": "2025-01-27T10:00:00Z"
     },
