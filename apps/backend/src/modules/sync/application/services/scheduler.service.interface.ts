@@ -19,7 +19,7 @@ export interface ISchedulerService {
    *
    * @param settings - 同期設定
    */
-  updateSchedule(settings: SyncSettings): Promise<void>;
+  updateSchedule(settings: SyncSettings): void;
 
   /**
    * 特定金融機関のスケジュールを更新
@@ -30,5 +30,5 @@ export interface ISchedulerService {
   updateInstitutionSchedule(
     institutionId: string,
     settings: InstitutionSyncSettings,
-  ): Promise<void>;
+  ): void;
 }

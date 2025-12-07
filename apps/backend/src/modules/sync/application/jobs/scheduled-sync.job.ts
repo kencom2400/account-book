@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { SyncAllTransactionsUseCase } from '../use-cases/sync-all-transactions.use-case';
 import { SyncAllTransactionsResult } from '../dto/sync-result.dto';
+import type { ISchedulerService } from '../services/scheduler.service.interface';
+import { SyncSettings } from '../../domain/entities/sync-settings.entity';
+import { InstitutionSyncSettings } from '../../domain/entities/institution-sync-settings.entity';
+import { SyncIntervalType } from '../../domain/enums/sync-interval-type.enum';
 
 /**
  * スケジュール同期ジョブのメトリクス
@@ -30,12 +35,13 @@ interface SyncMetrics {
  * @layer Infrastructure
  */
 @Injectable()
-export class ScheduledSyncJob {
+export class ScheduledSyncJob implements ISchedulerService {
   private readonly logger = new Logger(ScheduledSyncJob.name);
   private isRunning = false;
   private currentSchedule = '0 4 * * *'; // デフォルト: 毎日午前4時
   private timezone = 'Asia/Tokyo';
   private enabled = true;
+  private readonly jobName = 'scheduled-sync';
 
   // メトリクス
   private metrics: SyncMetrics = {
@@ -50,6 +56,7 @@ export class ScheduledSyncJob {
 
   constructor(
     private readonly syncAllTransactionsUseCase: SyncAllTransactionsUseCase,
+    private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
 
   /**
@@ -186,30 +193,115 @@ export class ScheduledSyncJob {
   }
 
   /**
-   * スケジュールを動的に更新
+   * 全体のスケジュールを更新（ISchedulerService実装）
+   *
+   * @param settings - 同期設定
+   */
+  updateSchedule(settings: SyncSettings): void {
+    this.logger.log('全体のスケジュールを更新');
+
+    // デフォルト同期間隔からCron式を取得
+    const cronExpression = settings.defaultInterval.toCronExpression();
+    if (!cronExpression) {
+      this.logger.warn('Cron式が生成できませんでした（手動同期のみ）');
+      return;
+    }
+    const timezone = this.timezone;
+
+    this.updateCronJob(cronExpression, timezone);
+
+    this.logger.log(`スケジュール更新完了: ${cronExpression}`);
+  }
+
+  /**
+   * 特定金融機関のスケジュールを更新（ISchedulerService実装）
+   *
+   * @param institutionId - 金融機関ID
+   * @param settings - 金融機関同期設定
+   */
+  updateInstitutionSchedule(
+    institutionId: string,
+    settings: InstitutionSyncSettings,
+  ): void {
+    this.logger.log(
+      `金融機関のスケジュールを更新: institutionId=${institutionId}`,
+    );
+
+    // 金融機関ごとの個別スケジュールは、全体スケジュールとは別に管理
+    // 現在の実装では、全体スケジュールのみをサポート
+    // 将来的に金融機関ごとの個別スケジュールをサポートする場合は、
+    // ジョブ名を`${this.jobName}-${institutionId}`のようにして管理
+
+    // 金融機関設定が有効で、手動のみでない場合は、全体スケジュールに反映
+    if (
+      settings.enabled &&
+      settings.interval.type !== SyncIntervalType.MANUAL
+    ) {
+      const cronExpression = settings.interval.toCronExpression();
+      if (cronExpression) {
+        // 注: 複数金融機関がある場合、最も頻繁な間隔を全体スケジュールに適用
+        // または、金融機関ごとに個別ジョブを作成
+        // 現在は全体スケジュールのみを更新
+        this.updateCronJob(cronExpression, this.timezone);
+      }
+    }
+
+    this.logger.log(
+      `金融機関スケジュール更新完了: institutionId=${institutionId}`,
+    );
+  }
+
+  /**
+   * CronJobを動的に更新
    *
    * @param cronExpression - cron式
    * @param timezone - タイムゾーン
    */
-  updateSchedule(cronExpression: string, timezone?: string): void {
-    this.logger.log(
-      `スケジュール更新: ${cronExpression} (${timezone || this.timezone})`,
-    );
+  private updateCronJob(cronExpression: string, timezone: string): void {
+    try {
+      // 既存のジョブを削除
+      try {
+        const existingJob = this.schedulerRegistry.getCronJob(this.jobName);
+        if (existingJob) {
+          void existingJob.stop();
+          this.schedulerRegistry.deleteCronJob(this.jobName);
+        }
+      } catch {
+        // ジョブが存在しない場合は無視
+      }
 
-    this.currentSchedule = cronExpression;
-    if (timezone) {
+      // 新しいスケジュールでジョブを再登録
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const job = new CronJob(
+        cronExpression,
+        () => {
+          void this.handleCron();
+        },
+        null,
+        this.enabled,
+        timezone,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      this.schedulerRegistry.addCronJob(this.jobName, job);
+
+      if (this.enabled) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        void job.start();
+      }
+
+      this.currentSchedule = cronExpression;
       this.timezone = timezone;
+
+      this.logger.log(
+        `CronJobを動的に更新しました: ${cronExpression} (${timezone})`,
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`CronJob更新に失敗しました: ${errorMessage}`, error);
+      throw error;
     }
-
-    // TODO: 動的スケジュール更新機能を実装。詳細は未実装機能リストを参照。
-    // 【参照】: docs/detailed-design/FR-006_auto-fetch-transactions/未実装機能リスト.md
-    // 【実装方針】: SchedulerRegistryを使用してCronJobを動的に再登録
-    // 【依存】: NestJSのSchedulerRegistry
-    this.logger.warn(
-      '動的スケジュール更新は未実装です。アプリケーション再起動が必要です。',
-    );
-
-    this.logger.log('スケジュール更新完了');
   }
 
   /**

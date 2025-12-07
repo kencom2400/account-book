@@ -117,7 +117,7 @@ export class UpdateSyncSettingsUseCase {
     const savedSettings = await this.syncSettingsRepository.save(settings);
 
     // スケジュールを更新
-    await this.schedulerService.updateSchedule(savedSettings);
+    this.schedulerService.updateSchedule(savedSettings);
 
     this.logger.log('同期設定更新完了');
     return savedSettings;
