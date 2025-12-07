@@ -6,6 +6,7 @@ import { CalculateCategoryAggregationUseCase } from '../../application/use-cases
 import { CalculateSubcategoryAggregationUseCase } from '../../application/use-cases/calculate-subcategory-aggregation.use-case';
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
+import { CalculateTrendAnalysisUseCase } from '../../application/use-cases/calculate-trend-analysis.use-case';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
@@ -22,6 +23,7 @@ describe('AggregationController', () => {
   let calculateSubcategoryAggregationUseCase: jest.Mocked<CalculateSubcategoryAggregationUseCase>;
   let calculateInstitutionSummaryUseCase: jest.Mocked<CalculateInstitutionSummaryUseCase>;
   let calculateAssetBalanceUseCase: jest.Mocked<CalculateAssetBalanceUseCase>;
+  let _calculateTrendAnalysisUseCase: jest.Mocked<CalculateTrendAnalysisUseCase>;
 
   const mockMonthlyBalanceResponse: MonthlyBalanceResponseDto = {
     month: '2024-01',
@@ -75,6 +77,10 @@ describe('AggregationController', () => {
           provide: CalculateAssetBalanceUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: CalculateTrendAnalysisUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -91,6 +97,7 @@ describe('AggregationController', () => {
       CalculateInstitutionSummaryUseCase,
     );
     calculateAssetBalanceUseCase = module.get(CalculateAssetBalanceUseCase);
+    _calculateTrendAnalysisUseCase = module.get(CalculateTrendAnalysisUseCase);
   });
 
   describe('getMonthlyBalance', () => {
