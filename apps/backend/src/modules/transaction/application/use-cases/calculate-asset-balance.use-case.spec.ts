@@ -127,6 +127,10 @@ describe('CalculateAssetBalanceUseCase', () => {
     });
 
     it('should use current date when asOfDate is not provided', async () => {
+      const mockDate = new Date('2025-01-20T10:00:00.000Z');
+      jest.useFakeTimers();
+      jest.setSystemTime(mockDate);
+
       const accounts = [createAccount('acc_1', 'inst_1', '普通預金', 1000000)];
       const institutions = [
         createInstitution('inst_1', 'Bank A', InstitutionType.BANK, accounts),
@@ -134,15 +138,11 @@ describe('CalculateAssetBalanceUseCase', () => {
 
       institutionRepository.findAll.mockResolvedValue(institutions);
 
-      const beforeExecute = new Date();
       const result = await useCase.execute();
-      const afterExecute = new Date();
 
-      const resultDate = new Date(result.asOfDate);
-      expect(resultDate.getTime()).toBeGreaterThanOrEqual(
-        beforeExecute.getTime(),
-      );
-      expect(resultDate.getTime()).toBeLessThanOrEqual(afterExecute.getTime());
+      expect(result.asOfDate).toBe(mockDate.toISOString());
+
+      jest.useRealTimers();
     });
 
     it('should return empty institutions array when no institutions exist', async () => {

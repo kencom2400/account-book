@@ -7,7 +7,7 @@
  * FR-026: 金融機関別資産残高表示
  */
 
-import { CategoryAmount, CategoryType } from '@account-book/types';
+import { CategoryAmount, CategoryType, InstitutionType } from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -186,7 +186,7 @@ export interface AccountAssetDto {
 export interface InstitutionAssetDto {
   institutionId: string;
   institutionName: string;
-  institutionType: string; // 'bank' | 'credit-card' | 'securities'
+  institutionType: InstitutionType;
   icon: string;
   accounts: AccountAssetDto[];
   total: number;

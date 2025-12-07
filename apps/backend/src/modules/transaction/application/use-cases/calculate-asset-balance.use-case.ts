@@ -5,51 +5,12 @@ import { AssetBalanceDomainService } from '../../domain/services/asset-balance-d
 import { InstitutionEntity } from '../../../institution/domain/entities/institution.entity';
 import { AccountEntity } from '../../../institution/domain/entities/account.entity';
 import { InstitutionType } from '@account-book/types';
-
-/**
- * AccountAssetDto
- */
-export interface AccountAssetDto {
-  accountId: string;
-  accountName: string;
-  accountType: string;
-  balance: number;
-  currency: string;
-}
-
-/**
- * InstitutionAssetDto
- */
-export interface InstitutionAssetDto {
-  institutionId: string;
-  institutionName: string;
-  institutionType: InstitutionType;
-  icon: string;
-  accounts: AccountAssetDto[];
-  total: number;
-  percentage: number;
-}
-
-/**
- * AssetComparisonDto
- */
-export interface AssetComparisonDto {
-  diff: number;
-  rate: number;
-}
-
-/**
- * AssetBalanceResponseDto
- */
-export interface AssetBalanceResponseDto {
-  totalAssets: number;
-  totalLiabilities: number;
-  netWorth: number;
-  institutions: InstitutionAssetDto[];
-  asOfDate: string; // ISO8601形式
-  previousMonth: AssetComparisonDto;
-  previousYear: AssetComparisonDto;
-}
+import type {
+  AccountAssetDto,
+  InstitutionAssetDto,
+  AssetComparisonDto,
+  AssetBalanceResponseDto,
+} from '../../presentation/dto/asset-balance-response.dto';
 
 /**
  * CalculateAssetBalanceUseCase
@@ -174,20 +135,24 @@ export class CalculateAssetBalanceUseCase {
    */
   private inferAccountType(accountName: string): string {
     const name = accountName.toLowerCase();
+    // より具体的なキーワードを優先的に判定
+    // 「クレジットカード株式」のような場合を避けるため、より具体的なキーワードを先に判定
     if (name.includes('普通') || name.includes('当座')) {
       return 'SAVINGS';
     }
     if (name.includes('定期')) {
       return 'TIME_DEPOSIT';
     }
-    if (name.includes('カード') || name.includes('card')) {
-      return 'CREDIT_CARD';
-    }
+    // 株式は「クレジットカード」より先に判定（「クレジットカード株式」の場合を避ける）
     if (name.includes('株式') || name.includes('stock')) {
       return 'STOCK';
     }
     if (name.includes('投資信託') || name.includes('mutual')) {
       return 'MUTUAL_FUND';
+    }
+    // カードは最後に判定（「クレジットカード株式」のような場合を避けるため）
+    if (name.includes('カード') || name.includes('card')) {
+      return 'CREDIT_CARD';
     }
     return 'OTHER';
   }

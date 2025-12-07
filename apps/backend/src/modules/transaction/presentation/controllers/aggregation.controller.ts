@@ -15,7 +15,7 @@ import { CalculateSubcategoryAggregationUseCase } from '../../application/use-ca
 import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
 import { GetSubcategoryAggregationQueryDto } from '../dto/get-subcategory-aggregation.dto';
 import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
-import type { AssetBalanceResponseDto } from '../../application/use-cases/calculate-asset-balance.use-case';
+import type { AssetBalanceResponseDto } from '../dto/asset-balance-response.dto';
 import { GetAssetBalanceDto } from '../dto/get-asset-balance.dto';
 
 /**

@@ -6,6 +6,10 @@ import {
 
 /**
  * 未来日チェック用のカスタムバリデーター
+ *
+ * 注意: このバリデーターは`new Date()`を使用しているため、
+ * ユニットテストを作成する際には`jest.useFakeTimers()`を使用して
+ * 時刻を固定化する必要があります。
  */
 @ValidatorConstraint({ name: 'isNotFutureDate', async: false })
 export class IsNotFutureDateConstraint implements ValidatorConstraintInterface {

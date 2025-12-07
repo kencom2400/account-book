@@ -10,7 +10,7 @@ import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calc
 import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';
 import type { SubcategoryAggregationResponseDto } from '../dto/get-subcategory-aggregation.dto';
-import type { AssetBalanceResponseDto } from '../../application/use-cases/calculate-asset-balance.use-case';
+import type { AssetBalanceResponseDto } from '../dto/asset-balance-response.dto';
 import { InstitutionType } from '@account-book/types';
 
 describe('AggregationController', () => {

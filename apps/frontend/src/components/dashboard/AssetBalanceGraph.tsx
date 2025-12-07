@@ -10,11 +10,13 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency } from '@account-book/utils';
 import type { InstitutionAssetDto } from '@/lib/api/aggregation';
+
+// グラフの色（将来的にテーマカラーに変更可能）
+const BAR_CHART_COLOR = '#2196F3'; // blue-500相当
 
 interface AssetBalanceGraphProps {
   institutions: InstitutionAssetDto[];
@@ -129,11 +131,7 @@ export function AssetBalanceGraph({ institutions }: AssetBalanceGraphProps): Rea
             <YAxis type="category" dataKey="name" width={90} tick={CustomYAxisLabel} />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Bar dataKey="value" name="資産残高" fill="#2196F3" radius={[0, 4, 4, 0]}>
-              {graphData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#2196F3" />
-              ))}
-            </Bar>
+            <Bar dataKey="value" name="資産残高" fill={BAR_CHART_COLOR} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

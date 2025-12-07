@@ -96,7 +96,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": -123456,
-        "percentage": -2.4
+        "percentage": 0.0
       },
       {
         "institutionId": "inst-003",
@@ -141,7 +141,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 | フィールド       | 型                    | 説明                                     |
 | ---------------- | --------------------- | ---------------------------------------- |
 | totalAssets      | number                | 総資産（プラス残高の合計）               |
-| totalLiabilities | number                | 総負債（マイナス残高の合計）             |
+| totalLiabilities | number                | 総負債（マイナス残高の合計の絶対値）     |
 | netWorth         | number                | 純資産（totalAssets - totalLiabilities） |
 | institutions     | InstitutionAssetDto[] | 金融機関別資産情報配列                   |
 | asOfDate         | string                | 基準日（ISO8601形式）                    |
@@ -150,15 +150,15 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 
 **InstitutionAssetDto:**
 
-| フィールド      | 型                | 説明                                            |
-| --------------- | ----------------- | ----------------------------------------------- |
-| institutionId   | string            | 金融機関ID                                      |
-| institutionName | string            | 金融機関名                                      |
-| institutionType | InstitutionType   | 金融機関タイプ（BANK, CREDIT_CARD, SECURITIES） |
-| icon            | string            | アイコン（絵文字）                              |
-| accounts        | AccountAssetDto[] | 口座別資産情報配列                              |
-| total           | number            | 機関別合計（全口座の合計）                      |
-| percentage      | number            | 構成比（%）（総資産に対する割合）               |
+| フィールド      | 型                | 説明                                               |
+| --------------- | ----------------- | -------------------------------------------------- |
+| institutionId   | string            | 金融機関ID                                         |
+| institutionName | string            | 金融機関名                                         |
+| institutionType | InstitutionType   | 金融機関タイプ（BANK, CREDIT_CARD, SECURITIES）    |
+| icon            | string            | アイコン（絵文字）                                 |
+| accounts        | AccountAssetDto[] | 口座別資産情報配列                                 |
+| total           | number            | 機関別合計（全口座の合計）                         |
+| percentage      | number            | 構成比（%）（総資産に対する割合）。負債の場合は0.0 |
 
 **AccountAssetDto:**
 
