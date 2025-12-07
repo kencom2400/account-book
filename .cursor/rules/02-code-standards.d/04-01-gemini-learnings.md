@@ -6907,4 +6907,340 @@ const years = optionValues
 
 **参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘 - 第2回）
 
+### 13-XX. コードの可読性と保守性の向上（PR #380）
+
+**学習元**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘）
+
+#### DRY原則の遵守とロジックの統合
+
+**問題**: スコア計算と理由生成のロジックが重複しており、将来の変更が困難でバグの原因となる可能性がある。
+
+**解決策**: スコア計算メソッドがスコアと理由の両方をオブジェクトとして返すようにリファクタリングする
+
+```typescript
+// ❌ 悪い例: ロジックが重複
+private calculateAmountScore(amount: number): number {
+  const absAmount = Math.abs(amount);
+  if (absAmount >= 100000) return 30;
+  if (absAmount >= 50000) return 25;
+  // ...
+}
+
+private generateReasons(transaction: TransactionEntity, event: EventEntity, _score: number): string[] {
+  const reasons: string[] = [];
+  const absAmount = Math.abs(transaction.amount);
+  if (absAmount >= 100000) {
+    reasons.push('高額取引（10万円以上）');
+  } else if (absAmount >= 50000) {
+    reasons.push('高額取引（5万円以上）');
+  }
+  // ...
+}
+
+// ✅ 良い例: スコアと理由を同時に返す
+private calculateAmountScore(amount: number): { score: number; reason: string | null } {
+  const absAmount = Math.abs(amount);
+  const thresholds = [
+    { limit: 100000, score: 30, reason: '高額取引（10万円以上）' },
+    { limit: 50000, score: 25, reason: '高額取引（5万円以上）' },
+    { limit: 30000, score: 20, reason: '高額取引（3万円以上）' },
+    { limit: 10000, score: 15, reason: '高額取引（1万円以上）' },
+    { limit: 5000, score: 10, reason: null },
+  ];
+
+  for (const threshold of thresholds) {
+    if (absAmount >= threshold.limit) {
+      return { score: threshold.score, reason: threshold.reason };
+    }
+  }
+  return { score: 5, reason: null };
+}
+
+// 使用例
+const scoreAndReasonParts = [
+  this.calculateDateScore(transaction.date, event.date),
+  this.calculateAmountScore(transaction.amount),
+  this.calculateCategoryScore(transaction, event.category),
+];
+
+const score = scoreAndReasonParts.reduce((sum, part) => sum + part.score, 0);
+const reasons = scoreAndReasonParts
+  .map((part) => part.reason)
+  .filter((reason): reason is string => reason !== null);
+```
+
+**理由**:
+
+- ロジックが1箇所に集約され、保守性が向上
+- スコア計算と理由生成の整合性が保証される
+- 将来の変更が容易になる
+
+#### マジックナンバーの定数化
+
+**問題**: スコアリングのしきい値（例: `100000`, `50000`）がハードコードされており、可読性と保守性が低い。
+
+**解決策**: しきい値をデータ構造として定義し、意味のある名前を付ける
+
+```typescript
+// ❌ 悪い例: マジックナンバー
+if (absAmount >= 100000) return 30;
+if (absAmount >= 50000) return 25;
+
+// ✅ 良い例: データ構造として定義
+const thresholds = [
+  { limit: 100000, score: 30, reason: '高額取引（10万円以上）' },
+  { limit: 50000, score: 25, reason: '高額取引（5万円以上）' },
+  // ...
+];
+```
+
+**理由**:
+
+- 可読性が向上する
+- 保守性が向上する（変更が容易）
+- テストが容易になる
+
+#### 配列操作の適切な使用（reduce）
+
+**問題**: `for`ループを使用した集計処理が冗長で、不変性が保証されない。
+
+**解決策**: `Array.prototype.reduce()`を使用してより簡潔で宣言的にリファクタリングする
+
+```typescript
+// ❌ 悪い例: forループ
+private calculateSummary(transactions: TransactionEntity[]): {
+  totalIncome: number;
+  totalExpense: number;
+  netAmount: number;
+  transactionCount: number;
+} {
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  for (const transaction of transactions) {
+    if (transaction.category.type === CategoryType.INCOME) {
+      totalIncome += transaction.amount;
+    } else if (transaction.category.type === CategoryType.EXPENSE) {
+      totalExpense += Math.abs(transaction.amount);
+    }
+  }
+
+  const netAmount = totalIncome - totalExpense;
+  const transactionCount = transactions.length;
+
+  return { totalIncome, totalExpense, netAmount, transactionCount };
+}
+
+// ✅ 良い例: reduceを使用
+private calculateSummary(transactions: TransactionEntity[]): {
+  totalIncome: number;
+  totalExpense: number;
+  netAmount: number;
+  transactionCount: number;
+} {
+  const summary = transactions.reduce(
+    (acc, transaction) => {
+      if (transaction.category.type === CategoryType.INCOME) {
+        acc.totalIncome += transaction.amount;
+      } else if (transaction.category.type === CategoryType.EXPENSE) {
+        acc.totalExpense += Math.abs(transaction.amount);
+      }
+      return acc;
+    },
+    { totalIncome: 0, totalExpense: 0 },
+  );
+
+  const netAmount = summary.totalIncome - summary.totalExpense;
+  const transactionCount = transactions.length;
+
+  return {
+    totalIncome: summary.totalIncome,
+    totalExpense: summary.totalExpense,
+    netAmount,
+    transactionCount,
+  };
+}
+```
+
+**理由**:
+
+- より簡潔で宣言的なコードになる
+- 不変性が促進される
+- 関数型プログラミングのパターンに準拠
+
+#### データ構造の重複チェック
+
+**問題**: 配列やマッピングに重複した値が含まれていると、コードの品質とメンテナンス性が低下する。
+
+**解決策**: データ構造を定義する際に重複がないか確認する
+
+```typescript
+// ❌ 悪い例: 重複がある
+[EventCategory.LIFE_EVENT]: [
+  '結婚式',
+  '出産',
+  '引越し',
+  '結婚',
+  '出産',  // 重複
+  '引越',
+],
+
+// ✅ 良い例: 重複を削除
+[EventCategory.LIFE_EVENT]: [
+  '結婚式',
+  '出産',
+  '引越し',
+  '結婚',
+  '引越',
+],
+```
+
+**理由**:
+
+- コードの品質が向上する
+- メンテナンス性が向上する
+- 意図しない動作を防ぐ
+
+**参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘）
+
+#### 仕様と実装の整合性確認
+
+**問題**: PRの説明やコメントで記載されている仕様（例: スコアの配点）と実装が一致していない。
+
+**解決策**: 仕様と実装を一致させる
+
+```typescript
+// ❌ 悪い例: PR説明で「カテゴリマッチ20点」と記載されているのに、実装では15点
+// 関連カテゴリ名に含まれる場合は15点
+if (relatedCategoryNames.some((relatedName) => categoryName.includes(relatedName.toLowerCase()))) {
+  return {
+    score: 15, // PR説明では20点と記載されている
+    reason: `カテゴリが関連（${transaction.category.name}）`,
+  };
+}
+
+// ✅ 良い例: 仕様と実装を一致させる
+// 関連カテゴリ名に含まれる場合は20点
+if (relatedCategoryNames.some((relatedName) => categoryName.includes(relatedName.toLowerCase()))) {
+  return {
+    score: 20, // PR説明と一致
+    reason: `カテゴリが関連（${transaction.category.name}）`,
+  };
+}
+```
+
+**理由**:
+
+- 仕様と実装の不一致はバグの原因となる
+- コードレビュー時に混乱を招く
+- 仕様変更がある場合は、PR説明やコメントも更新する
+
+#### 冗長なデータ構造の簡略化
+
+**問題**: `includes`メソッドを使用する場合、短いキーワードだけで長いキーワードにもマッチするため、冗長なキーワードが含まれている。
+
+**解決策**: より短い（基本的な）キーワードのみを残す
+
+```typescript
+// ❌ 悪い例: 冗長なキーワードが含まれている
+const mapping: Record<EventCategory, string[]> = {
+  [EventCategory.TRAVEL]: [
+    '交通費', // '交通'でマッチするため冗長
+    '宿泊費', // '宿泊'でマッチするため冗長
+    '飲食費', // '飲食'でマッチするため冗長
+    '娯楽費', // '娯楽'でマッチするため冗長
+    '交通',
+    '宿泊',
+    '飲食',
+    '娯楽',
+  ],
+  [EventCategory.EDUCATION]: [
+    '教育費', // '教育'でマッチするため冗長
+    '書籍費', // '書籍'でマッチするため冗長
+    '文具費', // '文具'でマッチするため冗長
+    '教育',
+    '書籍',
+    '文具',
+  ],
+  // ...
+};
+
+// ✅ 良い例: 短いキーワードのみを残す
+const mapping: Record<EventCategory, string[]> = {
+  [EventCategory.TRAVEL]: ['交通', '宿泊', '飲食', '娯楽'],
+  [EventCategory.EDUCATION]: ['教育', '書籍', '文具'],
+  [EventCategory.PURCHASE]: ['家具', '家電', '自動車', '住宅', '購入'],
+  [EventCategory.MEDICAL]: ['医療', '薬', '健康診断'],
+  [EventCategory.LIFE_EVENT]: ['結婚', '出産', '引越'],
+  [EventCategory.INVESTMENT]: ['投資', '証券'],
+  [EventCategory.OTHER]: [],
+};
+```
+
+**理由**:
+
+- データ構造がシンプルになり、意図が明確になる
+- メンテナンス性が向上する
+- `includes`メソッドを使用する場合、短いキーワードだけで十分
+
+#### 到達不能コードの削除
+
+**問題**: 事前にフィルタリングされているデータに対して、常にtrueとなる条件分岐は到達不能コードとなる。
+
+**解決策**: 到達不能コードを削除してコードを簡潔にする
+
+```typescript
+// ❌ 悪い例: 到達不能コードが含まれている
+private calculateDateScore(
+  transactionDate: Date,
+  eventDate: Date,
+): { score: number; reason: string | null } {
+  const diffDays = Math.abs(
+    Math.floor(
+      (transactionDate.getTime() - eventDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  const scores = [50, 45, 40, 35, 30, 25, 20, 15];
+  if (diffDays <= 7) {
+    return {
+      score: scores[diffDays],
+      reason: `日付が近い（${diffDays}日差）`,
+    };
+  }
+  // このreturn文は到達不能（トランザクションは既に前後7日以内にフィルタリング済み）
+  return { score: 0, reason: null };
+}
+
+// ✅ 良い例: 到達不能コードを削除
+private calculateDateScore(
+  transactionDate: Date,
+  eventDate: Date,
+): { score: number; reason: string | null } {
+  const diffDays = Math.abs(
+    Math.floor(
+      (transactionDate.getTime() - eventDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  const scores = [50, 45, 40, 35, 30, 25, 20, 15];
+  // トランザクションは既にイベント日付の前後7日以内にフィルタリングされているため、
+  // diffDays <= 7は常にtrueとなる
+  return {
+    score: scores[diffDays],
+    reason: `日付が近い（${diffDays}日差）`,
+  };
+}
+```
+
+**理由**:
+
+- コードが簡潔になる
+- 意図が明確になる
+- 到達不能コードは混乱を招く
+
+**参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
+
 ---

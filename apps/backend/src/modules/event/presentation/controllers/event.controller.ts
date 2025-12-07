@@ -18,11 +18,17 @@ import { GetEventByIdUseCase } from '../../application/use-cases/get-event-by-id
 import { GetEventsByDateRangeUseCase } from '../../application/use-cases/get-events-by-date-range.use-case';
 import { LinkTransactionToEventUseCase } from '../../application/use-cases/link-transaction-to-event.use-case';
 import { UnlinkTransactionFromEventUseCase } from '../../application/use-cases/unlink-transaction-from-event.use-case';
+import { SuggestRelatedTransactionsUseCase } from '../../application/use-cases/suggest-related-transactions.use-case';
+import { GetEventFinancialSummaryUseCase } from '../../application/use-cases/get-event-financial-summary.use-case';
 import { CreateEventRequestDto } from '../dto/create-event.dto';
 import { UpdateEventRequestDto } from '../dto/update-event.dto';
 import {
   EventResponseDto,
+  EventFinancialSummaryResponseDto,
+  SuggestedTransactionDto,
   toEventResponseDto,
+  toEventSummaryDto,
+  toTransactionDto,
 } from '../dto/event-response.dto';
 import { GetEventsByDateRangeQueryDto } from '../dto/get-events-query.dto';
 import { LinkTransactionRequestDto } from '../dto/link-transaction.dto';
@@ -42,6 +48,8 @@ export class EventController {
     private readonly getEventsByDateRangeUseCase: GetEventsByDateRangeUseCase,
     private readonly linkTransactionToEventUseCase: LinkTransactionToEventUseCase,
     private readonly unlinkTransactionFromEventUseCase: UnlinkTransactionFromEventUseCase,
+    private readonly suggestRelatedTransactionsUseCase: SuggestRelatedTransactionsUseCase,
+    private readonly getEventFinancialSummaryUseCase: GetEventFinancialSummaryUseCase,
   ) {}
 
   /**
@@ -90,6 +98,70 @@ export class EventController {
     return {
       success: true,
       data: events.map((event) => toEventResponseDto(event, [])),
+    };
+  }
+
+  /**
+   * 関連取引の推奨取得
+   * GET /api/events/:id/suggest-transactions
+   * 注意: このルートは@Get(':id')より前に定義する必要がある
+   */
+  @Get(':id/suggest-transactions')
+  @ApiOperation({ summary: '関連取引の推奨取得' })
+  @ApiResponse({
+    status: 200,
+    description: '推奨取引取得成功',
+    type: [SuggestedTransactionDto],
+  })
+  @ApiResponse({ status: 404, description: 'イベントが見つかりません' })
+  async suggestRelatedTransactions(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: SuggestedTransactionDto[];
+  }> {
+    const suggestions =
+      await this.suggestRelatedTransactionsUseCase.execute(id);
+
+    return {
+      success: true,
+      data: suggestions.map((suggestion) => ({
+        transaction: toTransactionDto(suggestion.transaction),
+        score: suggestion.score,
+        reasons: suggestion.reasons,
+      })),
+    };
+  }
+
+  /**
+   * イベント別収支サマリー取得
+   * GET /api/events/:id/financial-summary
+   * 注意: このルートは@Get(':id')より前に定義する必要がある
+   */
+  @Get(':id/financial-summary')
+  @ApiOperation({ summary: 'イベント別収支サマリー取得' })
+  @ApiResponse({
+    status: 200,
+    description: '収支サマリー取得成功',
+    type: EventFinancialSummaryResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'イベントが見つかりません' })
+  async getFinancialSummary(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: EventFinancialSummaryResponseDto;
+  }> {
+    const summary = await this.getEventFinancialSummaryUseCase.execute(id);
+
+    return {
+      success: true,
+      data: {
+        event: toEventSummaryDto(summary.event),
+        relatedTransactions: summary.relatedTransactions.map((tx) =>
+          toTransactionDto(tx),
+        ),
+        totalIncome: summary.totalIncome,
+        totalExpense: summary.totalExpense,
+        netAmount: summary.netAmount,
+        transactionCount: summary.transactionCount,
+      },
     };
   }
 
