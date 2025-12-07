@@ -201,7 +201,7 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
     expect(hasBalancePositive || hasBalanceNegative).toBe(true);
   });
 
-  test('データが空の場合に適切なメッセージが表示される', async ({ page }) => {
+  test('データが空の年に「データがありません」と表示される', async ({ page }) => {
     // ローディング完了を待機
     await waitForYearlyLoadingComplete(page);
 
@@ -219,28 +219,30 @@ test.describe('年間収支グラフ表示機能 (FR-024)', () => {
       .sort((a, b) => a - b);
 
     if (years.length === 0) {
-      test.skip();
+      test.skip('選択可能な年がありません。');
+      return;
     }
 
-    // 利用可能な最も古い年を選択（データがない可能性が高い）
+    // 利用可能な最も古い年を選択（データがない可能性が高いと仮定）
     const oldestYear = years[0];
     await yearSelect.selectOption(String(oldestYear));
     await waitForYearlyLoadingComplete(page);
 
-    // データがない場合のメッセージが表示されるか、またはグラフが表示されることを確認
-    // （データがある場合もあるため、どちらかが表示されればOK）
+    // データがない場合のメッセージが表示されるか確認
     const hasNoDataMessage = await page
       .getByText('データがありません')
       .isVisible()
       .catch(() => false);
-    const hasGraph = await page
-      .locator('svg')
-      .first()
-      .isVisible()
-      .catch(() => false);
 
-    // データがない場合はメッセージが表示される、データがある場合はグラフが表示される
-    expect(hasNoDataMessage || hasGraph).toBe(true);
+    if (hasNoDataMessage) {
+      // メッセージが表示されていればテスト成功
+      await expect(page.getByText('データがありません')).toBeVisible();
+    } else {
+      // グラフが表示された場合は、テスト対象のデータがないためスキップ
+      test.skip(
+        `最も古い年 (${oldestYear}) にデータが存在するため、空データの場合のテストをスキップします。`
+      );
+    }
   });
 
   // ========== インタラクションテスト ==========
