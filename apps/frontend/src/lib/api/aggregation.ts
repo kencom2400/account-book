@@ -3,9 +3,10 @@
  * FR-012: クレジットカード月別集計
  * FR-016: 月別収支集計
  * FR-020: 年間収支推移表示
+ * FR-025: カテゴリ別円グラフ表示
  */
 
-import { CategoryAmount } from '@account-book/types';
+import { CategoryAmount, CategoryType } from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -171,6 +172,53 @@ export interface YearlyBalanceResponse {
 }
 
 /**
+ * カテゴリ別集計レスポンス（FR-018, FR-025）
+ */
+
+// 取引DTO
+export interface TransactionDto {
+  id: string;
+  date: string; // ISO8601形式
+  amount: number;
+  categoryType: string; // CategoryTypeの文字列値
+  categoryId: string;
+  institutionId: string;
+  accountId: string;
+  description: string;
+}
+
+// サブカテゴリ別集計DTO
+export interface SubcategoryAggregationResponseDto {
+  categoryId: string;
+  categoryName: string;
+  amount: number;
+  count: number;
+  percentage: number;
+  topTransactions: TransactionDto[];
+}
+
+// 推移データDTO
+export interface TrendDataResponseDto {
+  monthly: Array<{
+    month: string; // YYYY-MM
+    amount: number;
+    count: number;
+  }>;
+}
+
+// カテゴリ別集計レスポンスDTO
+export interface CategoryAggregationResponseDto {
+  categoryType: CategoryType;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  totalAmount: number;
+  transactionCount: number;
+  subcategories: SubcategoryAggregationResponseDto[];
+  percentage: number;
+  trend: TrendDataResponseDto;
+}
+
+/**
  * 月別集計APIクライアント
  */
 export const aggregationApi = {
@@ -227,5 +275,27 @@ export const aggregationApi = {
     return await apiClient.get<YearlyBalanceResponse>(
       `/api/aggregation/yearly-balance?year=${year}`
     );
+  },
+
+  /**
+   * カテゴリ別集計情報を取得（FR-018, FR-025）
+   */
+  getCategoryAggregation: async (
+    startDate: string,
+    endDate: string,
+    categoryType?: CategoryType
+  ): Promise<CategoryAggregationResponseDto[]> => {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+    if (categoryType) {
+      params.append('categoryType', categoryType);
+    }
+    const response = await apiClient.get<{
+      success: boolean;
+      data: CategoryAggregationResponseDto[];
+    }>(`/api/aggregation/category?${params.toString()}`);
+    return response.data;
   },
 };
