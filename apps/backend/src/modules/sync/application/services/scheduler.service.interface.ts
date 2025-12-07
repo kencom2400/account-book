@@ -30,5 +30,5 @@ export interface ISchedulerService {
   updateInstitutionSchedule(
     institutionId: string,
     settings: InstitutionSyncSettings,
-  ): void;
+  ): Promise<void>;
 }

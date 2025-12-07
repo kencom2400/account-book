@@ -34,8 +34,17 @@ export class InstitutionSyncSettings {
    * @returns 更新されたInstitutionSyncSettingsインスタンス
    */
   updateInterval(interval: SyncInterval): InstitutionSyncSettings {
-    // 次回同期時刻を再計算
-    const nextSyncAt = this.calculateNextSyncAt();
+    // 次回同期時刻を新しいインターバルで再計算
+    let nextSyncAt: Date | null;
+    if (this.enabled && interval.type !== SyncIntervalType.MANUAL) {
+      try {
+        nextSyncAt = interval.calculateNextSyncAt(this.lastSyncedAt);
+      } catch {
+        nextSyncAt = null;
+      }
+    } else {
+      nextSyncAt = null;
+    }
 
     return new InstitutionSyncSettings(
       this.id,

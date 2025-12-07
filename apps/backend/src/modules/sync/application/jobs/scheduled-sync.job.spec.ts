@@ -7,6 +7,8 @@ import { InstitutionSyncSettings } from '../../domain/entities/institution-sync-
 import { SyncInterval } from '../../domain/value-objects/sync-interval.vo';
 import { SyncIntervalType } from '../../domain/enums/sync-interval-type.enum';
 import { InstitutionSyncStatus } from '../../domain/enums/institution-sync-status.enum';
+import { SYNC_SETTINGS_REPOSITORY } from '../../sync.tokens';
+import type { ISyncSettingsRepository } from '../../domain/repositories/sync-settings.repository.interface';
 
 // CronJobをモック
 jest.mock('cron', () => {
@@ -22,6 +24,7 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
   let job: ScheduledSyncJob;
   let mockSyncAllTransactionsUseCase: jest.Mocked<SyncAllTransactionsUseCase>;
   let mockSchedulerRegistry: jest.Mocked<SchedulerRegistry>;
+  let mockSyncSettingsRepository: jest.Mocked<ISyncSettingsRepository>;
 
   beforeEach(async () => {
     mockSyncAllTransactionsUseCase = {
@@ -30,8 +33,18 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
 
     mockSchedulerRegistry = {
       getCronJob: jest.fn(),
+      getCronJobs: jest.fn().mockReturnValue(new Map()),
       deleteCronJob: jest.fn(),
       addCronJob: jest.fn(),
+    } as any;
+
+    mockSyncSettingsRepository = {
+      find: jest.fn(),
+      save: jest.fn(),
+      findInstitutionSettings: jest.fn(),
+      findAllInstitutionSettings: jest.fn(),
+      saveInstitutionSettings: jest.fn(),
+      deleteInstitutionSettings: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -44,6 +57,10 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         {
           provide: SchedulerRegistry,
           useValue: mockSchedulerRegistry,
+        },
+        {
+          provide: SYNC_SETTINGS_REPOSITORY,
+          useValue: mockSyncSettingsRepository,
         },
       ],
     }).compile();
@@ -78,7 +95,9 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         stop: jest.fn(),
       };
 
-      mockSchedulerRegistry.getCronJob.mockReturnValue(existingJob as any);
+      mockSchedulerRegistry.getCronJobs.mockReturnValue(
+        new Map([['scheduled-sync', existingJob]]),
+      );
 
       job.updateSchedule(settings);
 
@@ -148,7 +167,7 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
   });
 
   describe('updateInstitutionSchedule', () => {
-    it('有効な金融機関設定でスケジュールを更新できる', () => {
+    it('有効な金融機関設定でスケジュールを更新できる', async () => {
       const defaultInterval = new SyncInterval(SyncIntervalType.STANDARD);
       const settings = InstitutionSyncSettings.create(
         'institution-001',
@@ -156,16 +175,17 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         defaultInterval,
       );
 
-      mockSchedulerRegistry.getCronJob.mockImplementation(() => {
-        throw new Error('Job not found');
-      });
+      mockSyncSettingsRepository.findAllInstitutionSettings.mockResolvedValue([
+        settings,
+      ]);
+      mockSchedulerRegistry.getCronJobs.mockReturnValue(new Map());
 
-      job.updateInstitutionSchedule('institution-001', settings);
+      await job.updateInstitutionSchedule('institution-001', settings);
 
       expect(mockSchedulerRegistry.addCronJob).toHaveBeenCalled();
     });
 
-    it('無効な金融機関設定の場合はスケジュールを更新しない', () => {
+    it('無効な金融機関設定の場合はスケジュールを更新しない', async () => {
       const defaultInterval = new SyncInterval(SyncIntervalType.STANDARD);
       const settings = new InstitutionSyncSettings(
         'inst-settings-001',
@@ -181,12 +201,16 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         new Date(),
       );
 
-      job.updateInstitutionSchedule('institution-001', settings);
+      mockSyncSettingsRepository.findAllInstitutionSettings.mockResolvedValue([
+        settings,
+      ]);
+
+      await job.updateInstitutionSchedule('institution-001', settings);
 
       expect(mockSchedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
 
-    it('手動同期のみの金融機関設定の場合はスケジュールを更新しない', () => {
+    it('手動同期のみの金融機関設定の場合はスケジュールを更新しない', async () => {
       const manualInterval = new SyncInterval(SyncIntervalType.MANUAL);
       const settings = new InstitutionSyncSettings(
         'inst-settings-001',
@@ -202,12 +226,16 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         new Date(),
       );
 
-      job.updateInstitutionSchedule('institution-001', settings);
+      mockSyncSettingsRepository.findAllInstitutionSettings.mockResolvedValue([
+        settings,
+      ]);
+
+      await job.updateInstitutionSchedule('institution-001', settings);
 
       expect(mockSchedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
 
-    it('既存のジョブを停止してから新しいジョブを登録する', () => {
+    it('既存のジョブを停止してから新しいジョブを登録する', async () => {
       const defaultInterval = new SyncInterval(SyncIntervalType.FREQUENT);
       const settings = InstitutionSyncSettings.create(
         'institution-001',
@@ -219,9 +247,14 @@ describe('ScheduledSyncJob - ISchedulerService実装', () => {
         stop: jest.fn(),
       };
 
-      mockSchedulerRegistry.getCronJob.mockReturnValue(existingJob as any);
+      mockSyncSettingsRepository.findAllInstitutionSettings.mockResolvedValue([
+        settings,
+      ]);
+      mockSchedulerRegistry.getCronJobs.mockReturnValue(
+        new Map([['scheduled-sync', existingJob]]),
+      );
 
-      job.updateInstitutionSchedule('institution-001', settings);
+      await job.updateInstitutionSchedule('institution-001', settings);
 
       expect(existingJob.stop).toHaveBeenCalled();
       expect(mockSchedulerRegistry.deleteCronJob).toHaveBeenCalledWith(

@@ -204,9 +204,9 @@ export class JsonSyncSettingsRepository implements ISyncSettingsRepository {
   ): Promise<InstitutionSyncSettings> {
     const allSettings = await this.findAllInstitutionSettings();
 
-    // 既存データを検索
+    // 既存データを検索（institutionIdのみで検索）
     const existingIndex = allSettings.findIndex(
-      (s) => s.id === settings.id || s.institutionId === settings.institutionId,
+      (s) => s.institutionId === settings.institutionId,
     );
 
     if (existingIndex >= 0) {

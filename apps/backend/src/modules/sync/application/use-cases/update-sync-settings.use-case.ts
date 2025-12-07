@@ -59,13 +59,9 @@ export class UpdateSyncSettingsUseCase {
     this.logger.log('同期設定更新を開始');
 
     // 既存設定を取得
-    let settings = await this.syncSettingsRepository.find();
-
-    // 設定が存在しない場合は新規作成
-    if (!settings) {
-      this.logger.log('同期設定が存在しないため、新規作成');
-      settings = SyncSettings.createDefault();
-    }
+    const oldSettings = await this.syncSettingsRepository.find();
+    let settings = oldSettings ?? SyncSettings.createDefault();
+    const oldDefaultInterval = settings.defaultInterval;
 
     // デフォルト同期間隔を更新
     if (dto.defaultInterval) {
@@ -111,7 +107,12 @@ export class UpdateSyncSettingsUseCase {
     }
 
     // デフォルト設定を利用している全金融機関の次回同期時刻を再計算
-    await this.recalculateInstitutionNextSyncTimes(settings);
+    if (oldSettings && !settings.defaultInterval.equals(oldDefaultInterval)) {
+      await this.recalculateInstitutionNextSyncTimes(
+        settings,
+        oldDefaultInterval,
+      );
+    }
 
     // 設定を保存
     const savedSettings = await this.syncSettingsRepository.save(settings);
@@ -127,9 +128,11 @@ export class UpdateSyncSettingsUseCase {
    * デフォルト設定を利用している全金融機関の次回同期時刻を再計算
    *
    * @param settings - 更新された同期設定
+   * @param oldDefaultInterval - 更新前のデフォルト同期間隔
    */
   private async recalculateInstitutionNextSyncTimes(
     settings: SyncSettings,
+    oldDefaultInterval: SyncInterval,
   ): Promise<void> {
     this.logger.log(
       'デフォルト設定を利用している全金融機関の次回同期時刻を再計算',
@@ -139,11 +142,8 @@ export class UpdateSyncSettingsUseCase {
       await this.syncSettingsRepository.findAllInstitutionSettings();
 
     for (const institutionSettings of allInstitutionSettings) {
-      // デフォルト設定を利用している場合（個別設定がない場合）
-      // または、個別設定がデフォルト設定と同じ場合
-      // 注: 個別設定が明示的に設定されていない場合は、デフォルト設定を使用
-      // ここでは、intervalがデフォルト設定と同じ場合に再計算
-      if (institutionSettings.interval.equals(settings.defaultInterval)) {
+      // 古いデフォルト設定を利用している場合（個別設定がない場合）に更新
+      if (institutionSettings.interval.equals(oldDefaultInterval)) {
         const updated = institutionSettings.updateInterval(
           settings.defaultInterval,
         );

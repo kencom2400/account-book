@@ -102,7 +102,7 @@ export class UpdateInstitutionSyncSettingsUseCase {
       );
 
     // スケジュールを更新
-    this.schedulerService.updateInstitutionSchedule(
+    await this.schedulerService.updateInstitutionSchedule(
       institutionId,
       savedSettings,
     );

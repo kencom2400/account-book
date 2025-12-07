@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  HttpException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +31,7 @@ import {
 import { SyncInterval } from '../../domain/value-objects/sync-interval.vo';
 import { SyncIntervalType } from '../../domain/enums/sync-interval-type.enum';
 import { TimeUnit } from '../../domain/enums/time-unit.enum';
+import { InstitutionSyncSettings } from '../../domain/entities/institution-sync-settings.entity';
 
 /**
  * 同期設定コントローラー
@@ -158,6 +160,9 @@ export class SyncSettingsController {
       return response;
     } catch (error) {
       this.logger.error('全体設定更新エラー', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
@@ -304,6 +309,9 @@ export class SyncSettingsController {
         `金融機関設定更新エラー: institutionId=${institutionId}`,
         error,
       );
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error instanceof Error) {
         throw new BadRequestException(error.message);
       }
@@ -332,7 +340,7 @@ export class SyncSettingsController {
    * InstitutionSyncSettingsをDTOに変換
    */
   private toInstitutionSyncSettingsDto(
-    settings: import('../../domain/entities/institution-sync-settings.entity').InstitutionSyncSettings,
+    settings: InstitutionSyncSettings,
   ): InstitutionSyncSettingsResponseDto {
     return {
       id: settings.id,
