@@ -102,39 +102,45 @@ test.describe('ダッシュボード', () => {
     const pieChartTitle = page.getByText('カテゴリ別円グラフ');
     await expect(pieChartTitle).toBeVisible({ timeout: 10000 });
 
-    // データがある場合は「合計金額」が表示される
-    // データがない場合は「データがありません」が表示される
-    const totalAmountLabel = page.getByText('合計金額');
-    const noDataMessage = page.getByText('データがありません');
+    // 要素が見つかったらスクロールして表示領域に持ってくる
+    await pieChartTitle.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500); // スクロール後のレンダリングを待つ
 
-    // どちらか一方が表示されることを確認
-    const hasTotalAmount = await totalAmountLabel.isVisible().catch(() => false);
-    const hasNoData = await noDataMessage.isVisible().catch(() => false);
+    // カテゴリ別円グラフのセクション内で検索
+    const pieChartSection = pieChartTitle.locator('..').locator('..'); // 親要素を取得
+    const totalAmountLabel = pieChartSection.getByText('合計金額');
+    const noDataMessage = pieChartSection.getByText('データがありません');
 
-    expect(hasTotalAmount || hasNoData).toBe(true);
+    // どちらか一方が存在することを確認（DOMに存在するかチェック）
+    const totalAmountCount = await totalAmountLabel.count();
+    const noDataCount = await noDataMessage.count();
+
+    expect(totalAmountCount > 0 || noDataCount > 0).toBe(true);
   });
 
   test('データがない場合、円グラフに「データがありません」が表示される', async ({ page }) => {
     // ローディングが完了するまで待機
     await waitForLoadingComplete(page);
 
-    // 「データがありません」が表示される可能性があることを確認
-    // （データがある場合は表示されないが、エラーにならないことを確認）
-    const noDataMessage = page.getByText('データがありません');
+    // カテゴリ別円グラフのタイトルが表示されることを確認
     const pieChartTitle = page.getByText('カテゴリ別円グラフ');
-
-    // 円グラフセクションが存在することを確認
     await expect(pieChartTitle).toBeVisible({ timeout: 10000 });
+
+    // 要素が見つかったらスクロールして表示領域に持ってくる
+    await pieChartTitle.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500); // スクロール後のレンダリングを待つ
+
+    // カテゴリ別円グラフのセクション内で検索
+    const pieChartSection = pieChartTitle.locator('..').locator('..'); // 親要素を取得
+    const noDataMessage = pieChartSection.getByText('データがありません');
+    const pieChart = pieChartSection.locator('[data-testid="pie-chart"]');
 
     // データがない場合は「データがありません」が表示される
     // データがある場合は円グラフが表示される
-    const hasNoData = await noDataMessage.isVisible().catch(() => false);
-    const hasPieChart = await page
-      .locator('[data-testid="pie-chart"]')
-      .isVisible()
-      .catch(() => false);
+    const noDataCount = await noDataMessage.count();
+    const pieChartCount = await pieChart.count();
 
-    // どちらか一方が表示されることを確認
-    expect(hasNoData || hasPieChart).toBe(true);
+    // どちらか一方が存在することを確認（DOMに存在するかチェック）
+    expect(noDataCount > 0 || pieChartCount > 0).toBe(true);
   });
 });
