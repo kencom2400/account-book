@@ -62,7 +62,7 @@ export class SyncIntervalDto {
 /**
  * 同期設定レスポンスDTO
  */
-export class SyncSettingsResponseDto {
+export class SyncSettingsDataDto {
   @ApiProperty({
     description: 'デフォルト同期間隔',
     type: SyncIntervalDto,
@@ -294,6 +294,6 @@ export interface SyncSettingsErrorResponseDto {
   };
 }
 
-export type SyncSettingsResponseDto<T> =
+export type SyncSettingsResponseDtoType<T> =
   | SyncSettingsSuccessResponseDto<T>
   | SyncSettingsErrorResponseDto;

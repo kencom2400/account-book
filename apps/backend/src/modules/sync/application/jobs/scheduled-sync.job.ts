@@ -271,7 +271,7 @@ export class ScheduledSyncJob implements ISchedulerService {
       }
 
       // 新しいスケジュールでジョブを再登録
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
       const job = new CronJob(
         cronExpression,
         () => {
@@ -282,11 +282,9 @@ export class ScheduledSyncJob implements ISchedulerService {
         timezone,
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.schedulerRegistry.addCronJob(this.jobName, job);
 
       if (this.enabled) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         void job.start();
       }
 

@@ -21,7 +21,7 @@ import { GetInstitutionSyncSettingsUseCase } from '../../application/use-cases/g
 import { GetAllInstitutionSyncSettingsUseCase } from '../../application/use-cases/get-all-institution-sync-settings.use-case';
 import { UpdateInstitutionSyncSettingsUseCase } from '../../application/use-cases/update-institution-sync-settings.use-case';
 import {
-  SyncSettingsResponseDto,
+  SyncSettingsDataDto,
   UpdateSyncSettingsRequestDto,
   InstitutionSyncSettingsResponseDto,
   UpdateInstitutionSyncSettingsRequestDto,
@@ -65,32 +65,31 @@ export class SyncSettingsController {
   @ApiResponse({
     status: 200,
     description: '取得成功',
-    type: SyncSettingsResponseDto,
+    type: SyncSettingsDataDto,
   })
   @ApiResponse({ status: 401, description: '認証エラー' })
   @ApiResponse({ status: 500, description: 'サーバーエラー' })
   async getSyncSettings(): Promise<
-    SyncSettingsSuccessResponseDto<SyncSettingsResponseDto>
+    SyncSettingsSuccessResponseDto<SyncSettingsDataDto>
   > {
     this.logger.log('全体設定取得リクエスト');
 
     try {
       const settings = await this.getSyncSettingsUseCase.execute();
 
-      const response: SyncSettingsSuccessResponseDto<SyncSettingsResponseDto> =
-        {
-          success: true,
-          data: {
-            defaultInterval: this.toSyncIntervalDto(settings.defaultInterval),
-            wifiOnly: settings.wifiOnly,
-            batterySavingMode: settings.batterySavingMode,
-            autoRetry: settings.autoRetry,
-            maxRetryCount: settings.maxRetryCount,
-            nightModeSuspend: settings.nightModeSuspend,
-            nightModeStart: settings.nightModeStart,
-            nightModeEnd: settings.nightModeEnd,
-          },
-        };
+      const response: SyncSettingsSuccessResponseDto<SyncSettingsDataDto> = {
+        success: true,
+        data: {
+          defaultInterval: this.toSyncIntervalDto(settings.defaultInterval),
+          wifiOnly: settings.wifiOnly,
+          batterySavingMode: settings.batterySavingMode,
+          autoRetry: settings.autoRetry,
+          maxRetryCount: settings.maxRetryCount,
+          nightModeSuspend: settings.nightModeSuspend,
+          nightModeStart: settings.nightModeStart,
+          nightModeEnd: settings.nightModeEnd,
+        },
+      };
 
       return response;
     } catch (error) {
@@ -110,14 +109,14 @@ export class SyncSettingsController {
   @ApiResponse({
     status: 200,
     description: '更新成功',
-    type: SyncSettingsResponseDto,
+    type: SyncSettingsDataDto,
   })
   @ApiResponse({ status: 400, description: 'バリデーションエラー' })
   @ApiResponse({ status: 401, description: '認証エラー' })
   @ApiResponse({ status: 500, description: 'サーバーエラー' })
   async updateSyncSettings(
     @Body() dto: UpdateSyncSettingsRequestDto,
-  ): Promise<SyncSettingsSuccessResponseDto<SyncSettingsResponseDto>> {
+  ): Promise<SyncSettingsSuccessResponseDto<SyncSettingsDataDto>> {
     this.logger.log('全体設定更新リクエスト');
 
     try {
@@ -142,20 +141,19 @@ export class SyncSettingsController {
 
       const settings = await this.updateSyncSettingsUseCase.execute(useCaseDto);
 
-      const response: SyncSettingsSuccessResponseDto<SyncSettingsResponseDto> =
-        {
-          success: true,
-          data: {
-            defaultInterval: this.toSyncIntervalDto(settings.defaultInterval),
-            wifiOnly: settings.wifiOnly,
-            batterySavingMode: settings.batterySavingMode,
-            autoRetry: settings.autoRetry,
-            maxRetryCount: settings.maxRetryCount,
-            nightModeSuspend: settings.nightModeSuspend,
-            nightModeStart: settings.nightModeStart,
-            nightModeEnd: settings.nightModeEnd,
-          },
-        };
+      const response: SyncSettingsSuccessResponseDto<SyncSettingsDataDto> = {
+        success: true,
+        data: {
+          defaultInterval: this.toSyncIntervalDto(settings.defaultInterval),
+          wifiOnly: settings.wifiOnly,
+          batterySavingMode: settings.batterySavingMode,
+          autoRetry: settings.autoRetry,
+          maxRetryCount: settings.maxRetryCount,
+          nightModeSuspend: settings.nightModeSuspend,
+          nightModeStart: settings.nightModeStart,
+          nightModeEnd: settings.nightModeEnd,
+        },
+      };
 
       return response;
     } catch (error) {

@@ -99,6 +99,7 @@ describe('SyncSettingsController', () => {
       expect(result.data.defaultInterval.type).toBe(
         settings.defaultInterval.type,
       );
+      expect(result.data).toBeInstanceOf(Object);
       expect(result.data.wifiOnly).toBe(settings.wifiOnly);
       expect(result.data.batterySavingMode).toBe(settings.batterySavingMode);
       expect(result.data.autoRetry).toBe(settings.autoRetry);
