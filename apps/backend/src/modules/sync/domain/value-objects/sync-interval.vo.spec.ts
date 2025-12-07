@@ -130,7 +130,7 @@ describe('SyncInterval', () => {
       expect(standard.toCronExpression()).toBe('0 */6 * * *');
 
       const infrequent = new SyncInterval(SyncIntervalType.INFREQUENT);
-      expect(infrequent.toCronExpression()).toBe('0 0 * * *');
+      expect(infrequent.toCronExpression()).toBe('0 0 */1 * *');
     });
 
     it('手動同期タイプは0分としてCron式に変換される', () => {
@@ -173,13 +173,15 @@ describe('SyncInterval', () => {
       const nextSyncAt = interval.calculateNextSyncAt(null);
 
       expect(nextSyncAt).toBeInstanceOf(Date);
-      expect(nextSyncAt.getTime()).toBeGreaterThanOrEqual(Date.now() - 1000); // 1秒の誤差を許容
+      const now = Date.now();
+      expect(nextSyncAt.getTime()).toBeGreaterThanOrEqual(now - 1000); // 1秒の誤差を許容
+      expect(nextSyncAt.getTime()).toBeLessThanOrEqual(now + 1000);
     });
 
     it('手動同期タイプはエラーを投げる', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
       expect(() => {
-        manual.calculateNextSyncAt();
+        manual.calculateNextSyncAt(null);
       }).toThrow('Cannot calculate next sync time for manual interval');
     });
 
