@@ -6508,3 +6508,403 @@ const monthNum = parseInt(monthPart, 10);
 **参照**: PR #376 - Issue #374: FR-024 年間収支グラフをページに統合（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---
+
+### 13-XX. E2Eテストの品質向上（PR #378）
+
+**学習元**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘）
+
+#### 13-XX-1. テストの意図を明確にする
+
+**問題**: テストのアサーションが曖昧で、テストの意図が不明確
+
+**❌ 悪い例**:
+
+```typescript
+test('データが空の場合に適切なメッセージが表示される', async ({ page }) => {
+  // ...
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+
+  // グラフが表示されてもテストが成功してしまう
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+test('データが空の年に「データがありません」と表示される', async ({ page }) => {
+  // ...
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+
+  if (hasNoDataMessage) {
+    // メッセージが表示されていればテスト成功
+    await expect(page.getByText('データがありません')).toBeVisible();
+  } else {
+    // グラフが表示された場合は、テスト対象のデータがないためスキップ
+    test.skip(
+      `最も古い年 (${oldestYear}) にデータが存在するため、空データの場合のテストをスキップします。`
+    );
+  }
+});
+```
+
+**理由**:
+
+- テストの意図が明確になり、テストの信頼性が向上
+- データが存在しない場合にテストをスキップすることで、テストの目的を明確にできる
+
+#### 13-XX-2. APIエラーをモックして確実にテストする
+
+**問題**: エラーハンドリングテストが、実際のエラーを発生させずにテストできていない
+
+**❌ 悪い例**:
+
+```typescript
+test('APIエラー時にエラーメッセージが表示される', async ({ page }) => {
+  // エラーが発生していない場合は、エラーメッセージは表示されない
+  const errorMessage = page.getByText('年間データの取得に失敗しました');
+  const errorVisible = await errorMessage.isVisible().catch(() => false);
+
+  // エラーが表示されている場合のみ確認（確実にテストできない）
+  if (errorVisible) {
+    await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+  }
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+test('APIエラー時にエラーメッセージと再試行ボタンが表示される', async ({ page }) => {
+  // APIリクエストをインターセプトしてエラーをシミュレート
+  await page.route('**/api/aggregation/yearly-balance*', (route) => {
+    void route.abort();
+  });
+
+  // 年を変更してAPIエラーを発生させる
+  const yearSelect = page.getByLabel('年:');
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  await yearSelect.selectOption(String(previousYear));
+
+  // エラーメッセージが表示されるのを待機
+  const errorMessage = page.getByText('年間データの取得に失敗しました');
+  await expect(errorMessage).toBeVisible();
+
+  // 再試行ボタンが表示されることを確認
+  await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+});
+```
+
+**理由**:
+
+- `page.route()`を使用してAPIエラーを確実にシミュレートできる
+- エラーハンドリングを確実にテストできる
+- テストの信頼性と決定的性が向上
+
+#### 13-XX-3. 重複テストの削除
+
+**問題**: 同じ内容をテストする複数のテストが存在し、冗長になっている
+
+**❌ 悪い例**:
+
+```typescript
+test('エラー時に適切なメッセージが表示される', async ({ page }) => {
+  // エラーメッセージの表示要素が存在することを確認
+});
+
+test('APIエラー時にエラーメッセージが表示される', async ({ page }) => {
+  // 同じ内容をテストしている
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// 重複しているテストを1つに統合
+test('APIエラー時にエラーメッセージと再試行ボタンが表示される', async ({ page }) => {
+  // APIエラーをモックして確実にテスト
+});
+```
+
+**理由**:
+
+- テストの重複を避け、責務を明確にする
+- テストの保守性が向上
+
+#### 13-XX-4. ヘルパー関数でコード重複を削減
+
+**問題**: テストファイル全体で、同じロジックが繰り返し使用されている
+
+**❌ 悪い例**:
+
+```typescript
+test('テスト1', async ({ page }) => {
+  const hasNoData = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  if (hasNoData) {
+    test.skip();
+  }
+});
+
+test('テスト2', async ({ page }) => {
+  const hasNoData = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  if (hasNoData) {
+    test.skip();
+  }
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// ヘルパー関数を定義
+async function skipIfNoData(page: Page): Promise<void> {
+  const noData = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  if (noData) {
+    test.skip('データがないためテストをスキップします。');
+  }
+}
+
+test('テスト1', async ({ page }) => {
+  await skipIfNoData(page);
+});
+
+test('テスト2', async ({ page }) => {
+  await skipIfNoData(page);
+});
+```
+
+**理由**:
+
+- コードの重複を排除し、DRY原則に従う
+- 保守性が向上し、将来のメンテナンスが容易になる
+
+#### 13-XX-5. アサーションを強化してテストの信頼性を向上
+
+**問題**: 凡例のアサーションが弱く、テストの意図を十分に検証できていない
+
+**❌ 悪い例**:
+
+```typescript
+// 凡例のいずれか1つが存在すればテストが成功してしまう
+const legendText = await page.locator('text').allTextContents();
+const hasIncome = legendText.some((text) => text.includes('収入'));
+const hasExpense = legendText.some((text) => text.includes('支出'));
+const hasBalance = legendText.some((text) => text.includes('収支'));
+
+expect(hasIncome || hasExpense || hasBalance).toBe(true);
+```
+
+**✅ 良い例**:
+
+```typescript
+// 3つの凡例すべてが表示されることを個別にアサート
+await expect(page.getByText('収入', { exact: true })).toBeVisible();
+await expect(page.getByText('支出', { exact: true })).toBeVisible();
+await expect(page.getByText('収支', { exact: true })).toBeVisible();
+```
+
+**理由**:
+
+- テストの意図（収入・支出・収支の3つの凡例が表示されること）を十分に検証できる
+- テストの信頼性が向上
+
+#### 13-XX-6. セレクタの範囲を限定してテストの安定性を向上
+
+**問題**: `page.textContent('body')`を使用すると、範囲が広すぎてテストが不安定になる
+
+**❌ 悪い例**:
+
+```typescript
+// ページ全体のテキストコンテンツを取得（範囲が広すぎる）
+const pageText = await page.textContent('body');
+const hasBalancePositive = pageText?.includes('収支（プラス）') ?? false;
+const hasBalanceNegative = pageText?.includes('収支（マイナス）') ?? false;
+```
+
+**✅ 良い例**:
+
+```typescript
+// より範囲を限定したセレクタを使用
+const hasBalancePositive = await page
+  .getByText('収支（プラス）')
+  .isVisible()
+  .catch(() => false);
+const hasBalanceNegative = await page
+  .getByText('収支（マイナス）')
+  .isVisible()
+  .catch(() => false);
+```
+
+**理由**:
+
+- セレクタの範囲を限定することで、テストの信頼性と安定性が向上
+- 意図しないテキストを拾ってしまう可能性を排除
+
+**参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘）
+
+#### 13-XX-7. マジックストリングを定数化して保守性を向上
+
+**問題**: テストコード内で文字列リテラルが複数回使用されており、タイポのリスクや将来の変更が困難
+
+**❌ 悪い例**:
+
+```typescript
+test('テスト', async ({ page }) => {
+  await page.waitForSelector('text=読み込み中...', { state: 'hidden' });
+  const noData = await page.getByText('データがありません').isVisible();
+  const error = await page.getByText('年間データの取得に失敗しました').isVisible();
+  await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// 定数定義
+const LOADING_TEXT = '読み込み中...';
+const NO_DATA_TEXT = 'データがありません';
+const API_ERROR_TEXT = '年間データの取得に失敗しました';
+const RETRY_BUTTON_NAME = '再試行';
+
+test('テスト', async ({ page }) => {
+  await page.waitForSelector(`text=${LOADING_TEXT}`, { state: 'hidden' });
+  const noData = await page.getByText(NO_DATA_TEXT).isVisible();
+  const error = await page.getByText(API_ERROR_TEXT).isVisible();
+  await expect(page.getByRole('button', { name: RETRY_BUTTON_NAME })).toBeVisible();
+});
+```
+
+**理由**:
+
+- タイポを防ぎ、一貫性を保つ
+- 将来の変更（テキストの修正など）が容易になる
+- コードの可読性が向上
+
+#### 13-XX-8. ヘルパー関数を利用してコード重複を削減
+
+**問題**: 同じロジックが複数のテストで重複しており、保守性が低下
+
+**❌ 悪い例**:
+
+```typescript
+test('テスト1', async ({ page }) => {
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+});
+
+test('テスト2', async ({ page }) => {
+  // 同じロジックが重複
+  const hasNoDataMessage = await page
+    .getByText('データがありません')
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+});
+```
+
+**✅ 良い例**:
+
+```typescript
+// ヘルパー関数を定義
+async function expectDataOrGraphDisplayed(page: Page): Promise<void> {
+  const hasNoDataMessage = await page
+    .getByText(NO_DATA_TEXT)
+    .isVisible()
+    .catch(() => false);
+  const hasGraph = await page
+    .locator('svg')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  expect(hasNoDataMessage || hasGraph).toBe(true);
+}
+
+test('テスト1', async ({ page }) => {
+  await expectDataOrGraphDisplayed(page);
+});
+
+test('テスト2', async ({ page }) => {
+  await expectDataOrGraphDisplayed(page);
+});
+```
+
+**理由**:
+
+- コードの重複を排除し、DRY原則に従う
+- 保守性が向上し、将来のメンテナンスが容易になる
+- テストの意図が明確になる
+
+#### 13-XX-9. optionのvalue属性を直接取得して堅牢性を向上
+
+**問題**: 正規表現でテキストコンテンツをパースするのは脆弱で、フォーマット変更に弱い
+
+**❌ 悪い例**:
+
+```typescript
+// 正規表現でテキストコンテンツをパース（脆弱）
+const options = await yearSelect.locator('option').allTextContents();
+const years = options
+  .map((opt) => {
+    const match = opt.match(/(\d+)年/);
+    return match ? parseInt(match[1], 10) : null;
+  })
+  .filter((year): year is number => year !== null)
+  .sort((a, b) => a - b);
+```
+
+**✅ 良い例**:
+
+```typescript
+// value属性を直接取得（堅牢）
+const optionValues = await yearSelect
+  .locator('option')
+  .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+const years = optionValues
+  .map((v) => parseInt(v, 10))
+  .filter((v) => !isNaN(v))
+  .sort((a, b) => a - b);
+```
+
+**理由**:
+
+- フォーマット変更に強く、より堅牢な実装になる
+- 正規表現パースよりもシンプルで理解しやすい
+- DOMの構造に直接アクセスすることで、テストの信頼性が向上
+
+**参照**: PR #378 - Issue #375: FR-024 年間収支グラフのE2Eテスト追加（Gemini Code Assistレビュー指摘 - 第2回）
+
+---
