@@ -40,6 +40,7 @@
 │  - GetSyncSettingsUseCase               │
 │  - UpdateSyncSettingsUseCase            │
 │  - GetInstitutionSyncSettingsUseCase    │
+│  - GetAllInstitutionSyncSettingsUseCase  │
 │  - UpdateInstitutionSyncSettingsUseCase │
 └──────────────┬──────────────────────────┘
                │

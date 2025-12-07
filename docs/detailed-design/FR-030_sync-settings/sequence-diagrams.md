@@ -353,7 +353,7 @@ sequenceDiagram
 
     User->>FE: 不正な設定値を入力して「保存」
     FE->>FE: バリデーション（一部）
-    FE->>API: PUT /api/sync-settings<br/>{invalidData}
+    FE->>API: PATCH /api/sync-settings<br/>{invalidData}
 
     API->>API: リクエスト検証
     API->>UC: execute(dto)
@@ -378,7 +378,7 @@ sequenceDiagram
     participant Repo as SyncSettingsRepository
 
     User->>FE: 存在しない金融機関IDで設定更新
-    FE->>API: PUT /api/sync-settings/institutions/invalid-id<br/>{dto}
+    FE->>API: PATCH /api/sync-settings/institutions/invalid-id<br/>{dto}
 
     API->>API: リクエスト検証
     API->>UC: execute("invalid-id", dto)
@@ -406,7 +406,7 @@ sequenceDiagram
     participant Repo as SyncSettingsRepository
 
     User->>FE: 設定を保存
-    FE->>API: PUT /api/sync-settings<br/>{dto}
+    FE->>API: PATCH /api/sync-settings<br/>{dto}
 
     API->>UC: execute(dto)
     UC->>Repo: save(settings)
