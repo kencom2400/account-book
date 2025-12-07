@@ -261,6 +261,25 @@ describe('CalculateAssetBalanceUseCase', () => {
       expect(result.institutions[2]?.icon).toBe('📈');
     });
 
+    it('should return default icon for unknown institution type', async () => {
+      const accounts = [createAccount('acc_1', 'inst_1', '普通預金', 1000000)];
+      // @ts-expect-error - テストのため、未知のInstitutionTypeを渡す
+      const institutions = [
+        createInstitution(
+          'inst_1',
+          'Unknown',
+          'UNKNOWN' as InstitutionType,
+          accounts,
+        ),
+      ];
+
+      institutionRepository.findAll.mockResolvedValue(institutions);
+
+      const result = await useCase.execute();
+
+      expect(result.institutions[0]?.icon).toBe('🏛️');
+    });
+
     it('should handle institution with multiple accounts', async () => {
       const accounts = [
         createAccount('acc_1', 'inst_1', '普通預金', 1000000),

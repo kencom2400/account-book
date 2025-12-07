@@ -571,5 +571,16 @@ describe('AggregationController', () => {
         new Date('2025-01-15'),
       );
     });
+
+    it('should handle error when use case throws', async () => {
+      const error = new Error('Database error');
+      calculateAssetBalanceUseCase.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.getAssetBalance({
+          asOfDate: '2025-01-15',
+        }),
+      ).rejects.toThrow('Database error');
+    });
   });
 });
