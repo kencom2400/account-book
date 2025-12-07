@@ -21,6 +21,7 @@ interface PieChartData {
   percentage: number;
   color: string;
   categoryId?: string;
+  [key: string]: string | number | undefined;
 }
 
 // カラーパレット
@@ -251,9 +252,11 @@ export function CategoryPieChart({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percentage }: { name: string; percentage: number }) =>
-                  `${name} ${typeof percentage === 'number' ? percentage.toFixed(1) : '0.0'}%`
-                }
+                label={(props: { name?: string; percent?: number }) => {
+                  const name = props.name || '';
+                  const percent = props.percent || 0;
+                  return `${name} ${(percent * 100).toFixed(1)}%`;
+                }}
                 outerRadius={120}
                 innerRadius={60}
                 fill="#8884d8"
