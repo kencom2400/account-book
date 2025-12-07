@@ -373,5 +373,133 @@ describe('CalculateTrendAnalysisUseCase', () => {
       expect(result.targetType).toBe(TrendTargetType.BALANCE);
       expect(result.movingAverage.period).toBe(MovingAveragePeriod.SIX_MONTHS);
     });
+
+    it('should skip transactions outside the target period', async () => {
+      const transactions: TransactionEntity[] = [];
+      // 対象期間: 2024年1月〜6月
+      // 対象期間内の取引
+      for (let month = 1; month <= 6; month++) {
+        const date = new Date(2024, month - 1, 15);
+        transactions.push(
+          createTransaction(
+            `tx_${month}`,
+            100000,
+            CategoryType.INCOME,
+            'cat_1',
+            'inst_1',
+            date,
+          ),
+        );
+      }
+      // 対象期間外の取引（2023年12月、2024年7月）
+      transactions.push(
+        createTransaction(
+          'tx_outside_1',
+          50000,
+          CategoryType.INCOME,
+          'cat_1',
+          'inst_1',
+          new Date(2023, 11, 15), // 2023年12月
+        ),
+      );
+      transactions.push(
+        createTransaction(
+          'tx_outside_2',
+          50000,
+          CategoryType.INCOME,
+          'cat_1',
+          'inst_1',
+          new Date(2024, 6, 15), // 2024年7月
+        ),
+      );
+
+      repository.findByDateRange.mockResolvedValue(transactions);
+
+      const result = await useCase.execute(
+        2024,
+        1,
+        2024,
+        6,
+        TrendTargetType.INCOME,
+      );
+
+      // 対象期間外の取引は集計されない
+      expect(result.actual).toHaveLength(6);
+      // 各月の収入は100000円（対象期間外の50000円は含まれない）
+      expect(result.actual.every((a) => a.value === 100000)).toBe(true);
+    });
+
+    it('should generate insights for high coefficient of variation', async () => {
+      const transactions: TransactionEntity[] = [];
+      // 変動が大きいデータ（変動係数 > 0.3）
+      const amounts = [100000, 500000, 50000, 400000, 80000, 600000];
+      for (let month = 1; month <= 6; month++) {
+        const date = new Date(2024, month - 1, 15);
+        transactions.push(
+          createTransaction(
+            `tx_${month}`,
+            amounts[month - 1] ?? 100000,
+            CategoryType.EXPENSE,
+            'cat_expense',
+            'inst_1',
+            date,
+          ),
+        );
+      }
+
+      repository.findByDateRange.mockResolvedValue(transactions);
+
+      const result = await useCase.execute(
+        2024,
+        1,
+        2024,
+        6,
+        TrendTargetType.EXPENSE,
+        MovingAveragePeriod.THREE_MONTHS,
+      );
+
+      // 変動が大きい場合のインサイトが生成される
+      const volatilityInsight = result.insights.find(
+        (i) => i.title === '変動が大きいです',
+      );
+      expect(volatilityInsight).toBeDefined();
+      expect(volatilityInsight?.severity).toBe('info');
+    });
+
+    it('should generate insights for stable trend', async () => {
+      const transactions: TransactionEntity[] = [];
+      // 安定したデータ（変動が小さい）
+      for (let month = 1; month <= 12; month++) {
+        const date = new Date(2024, month - 1, 15);
+        transactions.push(
+          createTransaction(
+            `tx_${month}`,
+            100000, // すべて同じ値
+            CategoryType.INCOME,
+            'cat_income',
+            'inst_1',
+            date,
+          ),
+        );
+      }
+
+      repository.findByDateRange.mockResolvedValue(transactions);
+
+      const result = await useCase.execute(
+        2024,
+        1,
+        2024,
+        12,
+        TrendTargetType.INCOME,
+        MovingAveragePeriod.SIX_MONTHS,
+      );
+
+      // 安定した傾向のインサイトが生成される
+      const stableInsight = result.insights.find(
+        (i) => i.title === '安定した傾向です',
+      );
+      expect(stableInsight).toBeDefined();
+      expect(stableInsight?.severity).toBe('info');
+    });
   });
 });

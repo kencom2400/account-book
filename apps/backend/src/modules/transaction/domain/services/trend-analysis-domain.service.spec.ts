@@ -116,6 +116,52 @@ describe('TrendAnalysisDomainService', () => {
       expect(result.points[4].value).toBeCloseTo(100, 0);
     });
 
+    it('should handle denominator zero case (all data values are same)', () => {
+      // 全てのデータが同じ値の場合、xDiffが全て0になるため、denominatorが0になる
+      // この場合、denominator === 0の分岐が実行され、slopeは0として扱われる
+      const data = [50, 50, 50, 50, 50];
+      const dates = ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05'];
+
+      const result = service.calculateTrendLine(data, dates);
+
+      // denominator === 0の場合、slopeは0になる（105行目の分岐）
+      expect(result.slope).toBe(0);
+      expect(result.intercept).toBe(50);
+      expect(result.points).toHaveLength(5);
+      // すべてのポイントが同じ値（interceptと同じ）
+      expect(result.points.every((p) => p.value === 50)).toBe(true);
+    });
+
+    it('should handle single data point (denominator zero)', () => {
+      // データが1点のみの場合もdenominatorが0になる可能性がある
+      const data = [100];
+      const dates = ['2024-01'];
+
+      const result = service.calculateTrendLine(data, dates);
+
+      // 1点のみの場合、xDiffが0になるため、denominatorが0になる
+      expect(result.slope).toBe(0);
+      expect(result.intercept).toBe(100);
+      expect(result.points).toHaveLength(1);
+      expect(result.points[0].value).toBe(100);
+    });
+
+    it('should handle denominator zero case (all x values are same)', () => {
+      // 全てのデータが同じ値の場合、denominatorが0になる
+      // この場合、slopeは0として扱われる
+      const data = [50, 50, 50, 50, 50];
+      const dates = ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05'];
+
+      const result = service.calculateTrendLine(data, dates);
+
+      // denominator === 0の場合、slopeは0になる
+      expect(result.slope).toBe(0);
+      expect(result.intercept).toBe(50);
+      expect(result.points).toHaveLength(5);
+      // すべてのポイントが同じ値（interceptと同じ）
+      expect(result.points.every((p) => p.value === 50)).toBe(true);
+    });
+
     it('should handle empty arrays', () => {
       const data: number[] = [];
       const dates: string[] = [];
