@@ -11,6 +11,8 @@ import { GetEventByIdUseCase } from './application/use-cases/get-event-by-id.use
 import { GetEventsByDateRangeUseCase } from './application/use-cases/get-events-by-date-range.use-case';
 import { LinkTransactionToEventUseCase } from './application/use-cases/link-transaction-to-event.use-case';
 import { UnlinkTransactionFromEventUseCase } from './application/use-cases/unlink-transaction-from-event.use-case';
+import { SuggestRelatedTransactionsUseCase } from './application/use-cases/suggest-related-transactions.use-case';
+import { GetEventFinancialSummaryUseCase } from './application/use-cases/get-event-financial-summary.use-case';
 import { EVENT_REPOSITORY } from './domain/repositories/event.repository.interface';
 import { TransactionModule } from '../transaction/transaction.module';
 
@@ -37,6 +39,8 @@ import { TransactionModule } from '../transaction/transaction.module';
     GetEventsByDateRangeUseCase,
     LinkTransactionToEventUseCase,
     UnlinkTransactionFromEventUseCase,
+    SuggestRelatedTransactionsUseCase,
+    GetEventFinancialSummaryUseCase,
   ],
   exports: [EVENT_REPOSITORY],
 })
