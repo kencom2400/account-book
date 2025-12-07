@@ -113,7 +113,7 @@ sequenceDiagram
 
     User->>FE: 設定を変更して「保存」ボタンクリック
     FE->>FE: バリデーション
-    FE->>API: PUT /api/sync-settings<br/>{UpdateSyncSettingsRequestDto}
+    FE->>API: PATCH /api/sync-settings<br/>{UpdateSyncSettingsRequestDto}
 
     API->>API: リクエスト検証
     API->>UC: execute(dto)
@@ -133,7 +133,7 @@ sequenceDiagram
         API-->>FE: 400 Bad Request<br/>{error: {...}}
         FE-->>User: エラーメッセージ表示
     else バリデーション成功
-        UC->>UC: 次回同期時刻を計算
+        UC->>UC: デフォルト設定を利用する全金融機関の次回同期時刻を再計算
         UC->>Repo: save(settings)
         Repo-->>UC: SyncSettings
 
@@ -161,15 +161,16 @@ sequenceDiagram
    - 夜間モード開始時刻 < 終了時刻のチェック
 
 3. **API リクエスト**
-   - エンドポイント: `PUT /api/sync-settings`
-   - RequestDTO: `UpdateSyncSettingsRequestDto`
+   - エンドポイント: `PATCH /api/sync-settings`（部分更新をサポート）
+   - RequestDTO: `UpdateSyncSettingsRequestDto`（すべてのフィールドが任意）
 
 4. **設定更新**
    - 既存設定を更新、または新規作成
    - バリデーション実行
+   - デフォルト設定を利用している全金融機関の次回同期時刻を再計算
 
 5. **スケジュール更新**
-   - ScheduledSyncJobのスケジュールを動的に更新
+   - ISchedulerServiceを通じてスケジュールを動的に更新
    - SchedulerRegistryを使用してCronJobを再登録
 
 6. **レスポンス**
@@ -178,7 +179,7 @@ sequenceDiagram
 
 ---
 
-## 金融機関設定取得のフロー
+## 金融機関設定取得のフロー（全件取得）
 
 ### 概要
 
@@ -203,7 +204,7 @@ sequenceDiagram
     actor User as ユーザー
     participant FE as Frontend
     participant API as SyncSettingsController
-    participant UC as GetInstitutionSyncSettingsUseCase
+    participant UC as GetAllInstitutionSyncSettingsUseCase
     participant Repo as SyncSettingsRepository
 
     User->>FE: 金融機関設定タブを開く
@@ -276,7 +277,7 @@ sequenceDiagram
 
     User->>FE: 金融機関の設定を変更して「保存」ボタンクリック
     FE->>FE: バリデーション
-    FE->>API: PUT /api/sync-settings/institutions/:id<br/>{UpdateInstitutionSyncSettingsRequestDto}
+    FE->>API: PATCH /api/sync-settings/institutions/:id<br/>{UpdateInstitutionSyncSettingsRequestDto}
 
     API->>API: リクエスト検証
     API->>UC: execute(institutionId, dto)

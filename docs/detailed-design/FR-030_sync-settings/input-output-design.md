@@ -16,13 +16,13 @@
 
 ### 同期設定 - FR-030
 
-| Method | Path                                  | 説明                       | 認証 |
-| ------ | ------------------------------------- | -------------------------- | ---- |
-| GET    | `/api/sync-settings`                  | 全体設定を取得             | 必要 |
-| PATCH  | `/api/sync-settings`                  | 全体設定を更新（部分更新） | 必要 |
-| GET    | `/api/sync-settings/institutions`     | 全金融機関の設定を取得     | 必要 |
-| GET    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得   | 必要 |
-| PUT    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新   | 必要 |
+| Method | Path                                  | 説明                                 | 認証 |
+| ------ | ------------------------------------- | ------------------------------------ | ---- |
+| GET    | `/api/sync-settings`                  | 全体設定を取得                       | 必要 |
+| PATCH  | `/api/sync-settings`                  | 全体設定を更新（部分更新）           | 必要 |
+| GET    | `/api/sync-settings/institutions`     | 全金融機関の設定を取得               | 必要 |
+| GET    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得             | 必要 |
+| PATCH  | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新（部分更新） | 必要 |
 
 ### 補足
 
@@ -131,7 +131,7 @@ Content-Type: application/json
 
 | フィールド        | 型              | 必須 | 説明                                 | 制約                                   |
 | ----------------- | --------------- | ---- | ------------------------------------ | -------------------------------------- |
-| defaultInterval   | SyncIntervalDto | ✅   | デフォルト同期間隔                   | -                                      |
+| defaultInterval   | SyncIntervalDto | ⬜   | デフォルト同期間隔                   | -                                      |
 | wifiOnly          | boolean         | ⬜   | Wi-Fi接続時のみ自動同期              | -                                      |
 | batterySavingMode | boolean         | ⬜   | バッテリー節約モード時は同期を控える | -                                      |
 | autoRetry         | boolean         | ⬜   | エラー時は自動リトライ               | -                                      |
@@ -328,9 +328,9 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
-### PUT /api/sync-settings/institutions/:id
+### PATCH /api/sync-settings/institutions/:id
 
-特定金融機関の同期設定を更新します。
+特定金融機関の同期設定を更新します（部分更新をサポートします）。
 
 **Request Headers:**
 
@@ -344,6 +344,8 @@ Content-Type: application/json
 | パラメータ | 型     | 説明       |
 | ---------- | ------ | ---------- |
 | id         | string | 金融機関ID |
+
+**注意**: このエンドポイントは部分更新をサポートします。リクエストボディに含まれるフィールドのみが更新され、未指定のフィールドは既存の値が保持されます。
 
 **Request Body:**
 

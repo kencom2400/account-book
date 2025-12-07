@@ -547,13 +547,25 @@ docs/detailed-design/
   - キーセレクター関数を引数に取る汎用メソッドを作成することで、コードの重複を削減できる
   - 例: `aggregateByCategory`と`aggregateByInstitution`は、汎用的な`aggregateBy`メソッドに統合可能
 
-### 13-12. Onion Architecture原則の徹底（Gemini PR#343レビューから学習）
+### 13-12. Onion Architecture原則の徹底（Gemini PR#343、PR#387レビューから学習）
 
 - [ ] **Domain層のValue Object設計**
   - Domain層のValue Objectには、Application層で取得する情報（カテゴリ名など）を含めない
   - Domain層は`categoryId`のみを知っているべきで、`categoryName`はApplication層で`CategoryRepository`から取得してDTOに設定する
   - 例: `SubcategoryAggregationData`には`subcategoryId`のみを含め、`subcategoryName`は含めない
   - これにより、関心事の分離が明確になり、Onion Architecture原則に準拠する
+
+- [ ] **Application層からInfrastructure層への直接依存の禁止（Gemini PR#387から学習）**
+  - Application層のUseCaseがInfrastructure層の具象クラス（例: `ScheduledSyncJob`）に直接依存してはならない
+  - Application層にインターフェース（例: `ISchedulerService`）を定義し、UseCaseはそのインターフェースに依存する
+  - Infrastructure層の具象クラスがそのインターフェースを実装する構成にする
+  - これにより、依存関係の方向が正しくなり、テストや将来の変更が容易になる
+  - クラス図とシーケンス図の両方で依存関係を正しく表現する
+
+- [ ] **UseCaseの責務の単一化（Gemini PR#387から学習）**
+  - 単一取得と全件取得を同じUseCaseで処理するのではなく、別々のUseCaseに分割する
+  - 例: `GetInstitutionSyncSettingsUseCase`（単一取得）と`GetAllInstitutionSyncSettingsUseCase`（全件取得）に分割
+  - これにより、各UseCaseの責務が単一になり、型安全性が向上する
 
 - [ ] **APIレスポンスの一貫性**
   - クライアント側のデータハンドリングをシンプルにするため、レスポンス形式を統一する

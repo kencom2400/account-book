@@ -191,7 +191,12 @@ classDiagram
 
     class GetInstitutionSyncSettingsUseCase {
         -ISyncSettingsRepository repository
-        +execute(institutionId?) Promise~InstitutionSyncSettingsDto[]~
+        +execute(institutionId) Promise~InstitutionSyncSettingsDto~
+    }
+
+    class GetAllInstitutionSyncSettingsUseCase {
+        -ISyncSettingsRepository repository
+        +execute() Promise~InstitutionSyncSettingsDto[]~
     }
 
     class UpdateInstitutionSyncSettingsUseCase {
@@ -244,6 +249,7 @@ classDiagram
     UpdateSyncSettingsUseCase --> ISyncSettingsRepository
     UpdateSyncSettingsUseCase --> ISchedulerService
     GetInstitutionSyncSettingsUseCase --> ISyncSettingsRepository
+    GetAllInstitutionSyncSettingsUseCase --> ISyncSettingsRepository
     UpdateInstitutionSyncSettingsUseCase --> ISyncSettingsRepository
     UpdateInstitutionSyncSettingsUseCase --> ISchedulerService
 ```
@@ -265,9 +271,15 @@ classDiagram
 
 #### GetInstitutionSyncSettingsUseCase
 
-- **責務**: 金融機関ごとの設定取得
+- **責務**: 特定金融機関の設定取得
 - **主要メソッド**:
-  - `execute(institutionId?)`: 指定された金融機関の設定を取得（institutionIdが未指定の場合は全件取得）
+  - `execute(institutionId)`: 指定された金融機関の設定を取得
+
+#### GetAllInstitutionSyncSettingsUseCase
+
+- **責務**: 全金融機関の設定取得
+- **主要メソッド**:
+  - `execute()`: 全金融機関の設定を取得
 
 #### UpdateInstitutionSyncSettingsUseCase
 
@@ -349,10 +361,12 @@ classDiagram
         -GetSyncSettingsUseCase getSyncSettingsUseCase
         -UpdateSyncSettingsUseCase updateSyncSettingsUseCase
         -GetInstitutionSyncSettingsUseCase getInstitutionSyncSettingsUseCase
+        -GetAllInstitutionSyncSettingsUseCase getAllInstitutionSyncSettingsUseCase
         -UpdateInstitutionSyncSettingsUseCase updateInstitutionSyncSettingsUseCase
         +getSettings() Promise~SyncSettingsResponseDto~
         +updateSettings(dto) Promise~SyncSettingsResponseDto~
-        +getInstitutionSettings(institutionId?) Promise~InstitutionSyncSettingsResponseDto~
+        +getInstitutionSettings(institutionId) Promise~InstitutionSyncSettingsResponseDto~
+        +getAllInstitutionSettings() Promise~InstitutionSyncSettingsResponseDto[]~
         +updateInstitutionSettings(institutionId, dto) Promise~InstitutionSyncSettingsResponseDto~
     }
 
@@ -402,6 +416,7 @@ classDiagram
     SyncSettingsController --> GetSyncSettingsUseCase
     SyncSettingsController --> UpdateSyncSettingsUseCase
     SyncSettingsController --> GetInstitutionSyncSettingsUseCase
+    SyncSettingsController --> GetAllInstitutionSyncSettingsUseCase
     SyncSettingsController --> UpdateInstitutionSyncSettingsUseCase
 ```
 
@@ -412,9 +427,10 @@ classDiagram
 - **責務**: HTTP リクエスト/レスポンスの処理、バリデーション
 - **主要メソッド**:
   - `getSettings()`: 全体設定を取得
-  - `updateSettings(dto)`: 全体設定を更新
-  - `getInstitutionSettings(institutionId?)`: 金融機関設定を取得
-  - `updateInstitutionSettings(institutionId, dto)`: 金融機関設定を更新
+  - `updateSettings(dto)`: 全体設定を更新（部分更新）
+  - `getInstitutionSettings(institutionId)`: 特定金融機関の設定を取得
+  - `getAllInstitutionSettings()`: 全金融機関の設定を取得
+  - `updateInstitutionSettings(institutionId, dto)`: 金融機関設定を更新（部分更新）
 
 ---
 

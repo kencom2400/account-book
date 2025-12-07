@@ -211,13 +211,13 @@ interface InstitutionSyncSettings {
 
 ### 主要エンドポイント
 
-| メソッド | エンドポイント                        | 説明                     |
-| -------- | ------------------------------------- | ------------------------ |
-| GET      | `/api/sync-settings`                  | 全体設定を取得           |
-| PUT      | `/api/sync-settings`                  | 全体設定を更新           |
-| GET      | `/api/sync-settings/institutions`     | 全金融機関の設定を取得   |
-| GET      | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得 |
-| PUT      | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新 |
+| メソッド | エンドポイント                        | 説明                                 |
+| -------- | ------------------------------------- | ------------------------------------ |
+| GET      | `/api/sync-settings`                  | 全体設定を取得                       |
+| PATCH    | `/api/sync-settings`                  | 全体設定を更新（部分更新）           |
+| GET      | `/api/sync-settings/institutions`     | 全金融機関の設定を取得               |
+| GET      | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を取得             |
+| PATCH    | `/api/sync-settings/institutions/:id` | 特定金融機関の設定を更新（部分更新） |
 
 ## セキュリティ考慮事項
 
@@ -238,7 +238,7 @@ interface InstitutionSyncSettings {
 1. **バリデーションエラー** (400 Bad Request)
    - 同期間隔の範囲外（5分〜30日）
    - 夜間モード時刻の形式エラー
-   - 夜間モード開始時刻 >= 終了時刻
+   - 夜間モード開始時刻 === 終了時刻（不正な設定）
 
 2. **認証エラー** (401 Unauthorized)
    - トークン無効
