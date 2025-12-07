@@ -6,6 +6,7 @@ import { MonthlySummaryCard } from '@/components/dashboard/MonthlySummaryCard';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { MonthlyBalanceGraph } from '@/components/dashboard/MonthlyBalanceGraph';
 import { YearlyBalanceGraph } from '@/components/dashboard/YearlyBalanceGraph';
+import { CategoryPieChartContainer } from '@/components/dashboard/CategoryPieChartContainer';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { getTransactions, getMonthlySummary, type MonthlySummary } from '@/lib/api/transactions';
 import {
@@ -147,6 +148,11 @@ export default function DashboardPage(): React.JSX.Element {
             <MonthlyBalanceGraph data={balanceData} />
           </div>
         )}
+
+        {/* カテゴリ別円グラフセクション */}
+        <div className="mb-8">
+          <CategoryPieChartContainer />
+        </div>
 
         {/* 年間グラフセクション */}
         <div className="mb-8">
