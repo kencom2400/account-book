@@ -9,57 +9,12 @@ import {
   TrendTargetType,
   MovingAveragePeriod,
 } from '../../presentation/dto/get-trend-analysis.dto';
-
-/**
- * DataPoint DTO
- */
-export interface DataPointDto {
-  date: string; // YYYY-MM
-  value: number;
-}
-
-/**
- * TrendLineDto
- */
-export interface TrendLineDto {
-  slope: number;
-  intercept: number;
-  points: DataPointDto[];
-}
-
-/**
- * TrendAnalysisResponseDto
- */
-export interface TrendAnalysisResponseDto {
-  period: {
-    start: string; // YYYY-MM
-    end: string; // YYYY-MM
-  };
-  targetType: TrendTargetType;
-  actual: DataPointDto[];
-  movingAverage: {
-    period: number;
-    data: DataPointDto[];
-  };
-  trendLine: TrendLineDto;
-  statistics: {
-    mean: number;
-    standardDeviation: number;
-    coefficientOfVariation: number;
-  };
-  insights: InsightDto[];
-}
-
-/**
- * InsightDto
- */
-export interface InsightDto {
-  type: 'trend' | 'pattern' | 'anomaly';
-  severity: 'info' | 'warning' | 'critical';
-  title: string;
-  description: string;
-  recommendation?: string;
-}
+import type {
+  TrendAnalysisResponseDto,
+  TrendLineDto,
+  InsightDto,
+  DataPointDto,
+} from '../../presentation/dto/trend-analysis-response.dto';
 
 /**
  * CalculateTrendAnalysisUseCase

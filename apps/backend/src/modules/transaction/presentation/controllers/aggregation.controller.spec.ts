@@ -7,7 +7,7 @@ import { CalculateSubcategoryAggregationUseCase } from '../../application/use-ca
 import { CalculateInstitutionSummaryUseCase } from '../../application/use-cases/calculate-institution-summary.use-case';
 import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calculate-asset-balance.use-case';
 import { CalculateTrendAnalysisUseCase } from '../../application/use-cases/calculate-trend-analysis.use-case';
-import type { TrendAnalysisResponseDto } from '../../application/use-cases/calculate-trend-analysis.use-case';
+import type { TrendAnalysisResponseDto } from '../dto/trend-analysis-response.dto';
 import type { MonthlyBalanceResponseDto } from '../../application/use-cases/calculate-monthly-balance.use-case';
 import type { YearlyBalanceResponseDto } from '../../application/use-cases/calculate-yearly-balance.use-case';
 import type { CategoryAggregationResponseDto } from '../../application/use-cases/calculate-category-aggregation.use-case';

@@ -18,7 +18,7 @@ import { CalculateAssetBalanceUseCase } from '../../application/use-cases/calcul
 import type { AssetBalanceResponseDto } from '../dto/asset-balance-response.dto';
 import { GetAssetBalanceDto } from '../dto/get-asset-balance.dto';
 import { CalculateTrendAnalysisUseCase } from '../../application/use-cases/calculate-trend-analysis.use-case';
-import type { TrendAnalysisResponseDto } from '../../application/use-cases/calculate-trend-analysis.use-case';
+import type { TrendAnalysisResponseDto } from '../dto/trend-analysis-response.dto';
 import { GetTrendAnalysisDto } from '../dto/get-trend-analysis.dto';
 
 /**
