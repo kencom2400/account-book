@@ -1,8 +1,8 @@
 # テストカバレッジレポート
 
-> **最終更新**: 2025-12-06 23:33:12  
-> **コミット**: `e6ff0d5`  
-> **ブランチ**: `feature/issue-374-feature-fr-024`
+> **最終更新**: 2025-12-07 14:01:56  
+> **コミット**: `2d58892`  
+> **ブランチ**: `feature/issue-73-feature-fr-026`
 
 ## 概要
 
@@ -18,9 +18,9 @@
 
 | テスト種類      | Lines  | Statements | Functions | Branches |
 | --------------- | ------ | ---------- | --------- | -------- |
-| Backend (Unit)  | 77.45% | 72.79%     | 75.66%    | 61.59%   |
-| Backend (E2E)   | 0.96%  | 0.96%      | 0.71%     | 1.92%    |
-| Frontend (Unit) | 39.15% | 39.15%     | 39.76%    | 33.42%   |
+| Backend (Unit)  | 79.05% | 74.36%     | 76.33%    | 64.12%   |
+| Backend (E2E)   | 5.47%  | 5.47%      | 5.00%     | 10.58%   |
+| Frontend (Unit) | 42.88% | 42.88%     | 42.95%    | 36.75%   |
 | Frontend (E2E)  | N/A    | N/A        | N/A       | N/A      |
 
 ## Backend モジュール別詳細
@@ -35,7 +35,7 @@
 | institution | 68.63% | 68.63%     | 48.46%    | 61.20%   | 🟢 Low |
 | securities  | 86.07% | 86.07%     | 85.23%    | 69.64%   | 🟢 Low |
 | sync        | 60.60% | 60.60%     | 57.47%    | 50.00%   | 🟢 Low |
-| transaction | 84.44% | 84.44%     | 80.49%    | 74.73%   | 🟢 Low |
+| transaction | 85.27% | 85.27%     | 81.52%    | 76.13%   | 🟢 Low |
 
 ### E2E Tests
 
@@ -55,9 +55,9 @@
 
 | モジュール | Lines  | Statements | Functions | Branches | 優先度    |
 | ---------- | ------ | ---------- | --------- | -------- | --------- |
-| app        | 14.40% | 14.40%     | 13.70%    | 5.34%    | 🔴 High   |
-| components | 49.47% | 49.47%     | 48.08%    | 43.15%   | 🟡 Medium |
-| lib        | 38.52% | 38.52%     | 34.92%    | 29.58%   | 🟡 Medium |
+| app        | 14.83% | 14.83%     | 13.70%    | 5.34%    | 🔴 High   |
+| components | 54.45% | 54.45%     | 52.16%    | 46.81%   | 🟢 Low    |
+| lib        | 37.01% | 37.01%     | 33.85%    | 28.77%   | 🟡 Medium |
 | stores     | 43.14% | 43.14%     | 47.62%    | 7.14%    | 🟡 Medium |
 | utils      | 19.30% | 19.30%     | 25.00%    | 21.62%   | 🔴 High   |
 
@@ -69,7 +69,7 @@
 
 **Frontend:**
 
-- app (Lines: 14.40%, Stmts: 14.40%, Funcs: 13.70%, Branches: 5.34%)
+- app (Lines: 14.83%, Stmts: 14.83%, Funcs: 13.70%, Branches: 5.34%)
 - utils (Lines: 19.30%, Stmts: 19.30%, Funcs: 25.00%, Branches: 21.62%)
 
 ### 🟡 Medium Priority (30% ≤ カバレッジ < 50%)
@@ -78,8 +78,7 @@
 
 **Frontend:**
 
-- components (Lines: 49.47%, Stmts: 49.47%, Funcs: 48.08%, Branches: 43.15%)
-- lib (Lines: 38.52%, Stmts: 38.52%, Funcs: 34.92%, Branches: 29.58%)
+- lib (Lines: 37.01%, Stmts: 37.01%, Funcs: 33.85%, Branches: 28.77%)
 - stores (Lines: 43.14%, Stmts: 43.14%, Funcs: 47.62%, Branches: 7.14%)
 
 ### 🟢 Low Priority (カバレッジ ≥ 50%)
@@ -92,9 +91,11 @@
 - institution (Lines: 68.63%, Stmts: 68.63%, Funcs: 48.46%, Branches: 61.20%)
 - securities (Lines: 86.07%, Stmts: 86.07%, Funcs: 85.23%, Branches: 69.64%)
 - sync (Lines: 60.60%, Stmts: 60.60%, Funcs: 57.47%, Branches: 50.00%)
-- transaction (Lines: 84.44%, Stmts: 84.44%, Funcs: 80.49%, Branches: 74.73%)
+- transaction (Lines: 85.27%, Stmts: 85.27%, Funcs: 81.52%, Branches: 76.13%)
 
 **Frontend:**
+
+- components (Lines: 54.45%, Stmts: 54.45%, Funcs: 52.16%, Branches: 46.81%)
 
 ## 詳細レポート
 
