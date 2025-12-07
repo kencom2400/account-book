@@ -14,6 +14,7 @@ describe('InstitutionController', () => {
   let controller: InstitutionController;
   let createUseCase: jest.Mocked<CreateInstitutionUseCase>;
   let getUseCase: jest.Mocked<GetInstitutionsUseCase>;
+  let updateUseCase: jest.Mocked<UpdateInstitutionUseCase>;
   let deleteUseCase: jest.Mocked<DeleteInstitutionUseCase>;
 
   const mockCredentials = new EncryptedCredentials(
@@ -72,6 +73,7 @@ describe('InstitutionController', () => {
     controller = module.get<InstitutionController>(InstitutionController);
     createUseCase = module.get(CreateInstitutionUseCase);
     getUseCase = module.get(GetInstitutionsUseCase);
+    updateUseCase = module.get(UpdateInstitutionUseCase);
     deleteUseCase = module.get(DeleteInstitutionUseCase);
   });
 
@@ -100,6 +102,68 @@ describe('InstitutionController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('update', () => {
+    it('should update an institution', async () => {
+      const updatedInstitution = new InstitutionEntity(
+        mockInstitution.id,
+        'Updated Bank',
+        mockInstitution.type,
+        mockInstitution.credentials,
+        mockInstitution.isConnected,
+        mockInstitution.lastSyncedAt,
+        mockInstitution.accounts,
+        mockInstitution.createdAt,
+        new Date(),
+      );
+
+      updateUseCase.execute.mockResolvedValue(updatedInstitution);
+
+      const result = await controller.update(mockInstitution.id, {
+        name: 'Updated Bank',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(updatedInstitution.toJSON());
+      expect(updateUseCase.execute).toHaveBeenCalledWith(mockInstitution.id, {
+        name: 'Updated Bank',
+      });
+    });
+
+    it('should update institution credentials', async () => {
+      const updatedInstitution = new InstitutionEntity(
+        mockInstitution.id,
+        mockInstitution.name,
+        mockInstitution.type,
+        mockInstitution.credentials,
+        mockInstitution.isConnected,
+        mockInstitution.lastSyncedAt,
+        mockInstitution.accounts,
+        mockInstitution.createdAt,
+        new Date(),
+      );
+
+      updateUseCase.execute.mockResolvedValue(updatedInstitution);
+
+      const result = await controller.update(mockInstitution.id, {
+        credentials: {
+          bankCode: '9999',
+          branchCode: '999',
+          accountNumber: '9999999',
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(updatedInstitution.toJSON());
+      expect(updateUseCase.execute).toHaveBeenCalledWith(mockInstitution.id, {
+        credentials: {
+          bankCode: '9999',
+          branchCode: '999',
+          accountNumber: '9999999',
+        },
+      });
     });
   });
 
