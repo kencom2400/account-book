@@ -1,4 +1,4 @@
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AccountType } from '@account-book/types';
 
 /**
  * AccountAssetDto
@@ -7,7 +7,7 @@ import { InstitutionType } from '@account-book/types';
 export interface AccountAssetDto {
   accountId: string;
   accountName: string;
-  accountType: string;
+  accountType: AccountType;
   balance: number;
   currency: string;
 }

@@ -5,7 +5,7 @@ import type { IInstitutionRepository } from '../../../institution/domain/reposit
 import { AssetBalanceDomainService } from '../../domain/services/asset-balance-domain.service';
 import { InstitutionEntity } from '../../../institution/domain/entities/institution.entity';
 import { AccountEntity } from '../../../institution/domain/entities/account.entity';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AccountType } from '@account-book/types';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
 
 describe('CalculateAssetBalanceUseCase', () => {
@@ -214,18 +214,24 @@ describe('CalculateAssetBalanceUseCase', () => {
 
       const result = await useCase.execute();
 
-      expect(result.institutions[0]?.accounts[0]?.accountType).toBe('SAVINGS');
+      expect(result.institutions[0]?.accounts[0]?.accountType).toBe(
+        AccountType.SAVINGS,
+      );
       expect(result.institutions[0]?.accounts[1]?.accountType).toBe(
-        'TIME_DEPOSIT',
+        AccountType.TIME_DEPOSIT,
       );
       expect(result.institutions[0]?.accounts[2]?.accountType).toBe(
-        'CREDIT_CARD',
+        AccountType.CREDIT_CARD,
       );
-      expect(result.institutions[0]?.accounts[3]?.accountType).toBe('STOCK');
+      expect(result.institutions[0]?.accounts[3]?.accountType).toBe(
+        AccountType.STOCK,
+      );
       expect(result.institutions[0]?.accounts[4]?.accountType).toBe(
-        'MUTUAL_FUND',
+        AccountType.MUTUAL_FUND,
       );
-      expect(result.institutions[0]?.accounts[5]?.accountType).toBe('OTHER');
+      expect(result.institutions[0]?.accounts[5]?.accountType).toBe(
+        AccountType.OTHER,
+      );
     });
 
     it('should return correct icons for institution types', async () => {

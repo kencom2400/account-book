@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { AssetBalanceCard } from '../AssetBalanceCard';
 import type { AssetBalanceResponse } from '@/lib/api/aggregation';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AccountType } from '@account-book/types';
 
 describe('AssetBalanceCard', () => {
   const mockData: AssetBalanceResponse = {
@@ -19,7 +19,7 @@ describe('AssetBalanceCard', () => {
           {
             accountId: 'acc-001',
             accountName: '普通預金',
-            accountType: 'SAVINGS',
+            accountType: AccountType.SAVINGS,
             balance: 1234567,
             currency: 'JPY',
           },

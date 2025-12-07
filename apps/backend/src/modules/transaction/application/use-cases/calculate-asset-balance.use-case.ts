@@ -4,7 +4,7 @@ import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens'
 import { AssetBalanceDomainService } from '../../domain/services/asset-balance-domain.service';
 import { InstitutionEntity } from '../../../institution/domain/entities/institution.entity';
 import { AccountEntity } from '../../../institution/domain/entities/account.entity';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AccountType } from '@account-book/types';
 import type {
   AccountAssetDto,
   InstitutionAssetDto,
@@ -133,28 +133,28 @@ export class CalculateAssetBalanceUseCase {
    * @param accountName 口座名
    * @returns 口座タイプ
    */
-  private inferAccountType(accountName: string): string {
+  private inferAccountType(accountName: string): AccountType {
     const name = accountName.toLowerCase();
     // より具体的なキーワードを優先的に判定
     // 「クレジットカード株式」のような場合を避けるため、より具体的なキーワードを先に判定
     if (name.includes('普通') || name.includes('当座')) {
-      return 'SAVINGS';
+      return AccountType.SAVINGS;
     }
     if (name.includes('定期')) {
-      return 'TIME_DEPOSIT';
+      return AccountType.TIME_DEPOSIT;
     }
     // 株式は「クレジットカード」より先に判定（「クレジットカード株式」の場合を避ける）
     if (name.includes('株式') || name.includes('stock')) {
-      return 'STOCK';
+      return AccountType.STOCK;
     }
     if (name.includes('投資信託') || name.includes('mutual')) {
-      return 'MUTUAL_FUND';
+      return AccountType.MUTUAL_FUND;
     }
     // カードは最後に判定（「クレジットカード株式」のような場合を避けるため）
     if (name.includes('カード') || name.includes('card')) {
-      return 'CREDIT_CARD';
+      return AccountType.CREDIT_CARD;
     }
-    return 'OTHER';
+    return AccountType.OTHER;
   }
 
   /**

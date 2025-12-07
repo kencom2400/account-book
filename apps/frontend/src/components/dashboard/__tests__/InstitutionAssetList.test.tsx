@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { InstitutionAssetList } from '../InstitutionAssetList';
 import type { InstitutionAssetDto } from '@/lib/api/aggregation';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AccountType } from '@account-book/types';
 
 describe('InstitutionAssetList', () => {
   const mockInstitutions: InstitutionAssetDto[] = [
@@ -15,14 +15,14 @@ describe('InstitutionAssetList', () => {
         {
           accountId: 'acc-001',
           accountName: '普通預金',
-          accountType: 'SAVINGS',
+          accountType: AccountType.SAVINGS,
           balance: 1234567,
           currency: 'JPY',
         },
         {
           accountId: 'acc-002',
           accountName: '定期預金',
-          accountType: 'TIME_DEPOSIT',
+          accountType: AccountType.TIME_DEPOSIT,
           balance: 2000000,
           currency: 'JPY',
         },
@@ -39,7 +39,7 @@ describe('InstitutionAssetList', () => {
         {
           accountId: 'acc-003',
           accountName: 'メインカード',
-          accountType: 'CREDIT_CARD',
+          accountType: AccountType.CREDIT_CARD,
           balance: -123456,
           currency: 'JPY',
         },

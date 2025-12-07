@@ -53,9 +53,9 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 {
   "success": true,
   "data": {
-    "totalAssets": 5234567,
+    "totalAssets": 5358023,
     "totalLiabilities": 123456,
-    "netWorth": 5111111,
+    "netWorth": 5234567,
     "institutions": [
       {
         "institutionId": "inst-001",
@@ -79,7 +79,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": 3234567,
-        "percentage": 61.8
+        "percentage": 60.4
       },
       {
         "institutionId": "inst-002",
@@ -120,7 +120,7 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
           }
         ],
         "total": 2123456,
-        "percentage": 40.6
+        "percentage": 39.6
       }
     ],
     "asOfDate": "2025-01-27T00:00:00.000Z",
@@ -162,13 +162,13 @@ GET /api/aggregation/asset-balance?asOfDate=2025-01-15
 
 **AccountAssetDto:**
 
-| フィールド  | 型     | 説明       |
-| ----------- | ------ | ---------- |
-| accountId   | string | 口座ID     |
-| accountName | string | 口座名     |
-| accountType | string | 口座タイプ |
-| balance     | number | 残高       |
-| currency    | string | 通貨       |
+| フィールド  | 型          | 説明                                                                        |
+| ----------- | ----------- | --------------------------------------------------------------------------- |
+| accountId   | string      | 口座ID                                                                      |
+| accountName | string      | 口座名                                                                      |
+| accountType | AccountType | 口座タイプ（SAVINGS, TIME_DEPOSIT, CREDIT_CARD, STOCK, MUTUAL_FUND, OTHER） |
+| balance     | number      | 残高                                                                        |
+| currency    | string      | 通貨                                                                        |
 
 **AssetComparisonDto:**
 
@@ -218,9 +218,18 @@ export interface InstitutionAssetDto {
 export interface AccountAssetDto {
   accountId: string;
   accountName: string;
-  accountType: string;
+  accountType: AccountType;
   balance: number;
   currency: string;
+}
+
+export enum AccountType {
+  SAVINGS = 'SAVINGS',
+  TIME_DEPOSIT = 'TIME_DEPOSIT',
+  CREDIT_CARD = 'CREDIT_CARD',
+  STOCK = 'STOCK',
+  MUTUAL_FUND = 'MUTUAL_FUND',
+  OTHER = 'OTHER',
 }
 
 export interface AssetComparisonDto {

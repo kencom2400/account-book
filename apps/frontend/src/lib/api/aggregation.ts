@@ -7,7 +7,7 @@
  * FR-026: 金融機関別資産残高表示
  */
 
-import { CategoryAmount, CategoryType, InstitutionType } from '@account-book/types';
+import { CategoryAmount, CategoryType, InstitutionType, AccountType } from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -178,7 +178,7 @@ export interface YearlyBalanceResponse {
 export interface AccountAssetDto {
   accountId: string;
   accountName: string;
-  accountType: string;
+  accountType: AccountType;
   balance: number;
   currency: string;
 }

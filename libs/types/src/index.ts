@@ -9,3 +9,4 @@ export * from './sync.types';
 export * from './subcategory.types';
 export * from './enums/category-type.enum';
 export * from './credit-card.types';
+export * from './account.types';
