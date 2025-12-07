@@ -133,19 +133,20 @@ export class TrendAnalysisDomainService {
   /**
    * 標準偏差を計算
    * @param data 月別の金額配列
+   * @param mean 平均値（省略可能、指定されない場合は計算）
    * @returns 標準偏差
    */
-  calculateStandardDeviation(data: number[]): number {
+  calculateStandardDeviation(data: number[], mean?: number): number {
     if (data.length === 0) {
       return 0;
     }
 
     const n = data.length;
-    const mean = data.reduce((sum, val) => sum + val, 0) / n;
+    const dataMean = mean ?? data.reduce((sum, val) => sum + val, 0) / n;
 
     // 分散を計算
     const variance =
-      data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+      data.reduce((sum, val) => sum + Math.pow(val - dataMean, 2), 0) / n;
 
     // 標準偏差 = √分散
     return Math.sqrt(variance);
@@ -154,19 +155,21 @@ export class TrendAnalysisDomainService {
   /**
    * 変動係数（Coefficient of Variation）を計算
    * @param data 月別の金額配列
+   * @param mean 平均値（省略可能、指定されない場合は計算）
    * @returns 変動係数
    */
-  calculateCoefficientOfVariation(data: number[]): number {
+  calculateCoefficientOfVariation(data: number[], mean?: number): number {
     if (data.length === 0) {
       return 0;
     }
 
-    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
-    if (mean === 0) {
+    const dataMean =
+      mean ?? data.reduce((sum, val) => sum + val, 0) / data.length;
+    if (dataMean === 0) {
       return 0;
     }
 
-    const stdDev = this.calculateStandardDeviation(data);
-    return stdDev / mean;
+    const stdDev = this.calculateStandardDeviation(data, dataMean);
+    return stdDev / dataMean;
   }
 }

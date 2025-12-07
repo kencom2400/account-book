@@ -222,6 +222,17 @@ describe('TrendAnalysisDomainService', () => {
 
       expect(result).toBe(0);
     });
+
+    it('should use provided mean when given', () => {
+      const data = [100, 110, 120, 130, 140];
+      const providedMean = 120;
+
+      const result = service.calculateStandardDeviation(data, providedMean);
+
+      expect(result).toBeGreaterThan(0);
+      // 提供されたmeanを使用して計算される
+      expect(result).toBeCloseTo(14.14, 1);
+    });
   });
 
   describe('calculateCoefficientOfVariation', () => {
@@ -259,6 +270,20 @@ describe('TrendAnalysisDomainService', () => {
       const result = service.calculateCoefficientOfVariation(data);
 
       expect(result).toBe(0);
+    });
+
+    it('should use provided mean when given', () => {
+      const data = [100, 110, 120, 130, 140];
+      const providedMean = 120;
+
+      const result = service.calculateCoefficientOfVariation(
+        data,
+        providedMean,
+      );
+
+      expect(result).toBeGreaterThan(0);
+      // 提供されたmeanを使用して計算される
+      expect(result).toBeCloseTo(0.118, 2);
     });
   });
 });

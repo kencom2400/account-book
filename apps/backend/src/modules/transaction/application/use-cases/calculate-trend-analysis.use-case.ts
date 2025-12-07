@@ -171,9 +171,12 @@ export class CalculateTrendAnalysisUseCase {
     // 統計情報を計算
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const standardDeviation =
-      this.trendAnalysisDomainService.calculateStandardDeviation(values);
+      this.trendAnalysisDomainService.calculateStandardDeviation(values, mean);
     const coefficientOfVariation =
-      this.trendAnalysisDomainService.calculateCoefficientOfVariation(values);
+      this.trendAnalysisDomainService.calculateCoefficientOfVariation(
+        values,
+        mean,
+      );
 
     // インサイトを生成
     const insights = this.generateInsights(
