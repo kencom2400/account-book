@@ -7587,4 +7587,130 @@ it('カテゴリタイプ変更コールバックが呼び出される', async (
 
 **参照**: PR #381 - Issue #54: FR-025 カテゴリ別円グラフ表示機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
 
+### 13-XX. 詳細設計書のレスポンス例の整合性（PR #382）
+
+**学習元**: PR #382 - FR-026 金融機関別資産残高表示機能の詳細設計書（Geminiレビュー指摘）
+
+#### レスポンス例の数値の整合性チェック
+
+**問題**: レスポンス例のJSONデータに不整合がある（totalAssetsの計算が合わない、percentageの計算が合わない）
+
+**解決策**: レスポンス例の数値は必ず整合性を確認する
+
+```typescript
+// ❌ 悪い例: 数値が不整合
+{
+  "totalAssets": 5234567,  // 実際の合計: 5358023
+  "institutions": [
+    {
+      "total": 3234567,
+      "percentage": 61.8  // 実際: 60.4%
+    }
+  ]
+}
+
+// ✅ 良い例: 数値を正確に計算
+{
+  "totalAssets": 5358023,  // 1234567 + 2000000 + 1500000 + 623456
+  "institutions": [
+    {
+      "total": 3234567,
+      "percentage": 60.4  // 3234567 / 5358023 * 100
+    }
+  ]
+}
+```
+
+**理由**:
+
+- 実装時の混乱を防ぐ
+- 設計書の信頼性を保つ
+- レビュー時の指摘を減らす
+
+#### accountTypeなどの特定の値を持つプロパティはenum型で定義
+
+**問題**: `accountType`が`string`型として定義されているが、特定の値（SAVINGS, TIME_DEPOSITなど）を取る
+
+**解決策**: 型安全性を高めるため、`enum`型として定義する
+
+```typescript
+// ❌ 悪い例: string型
+interface AccountAssetDto {
+  accountType: string; // 予期せぬ値が入る可能性
+}
+
+// ✅ 良い例: enum型
+export enum AccountType {
+  SAVINGS = 'SAVINGS',
+  TIME_DEPOSIT = 'TIME_DEPOSIT',
+  CREDIT_CARD = 'CREDIT_CARD',
+  STOCK = 'STOCK',
+  MUTUAL_FUND = 'MUTUAL_FUND',
+  OTHER = 'OTHER',
+}
+
+interface AccountAssetDto {
+  accountType: AccountType; // 型安全
+}
+```
+
+**理由**:
+
+- 型安全性を向上
+- 予期せぬ値の使用を防ぐ
+- IDEの補完が効く
+
+#### XSS対策の記述は具体的に
+
+**問題**: 「フロントエンド側で対応」という抽象的な記述
+
+**解決策**: 具体的な対策方法を明記する
+
+```markdown
+<!-- ❌ 悪い例: 抽象的 -->
+
+- [ ] XSS対策（フロントエンド側で対応）
+
+<!-- ✅ 良い例: 具体的 -->
+
+- [x] XSS対策（ReactのJSXによる自動エスケープを基本とする。ユーザーが入力したHTMLを意図的に表示する必要がある場合は、DOMPurifyなどのライブラリを使用してサニタイズ処理を必須とする）
+```
+
+**理由**:
+
+- 実装者が具体的な対策を理解しやすくなる
+- セキュリティ要件が明確になる
+- 実装時の迷いを減らす
+
+#### クラス図の重複定義を避ける
+
+**問題**: 同じDTOが複数のレイヤのクラス図で再定義されている
+
+**解決策**: 定義済みのDTOは再定義せず、注釈で参照を明記する
+
+```mermaid
+<!-- ❌ 悪い例: 重複定義 -->
+classDiagram
+    class AssetBalanceResponseDto {
+        +number totalAssets
+        ...
+    }
+    note for AssetBalanceResponseDto "Presentation層で定義済み"
+
+<!-- ✅ 良い例: 参照のみ -->
+classDiagram
+    class aggregationApi {
+        +getAssetBalance() Promise~AssetBalanceResponseDto~
+    }
+    note for aggregationApi "AssetBalanceResponseDtoはPresentation層で定義済み"
+```
+
+**理由**:
+
+- 定義の不整合を防ぐ
+- メンテナンス性が向上
+- 単一の定義源を参照できる
+
+**参照**: PR #382 - Issue #73: FR-026 金融機関別資産残高表示機能の詳細設計書（Gemini Code Assistレビュー指摘）
+
 ---

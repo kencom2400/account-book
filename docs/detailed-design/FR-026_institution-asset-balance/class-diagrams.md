@@ -336,16 +336,7 @@ classDiagram
         <<interface>>
         +getAssetBalance(asOfDate?) Promise~AssetBalanceResponseDto~
     }
-
-    class AssetBalanceResponseDto {
-        +number totalAssets
-        +number totalLiabilities
-        +number netWorth
-        +InstitutionAssetDto[] institutions
-        +string asOfDate
-        +AssetComparisonDto previousMonth
-        +AssetComparisonDto previousYear
-    }
+    note for aggregationApi "AssetBalanceResponseDtoはPresentation層で定義済み"
 
     class BarChart {
         <<Recharts>>
@@ -453,6 +444,7 @@ classDiagram
 - **責務**: 集計APIのクライアント
 - **主要メソッド**:
   - `getAssetBalance(asOfDate?)`: 資産残高データを取得
+- **注意**: `AssetBalanceResponseDto`はPresentation層で定義済み（重複定義を避けるため、クラス図では参照のみ）
 
 #### BarChart, Bar, XAxis, YAxis, Tooltip（Recharts）
 
