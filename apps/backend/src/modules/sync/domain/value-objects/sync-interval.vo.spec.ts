@@ -44,7 +44,7 @@ describe('SyncInterval', () => {
       expect(() => {
         new SyncInterval(SyncIntervalType.CUSTOM, 4, TimeUnit.MINUTES);
       }).toThrow(
-        'Custom interval value must be between 5 minutes and 43200 minutes',
+        'Interval must be between 5 minutes and 43200 minutes (30 days)',
       );
     });
 
@@ -52,20 +52,15 @@ describe('SyncInterval', () => {
       expect(() => {
         new SyncInterval(SyncIntervalType.CUSTOM, 31, TimeUnit.DAYS);
       }).toThrow(
-        'Custom interval value must be between 5 minutes and 43200 minutes',
+        'Interval must be between 5 minutes and 43200 minutes (30 days)',
       );
     });
 
-    it('プリセット間隔でvalue/unit/customScheduleが指定されている場合エラーを投げる', () => {
+    it('プリセット間隔でvalue/unitが指定されている場合エラーを投げる', () => {
       expect(() => {
-        new SyncInterval(
-          SyncIntervalType.STANDARD,
-          30,
-          TimeUnit.MINUTES,
-          '0 */6 * * *',
-        );
+        new SyncInterval(SyncIntervalType.STANDARD, 30, TimeUnit.MINUTES);
       }).toThrow(
-        'Value, unit, and customSchedule must not be set for preset intervals',
+        'Value and unit should not be specified for preset interval type',
       );
     });
 
@@ -136,9 +131,9 @@ describe('SyncInterval', () => {
       expect(infrequent.toCronExpression()).toBe('0 0 * * *');
     });
 
-    it('手動同期タイプはnullを返す', () => {
+    it('手動同期タイプは0分としてCron式に変換される', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
-      expect(manual.toCronExpression()).toBeNull();
+      expect(manual.toCronExpression()).toBe('*/0 * * * *');
     });
 
     it('カスタムスケジュールを返す', () => {
@@ -151,17 +146,13 @@ describe('SyncInterval', () => {
       expect(custom.toCronExpression()).toBe('0 */2 * * *');
     });
 
-    it('カスタム間隔でcustomScheduleがない場合エラーを投げる', () => {
+    it('カスタム間隔でcustomScheduleがない場合は分単位からCron式を生成する', () => {
       const custom = new SyncInterval(
         SyncIntervalType.CUSTOM,
         30,
         TimeUnit.MINUTES,
       );
-      expect(() => {
-        custom.toCronExpression();
-      }).toThrow(
-        'Custom interval without customSchedule cannot be converted to cron expression',
-      );
+      expect(custom.toCronExpression()).toBe('*/30 * * * *');
     });
   });
 
