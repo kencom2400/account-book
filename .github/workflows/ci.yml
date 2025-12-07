@@ -12,9 +12,9 @@ on:
       - '.editorconfig'
   pull_request:
     branches: [main, develop]
+    # PRの場合は設計書の変更でもCIを実行する（lint/buildのみ）
     paths-ignore:
       - '**.md'
-      - 'docs/**'
       - '.cursor/**/*.md'
       - '.cursorrules'
       - '.gitignore'
@@ -136,6 +136,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # PRの変更ファイルを取得するために必要
+
+      - name: Check if docs-only change
+        id: check-docs-only
+        if: github.event_name == 'pull_request'
+        run: |
+          # PRの変更ファイルを取得
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only || echo "")
+          if echo "$CHANGED_FILES" | grep -qE "(apps/|libs/)" ; then
+            echo "has_code_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_code_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if docs-only change
+        if: github.event_name == 'pull_request' && steps.check-docs-only.outputs.has_code_changes == 'false'
+        run: |
+          echo "設計書のみの変更のため、ユニットテストをスキップします"
+          exit 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -280,6 +300,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # PRの変更ファイルを取得するために必要
+
+      - name: Check if docs-only change
+        id: check-docs-only
+        if: github.event_name == 'pull_request'
+        run: |
+          # PRの変更ファイルを取得
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only || echo "")
+          if echo "$CHANGED_FILES" | grep -qE "(apps/|libs/)" ; then
+            echo "has_code_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_code_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if docs-only change
+        if: github.event_name == 'pull_request' && steps.check-docs-only.outputs.has_code_changes == 'false'
+        run: |
+          echo "設計書のみの変更のため、E2Eテストをスキップします"
+          exit 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -372,6 +412,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # PRの変更ファイルを取得するために必要
+
+      - name: Check if docs-only change
+        id: check-docs-only
+        if: github.event_name == 'pull_request'
+        run: |
+          # PRの変更ファイルを取得
+          CHANGED_FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only || echo "")
+          if echo "$CHANGED_FILES" | grep -qE "(apps/|libs/)" ; then
+            echo "has_code_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_code_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if docs-only change
+        if: github.event_name == 'pull_request' && steps.check-docs-only.outputs.has_code_changes == 'false'
+        run: |
+          echo "設計書のみの変更のため、E2Eテストをスキップします"
+          exit 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

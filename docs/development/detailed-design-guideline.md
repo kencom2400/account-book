@@ -347,17 +347,31 @@ docs/detailed-design/
   - プレゼンテーション層がドメイン層のエンティティに直接依存しない
   - UseCase層でエンティティからDTOへの変換を実施
   - レスポンスDTOにはプレーンなDTO（`TransactionDto`など）を使用
+  - **Application層のデータ構造はPresentation層のDTOに依存しない（Geminiレビュー PR#379から学習）**
+    - Application層のUseCaseは、ドメインエンティティ（例: `TransactionEntity`、`EventEntity`）またはApplication層独自のデータ構造を返すべき
+    - Application層のデータ構造（例: `SuggestedTransaction`、`EventFinancialSummary`）がPresentation層のDTO（例: `TransactionDto`、`EventResponseDto`）に依存してはならない
+    - Presentation層のDTOへの変換は、ControllerまたはPresentation層に配置したマッパーで行う
+    - 例: `SuggestRelatedTransactionsUseCase`は`{ transaction: TransactionEntity, score: number, reasons: string[] }[]`のような型を返し、Controllerが`TransactionEntity`を`TransactionDto`に変換する
   - **ドメインオブジェクト（Value Object）とDTOの分離（Geminiレビュー PR#360から学習）**
     - DTOがドメイン層のValue Object（例: `TrendAnalysis`、`Highlights`）に直接依存しないこと
     - ドメインオブジェクト用のDTO（例: `TrendAnalysisDto`、`HighlightsDto`）を別途定義すること
     - UseCase層でドメインオブジェクトからDTOへのマッピングを実施すること
     - これにより、レイヤー間の分離が明確になり、疎結合が維持される
-- [ ] **設計書間の整合性確認（Geminiレビュー PR#347から学習）**
+- [ ] **設計書間の整合性確認（Geminiレビュー PR#347、PR#379から学習）**
   - **クラス図と入出力設計の整合性**: UseCaseの戻り値型が`input-output-design.md`のレスポンス例と一致しているか（配列 vs 単一オブジェクト）
   - **ControllerとUseCaseの整合性**: Controllerの戻り値型とUseCaseの戻り値型が一致しているか
   - **シーケンス図の条件分岐の明確化**: 「全カテゴリ集計」と「特定カテゴリ集計」のシナリオで、カテゴリ取得方法が適切に分岐しているか（全カテゴリの場合は特定カテゴリタイプに限定しない）
   - **クラス図の依存関係の明示**: Domain Serviceが使用するエンティティ（例: `CategoryEntity`）への依存関係が明示されているか
   - **バリデーションルールの実装層の明記**: 存在チェックなどのバリデーションがどのレイヤで実施されるか明記されているか（アプリケーション層/ドメイン層）
+  - **処理フローと詳細ロジックの整合性**: 処理フローに記載されている項目（例: 「説明文の類似度」）が、詳細ロジックやシーケンス図にも含まれているか。含まれていない場合は処理フローから削除する
+  - **不要なDTOの削除**: GETリクエストなど、リクエストボディを持たないエンドポイントで、不要なRequestDTOが定義されていないか。不要な場合はドキュメントから削除する
+  - **APIレスポンス形式の統一性**: すべてのAPIエンドポイントでレスポンス形式が統一されているか（`data`の直下に配列が来るか、オブジェクトが来るか）。標準レスポンス形式（`SuccessResponse<T>`）に従っているか
+  - **レスポンスの冗長性の解消**: レスポンス内で同じ情報が複数箇所に存在していないか（例: `data.event.relatedTransactions`と`data.relatedTransactions`）。冗長な場合は専用のDTO型を定義して解消する
+  - **Controllerの戻り値型の明確化（Geminiレビュー PR#379から学習）**: Presentation層のControllerはDTOを返すべき。クラス図でControllerのメソッドの戻り値がApplication層のデータ構造（例: `SuggestedTransaction[]`）になっていないか確認する。戻り値は`Promise<SuggestedTransactionDto[]>`のようなレスポンスDTO型にする
+  - **Infrastructure層の命名の一貫性**: リポジトリ実装の命名規則を統一する（例: `EventOrmRepository`と`TransactionOrmRepository`のように統一、または命名規則を明確に定義する）
+  - **スコアリングロジックの具体的な定義**: スコアリングロジックで「関連カテゴリ」などの用語を使用する場合、具体的なマッピング（例: `TRAVEL` → 交通費、宿泊費）を定義する。設計の曖昧さをなくし、実装時の手戻りを防ぐ
+  - **シーケンス図の参加者の適切性**: DTOはデータ構造であり、メッセージを受け取るアクティブなオブジェクトではないため、シーケンス図の参加者としては不適切。DTOへの変換処理は、Controllerから自身へのメッセージ（`C->>C: toDto(...)`）として表現するか、`Mapper`という参加者を導入して表現する
+  - **レスポンス形式の統一の例の整合性**: 「レスポンス形式の統一」の項で示されている例が、ドキュメント内の他のAPIレスポンス例と形式が一致しているか確認する。すべての例で`data`フィールドが直接ペイロードの配列やオブジェクトを保持しているか確認する
 - [ ] **パフォーマンス最適化の考慮（Geminiレビュー PR#347から学習）**
   - **データベース層でのフィルタリング**: アプリケーション層で全データを取得してからフィルタリングするのではなく、データベース層（Repository）でフィルタリングする設計か（例: `findByCategoryType(categoryType, start, end)`）
   - **カテゴリIDの配列でのフィルタリング**: 複数のカテゴリIDでフィルタリングする場合は、`findByCategoryIdsAndDateRange(categoryIds, start, end)`のようなメソッドを使用し、データベース層でフィルタリングする設計か
