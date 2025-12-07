@@ -143,7 +143,12 @@ export class SyncInterval {
   /**
    * Cron式に変換
    */
-  toCronExpression(): string {
+  toCronExpression(): string | null {
+    // 手動同期の場合はnullを返す
+    if (this.type === SyncIntervalType.MANUAL) {
+      return null;
+    }
+
     if (this.customSchedule) {
       return this.customSchedule;
     }

@@ -136,9 +136,9 @@ describe('SyncInterval', () => {
       expect(infrequent.toCronExpression()).toBe('0 0 */1 * *');
     });
 
-    it('手動同期タイプは0分としてCron式に変換される', () => {
+    it('手動同期タイプはnullを返す', () => {
       const manual = new SyncInterval(SyncIntervalType.MANUAL);
-      expect(manual.toCronExpression()).toBe('*/0 * * * *');
+      expect(manual.toCronExpression()).toBeNull();
     });
 
     it('カスタムスケジュールを返す', () => {
@@ -158,6 +158,11 @@ describe('SyncInterval', () => {
         TimeUnit.MINUTES,
       );
       expect(custom.toCronExpression()).toBe('*/30 * * * *');
+    });
+
+    it('手動同期タイプの場合はnullを返す', () => {
+      const manual = new SyncInterval(SyncIntervalType.MANUAL);
+      expect(manual.toCronExpression()).toBeNull();
     });
   });
 
