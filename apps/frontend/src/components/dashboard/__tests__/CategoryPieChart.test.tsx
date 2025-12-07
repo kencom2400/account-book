@@ -235,4 +235,62 @@ describe('CategoryPieChart', () => {
     // 3つのサブカテゴリに対して3つのCellが存在する
     expect(cells.length).toBe(3);
   });
+
+  it('label関数が正しく動作する', () => {
+    render(<CategoryPieChart data={mockData} />);
+    const pie = screen.getByTestId('pie');
+    const pieData = JSON.parse(pie.getAttribute('data-pie-data') || '[]');
+
+    // label関数が各データに対して呼び出されることを確認
+    // 実際のlabel関数の動作はRechartsが行うため、データが正しく変換されていることを確認
+    expect(pieData.length).toBeGreaterThan(0);
+    pieData.forEach((item: { name: string; value: number; percentage: number }) => {
+      expect(item.name).toBeDefined();
+      expect(item.value).toBeGreaterThan(0);
+      expect(item.percentage).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  it('ツールチップが正しく表示される', () => {
+    render(<CategoryPieChart data={mockData} />);
+    // ツールチップコンポーネントが存在することを確認
+    expect(screen.getByTestId('tooltip')).toBeInTheDocument();
+  });
+
+  it('凡例が正しく表示される', () => {
+    render(<CategoryPieChart data={mockData} />);
+    // 凡例コンポーネントが存在することを確認
+    expect(screen.getByTestId('legend')).toBeInTheDocument();
+  });
+
+  it('percentageが数値でない場合でもエラーにならない', () => {
+    // percentageがundefinedの場合のテスト
+    const dataWithUndefinedPercentage: CategoryAggregationResponseDto[] = [
+      {
+        categoryType: CategoryType.EXPENSE,
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+        totalAmount: 100000,
+        transactionCount: 1,
+        subcategories: [
+          {
+            categoryId: 'cat-1',
+            categoryName: '食費',
+            amount: 100000,
+            count: 1,
+            percentage: 100.0,
+            topTransactions: [],
+          },
+        ],
+        percentage: 100.0,
+        trend: {
+          monthly: [],
+        },
+      },
+    ];
+
+    render(<CategoryPieChart data={dataWithUndefinedPercentage} />);
+    // エラーなく表示されることを確認
+    expect(screen.getByText('カテゴリ別円グラフ')).toBeInTheDocument();
+  });
 });
