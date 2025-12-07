@@ -7,6 +7,7 @@ import { SyncHistoryOrmEntity } from './infrastructure/entities/sync-history.orm
 
 // Controllers
 import { SyncController } from './presentation/controllers/sync.controller';
+import { SyncSettingsController } from './presentation/controllers/sync-settings.controller';
 
 // Use Cases
 import { SyncAllTransactionsUseCase } from './application/use-cases/sync-all-transactions.use-case';
@@ -14,6 +15,11 @@ import { GetSyncHistoryUseCase } from './application/use-cases/get-sync-history.
 import { GetSyncStatusUseCase } from './application/use-cases/get-sync-status.use-case';
 import { CancelSyncUseCase } from './application/use-cases/cancel-sync.use-case';
 import { SyncTransactionsUseCase } from './application/use-cases/sync-transactions.use-case';
+import { GetSyncSettingsUseCase } from './application/use-cases/get-sync-settings.use-case';
+import { UpdateSyncSettingsUseCase } from './application/use-cases/update-sync-settings.use-case';
+import { GetInstitutionSyncSettingsUseCase } from './application/use-cases/get-institution-sync-settings.use-case';
+import { GetAllInstitutionSyncSettingsUseCase } from './application/use-cases/get-all-institution-sync-settings.use-case';
+import { UpdateInstitutionSyncSettingsUseCase } from './application/use-cases/update-institution-sync-settings.use-case';
 
 // Strategies
 import { IncrementalSyncStrategy } from './domain/strategies/incremental-sync.strategy';
@@ -23,9 +29,13 @@ import { ScheduledSyncJob } from './application/jobs/scheduled-sync.job';
 
 // Repositories
 import { SyncHistoryTypeOrmRepository } from './infrastructure/repositories/sync-history-typeorm.repository';
+import { JsonSyncSettingsRepository } from './infrastructure/repositories/json-sync-settings.repository';
 
 // Tokens
-import { SYNC_HISTORY_REPOSITORY } from './sync.tokens';
+import {
+  SYNC_HISTORY_REPOSITORY,
+  SYNC_SETTINGS_REPOSITORY,
+} from './sync.tokens';
 
 // Import other modules
 import { CreditCardModule } from '../credit-card/credit-card.module';
@@ -40,7 +50,7 @@ import { InstitutionModule } from '../institution/institution.module';
     SecuritiesModule,
     InstitutionModule, // Institution リポジトリを使用するため追加
   ],
-  controllers: [SyncController],
+  controllers: [SyncController, SyncSettingsController],
   providers: [
     // Use Cases
     SyncAllTransactionsUseCase,
@@ -48,6 +58,11 @@ import { InstitutionModule } from '../institution/institution.module';
     GetSyncStatusUseCase,
     CancelSyncUseCase,
     SyncTransactionsUseCase, // 既存のUseCase（後方互換性のため保持）
+    GetSyncSettingsUseCase,
+    UpdateSyncSettingsUseCase,
+    GetInstitutionSyncSettingsUseCase,
+    GetAllInstitutionSyncSettingsUseCase,
+    UpdateInstitutionSyncSettingsUseCase,
 
     // Strategies
     IncrementalSyncStrategy,
@@ -59,6 +74,16 @@ import { InstitutionModule } from '../institution/institution.module';
     {
       provide: SYNC_HISTORY_REPOSITORY,
       useClass: SyncHistoryTypeOrmRepository,
+    },
+    {
+      provide: SYNC_SETTINGS_REPOSITORY,
+      useClass: JsonSyncSettingsRepository,
+    },
+
+    // Services
+    {
+      provide: 'ISchedulerService',
+      useExisting: ScheduledSyncJob,
     },
   ],
   exports: [
