@@ -10,8 +10,29 @@ interface CategoryPieChartContainerProps {
   endDate?: Date;
   categoryType?: CategoryType;
   onDateChange?: (startDate: Date, endDate: Date) => void;
-  onCategoryTypeChange?: (categoryType?: CategoryType) => void;
 }
+
+// 現在の年月を取得（コンポーネント外で定義）
+const getCurrentYear = (): number => {
+  return new Date().getFullYear();
+};
+
+const getCurrentMonth = (): number => {
+  return new Date().getMonth() + 1;
+};
+
+// デフォルト期間（当月の開始日と終了日）
+const getDefaultStartDate = (): Date => {
+  const currentYear = getCurrentYear();
+  const currentMonth = getCurrentMonth();
+  return new Date(currentYear, currentMonth - 1, 1);
+};
+
+const getDefaultEndDate = (): Date => {
+  const currentYear = getCurrentYear();
+  const currentMonth = getCurrentMonth();
+  return new Date(currentYear, currentMonth, 0);
+};
 
 /**
  * カテゴリ別円グラフコンテナコンポーネント
@@ -21,25 +42,10 @@ export function CategoryPieChartContainer({
   startDate: initialStartDate,
   endDate: initialEndDate,
   categoryType: initialCategoryType,
-  onCategoryTypeChange,
 }: CategoryPieChartContainerProps): React.JSX.Element {
-  // 現在の年月を取得
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-
-  // デフォルト期間（当月の開始日と終了日）
-  const getDefaultStartDate = (): Date => {
-    return new Date(currentYear, currentMonth - 1, 1);
-  };
-
-  const getDefaultEndDate = (): Date => {
-    return new Date(currentYear, currentMonth, 0);
-  };
-
   const [startDate] = useState<Date>(initialStartDate || getDefaultStartDate());
   const [endDate] = useState<Date>(initialEndDate || getDefaultEndDate());
-  const [categoryType, setCategoryType] = useState<CategoryType | undefined>(initialCategoryType);
+  const [categoryType] = useState<CategoryType | undefined>(initialCategoryType);
   const [data, setData] = useState<CategoryAggregationResponseDto[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,36 +84,5 @@ export function CategoryPieChartContainer({
     void fetchData();
   }, [fetchData]);
 
-  // 期間変更ハンドラ（将来対応）
-  // const handleDateChange = useCallback(
-  //   (newStartDate: Date, newEndDate: Date) => {
-  //     setStartDate(newStartDate);
-  //     setEndDate(newEndDate);
-  //     if (onDateChange) {
-  //       onDateChange(newStartDate, newEndDate);
-  //     }
-  //   },
-  //   [onDateChange]
-  // );
-
-  // カテゴリタイプ変更ハンドラ
-  const handleCategoryTypeChange = useCallback(
-    (newCategoryType?: CategoryType) => {
-      setCategoryType(newCategoryType);
-      if (onCategoryTypeChange) {
-        onCategoryTypeChange(newCategoryType);
-      }
-    },
-    [onCategoryTypeChange]
-  );
-
-  return (
-    <CategoryPieChart
-      data={data || []}
-      selectedCategoryType={categoryType}
-      onCategoryTypeChange={handleCategoryTypeChange}
-      loading={loading}
-      error={error}
-    />
-  );
+  return <CategoryPieChart data={data || []} loading={loading} error={error} />;
 }

@@ -90,12 +90,11 @@ sequenceDiagram
     participant DB as Database
 
     User->>Page: ダッシュボードページを開く
-    Page->>Container: CategoryPieChartContainerをレンダリング
+    Page->>Container: CategoryPieChartContainerをレンダリング<br/>(categoryType=EXPENSEをpropsで指定)
 
-    User->>Component: カテゴリタイプを選択<br/>(例: EXPENSE)
-    Component->>Container: onCategoryTypeChange(EXPENSE)
+    Note over Container: 初期化時にcategoryTypeが指定されている場合<br/>そのカテゴリタイプのみを集計
     Container->>Container: setCategoryType(EXPENSE)
-    Container->>Container: useEffectでデータ再取得をトリガー
+    Container->>Container: useEffectでデータ取得をトリガー
 
     Container->>API: getCategoryAggregation(startDate, endDate, EXPENSE)
     API->>Backend: GET /api/aggregation/category?startDate=2025-01-01&endDate=2025-01-31&categoryType=EXPENSE

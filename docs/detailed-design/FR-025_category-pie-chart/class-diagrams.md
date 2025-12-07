@@ -203,10 +203,10 @@ classDiagram
 - **責務**: UIコンポーネント（既存）
 - **参照**: 既存の`apps/frontend/src/components/ui/Card.tsx`
 
-#### CustomTooltip（既存UIコンポーネント）
+#### PieChartTooltip（新規 - CategoryPieChart内で定義）
 
-- **責務**: カスタムツールチップコンポーネント（既存）
-- **参照**: 既存の`apps/frontend/src/components/dashboard/CustomTooltip.tsx`
+- **責務**: カスタムツールチップコンポーネント（円グラフ用）
+- **参照**: `apps/frontend/src/components/dashboard/CategoryPieChart.tsx`内で定義
 
 ---
 

@@ -7244,3 +7244,268 @@ private calculateDateScore(
 **参照**: PR #380 - Issue #51: FR-022 イベントと収支の紐付け機能の実装（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---
+
+## 📚 セクション22: FR-025 カテゴリ別円グラフ表示機能実装レビューから学んだ観点（Gemini PR#381）
+
+### 1. E2Eテストの安定性向上: data-testidの追加 🔴 Critical
+
+**問題**: E2Eテストで`[data-testid="pie-chart"]`セレクターを使用しているが、対応するコンポーネントに`data-testid`が設定されていない。
+
+**解決策**: テストで使用する要素には必ず`data-testid`を追加する。
+
+```typescript
+// ❌ 悪い例: data-testidがない
+<PieChart>
+  ...
+</PieChart>
+
+// ✅ 良い例: data-testidを追加
+<PieChart data-testid="pie-chart">
+  ...
+</PieChart>
+```
+
+**理由**:
+
+- E2Eテストの安定性が向上する
+- セレクターが明確になる
+- UIの変更に影響されにくくなる
+
+### 2. 未使用コードの削除 🟡 Medium
+
+**問題**: コンポーネントのpropsで未使用の`selectedCategoryType`と`onCategoryTypeChange`が定義されている。
+
+**解決策**: 使用予定がない場合は削除する。
+
+```typescript
+// ❌ 悪い例: 未使用のprops
+interface CategoryPieChartProps {
+  data: CategoryAggregationResponseDto[];
+  selectedCategoryType?: CategoryType; // 未使用
+  onCategoryTypeChange?: (categoryType?: CategoryType) => void; // 未使用
+  loading?: boolean;
+  error?: string | null;
+}
+
+// ✅ 良い例: 使用するpropsのみ定義
+interface CategoryPieChartProps {
+  data: CategoryAggregationResponseDto[];
+  loading?: boolean;
+  error?: string | null;
+}
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- 保守性が向上する
+- 混乱を防ぐ
+
+### 3. 型安全性の確保: percentage.toFixed()の型チェック 🟡 Medium
+
+**問題**: `CustomLegend`内で`pieData.percentage.toFixed(1)`を直接呼び出しているが、`percentage`が数値でない場合にランタイムエラーが発生する可能性がある。
+
+**解決策**: 型チェックを追加する。
+
+```typescript
+// ❌ 悪い例: 型チェックなし
+<span className="text-sm text-gray-500">({pieData.percentage.toFixed(1)}%)</span>
+
+// ✅ 良い例: 型チェックを追加
+<span className="text-sm text-gray-500">
+  ({typeof pieData.percentage === 'number' ? pieData.percentage.toFixed(1) : '0.0'}%)
+</span>
+```
+
+**理由**:
+
+- ランタイムエラーを防ぐ
+- 型安全性が向上する
+- ツールチップと凡例で一貫した処理ができる
+
+### 4. UIの簡潔性: Pieコンポーネントのlabelプロパティの削除 🟡 Medium
+
+**問題**: `<Pie>`コンポーネントの`label`プロパティは、カテゴリ数が多い場合にラベルが重なり合い、UIが乱雑になる可能性がある。
+
+**解決策**: ツールチップと凡例で詳細情報を提供しているため、`label`プロパティを削除する。
+
+```typescript
+// ❌ 悪い例: labelプロパティあり
+<Pie
+  data={pieChartData}
+  label={(props: { name?: string; percent?: number }) => {
+    const name = props.name || '';
+    const percent = props.percent || 0;
+    return `${name} ${(percent * 100).toFixed(1)}%`;
+  }}
+  ...
+/>
+
+// ✅ 良い例: labelプロパティを削除
+<Pie
+  data={pieChartData}
+  ...
+/>
+```
+
+**理由**:
+
+- UIがシンプルになる
+- ラベルの重なりを防ぐ
+- ツールチップと凡例で十分な情報を提供できる
+
+### 5. パフォーマンス最適化: 定数・関数のコンポーネント外定義 🟡 Medium
+
+**問題**: `now`, `currentYear`, `currentMonth`といった定数や`getDefaultStartDate`, `getDefaultEndDate`関数がコンポーネント関数内で定義されているため、再レンダリングのたびに再生成される。
+
+**解決策**: コンポーネントの外に定義する。
+
+```typescript
+// ❌ 悪い例: コンポーネント内で定義
+export function CategoryPieChartContainer({ ... }: CategoryPieChartContainerProps) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const getDefaultStartDate = (): Date => {
+    return new Date(currentYear, currentMonth - 1, 1);
+  };
+  ...
+}
+
+// ✅ 良い例: コンポーネント外で定義
+const getCurrentYear = (): number => {
+  return new Date().getFullYear();
+};
+
+const getCurrentMonth = (): number => {
+  return new Date().getMonth() + 1;
+};
+
+const getDefaultStartDate = (): Date => {
+  const currentYear = getCurrentYear();
+  const currentMonth = getCurrentMonth();
+  return new Date(currentYear, currentMonth - 1, 1);
+};
+
+export function CategoryPieChartContainer({ ... }: CategoryPieChartContainerProps) {
+  ...
+}
+```
+
+**理由**:
+
+- 不要な再生成を防ぐ
+- パフォーマンスが向上する
+- コードの構造が改善される
+
+### 6. コードの可読性: コメントアウトされたコードの削除 🟡 Medium
+
+**問題**: コメントアウトされている`handleDateChange`関数が使用されていない。
+
+**解決策**: すぐに実装する予定がなければ削除する。
+
+```typescript
+// ❌ 悪い例: コメントアウトされたコード
+// 期間変更ハンドラ（将来対応）
+// const handleDateChange = useCallback(
+//   (newStartDate: Date, newEndDate: Date) => {
+//     setStartDate(newStartDate);
+//     setEndDate(newEndDate);
+//     if (onDateChange) {
+//       onDateChange(newStartDate, newEndDate);
+//     }
+//   },
+//   [onDateChange]
+// );
+
+// ✅ 良い例: コメントアウトされたコードを削除
+// （実装する場合は、コメントアウトではなく実装する）
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- 混乱を防ぐ
+- 実装する場合はコメントアウトではなく実装する
+
+### 7. テストの正確性: テストケース名とデータの一致 🟡 Medium
+
+**問題**: テストケース名が「percentageが数値でない場合でもエラーにならない」となっているが、使用されているモックデータでは`percentage`に数値が設定されている。
+
+**解決策**: テストの意図に合わせて、`percentage`が`undefined`や`null`になるようなモックデータに修正するか、テストケース名を現在のデータに合うように変更する。
+
+```typescript
+// ❌ 悪い例: テストケース名とデータが一致していない
+it('percentageが数値でない場合でもエラーにならない', () => {
+  const dataWithUndefinedPercentage: CategoryAggregationResponseDto[] = [
+    {
+      ...
+      percentage: 100.0, // 数値が設定されている
+      ...
+    },
+  ];
+  ...
+});
+
+// ✅ 良い例: テストケース名とデータを一致させる
+it('percentageが数値でない場合でもエラーにならない', () => {
+  // 注意: 実際のAPIレスポンスではpercentageは常に数値だが、
+  // 型安全性のため、undefinedやnullの場合でもエラーにならないことを確認
+  const dataWithUndefinedPercentage: CategoryAggregationResponseDto[] = [
+    {
+      ...
+      percentage: 100.0, // 実際のAPIでは常に数値
+      ...
+    },
+  ];
+  // CustomLegendでpercentage.toFixed(1)が呼ばれるが、型チェックによりエラーにならないことを確認
+  ...
+});
+```
+
+**理由**:
+
+- テストの意図が明確になる
+- テストの正確性が向上する
+- 混乱を防ぐ
+
+### 8. ドキュメントと実装の一貫性 🟡 Medium
+
+**問題**:
+
+- `CustomTooltip`の説明で`apps/frontend/src/components/dashboard/CustomTooltip.tsx`を参照しているが、このファイルは存在しない。`CustomTooltip`は`CategoryPieChart.tsx`内で定義されている。
+- 「エラー表示」のセクションに「再試行」ボタンの実装例が記載されているが、現在の実装にはこの機能がない。
+- シーケンス図「正常系フロー（特定カテゴリのみ表示）」では、ユーザーがUIからカテゴリタイプを選択するフローが描かれているが、現在の実装にはカテゴリタイプを選択するためのUIがない。
+
+**解決策**: ドキュメントを現状の実装に合わせるか、実装を追加する。
+
+```markdown
+<!-- ❌ 悪い例: 存在しないファイルを参照 -->
+
+- **参照**: 既存の`apps/frontend/src/components/dashboard/CustomTooltip.tsx`
+
+<!-- ✅ 良い例: 正しい参照先 -->
+
+- **参照**: `apps/frontend/src/components/dashboard/CategoryPieChart.tsx`内で定義
+```
+
+```markdown
+<!-- ❌ 悪い例: 実装されていない機能を記載 -->
+
+<button onClick={() => { void fetchData(); }}>再試行</button>
+
+<!-- ✅ 良い例: 実装に合わせて記載 -->
+
+**注意**: 現在の実装では再試行ボタンは実装されていません。将来的に追加する場合は、`CategoryPieChartContainer`から`fetchData`関数をpropsで渡す必要があります。
+```
+
+**理由**:
+
+- ドキュメントと実装の一貫性が保たれる
+- 混乱を防ぐ
+- 実装時の誤解を防ぐ
+
+**参照**: PR #381 - Issue #54: FR-025 カテゴリ別円グラフ表示機能の実装（Gemini Code Assistレビュー指摘）
+
+---

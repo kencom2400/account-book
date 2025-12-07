@@ -9,8 +9,6 @@ import { CategoryType } from '@account-book/types';
 
 interface CategoryPieChartProps {
   data: CategoryAggregationResponseDto[];
-  selectedCategoryType?: CategoryType;
-  onCategoryTypeChange?: (categoryType?: CategoryType) => void;
   loading?: boolean;
   error?: string | null;
 }
@@ -150,7 +148,9 @@ function CustomLegend({ payload }: CustomLegendProps): React.JSX.Element | null 
           <div key={entry.value} className="flex items-center gap-2">
             <div className="w-4 h-4 rounded" style={{ backgroundColor: entry.color }} />
             <span className="text-sm text-gray-700">{entry.value}</span>
-            <span className="text-sm text-gray-500">({pieData.percentage.toFixed(1)}%)</span>
+            <span className="text-sm text-gray-500">
+              ({typeof pieData.percentage === 'number' ? pieData.percentage.toFixed(1) : '0.0'}%)
+            </span>
           </div>
         );
       })}
@@ -246,17 +246,11 @@ export function CategoryPieChart({
 
           {/* 円グラフ */}
           <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
+            <PieChart data-testid="pie-chart">
               <Pie
                 data={pieChartData}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={(props: { name?: string; percent?: number }) => {
-                  const name = props.name || '';
-                  const percent = props.percent || 0;
-                  return `${name} ${(percent * 100).toFixed(1)}%`;
-                }}
                 outerRadius={120}
                 innerRadius={60}
                 fill="#8884d8"

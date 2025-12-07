@@ -265,6 +265,8 @@ describe('CategoryPieChart', () => {
 
   it('percentageが数値でない場合でもエラーにならない', () => {
     // percentageがundefinedの場合のテスト
+    // 注意: 実際のAPIレスポンスではpercentageは常に数値だが、
+    // 型安全性のため、undefinedやnullの場合でもエラーにならないことを確認
     const dataWithUndefinedPercentage: CategoryAggregationResponseDto[] = [
       {
         categoryType: CategoryType.EXPENSE,
@@ -292,5 +294,7 @@ describe('CategoryPieChart', () => {
     render(<CategoryPieChart data={dataWithUndefinedPercentage} />);
     // エラーなく表示されることを確認
     expect(screen.getByText('カテゴリ別円グラフ')).toBeInTheDocument();
+    // CustomLegendでpercentage.toFixed(1)が呼ばれるが、型チェックによりエラーにならないことを確認
+    expect(screen.getByTestId('legend')).toBeInTheDocument();
   });
 });

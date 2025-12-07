@@ -357,20 +357,14 @@ if (error) {
       <CardContent>
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => {
-              void fetchData();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            再試行
-          </button>
         </div>
       </CardContent>
     </Card>
   );
 }
 ```
+
+**注意**: 現在の実装では再試行ボタンは実装されていません。将来的に追加する場合は、`CategoryPieChartContainer`から`fetchData`関数をpropsで渡す必要があります。
 
 ### 空データ表示
 
