@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import {
   getAllInstitutionSyncSettings,
@@ -127,9 +127,17 @@ export function InstitutionSettingsTab(): React.JSX.Element {
     }
   };
 
+  // 金融機関IDから名前へのMapを一度だけ生成
+  const institutionNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    institutions.forEach((institution) => {
+      map.set(institution.id, institution.name);
+    });
+    return map;
+  }, [institutions]);
+
   const getInstitutionName = (institutionId: string): string => {
-    const institution = institutions.find((i) => i.id === institutionId);
-    return institution?.name ?? institutionId;
+    return institutionNameMap.get(institutionId) ?? institutionId;
   };
 
   const formatInterval = (interval: {
