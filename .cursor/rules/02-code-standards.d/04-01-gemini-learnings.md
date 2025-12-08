@@ -8948,4 +8948,159 @@ const existingIndex = allSettings.findIndex((s) => s.institutionId === settings.
 
 **参照**: PR #388 - Issue #76: FR-030 データ同期間隔の設定機能を実装（Gemini Code Assistレビュー指摘）
 
+### 13-56. 未使用のstate変数の削除（PR #389）
+
+**学習元**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Geminiレビュー指摘）
+
+#### コンポーネント内で定義されているが使用されていないstate変数は削除すべき
+
+**問題**: 各フォームフィールドの状態を個別の`useState`で管理している場合、元のデータを保持するstate変数は不要になることが多い
+
+```typescript
+// ❌ 悪い例: 未使用のstate変数
+const [_settings, setSettings] = useState<SyncSettingsDataDto | null>(null);
+// ... フォーム状態は個別のuseStateで管理
+// _settingsは一度も使用されない
+```
+
+**解決策**: 未使用のstate変数とそのsetter、未使用の型定義を削除
+
+```typescript
+// ✅ 良い例: 未使用の変数を削除
+// _settingsとsetSettingsを削除
+// フォーム状態のみを個別のuseStateで管理
+```
+
+**理由**:
+
+- コードの可読性が向上
+- 不要なコードを削除してシンプルに保つ
+- メモリ使用量の削減
+
+**参照**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Gemini Code Assistレビュー指摘）
+
+### 13-57. 保存中ボタンの無効化処理（PR #389）
+
+**学習元**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Geminiレビュー指摘）
+
+#### 非同期処理中はボタンを無効化して、ユーザーが複数回クリックできないようにする
+
+**問題**: 保存処理中でもボタンが有効なままの場合、ユーザーが複数回クリックできてしまう
+
+```typescript
+// ❌ 悪い例: 保存中でもボタンが有効
+<button onClick={() => handleSave(setting.id)}>
+  保存
+</button>
+```
+
+**解決策**: 保存中のIDをstateで管理し、保存中はボタンを無効化
+
+```typescript
+// ✅ 良い例: 保存中はボタンを無効化
+const [savingId, setSavingId] = useState<string | null>(null);
+
+const handleSave = async (settingId: string): Promise<void> => {
+  try {
+    setSavingId(settingId);
+    // ... 保存処理
+  } finally {
+    setSavingId(null);
+  }
+};
+
+<button
+  onClick={() => handleSave(setting.id)}
+  disabled={savingId === setting.id}
+  className="... disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {savingId === setting.id ? '保存中...' : '保存'}
+</button>
+```
+
+**理由**:
+
+- 複数のアイテムを編集可能なリストでは、保存中のIDをstateで管理
+- 保存中は視覚的フィードバック（「保存中...」）を提供
+- 同じコンポーネント内で一貫したUXパターンを適用
+
+**参照**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Gemini Code Assistレビュー指摘）
+
+### 13-58. 保存後の全件再取得の削除（PR #389）
+
+**学習元**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Geminiレビュー指摘）
+
+#### APIレスポンスを直接利用してstateを更新することで、不要なAPI呼び出しを削減
+
+**問題**: 保存後に全件再取得すると、リストが長い場合に非効率になる
+
+```typescript
+// ❌ 悪い例: 保存後に全件再取得
+await updateInstitutionSyncSettings(setting.institutionId, request);
+const updated = await getAllInstitutionSyncSettings(); // 不要なAPI呼び出し
+setSettings(updated);
+```
+
+**解決策**: 更新APIのレスポンスを直接利用してローカルstateを更新
+
+```typescript
+// ✅ 良い例: APIレスポンスを直接利用
+const updatedSetting = await updateInstitutionSyncSettings(setting.institutionId, request);
+
+// 一覧を再取得する代わりに、ローカルstateを更新
+setSettings((currentSettings) =>
+  currentSettings.map((s) => (s.id === updatedSetting.id ? updatedSetting : s))
+);
+```
+
+**理由**:
+
+- 更新APIが更新後のオブジェクトを返す場合、それを直接利用する
+- リストが長い場合、全件再取得は非効率
+- ローカルstateの更新でパフォーマンスを向上
+
+**参照**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Gemini Code Assistレビュー指摘）
+
+### 13-59. useMemoによる配列検索の最適化（PR #389）
+
+**学習元**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Geminiレビュー指摘）
+
+#### レンダリングごとに配列を検索する処理は、useMemoでMapを生成して最適化する
+
+**問題**: レンダリングごとに配列を検索すると、データ数が増えるとパフォーマンスに影響を与える
+
+```typescript
+// ❌ 悪い例: レンダリングごとに配列を検索
+const getInstitutionName = (institutionId: string): string => {
+  const institution = institutions.find((i) => i.id === institutionId);
+  return institution?.name ?? institutionId;
+};
+// 各設定のレンダリング時に呼び出される → O(n)の検索が繰り返される
+```
+
+**解決策**: `useMemo`でIDから名前へのMapを一度だけ生成
+
+```typescript
+// ✅ 良い例: useMemoでMapを生成
+const institutionNameMap = useMemo(() => {
+  const map = new Map<string, string>();
+  institutions.forEach((institution) => {
+    map.set(institution.id, institution.name);
+  });
+  return map;
+}, [institutions]);
+
+const getInstitutionName = (institutionId: string): string => {
+  return institutionNameMap.get(institutionId) ?? institutionId; // O(1)の参照
+};
+```
+
+**理由**:
+
+- レンダリングごとの配列検索を削除
+- `useMemo`でIDから名前へのMapを一度だけ生成することで、O(1)の参照が可能
+- 依存配列に`institutions`を指定することで、データ変更時のみ再生成
+
+**参照**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Gemini Code Assistレビュー指摘）
+
 ---
