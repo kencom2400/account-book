@@ -125,24 +125,13 @@ export async function updateTransactionSubcategory(
 export async function exportTransactions(params: ExportTransactionsParams): Promise<void> {
   const searchParams = new URLSearchParams();
 
-  if (params.institutionId) {
-    searchParams.append('institutionId', params.institutionId);
+  // formatを除いたパラメータをループで追加
+  for (const [key, value] of Object.entries(params)) {
+    if (key !== 'format' && value !== null && value !== undefined) {
+      searchParams.append(key, String(value));
+    }
   }
-  if (params.accountId) {
-    searchParams.append('accountId', params.accountId);
-  }
-  if (params.year) {
-    searchParams.append('year', params.year.toString());
-  }
-  if (params.month) {
-    searchParams.append('month', params.month.toString());
-  }
-  if (params.startDate) {
-    searchParams.append('startDate', params.startDate);
-  }
-  if (params.endDate) {
-    searchParams.append('endDate', params.endDate);
-  }
+  // formatは必須なので最後に追加
   searchParams.append('format', params.format);
 
   await apiClient.downloadFile('/api/transactions/export', searchParams);

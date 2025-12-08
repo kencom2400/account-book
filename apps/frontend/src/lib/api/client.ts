@@ -141,9 +141,6 @@ async function downloadFile(endpoint: string, params?: URLSearchParams): Promise
   const url = `${API_BASE_URL}${endpoint}${params ? `?${params.toString()}` : ''}`;
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
   });
 
   if (!response.ok) {

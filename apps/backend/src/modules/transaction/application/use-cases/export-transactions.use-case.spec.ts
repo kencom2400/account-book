@@ -4,8 +4,6 @@ import { GetTransactionsUseCase } from './get-transactions.use-case';
 import { ExportService, ExportFormat } from '../services/export.service';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { CategoryType, TransactionStatus } from '@account-book/types';
-import { Money } from '../../domain/value-objects/money.vo';
-import { TransactionDate } from '../../domain/value-objects/transaction-date.vo';
 
 describe('ExportTransactionsUseCase', () => {
   let useCase: ExportTransactionsUseCase;
@@ -19,8 +17,8 @@ describe('ExportTransactionsUseCase', () => {
   ): TransactionEntity => {
     return new TransactionEntity(
       id,
-      new TransactionDate(date),
-      new Money(amount),
+      date,
+      amount,
       { id: 'cat_1', name: '食費', type: CategoryType.EXPENSE },
       'テスト取引',
       'inst_1',
@@ -48,6 +46,12 @@ describe('ExportTransactionsUseCase', () => {
           useValue: {
             convertToCSV: jest.fn(),
             convertToJSON: jest.fn(),
+            formatDate: jest.fn((date: Date) => {
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
+            }),
           },
         },
       ],

@@ -79,12 +79,23 @@ export class ExportService {
   /**
    * CSVフィールドのエスケープ処理
    */
-  private escapeCSVField(field: string): string {
+  private escapeCSVField(field: unknown): string {
     if (field === null || field === undefined) {
       return '';
     }
 
-    const stringField = String(field);
+    // プリミティブ型のみを文字列に変換（オブジェクトは除外）
+    if (typeof field === 'object') {
+      return '';
+    }
+
+    // プリミティブ型のみなので安全に文字列変換
+    const stringField =
+      typeof field === 'string'
+        ? field
+        : typeof field === 'number' || typeof field === 'boolean'
+          ? String(field)
+          : '';
 
     // カンマ、改行、ダブルクォートを含む場合はダブルクォートで囲む
     if (
@@ -102,8 +113,9 @@ export class ExportService {
 
   /**
    * 日付をYYYY-MM-DD形式にフォーマット
+   * 他のクラスからも再利用可能にするためpublicに
    */
-  private formatDate(date: Date): string {
+  formatDate(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');

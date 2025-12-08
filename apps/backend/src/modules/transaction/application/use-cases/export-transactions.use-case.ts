@@ -26,14 +26,10 @@ export class ExportTransactionsUseCase {
     mimeType: string;
   }> {
     // 取引データを取得
-    const transactions = await this.getTransactionsUseCase.execute({
-      institutionId: query.institutionId,
-      accountId: query.accountId,
-      year: query.year,
-      month: query.month,
-      startDate: query.startDate,
-      endDate: query.endDate,
-    });
+    // formatを除いたクエリパラメータをそのまま渡す
+    const { format: _format, ...getTransactionsQuery } = query;
+    const transactions =
+      await this.getTransactionsUseCase.execute(getTransactionsQuery);
 
     // フォーマットに応じて変換
     let content: string;
@@ -77,24 +73,14 @@ export class ExportTransactionsUseCase {
     }
 
     if (query.startDate && query.endDate) {
-      const startStr = this.formatDate(query.startDate);
-      const endStr = this.formatDate(query.endDate);
+      const startStr = this.exportService.formatDate(query.startDate);
+      const endStr = this.exportService.formatDate(query.endDate);
       return `${prefix}_${startStr}_${endStr}.${extension}`;
     }
 
     // デフォルト
     const now = new Date();
-    const dateStr = this.formatDate(now);
+    const dateStr = this.exportService.formatDate(now);
     return `${prefix}_${dateStr}.${extension}`;
-  }
-
-  /**
-   * 日付をYYYY-MM-DD形式にフォーマット
-   */
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
   }
 }

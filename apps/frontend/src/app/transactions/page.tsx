@@ -42,10 +42,11 @@ export default function TransactionsPage(): React.JSX.Element {
   const handleExport = useCallback(async (format: ExportFormat): Promise<void> => {
     try {
       setExporting(true);
+      setError(null);
       await exportTransactions({ format });
     } catch (err) {
       console.error('エクスポートに失敗しました:', err);
-      alert('エクスポートに失敗しました。もう一度お試しください。');
+      setError('エクスポートに失敗しました。もう一度お試しください。');
     } finally {
       setExporting(false);
     }
