@@ -39,11 +39,13 @@ export class ExportService {
     ];
 
     // CSV行データ
-    const rows = transactions.map((transaction) => {
+    const rows: string[][] = transactions.map((transaction) => {
+      const dateValue = transaction.date.value as Date;
+      const amountValue = transaction.amount.amount as number;
       return [
         this.escapeCSVField(transaction.id),
-        this.formatDate(transaction.date),
-        transaction.amount.toString(),
+        this.formatDate(dateValue),
+        amountValue.toString(),
         this.escapeCSVField(transaction.category.id),
         this.escapeCSVField(transaction.category.name),
         this.escapeCSVField(transaction.category.type),

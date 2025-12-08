@@ -10,8 +10,10 @@ import {
   getMonthlySummary,
   updateTransactionCategory,
   updateTransactionSubcategory,
+  exportTransactions,
   type CreateTransactionRequest,
   type GetTransactionsParams,
+  type ExportTransactionsParams,
 } from '../transactions';
 
 // apiClientをモック
@@ -22,6 +24,7 @@ jest.mock('../client', () => ({
     patch: jest.fn(),
     put: jest.fn(),
     delete: jest.fn(),
+    downloadFile: jest.fn(),
   },
 }));
 
@@ -256,6 +259,98 @@ describe('Transaction API Client', () => {
         subcategoryId,
       });
       expect(result).toEqual(mockUpdatedTransaction);
+    });
+  });
+
+  describe('exportTransactions', () => {
+    it('CSV形式でエクスポートできる', async () => {
+      const params: ExportTransactionsParams = {
+        format: 'csv',
+      };
+
+      mockApiClient.downloadFile.mockResolvedValue(undefined);
+
+      await exportTransactions(params);
+
+      expect(mockApiClient.downloadFile).toHaveBeenCalledWith(
+        '/api/transactions/export',
+        expect.any(URLSearchParams)
+      );
+
+      const callArgs = mockApiClient.downloadFile.mock.calls[0];
+      const searchParams = callArgs[1] as URLSearchParams;
+      expect(searchParams.get('format')).toBe('csv');
+    });
+
+    it('JSON形式でエクスポートできる', async () => {
+      const params: ExportTransactionsParams = {
+        format: 'json',
+      };
+
+      mockApiClient.downloadFile.mockResolvedValue(undefined);
+
+      await exportTransactions(params);
+
+      expect(mockApiClient.downloadFile).toHaveBeenCalledWith(
+        '/api/transactions/export',
+        expect.any(URLSearchParams)
+      );
+
+      const callArgs = mockApiClient.downloadFile.mock.calls[0];
+      const searchParams = callArgs[1] as URLSearchParams;
+      expect(searchParams.get('format')).toBe('json');
+    });
+
+    it('年・月を指定してエクスポートできる', async () => {
+      const params: ExportTransactionsParams = {
+        format: 'csv',
+        year: 2025,
+        month: 11,
+      };
+
+      mockApiClient.downloadFile.mockResolvedValue(undefined);
+
+      await exportTransactions(params);
+
+      const callArgs = mockApiClient.downloadFile.mock.calls[0];
+      const searchParams = callArgs[1] as URLSearchParams;
+      expect(searchParams.get('format')).toBe('csv');
+      expect(searchParams.get('year')).toBe('2025');
+      expect(searchParams.get('month')).toBe('11');
+    });
+
+    it('期間を指定してエクスポートできる', async () => {
+      const params: ExportTransactionsParams = {
+        format: 'csv',
+        startDate: '2025-11-01',
+        endDate: '2025-11-30',
+      };
+
+      mockApiClient.downloadFile.mockResolvedValue(undefined);
+
+      await exportTransactions(params);
+
+      const callArgs = mockApiClient.downloadFile.mock.calls[0];
+      const searchParams = callArgs[1] as URLSearchParams;
+      expect(searchParams.get('format')).toBe('csv');
+      expect(searchParams.get('startDate')).toBe('2025-11-01');
+      expect(searchParams.get('endDate')).toBe('2025-11-30');
+    });
+
+    it('金融機関IDでフィルタリングしてエクスポートできる', async () => {
+      const params: ExportTransactionsParams = {
+        format: 'csv',
+        institutionId: 'inst-1',
+      };
+
+      mockApiClient.downloadFile.mockResolvedValue(undefined);
+
+      await exportTransactions(params);
+
+      const callArgs = mockApiClient.downloadFile.mock.calls[0];
+      const searchParams = callArgs[1] as URLSearchParams;
+      expect(searchParams.get('format')).toBe('csv');
+      expect(searchParams.get('institutionId')).toBe('inst-1');
     });
   });
 });
