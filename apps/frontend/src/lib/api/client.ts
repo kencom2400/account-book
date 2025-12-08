@@ -154,9 +154,16 @@ async function downloadFile(endpoint: string, params?: URLSearchParams): Promise
   const contentDisposition = response.headers.get('Content-Disposition');
   let filename = 'download';
   if (contentDisposition) {
-    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-    if (filenameMatch) {
-      filename = filenameMatch[1];
+    // filename="..." の形式を優先的に抽出
+    const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+    if (quotedMatch && quotedMatch[1]) {
+      filename = quotedMatch[1];
+    } else {
+      // filename=... の形式（クォートなし）
+      const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+      if (unquotedMatch && unquotedMatch[1]) {
+        filename = unquotedMatch[1].trim();
+      }
     }
   }
 

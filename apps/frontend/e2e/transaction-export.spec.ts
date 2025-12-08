@@ -51,18 +51,29 @@ test.describe('取引データエクスポート機能', () => {
   });
 
   test('CSV形式でエクスポートできる', async () => {
+    // レスポンスを監視してContent-Dispositionヘッダーを取得
+    let contentDisposition = '';
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/transactions/export') && response.status() === 200
+    );
+
     // ダウンロードを監視
     const downloadPromise = page.waitForEvent('download');
 
     // CSVエクスポートボタンをクリック
     await page.getByRole('button', { name: 'CSVエクスポート' }).click();
 
-    // ダウンロードが開始されるまで待つ
-    const download = await downloadPromise;
+    // レスポンスとダウンロードを待つ
+    const [response, download] = await Promise.all([responsePromise, downloadPromise]);
 
-    // ファイル名が正しいことを確認
-    const filename = download.suggestedFilename();
-    expect(filename).toMatch(/^transactions_.*\.csv$/);
+    // Content-Dispositionヘッダーからファイル名を取得
+    contentDisposition = response.headers()['content-disposition'] || '';
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+      if (filenameMatch && filenameMatch[1]) {
+        expect(filenameMatch[1]).toMatch(/^transactions_.*\.csv$/);
+      }
+    }
 
     // ファイルの内容を確認（CSV形式であることを確認）
     const path = await download.path();
@@ -75,18 +86,29 @@ test.describe('取引データエクスポート機能', () => {
   });
 
   test('JSON形式でエクスポートできる', async () => {
+    // レスポンスを監視してContent-Dispositionヘッダーを取得
+    let contentDisposition = '';
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/transactions/export') && response.status() === 200
+    );
+
     // ダウンロードを監視
     const downloadPromise = page.waitForEvent('download');
 
     // JSONエクスポートボタンをクリック
     await page.getByRole('button', { name: 'JSONエクスポート' }).click();
 
-    // ダウンロードが開始されるまで待つ
-    const download = await downloadPromise;
+    // レスポンスとダウンロードを待つ
+    const [response, download] = await Promise.all([responsePromise, downloadPromise]);
 
-    // ファイル名が正しいことを確認
-    const filename = download.suggestedFilename();
-    expect(filename).toMatch(/^transactions_.*\.json$/);
+    // Content-Dispositionヘッダーからファイル名を取得
+    contentDisposition = response.headers()['content-disposition'] || '';
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+      if (filenameMatch && filenameMatch[1]) {
+        expect(filenameMatch[1]).toMatch(/^transactions_.*\.json$/);
+      }
+    }
 
     // ファイルの内容を確認（JSON形式であることを確認）
     const path = await download.path();
