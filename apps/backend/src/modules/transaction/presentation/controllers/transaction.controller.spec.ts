@@ -5,6 +5,7 @@ import { GetTransactionsUseCase } from '../../application/use-cases/get-transact
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
+import { ExportTransactionsUseCase } from '../../application/use-cases/export-transactions.use-case';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { Money } from '../../domain/value-objects/money.vo';
@@ -17,6 +18,7 @@ describe('TransactionController', () => {
   let updateCategoryUseCase: jest.Mocked<UpdateTransactionCategoryUseCase>;
   let calculateSummaryUseCase: jest.Mocked<CalculateMonthlySummaryUseCase>;
   let classifyUseCase: jest.Mocked<ClassifyTransactionUseCase>;
+  let _exportUseCase: jest.Mocked<ExportTransactionsUseCase>;
 
   const mockTransaction = new TransactionEntity(
     'tx_1',
@@ -56,6 +58,10 @@ describe('TransactionController', () => {
           provide: ClassifyTransactionUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: ExportTransactionsUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -65,6 +71,7 @@ describe('TransactionController', () => {
     updateCategoryUseCase = module.get(UpdateTransactionCategoryUseCase);
     calculateSummaryUseCase = module.get(CalculateMonthlySummaryUseCase);
     classifyUseCase = module.get(ClassifyTransactionUseCase);
+    _exportUseCase = module.get(ExportTransactionsUseCase);
   });
 
   describe('classify', () => {
