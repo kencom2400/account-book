@@ -9104,3 +9104,82 @@ const getInstitutionName = (institutionId: string): string => {
 **参照**: PR #389 - Issue #77: FR-030 データ同期間隔設定機能のフロントエンド実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 📚 セクション23: FR-031 データエクスポート機能実装レビューから学んだ観点（PR #390）
+
+### 1. E2Eテストでのファイルダウンロード検証: HTTPレスポンスヘッダーの確認 🔴 Critical
+
+**問題**: E2Eテストで`download.suggestedFilename()`を使用してファイル名を検証していたが、Playwrightの`download.suggestedFilename()`は`<a>`タグの`download`属性から取得するため、HTTPレスポンスヘッダーの`Content-Disposition`が正しく反映されない場合がある。
+
+**解決策**: HTTPレスポンスヘッダーから直接`Content-Disposition`を取得して検証する。
+
+```typescript
+// ❌ 悪い例: download.suggestedFilename()のみを使用
+test('CSV形式でエクスポートできる', async () => {
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSVエクスポート' }).click();
+  const download = await downloadPromise;
+  const filename = download.suggestedFilename();
+  expect(filename).toMatch(/^transactions_.*\.csv$/); // 失敗: "download.csv"が返される
+});
+
+// ✅ 良い例: HTTPレスポンスヘッダーから直接取得
+test('CSV形式でエクスポートできる', async () => {
+  const responsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/transactions/export') && response.status() === 200
+  );
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSVエクスポート' }).click();
+  const [response, download] = await Promise.all([responsePromise, downloadPromise]);
+  const contentDisposition = response.headers()['content-disposition'] || '';
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+    if (filenameMatch && filenameMatch[1]) {
+      expect(filenameMatch[1]).toMatch(/^transactions_.*\.csv$/);
+    }
+  }
+});
+```
+
+**理由**:
+
+- HTTPレスポンスヘッダーから直接取得することで、サーバー側の設定を正確に検証できる
+- `Content-Disposition`ヘッダーのパースロジックをテストできる
+- フロントエンドの実装に依存しない、より堅牢なテストになる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（CI失敗対応）
+
+### 2. Content-Dispositionヘッダーのパース: 正規表現の改善 🟡 Medium
+
+**問題**: `Content-Disposition`ヘッダーからファイル名を抽出する正規表現が不十分で、クォート付き・クォートなしの両方の形式に対応できていない。
+
+**解決策**: クォート付きを優先的に抽出し、フォールバックとしてクォートなし形式に対応する。
+
+```typescript
+// ❌ 悪い例: 単一の正規表現で対応
+const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+if (filenameMatch) {
+  filename = filenameMatch[1];
+}
+
+// ✅ 良い例: クォート付きを優先、フォールバックでクォートなし
+const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+if (quotedMatch && quotedMatch[1]) {
+  filename = quotedMatch[1];
+} else {
+  const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+  if (unquotedMatch && unquotedMatch[1]) {
+    filename = unquotedMatch[1].trim();
+  }
+}
+```
+
+**理由**:
+
+- より堅牢なパースロジックになる
+- 様々な形式の`Content-Disposition`ヘッダーに対応できる
+- エッジケースでのエラーを防げる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（CI失敗対応）
+
+---
