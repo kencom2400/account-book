@@ -9411,4 +9411,149 @@ searchParams.append('format', params.format);
 
 **参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
 
+### 10. E2Eテストの完全性: エラーハンドリングの検証 🔴 Critical
+
+**問題**: エクスポートエラー時のテストで、エラーメッセージが表示されることのアサーションが行われていない。ネットワークをオフラインにしてボタンをクリックするだけで、実際のエラーメッセージ表示を検証していない。
+
+**解決策**: `getByText`などを用いて、期待されるエラーメッセージが実際に表示されることを確認する。
+
+```typescript
+// ❌ 悪い例: エラーメッセージの表示を検証していない
+test('エクスポートエラー時にエラーメッセージが表示される', async () => {
+  await page.context().setOffline(true);
+  await page.getByRole('button', { name: 'CSVエクスポート' }).click();
+  // エラーメッセージが表示される（実装に応じて）← コメントのみ
+  await page.context().setOffline(false);
+});
+
+// ✅ 良い例: エラーメッセージの表示を明示的に検証
+test('エクスポートエラー時にエラーメッセージが表示される', async () => {
+  await page.context().setOffline(true);
+  await page.getByRole('button', { name: 'CSVエクスポート' }).click();
+  // エラーメッセージが表示されることを確認
+  await expect(
+    page.getByText('エクスポートに失敗しました。もう一度お試しください。')
+  ).toBeVisible();
+  await page.context().setOffline(false);
+});
+```
+
+**理由**:
+
+- エラーハンドリングが正しく機能することを保証できる
+- UIに実際にエラーメッセージが表示されることを確認できる
+- テストの完全性が向上する
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 11. コードの一貫性: 共通メソッドの統一使用 🟡 Medium
+
+**問題**: `convertToCSV`メソッド内で、一部のフィールド（`amount`、`isReconciled`）は直接`toString()`や三項演算子を使用し、他のフィールドは`escapeCSVField`を使用している。コードの一貫性が欠けている。
+
+**解決策**: すべてのフィールドで`escapeCSVField`メソッドを統一して使用する。
+
+```typescript
+// ❌ 悪い例: 処理方法が統一されていない
+return [
+  this.escapeCSVField(transaction.id),
+  this.formatDate(transaction.date),
+  transaction.amount.toString(), // 直接toString()
+  // ...
+  transaction.isReconciled ? 'true' : 'false', // 三項演算子
+  transaction.relatedTransactionId ? this.escapeCSVField(transaction.relatedTransactionId) : '', // 三項演算子
+];
+
+// ✅ 良い例: escapeCSVFieldで統一
+return [
+  this.escapeCSVField(transaction.id),
+  this.formatDate(transaction.date),
+  this.escapeCSVField(transaction.amount), // escapeCSVFieldで統一
+  // ...
+  this.escapeCSVField(transaction.isReconciled), // escapeCSVFieldで統一
+  this.escapeCSVField(transaction.relatedTransactionId), // 簡略化
+];
+```
+
+**理由**:
+
+- コードの一貫性が向上し、可読性が高まる
+- 将来的な仕様変更（エスケープ処理の変更など）に強くなる
+- `escapeCSVField`が`null`や`undefined`を正しく空文字列に変換するため、三項演算子が不要になる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 12. コードの簡潔化: スプレッド構文の活用 🟡 Medium
+
+**問題**: クエリオブジェクトの構築が冗長で、各プロパティを個別に展開している。
+
+**解決策**: スプレッド構文を使用して簡潔化する。
+
+```typescript
+// ❌ 悪い例: 各プロパティを個別に展開
+const result = await this.exportTransactionsUseCase.execute({
+  institutionId: query.institutionId,
+  accountId: query.accountId,
+  year: query.year ? parseInt(query.year) : undefined,
+  month: query.month ? parseInt(query.month) : undefined,
+  startDate: query.startDate ? new Date(query.startDate) : undefined,
+  endDate: query.endDate ? new Date(query.endDate) : undefined,
+  format: query.format,
+});
+
+// ✅ 良い例: スプレッド構文で簡潔化
+const { year, month, startDate, endDate, ...rest } = query;
+const result = await this.exportTransactionsUseCase.execute({
+  ...rest,
+  year: year ? parseInt(year) : undefined,
+  month: month ? parseInt(month) : undefined,
+  startDate: startDate ? new Date(startDate) : undefined,
+  endDate: endDate ? new Date(endDate) : undefined,
+});
+```
+
+**理由**:
+
+- コードが簡潔になり、可読性が向上する
+- 将来的なクエリパラメータの追加に対応しやすくなる
+- 変換が必要なプロパティとそのまま渡せるプロパティを明確に分離できる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 13. E2Eテストの堅牢性: Content-Dispositionヘッダーのパース処理 🟡 Medium
+
+**問題**: E2Eテストで`Content-Disposition`ヘッダーからファイル名を取得する際の正規表現が、クォートで囲まれていないケースなど、一部の形式に対応していない。
+
+**解決策**: クォート付き・クォートなしの両方に対応した、より堅牢なパース処理を実装する。
+
+```typescript
+// ❌ 悪い例: クォート付きのみに対応
+const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+if (filenameMatch && filenameMatch[1]) {
+  expect(filenameMatch[1]).toMatch(/^transactions_.*\.csv$/);
+}
+
+// ✅ 良い例: クォート付き・クォートなしの両方に対応
+let filename = '';
+if (contentDisposition) {
+  const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+  if (quotedMatch && quotedMatch[1]) {
+    filename = quotedMatch[1];
+  } else {
+    const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+    if (unquotedMatch && unquotedMatch[1]) {
+      filename = unquotedMatch[1].trim();
+    }
+  }
+}
+expect(filename).toMatch(/^transactions_.*\.csv$/);
+```
+
+**理由**:
+
+- サーバー側のヘッダー形式の変更に対するテストの安定性が向上する
+- さまざまなブラウザやサーバーの実装に対応できる
+- テストの信頼性が向上する
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
 ---

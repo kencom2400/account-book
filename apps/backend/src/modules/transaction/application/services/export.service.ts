@@ -43,7 +43,7 @@ export class ExportService {
       return [
         this.escapeCSVField(transaction.id),
         this.formatDate(transaction.date),
-        transaction.amount.toString(),
+        this.escapeCSVField(transaction.amount),
         this.escapeCSVField(transaction.category.id),
         this.escapeCSVField(transaction.category.name),
         this.escapeCSVField(transaction.category.type),
@@ -51,10 +51,8 @@ export class ExportService {
         this.escapeCSVField(transaction.institutionId),
         this.escapeCSVField(transaction.accountId),
         this.escapeCSVField(transaction.status),
-        transaction.isReconciled ? 'true' : 'false',
-        transaction.relatedTransactionId
-          ? this.escapeCSVField(transaction.relatedTransactionId)
-          : '',
+        this.escapeCSVField(transaction.isReconciled),
+        this.escapeCSVField(transaction.relatedTransactionId),
         this.formatDateTime(transaction.createdAt),
         this.formatDateTime(transaction.updatedAt),
       ];

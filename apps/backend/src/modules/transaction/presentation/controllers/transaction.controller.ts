@@ -271,14 +271,13 @@ export class TransactionController {
     @Query() query: ExportTransactionsQueryDto,
     @Res() res: Response,
   ): Promise<void> {
+    const { year, month, startDate, endDate, ...rest } = query;
     const result = await this.exportTransactionsUseCase.execute({
-      institutionId: query.institutionId,
-      accountId: query.accountId,
-      year: query.year ? parseInt(query.year) : undefined,
-      month: query.month ? parseInt(query.month) : undefined,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-      format: query.format,
+      ...rest,
+      year: year ? parseInt(year) : undefined,
+      month: month ? parseInt(month) : undefined,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
     });
 
     res.setHeader('Content-Type', result.mimeType);

@@ -66,14 +66,21 @@ test.describe('取引データエクスポート機能', () => {
     // レスポンスとダウンロードを待つ
     const [response, download] = await Promise.all([responsePromise, downloadPromise]);
 
-    // Content-Dispositionヘッダーからファイル名を取得
+    // Content-Dispositionヘッダーからファイル名を取得（クォート付き・クォートなしの両方に対応）
     contentDisposition = response.headers()['content-disposition'] || '';
+    let filename = '';
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-      if (filenameMatch && filenameMatch[1]) {
-        expect(filenameMatch[1]).toMatch(/^transactions_.*\.csv$/);
+      const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+      if (quotedMatch && quotedMatch[1]) {
+        filename = quotedMatch[1];
+      } else {
+        const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (unquotedMatch && unquotedMatch[1]) {
+          filename = unquotedMatch[1].trim();
+        }
       }
     }
+    expect(filename).toMatch(/^transactions_.*\.csv$/);
 
     // ファイルの内容を確認（CSV形式であることを確認）
     const path = await download.path();
@@ -101,14 +108,21 @@ test.describe('取引データエクスポート機能', () => {
     // レスポンスとダウンロードを待つ
     const [response, download] = await Promise.all([responsePromise, downloadPromise]);
 
-    // Content-Dispositionヘッダーからファイル名を取得
+    // Content-Dispositionヘッダーからファイル名を取得（クォート付き・クォートなしの両方に対応）
     contentDisposition = response.headers()['content-disposition'] || '';
+    let filename = '';
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-      if (filenameMatch && filenameMatch[1]) {
-        expect(filenameMatch[1]).toMatch(/^transactions_.*\.json$/);
+      const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+      if (quotedMatch && quotedMatch[1]) {
+        filename = quotedMatch[1];
+      } else {
+        const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (unquotedMatch && unquotedMatch[1]) {
+          filename = unquotedMatch[1].trim();
+        }
       }
     }
+    expect(filename).toMatch(/^transactions_.*\.json$/);
 
     // ファイルの内容を確認（JSON形式であることを確認）
     const path = await download.path();
@@ -167,9 +181,10 @@ test.describe('取引データエクスポート機能', () => {
     // CSVエクスポートボタンをクリック
     await page.getByRole('button', { name: 'CSVエクスポート' }).click();
 
-    // エラーメッセージが表示される（実装に応じて）
-    // 現在の実装では、alertが表示される可能性がある
-    // 将来的には、トースト通知などでエラーを表示する
+    // エラーメッセージが表示されることを確認
+    await expect(
+      page.getByText('エクスポートに失敗しました。もう一度お試しください。')
+    ).toBeVisible();
 
     // ネットワークを復元
     await page.context().setOffline(false);
