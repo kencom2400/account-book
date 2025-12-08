@@ -110,11 +110,12 @@ export function InstitutionSettingsTab(): React.JSX.Element {
         return;
       }
 
-      await updateInstitutionSyncSettings(setting.institutionId, request);
+      const updatedSetting = await updateInstitutionSyncSettings(setting.institutionId, request);
 
-      // 一覧を再取得
-      const updated = await getAllInstitutionSyncSettings();
-      setSettings(updated);
+      // 一覧を再取得する代わりに、ローカルstateを更新
+      setSettings((currentSettings) =>
+        currentSettings.map((s) => (s.id === updatedSetting.id ? updatedSetting : s))
+      );
       setEditingId(null);
       setEditForm(null);
     } catch (err) {
