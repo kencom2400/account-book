@@ -30,6 +30,7 @@ export function InstitutionSettingsTab(): React.JSX.Element {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     intervalType: SyncIntervalType;
@@ -80,6 +81,7 @@ export function InstitutionSettingsTab(): React.JSX.Element {
     if (!editForm) return;
 
     try {
+      setSavingId(settingId);
       setError(null);
 
       // バリデーション
@@ -119,6 +121,8 @@ export function InstitutionSettingsTab(): React.JSX.Element {
       const message = err instanceof Error ? err.message : '設定の保存に失敗しました。';
       setError(message);
       console.error('設定の保存中にエラーが発生しました:', err);
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -395,9 +399,10 @@ export function InstitutionSettingsTab(): React.JSX.Element {
                       </button>
                       <button
                         onClick={() => handleSave(setting.id)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        disabled={savingId === setting.id}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        保存
+                        {savingId === setting.id ? '保存中...' : '保存'}
                       </button>
                     </div>
                   </div>
