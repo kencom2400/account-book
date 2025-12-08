@@ -29,6 +29,12 @@ export interface GetTransactionsParams {
   endDate?: string;
 }
 
+export type ExportFormat = 'csv' | 'json';
+
+export interface ExportTransactionsParams extends GetTransactionsParams {
+  format: ExportFormat;
+}
+
 export interface MonthlySummary {
   year: number;
   month: number;
@@ -110,4 +116,34 @@ export async function updateTransactionSubcategory(
   return await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/subcategory`, {
     subcategoryId,
   });
+}
+
+/**
+ * 取引データをエクスポート
+ * FR-031: データエクスポート機能
+ */
+export async function exportTransactions(params: ExportTransactionsParams): Promise<void> {
+  const searchParams = new URLSearchParams();
+
+  if (params.institutionId) {
+    searchParams.append('institutionId', params.institutionId);
+  }
+  if (params.accountId) {
+    searchParams.append('accountId', params.accountId);
+  }
+  if (params.year) {
+    searchParams.append('year', params.year.toString());
+  }
+  if (params.month) {
+    searchParams.append('month', params.month.toString());
+  }
+  if (params.startDate) {
+    searchParams.append('startDate', params.startDate);
+  }
+  if (params.endDate) {
+    searchParams.append('endDate', params.endDate);
+  }
+  searchParams.append('format', params.format);
+
+  await apiClient.downloadFile('/api/transactions/export', searchParams);
 }

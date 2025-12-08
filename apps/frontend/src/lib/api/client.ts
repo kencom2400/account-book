@@ -135,6 +135,44 @@ async function del<T>(endpoint: string): Promise<T> {
 }
 
 /**
+ * ファイルダウンロード
+ */
+async function downloadFile(endpoint: string, params?: URLSearchParams): Promise<void> {
+  const url = `${API_BASE_URL}${endpoint}${params ? `?${params.toString()}` : ''}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  // Content-Dispositionヘッダーからファイル名を取得
+  const contentDisposition = response.headers.get('Content-Disposition');
+  let filename = 'download';
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+    if (filenameMatch) {
+      filename = filenameMatch[1];
+    }
+  }
+
+  // Blobとして取得してダウンロード
+  const blob = await response.blob();
+  const urlObj = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = urlObj;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(urlObj);
+}
+
+/**
  * エラーレスポンスを処理
  */
 async function handleErrorResponse(response: Response): Promise<never> {
@@ -176,4 +214,5 @@ export const apiClient = {
   patch,
   put,
   delete: del,
+  downloadFile,
 };

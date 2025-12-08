@@ -27,6 +27,8 @@ import { CalculateInstitutionSummaryUseCase } from './application/use-cases/calc
 import { CalculateAssetBalanceUseCase } from './application/use-cases/calculate-asset-balance.use-case';
 import { CalculateTrendAnalysisUseCase } from './application/use-cases/calculate-trend-analysis.use-case';
 import { ClassifyTransactionUseCase } from './application/use-cases/classify-transaction.use-case';
+import { ExportTransactionsUseCase } from './application/use-cases/export-transactions.use-case';
+import { ExportService } from './application/services/export.service';
 import { TRANSACTION_REPOSITORY } from './domain/repositories/transaction.repository.interface';
 import { TRANSACTION_CATEGORY_CHANGE_HISTORY_REPOSITORY } from './domain/repositories/transaction-category-change-history.repository.interface';
 import { CategoryModule } from '../category/category.module';
@@ -75,6 +77,9 @@ import { InstitutionModule } from '../institution/institution.module';
     CalculateAssetBalanceUseCase,
     CalculateTrendAnalysisUseCase,
     ClassifyTransactionUseCase,
+    // Export
+    ExportService,
+    ExportTransactionsUseCase,
   ],
   exports: [
     TRANSACTION_REPOSITORY,
