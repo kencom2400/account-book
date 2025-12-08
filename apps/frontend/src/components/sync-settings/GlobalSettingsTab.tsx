@@ -3,12 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { getSyncSettings, updateSyncSettings } from '@/lib/api/sync-settings';
-import type {
-  SyncSettingsDataDto,
-  UpdateSyncSettingsRequestDto,
-  SyncIntervalType,
-  TimeUnit,
-} from '@account-book/types';
+import type { UpdateSyncSettingsRequestDto, SyncIntervalType, TimeUnit } from '@account-book/types';
 import {
   SyncIntervalType as SyncIntervalTypeEnum,
   TimeUnit as TimeUnitEnum,
@@ -19,7 +14,6 @@ import {
  * FR-030: データ同期間隔の設定
  */
 export function GlobalSettingsTab(): React.JSX.Element {
-  const [_settings, setSettings] = useState<SyncSettingsDataDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +39,6 @@ export function GlobalSettingsTab(): React.JSX.Element {
         setLoading(true);
         setError(null);
         const data = await getSyncSettings();
-        setSettings(data);
 
         // フォームに反映
         setDefaultIntervalType(data.defaultInterval.type);
@@ -115,8 +108,7 @@ export function GlobalSettingsTab(): React.JSX.Element {
         }),
       };
 
-      const updated = await updateSyncSettings(request);
-      setSettings(updated);
+      await updateSyncSettings(request);
       setSuccessMessage('設定を保存しました');
       setTimeout(() => {
         setSuccessMessage(null);
