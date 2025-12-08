@@ -1,8 +1,6 @@
 import { ExportService } from './export.service';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { CategoryType, TransactionStatus } from '@account-book/types';
-import { Money } from '../../domain/value-objects/money.vo';
-import { TransactionDate } from '../../domain/value-objects/transaction-date.vo';
 
 describe('ExportService', () => {
   let service: ExportService;
@@ -15,8 +13,8 @@ describe('ExportService', () => {
   ): TransactionEntity => {
     return new TransactionEntity(
       id,
-      new TransactionDate(date),
-      new Money(amount),
+      date,
+      amount,
       { id: 'cat_1', name: '食費', type: CategoryType.EXPENSE },
       description,
       'inst_1',
@@ -177,9 +175,7 @@ describe('ExportService', () => {
 
       expect(parsed).toHaveLength(1);
       expect(parsed[0].id).toBe('tx_1');
-      // amountはMoneyオブジェクトなので、amountプロパティを持つ
-      expect(parsed[0].amount).toHaveProperty('amount');
-      expect(parsed[0].amount.amount).toBe(1000);
+      expect(parsed[0].amount).toBe(1000);
       expect(parsed[0].description).toBe('テスト取引');
     });
 
