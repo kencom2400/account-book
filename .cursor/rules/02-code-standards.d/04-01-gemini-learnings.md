@@ -9182,4 +9182,233 @@ if (quotedMatch && quotedMatch[1]) {
 
 **参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（CI失敗対応）
 
+### 3. テストでの型安全性: 値オブジェクトとプリミティブ型の区別 🔴 Critical
+
+**問題**: テストで`TransactionEntity`をインスタンス化する際に、値オブジェクト（`TransactionDate`、`Money`）を渡していたが、実際のコンストラクタはプリミティブ型（`Date`、`number`）を期待している。
+
+**解決策**: テストでも実際のコンストラクタの型定義に合わせて、プリミティブ型を直接渡す。
+
+```typescript
+// ❌ 悪い例: 値オブジェクトを渡す
+const createTransaction = (id: string, date: Date, amount: number): TransactionEntity => {
+  return new TransactionEntity(
+    id,
+    new TransactionDate(date), // 値オブジェクト
+    new Money(amount) // 値オブジェクト
+    // ...
+  );
+};
+
+// ✅ 良い例: プリミティブ型を直接渡す
+const createTransaction = (id: string, date: Date, amount: number): TransactionEntity => {
+  return new TransactionEntity(
+    id,
+    date, // Date型を直接
+    amount // number型を直接
+    // ...
+  );
+};
+```
+
+**理由**:
+
+- テストでも実際の実装と同じ型を使用することで、型安全性が確保される
+- 値オブジェクトとプリミティブ型の混同を防げる
+- 将来的な型変更に対する堅牢性が向上する
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 4. 型安全性の向上: unknown型の活用 🟡 Medium
+
+**問題**: `escapeCSVField`メソッドが`string`型を前提としているが、実際には`String(field)`で他の型も文字列に変換している。型アノテーションが実装と一致していない。
+
+**解決策**: パラメータの型を`unknown`に変更し、型ガードで安全に処理する。
+
+```typescript
+// ❌ 悪い例: string型を前提としているが、実際には他の型も受け入れる
+private escapeCSVField(field: string): string {
+  if (field === null || field === undefined) {
+    return '';
+  }
+  const stringField = String(field); // 型が一致しない
+  // ...
+}
+
+// ✅ 良い例: unknown型を使用し、型ガードで安全に処理
+private escapeCSVField(field: unknown): string {
+  if (field === null || field === undefined) {
+    return '';
+  }
+  // プリミティブ型のみを文字列に変換（オブジェクトは除外）
+  if (typeof field === 'object') {
+    return '';
+  }
+  const stringField =
+    typeof field === 'string'
+      ? field
+      : typeof field === 'number' || typeof field === 'boolean'
+        ? String(field)
+        : '';
+  // ...
+}
+```
+
+**理由**:
+
+- 型アノテーションが実装と一致し、型安全性が向上する
+- オブジェクト型の誤った文字列化を防げる
+- 意図が明確になる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 5. コードの簡潔化: オブジェクトの分割代入とOmitの活用 🟡 Medium
+
+**問題**: `getTransactionsUseCase.execute`にクエリパラメータを渡す際、各プロパティを個別に展開しているため冗長。
+
+**解決策**: オブジェクトの分割代入と`Omit`を使用して簡潔化する。
+
+```typescript
+// ❌ 悪い例: 各プロパティを個別に展開
+const transactions = await this.getTransactionsUseCase.execute({
+  institutionId: query.institutionId,
+  accountId: query.accountId,
+  year: query.year,
+  month: query.month,
+  startDate: query.startDate,
+  endDate: query.endDate,
+});
+
+// ✅ 良い例: 分割代入でformatを除外
+const { format: _format, ...getTransactionsQuery } = query;
+const transactions = await this.getTransactionsUseCase.execute(getTransactionsQuery);
+```
+
+**理由**:
+
+- コードが簡潔になり、保守性が向上する
+- 将来のパラメータ追加時に修正が不要になる
+- 意図が明確になる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 6. コードの重複排除: 共通メソッドの再利用 🟡 Medium
+
+**問題**: `formatDate`メソッドが`ExportService`と`ExportTransactionsUseCase`の両方に存在し、コードが重複している。
+
+**解決策**: 共通メソッドを`ExportService`から`public`として公開し、再利用する。
+
+```typescript
+// ❌ 悪い例: 同じメソッドが複数のクラスに存在
+// ExportService
+private formatDate(date: Date): string { /* ... */ }
+
+// ExportTransactionsUseCase
+private formatDate(date: Date): string { /* ... */ }
+
+// ✅ 良い例: ExportServiceからpublicメソッドとして公開
+// ExportService
+formatDate(date: Date): string { /* ... */ }
+
+// ExportTransactionsUseCase
+const dateStr = this.exportService.formatDate(now);
+```
+
+**理由**:
+
+- コードの重複を排除し、保守性が向上する
+- 単一責任の原則に従う
+- 将来の変更時に1箇所の修正で済む
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 7. UI/UXの改善: alert()の代わりに既存のstateを使用 🟡 Medium
+
+**問題**: エラーハンドリングに`alert()`が使用されており、ユーザーの操作をブロックするため、ユーザー体験を損なう。
+
+**解決策**: 既存の`error` stateを使用して、インラインでエラーメッセージを表示する。
+
+```typescript
+// ❌ 悪い例: alert()を使用
+catch (err) {
+  console.error('エクスポートに失敗しました:', err);
+  alert('エクスポートに失敗しました。もう一度お試しください。');
+}
+
+// ✅ 良い例: 既存のerror stateを使用
+catch (err) {
+  console.error('エクスポートに失敗しました:', err);
+  setError('エクスポートに失敗しました。もう一度お試しください。');
+}
+```
+
+**理由**:
+
+- ユーザーの操作をブロックしない
+- 既存のUIコンポーネントと一貫性がある
+- よりモダンなUXを提供できる
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 8. HTTPリクエストの適切なヘッダー設定 🟡 Medium
+
+**問題**: GETリクエストで`Content-Type: application/json`ヘッダーが指定されているが、ボディのないGETリクエストでは不要。
+
+**解決策**: 不要なヘッダーを削除する。
+
+```typescript
+// ❌ 悪い例: 不要なContent-Typeヘッダー
+const response = await fetch(url, {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json', // 不要
+  },
+});
+
+// ✅ 良い例: ヘッダーを削除
+const response = await fetch(url, {
+  method: 'GET',
+});
+```
+
+**理由**:
+
+- セマンティックに正しいコードになる
+- 不要なヘッダーを送信しないことで、わずかにパフォーマンスが向上する
+- HTTP仕様に準拠する
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
+### 9. コードの簡潔化: Object.entries()によるループ処理 🟡 Medium
+
+**問題**: `URLSearchParams`を構築する際、`if`文の繰り返しで冗長になっている。
+
+**解決策**: `Object.entries()`とループを使用して簡潔化する。
+
+```typescript
+// ❌ 悪い例: if文の繰り返し
+if (params.institutionId) {
+  searchParams.append('institutionId', params.institutionId);
+}
+if (params.accountId) {
+  searchParams.append('accountId', params.accountId);
+}
+// ... 繰り返し
+
+// ✅ 良い例: Object.entries()でループ処理
+for (const [key, value] of Object.entries(params)) {
+  if (key !== 'format' && value !== null && value !== undefined) {
+    searchParams.append(key, String(value));
+  }
+}
+searchParams.append('format', params.format);
+```
+
+**理由**:
+
+- コードが簡潔になり、保守性が向上する
+- 将来のパラメータ追加時に修正が不要になる
+- `0`などのfalsy値も正しく処理される（`null`と`undefined`のみをチェック）
+
+**参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
+
 ---
