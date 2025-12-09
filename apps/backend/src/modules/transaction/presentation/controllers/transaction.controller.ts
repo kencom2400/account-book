@@ -8,7 +8,9 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   IsString,
   IsNumber,
@@ -21,6 +23,8 @@ import { GetTransactionsUseCase } from '../../application/use-cases/get-transact
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
+import { ExportTransactionsUseCase } from '../../application/use-cases/export-transactions.use-case';
+import { ExportFormat } from '../../application/services/export.service';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 import { TransactionJSONResponse } from '../../domain/entities/transaction.entity';
 import type { MonthlySummary } from '../../application/use-cases/calculate-monthly-summary.use-case';
@@ -100,6 +104,11 @@ class GetTransactionsQueryDto {
   endDate?: string;
 }
 
+class ExportTransactionsQueryDto extends GetTransactionsQueryDto {
+  @IsEnum(ExportFormat)
+  format!: ExportFormat;
+}
+
 class UpdateCategoryRequestDto {
   @IsObject()
   category!: {
@@ -120,6 +129,7 @@ export class TransactionController {
     private readonly updateTransactionCategoryUseCase: UpdateTransactionCategoryUseCase,
     private readonly calculateMonthlySummaryUseCase: CalculateMonthlySummaryUseCase,
     private readonly classifyTransactionUseCase: ClassifyTransactionUseCase,
+    private readonly exportTransactionsUseCase: ExportTransactionsUseCase,
   ) {}
 
   /**
@@ -248,5 +258,33 @@ export class TransactionController {
       success: true,
       data: transaction.toJSON(),
     };
+  }
+
+  /**
+   * 取引データをエクスポート
+   * GET /transactions/export
+   *
+   * FR-031: データエクスポート機能
+   */
+  @Get('export')
+  async export(
+    @Query() query: ExportTransactionsQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { year, month, startDate, endDate, ...rest } = query;
+    const result = await this.exportTransactionsUseCase.execute({
+      ...rest,
+      year: year ? parseInt(year) : undefined,
+      month: month ? parseInt(month) : undefined,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
+
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
+    res.send(result.content);
   }
 }

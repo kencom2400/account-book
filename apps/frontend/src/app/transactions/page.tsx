@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { TransactionList } from '@/components/transactions/TransactionList';
-import { getTransactions } from '@/lib/api/transactions';
+import { getTransactions, exportTransactions, type ExportFormat } from '@/lib/api/transactions';
 import type { Transaction } from '@account-book/types';
 
 /**
@@ -13,6 +13,7 @@ export default function TransactionsPage(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<boolean>(false);
 
   const loadTransactions = useCallback(async (): Promise<void> => {
     try {
@@ -38,10 +39,41 @@ export default function TransactionsPage(): React.JSX.Element {
     );
   }, []);
 
+  const handleExport = useCallback(async (format: ExportFormat): Promise<void> => {
+    try {
+      setExporting(true);
+      setError(null);
+      await exportTransactions({ format });
+    } catch (err) {
+      console.error('エクスポートに失敗しました:', err);
+      setError('エクスポートに失敗しました。もう一度お試しください。');
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   // 共通レイアウト
   const PageLayout = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">取引一覧</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">取引一覧</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => void handleExport('csv')}
+            disabled={exporting || transactions.length === 0}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {exporting ? 'エクスポート中...' : 'CSVエクスポート'}
+          </button>
+          <button
+            onClick={() => void handleExport('json')}
+            disabled={exporting || transactions.length === 0}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {exporting ? 'エクスポート中...' : 'JSONエクスポート'}
+          </button>
+        </div>
+      </div>
       {children}
     </div>
   );

@@ -5,10 +5,13 @@ import { GetTransactionsUseCase } from '../../application/use-cases/get-transact
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
+import { ExportTransactionsUseCase } from '../../application/use-cases/export-transactions.use-case';
+import { ExportFormat } from '../../application/services/export.service';
 import { CategoryType, TransactionStatus } from '@account-book/types';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { Money } from '../../domain/value-objects/money.vo';
 import { TransactionDate } from '../../domain/value-objects/transaction-date.vo';
+import type { Response } from 'express';
 
 describe('TransactionController', () => {
   let controller: TransactionController;
@@ -17,6 +20,7 @@ describe('TransactionController', () => {
   let updateCategoryUseCase: jest.Mocked<UpdateTransactionCategoryUseCase>;
   let calculateSummaryUseCase: jest.Mocked<CalculateMonthlySummaryUseCase>;
   let classifyUseCase: jest.Mocked<ClassifyTransactionUseCase>;
+  let exportUseCase: jest.Mocked<ExportTransactionsUseCase>;
 
   const mockTransaction = new TransactionEntity(
     'tx_1',
@@ -56,6 +60,10 @@ describe('TransactionController', () => {
           provide: ClassifyTransactionUseCase,
           useValue: { execute: jest.fn() },
         },
+        {
+          provide: ExportTransactionsUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -65,6 +73,7 @@ describe('TransactionController', () => {
     updateCategoryUseCase = module.get(UpdateTransactionCategoryUseCase);
     calculateSummaryUseCase = module.get(CalculateMonthlySummaryUseCase);
     classifyUseCase = module.get(ClassifyTransactionUseCase);
+    exportUseCase = module.get(ExportTransactionsUseCase);
   });
 
   describe('classify', () => {
@@ -152,6 +161,112 @@ describe('TransactionController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSummary);
+    });
+  });
+
+  describe('export', () => {
+    it('CSV形式でエクスポートできる', async () => {
+      const mockResult = {
+        content: 'CSV content',
+        filename: 'transactions_2024-01.csv',
+        mimeType: 'text/csv; charset=utf-8',
+      };
+
+      const mockResponse = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      exportUseCase.execute.mockResolvedValue(mockResult);
+
+      await controller.export(
+        {
+          format: ExportFormat.CSV,
+          year: '2024',
+          month: '1',
+        },
+        mockResponse,
+      );
+
+      expect(exportUseCase.execute).toHaveBeenCalledWith({
+        format: ExportFormat.CSV,
+        year: 2024,
+        month: 1,
+      });
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/csv; charset=utf-8',
+      );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="transactions_2024-01.csv"',
+      );
+      expect(mockResponse.send).toHaveBeenCalledWith('CSV content');
+    });
+
+    it('JSON形式でエクスポートできる', async () => {
+      const mockResult = {
+        content: '{"id":"tx_1"}',
+        filename: 'transactions_2024-01.json',
+        mimeType: 'application/json; charset=utf-8',
+      };
+
+      const mockResponse = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      exportUseCase.execute.mockResolvedValue(mockResult);
+
+      await controller.export(
+        {
+          format: ExportFormat.JSON,
+          year: '2024',
+          month: '1',
+        },
+        mockResponse,
+      );
+
+      expect(exportUseCase.execute).toHaveBeenCalledWith({
+        format: ExportFormat.JSON,
+        year: 2024,
+        month: 1,
+      });
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/json; charset=utf-8',
+      );
+      expect(mockResponse.send).toHaveBeenCalledWith('{"id":"tx_1"}');
+    });
+
+    it('期間指定でエクスポートできる', async () => {
+      const mockResult = {
+        content: 'CSV content',
+        filename: 'transactions_2024-01-01_2024-01-31.csv',
+        mimeType: 'text/csv; charset=utf-8',
+      };
+
+      const mockResponse = {
+        setHeader: jest.fn(),
+        send: jest.fn(),
+      } as unknown as Response;
+
+      exportUseCase.execute.mockResolvedValue(mockResult);
+
+      await controller.export(
+        {
+          format: ExportFormat.CSV,
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+        },
+        mockResponse,
+      );
+
+      expect(exportUseCase.execute).toHaveBeenCalledWith({
+        format: ExportFormat.CSV,
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-01-31'),
+      });
     });
   });
 });

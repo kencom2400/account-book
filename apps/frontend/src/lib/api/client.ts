@@ -135,6 +135,48 @@ async function del<T>(endpoint: string): Promise<T> {
 }
 
 /**
+ * ファイルダウンロード
+ */
+async function downloadFile(endpoint: string, params?: URLSearchParams): Promise<void> {
+  const url = `${API_BASE_URL}${endpoint}${params ? `?${params.toString()}` : ''}`;
+  const response = await fetch(url, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  // Content-Dispositionヘッダーからファイル名を取得
+  const contentDisposition = response.headers.get('Content-Disposition');
+  let filename = 'download';
+  if (contentDisposition) {
+    // filename="..." の形式を優先的に抽出
+    const quotedMatch = contentDisposition.match(/filename="([^"]+)"/);
+    if (quotedMatch && quotedMatch[1]) {
+      filename = quotedMatch[1];
+    } else {
+      // filename=... の形式（クォートなし）
+      const unquotedMatch = contentDisposition.match(/filename=([^;]+)/);
+      if (unquotedMatch && unquotedMatch[1]) {
+        filename = unquotedMatch[1].trim();
+      }
+    }
+  }
+
+  // Blobとして取得してダウンロード
+  const blob = await response.blob();
+  const urlObj = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = urlObj;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(urlObj);
+}
+
+/**
  * エラーレスポンスを処理
  */
 async function handleErrorResponse(response: Response): Promise<never> {
@@ -176,4 +218,5 @@ export const apiClient = {
   patch,
   put,
   delete: del,
+  downloadFile,
 };
