@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { TransactionList } from '@/components/transactions/TransactionList';
 import {
   getTransactions,
-  exportTransactions,
   type ExportFormat,
   type GetTransactionsParams,
 } from '@/lib/api/transactions';
@@ -12,6 +11,11 @@ import { getInstitutions } from '@/lib/api/institutions';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { CategoryType } from '@account-book/types';
 import type { Transaction, Institution } from '@account-book/types';
+import {
+  convertTransactionsToCSV,
+  convertTransactionsToJSON,
+  downloadFile,
+} from '@/utils/export.utils';
 
 type SortField = 'date' | 'amount' | 'category';
 type SortOrder = 'asc' | 'desc';
@@ -48,7 +52,8 @@ export default function TransactionsPage(): React.JSX.Element {
         const institutionsData = await getInstitutions();
         setInstitutions(institutionsData);
       } catch (err) {
-        console.error('データの取得に失敗しました:', err);
+        console.error('金融機関一覧の取得に失敗しました:', err);
+        setError('金融機関一覧の取得に失敗しました。ページを再読み込みしてください。');
       }
     };
     void fetchData();
@@ -131,17 +136,35 @@ export default function TransactionsPage(): React.JSX.Element {
       try {
         setExporting(true);
         setError(null);
-        const params: GetTransactionsParams = {};
-        if (institutionFilter !== 'all') {
-          params.institutionId = institutionFilter;
+
+        // クライアント側でフィルタリング・ソート済みのデータを使用
+        const dataToExport = filteredAndSortedTransactions;
+
+        if (dataToExport.length === 0) {
+          setError('エクスポートするデータがありません。');
+          setExporting(false);
+          return;
         }
-        if (startDate) {
-          params.startDate = startDate;
+
+        // ファイル名を生成
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const filename = `transactions_${dateStr}.${format}`;
+
+        // フォーマットに応じて変換
+        let content: string;
+        let mimeType: string;
+
+        if (format === 'csv') {
+          content = convertTransactionsToCSV(dataToExport);
+          mimeType = 'text/csv; charset=utf-8';
+        } else {
+          content = convertTransactionsToJSON(dataToExport);
+          mimeType = 'application/json; charset=utf-8';
         }
-        if (endDate) {
-          params.endDate = endDate;
-        }
-        await exportTransactions({ ...params, format });
+
+        // ダウンロード
+        await downloadFile(content, filename, mimeType);
       } catch (err) {
         console.error('エクスポートに失敗しました:', err);
         setError('エクスポートに失敗しました。もう一度お試しください。');
@@ -149,7 +172,7 @@ export default function TransactionsPage(): React.JSX.Element {
         setExporting(false);
       }
     },
-    [institutionFilter, startDate, endDate]
+    [filteredAndSortedTransactions]
   );
 
   const handleFilterReset = useCallback((): void => {

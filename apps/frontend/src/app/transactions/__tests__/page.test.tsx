@@ -4,12 +4,13 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import TransactionsPage from '../page';
 import * as transactionsApi from '@/lib/api/transactions';
 import * as institutionsApi from '@/lib/api/institutions';
+import * as exportUtils from '@/utils/export.utils';
 import {
   Transaction,
   CategoryType,
@@ -21,6 +22,7 @@ import {
 // モック
 jest.mock('@/lib/api/transactions');
 jest.mock('@/lib/api/institutions');
+jest.mock('@/utils/export.utils');
 jest.mock('@/components/transactions/TransactionList', () => ({
   TransactionList: ({ transactions }: { transactions: Transaction[] }) => (
     <div data-testid="transaction-list">
@@ -39,6 +41,7 @@ jest.mock('@/components/transactions/TransactionList', () => ({
 
 const mockTransactionsApi = transactionsApi as jest.Mocked<typeof transactionsApi>;
 const mockInstitutionsApi = institutionsApi as jest.Mocked<typeof institutionsApi>;
+const mockExportUtils = exportUtils as jest.Mocked<typeof exportUtils>;
 
 describe('TransactionsPage', () => {
   const mockTransactions: Transaction[] = [
@@ -123,7 +126,9 @@ describe('TransactionsPage', () => {
     jest.clearAllMocks();
     mockTransactionsApi.getTransactions.mockResolvedValue(mockTransactions);
     mockInstitutionsApi.getInstitutions.mockResolvedValue(mockInstitutions);
-    mockTransactionsApi.exportTransactions.mockResolvedValue(undefined);
+    mockExportUtils.convertTransactionsToCSV.mockReturnValue('csv,content');
+    mockExportUtils.convertTransactionsToJSON.mockReturnValue('{"json":"content"}');
+    mockExportUtils.downloadFile.mockResolvedValue(undefined);
   });
 
   it('ローディング状態を表示する', () => {
@@ -262,18 +267,36 @@ describe('TransactionsPage', () => {
     const sortFieldSelect = screen.getByLabelText('ソート項目');
     const sortOrderSelect = screen.getByLabelText('並び順');
 
-    // 金額でソート
+    // 金額でソート（昇順）
     await userEvent.selectOptions(sortFieldSelect, 'amount');
     await userEvent.selectOptions(sortOrderSelect, 'asc');
 
     await waitFor(() => {
       // ソート後の順序を確認（フロントエンド側でソートされる）
+      // 金額の絶対値でソート: tx-1 (1000), tx-3 (2000), tx-2 (50000)
       const transactionList = screen.getByTestId('transaction-list');
-      expect(transactionList).toBeInTheDocument();
+      const items = within(transactionList).getAllByTestId(/transaction-/);
+      expect(items).toHaveLength(3);
+      expect(items[0]).toHaveAttribute('data-testid', 'transaction-tx-1');
+      expect(items[1]).toHaveAttribute('data-testid', 'transaction-tx-3');
+      expect(items[2]).toHaveAttribute('data-testid', 'transaction-tx-2');
+    });
+
+    // 降順に変更
+    await userEvent.selectOptions(sortOrderSelect, 'desc');
+
+    await waitFor(() => {
+      const transactionList = screen.getByTestId('transaction-list');
+      const items = within(transactionList).getAllByTestId(/transaction-/);
+      expect(items).toHaveLength(3);
+      // 降順: tx-2 (50000), tx-3 (2000), tx-1 (1000)
+      expect(items[0]).toHaveAttribute('data-testid', 'transaction-tx-2');
+      expect(items[1]).toHaveAttribute('data-testid', 'transaction-tx-3');
+      expect(items[2]).toHaveAttribute('data-testid', 'transaction-tx-1');
     });
   });
 
-  it('エクスポート機能が動作する', async () => {
+  it('CSVエクスポート機能が動作する', async () => {
     render(<TransactionsPage />);
 
     await waitFor(() => {
@@ -284,9 +307,12 @@ describe('TransactionsPage', () => {
     await userEvent.click(csvExportButton);
 
     await waitFor(() => {
-      expect(mockTransactionsApi.exportTransactions).toHaveBeenCalledWith({
-        format: 'csv',
-      });
+      expect(mockExportUtils.convertTransactionsToCSV).toHaveBeenCalled();
+      expect(mockExportUtils.downloadFile).toHaveBeenCalledWith(
+        'csv,content',
+        expect.stringMatching(/^transactions_\d{4}-\d{2}-\d{2}\.csv$/),
+        'text/csv; charset=utf-8'
+      );
     });
   });
 
@@ -301,9 +327,12 @@ describe('TransactionsPage', () => {
     await userEvent.click(jsonExportButton);
 
     await waitFor(() => {
-      expect(mockTransactionsApi.exportTransactions).toHaveBeenCalledWith({
-        format: 'json',
-      });
+      expect(mockExportUtils.convertTransactionsToJSON).toHaveBeenCalled();
+      expect(mockExportUtils.downloadFile).toHaveBeenCalledWith(
+        '{"json":"content"}',
+        expect.stringMatching(/^transactions_\d{4}-\d{2}-\d{2}\.json$/),
+        'application/json; charset=utf-8'
+      );
     });
   });
 
@@ -335,39 +364,38 @@ describe('TransactionsPage', () => {
   });
 
   it('エクスポート時にフィルタ条件が適用される', async () => {
-    const filteredTransactions = [mockTransactions[0]];
-    mockTransactionsApi.getTransactions.mockResolvedValue(filteredTransactions);
-
     render(<TransactionsPage />);
 
     await waitFor(() => {
       expect(screen.getByText('取引履歴一覧')).toBeInTheDocument();
     });
 
-    // 金融機関一覧が読み込まれるまで待つ
-    await waitFor(() => {
-      expect(screen.getByText('テスト銀行')).toBeInTheDocument();
-    });
-
-    // フィルターを設定
-    const institutionFilter = screen.getByLabelText('金融機関');
-    await userEvent.selectOptions(institutionFilter, 'inst-1');
+    // カテゴリタイプフィルタを設定（支出のみ）
+    const categoryTypeFilter = screen.getByLabelText('カテゴリタイプ');
+    await userEvent.selectOptions(categoryTypeFilter, CategoryType.EXPENSE);
 
     await waitFor(() => {
-      expect(mockTransactionsApi.getTransactions).toHaveBeenCalledWith({
-        institutionId: 'inst-1',
-      });
+      // 支出のみが表示される
+      expect(screen.getByTestId('transaction-tx-1')).toBeInTheDocument();
+      expect(screen.getByTestId('transaction-tx-3')).toBeInTheDocument();
+      expect(screen.queryByTestId('transaction-tx-2')).not.toBeInTheDocument();
     });
 
-    // エクスポート
+    // CSVエクスポート
     const csvExportButton = screen.getByText('CSVエクスポート');
     await userEvent.click(csvExportButton);
 
     await waitFor(() => {
-      expect(mockTransactionsApi.exportTransactions).toHaveBeenCalledWith({
-        institutionId: 'inst-1',
-        format: 'csv',
-      });
+      // フィルタリング済みのデータ（tx-1, tx-3のみ）がエクスポートされる
+      expect(mockExportUtils.convertTransactionsToCSV).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'tx-1' }),
+          expect.objectContaining({ id: 'tx-3' }),
+        ])
+      );
+      expect(mockExportUtils.convertTransactionsToCSV).toHaveBeenCalledWith(
+        expect.not.arrayContaining([expect.objectContaining({ id: 'tx-2' })])
+      );
     });
   });
 
@@ -383,9 +411,11 @@ describe('TransactionsPage', () => {
 
   it('エクスポート中はボタンが無効化される', async () => {
     // エクスポートを遅延させる
-    mockTransactionsApi.exportTransactions.mockImplementation(
-      () => new Promise(() => {}) // 解決しないPromise
-    );
+    let resolveDownload: () => void;
+    const downloadPromise = new Promise<void>((resolve) => {
+      resolveDownload = resolve;
+    });
+    mockExportUtils.downloadFile.mockImplementation(() => downloadPromise);
 
     render(<TransactionsPage />);
 
@@ -396,17 +426,25 @@ describe('TransactionsPage', () => {
     const csvExportButton = screen.getByRole('button', { name: 'CSVエクスポート' });
     await userEvent.click(csvExportButton);
 
+    // エクスポート中であることを確認
     await waitFor(() => {
-      // CSVエクスポートボタンが無効化されていることを確認
-      const allExportButtons = screen.getAllByText('エクスポート中...');
-      expect(allExportButtons.length).toBeGreaterThan(0);
-      // 最初のボタン（CSVエクスポート）が無効化されていることを確認
-      expect(allExportButtons[0]).toBeDisabled();
+      const exportButtons = screen.getAllByRole('button', { name: 'エクスポート中...' });
+      expect(exportButtons.length).toBeGreaterThan(0);
+      // CSVエクスポートボタン（最初のボタン）が無効化されていることを確認
+      expect(exportButtons[0]).toBeDisabled();
+    });
+
+    // ダウンロードを完了させる
+    resolveDownload!();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'CSVエクスポート' })).toBeInTheDocument();
     });
   });
 
   it('エクスポートエラーを表示する', async () => {
-    mockTransactionsApi.exportTransactions.mockRejectedValue(new Error('Export Error'));
+    mockExportUtils.downloadFile.mockImplementation(() => {
+      throw new Error('Export Error');
+    });
 
     render(<TransactionsPage />);
 
