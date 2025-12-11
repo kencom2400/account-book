@@ -128,11 +128,19 @@ test.describe('取引カテゴリ編集機能', () => {
         let apiSuccess = false;
         try {
           const response = await responsePromise;
-          expect(response.status()).toBe(200);
-          apiSuccess = true;
+          // レスポンスが存在し、ステータスが200の場合のみ成功とみなす
+          if (response && response.status() === 200) {
+            apiSuccess = true;
+          } else {
+            console.log(
+              '[E2E] ⚠️ APIレスポンスのステータスが200ではありません:',
+              response?.status()
+            );
+          }
         } catch (error) {
           console.log('[E2E] ⚠️ APIレスポンスを待てませんでした:', error);
           // レスポンスを待てない場合は続行（ネットワークエラーの可能性）
+          apiSuccess = false;
         }
 
         if (apiSuccess) {
