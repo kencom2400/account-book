@@ -133,19 +133,18 @@ export function convertTransactionsToJSON(transactions: Transaction[]): string {
  * ファイルをダウンロード
  */
 export function downloadFile(content: string, filename: string, mimeType: string): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const blob = new Blob([content], { type: mimeType });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  // ダウンロードイベントが確実に発火するように、少し遅延してからURLを解放
+  setTimeout(() => {
     window.URL.revokeObjectURL(url);
-    // 次のイベントループで解決（非同期処理をシミュレート）
-    setTimeout(() => {
-      resolve();
-    }, 0);
-  });
+  }, 100);
+  // Promiseは即座に解決（ダウンロードイベントは既に発火している）
+  return Promise.resolve();
 }

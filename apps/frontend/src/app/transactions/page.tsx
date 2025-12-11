@@ -76,7 +76,25 @@ export default function TransactionsPage(): React.JSX.Element {
       }
 
       const data = await getTransactions(params);
-      setTransactions(data);
+      // APIから返されるdateは文字列なので、Dateオブジェクトに変換する
+      const transactionsWithDateObjects = data.map((transaction) => ({
+        ...transaction,
+        date: transaction.date instanceof Date ? transaction.date : new Date(transaction.date),
+        createdAt:
+          transaction.createdAt instanceof Date
+            ? transaction.createdAt
+            : new Date(transaction.createdAt),
+        updatedAt:
+          transaction.updatedAt instanceof Date
+            ? transaction.updatedAt
+            : new Date(transaction.updatedAt),
+        confirmedAt: transaction.confirmedAt
+          ? transaction.confirmedAt instanceof Date
+            ? transaction.confirmedAt
+            : new Date(transaction.confirmedAt)
+          : null,
+      }));
+      setTransactions(transactionsWithDateObjects);
     } catch (err) {
       console.error('取引データの取得に失敗しました:', err);
       setError('取引データの取得に失敗しました。再読み込みしてください。');

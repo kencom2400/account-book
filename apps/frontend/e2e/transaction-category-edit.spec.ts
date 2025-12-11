@@ -9,6 +9,7 @@ test.describe('取引カテゴリ編集機能', () => {
 
   test.beforeEach(async ({ page: p }) => {
     page = p;
+    test.setTimeout(60000); // 各テストのタイムアウトを60秒に設定
 
     // コンソールログを監視
     page.on('console', (msg) => {
@@ -18,52 +19,71 @@ test.describe('取引カテゴリ編集機能', () => {
       }
     });
 
-    // ネットワークリクエストを監視
-    page.on('request', (request) => {
-      const url = request.url();
-      if (url.includes('/api/')) {
-        console.log(`[E2E] Request: ${request.method()} ${url}`);
-      }
-    });
-
-    page.on('response', async (response) => {
-      const url = response.url();
-      if (url.includes('/api/')) {
-        console.log(`[E2E] Response: ${response.status()} ${url}`);
-        try {
-          const body = await response.json();
-          console.log(`[E2E] Response body:`, JSON.stringify(body, null, 2).substring(0, 500));
-        } catch {
-          // JSONパースエラーは無視
-        }
-      }
-    });
-
     // テストデータのセットアップ（将来的にはAPIで設定）
-    await page.goto('/transactions');
+    await page.goto('/transactions', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
 
-    // ページが完全に読み込まれるまで待つ
-    await page.waitForLoadState('networkidle');
+    // ページタイトルが表示されるまで待つ
+    await expect(page.getByRole('heading', { name: '取引履歴一覧' })).toBeVisible({
+      timeout: 30000,
+    });
 
-    // エラーメッセージが表示されている場合はログを出力
-    const errorMessage = page.getByText('取引データの取得に失敗しました');
-    if (await errorMessage.isVisible().catch(() => false)) {
-      console.log('[E2E] ⚠️ エラーメッセージが表示されています');
+    // ローディング状態が終了するまで待つ
+    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
+
+    // APIリクエストが完了するまで待つ（/api/transactionsへのリクエストを待つ）
+    try {
+      await page.waitForResponse(
+        (response) => response.url().includes('/api/transactions') && response.status() === 200,
+        { timeout: 30000 }
+      );
+    } catch {
+      console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
+    }
+
+    // 取引一覧が表示されるまで待つ（テーブルまたは「取引データがありません」が表示されるまで）
+    await Promise.race([
+      page.waitForSelector('table tbody tr', { timeout: 30000 }).catch(() => null),
+      page.waitForSelector('text=取引データがありません', { timeout: 30000 }).catch(() => null),
+    ]);
+
+    // テーブルが表示されている場合は、少なくとも1行のデータが表示されることを確認
+    const table = page.locator('table');
+    if (await table.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
     }
   });
 
   test('取引一覧が表示される', async () => {
+    // テーブルが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table).toBeVisible({ timeout: 30000 });
+
     // テーブルヘッダーの確認
-    await expect(page.getByRole('columnheader', { name: '日付' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: '説明' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'カテゴリ' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: '金額' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'ステータス' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: '日付' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('columnheader', { name: '説明' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('columnheader', { name: 'カテゴリ' })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('columnheader', { name: '金額' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('columnheader', { name: 'ステータス' })).toBeVisible({
+      timeout: 15000,
+    });
+
+    // 取引データが存在することを確認（少なくとも1行のデータが表示される）
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
   });
 
   test('カテゴリをクリックすると編集モードになる', async () => {
+    // 取引データが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
+
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
+    await expect(categoryButton).toBeVisible({ timeout: 10000 });
     await categoryButton.click();
 
     // セレクトボックスが表示される
@@ -73,8 +93,13 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('カテゴリを変更できる', async () => {
+    // 取引データが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
+
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
+    await expect(categoryButton).toBeVisible({ timeout: 10000 });
     const originalCategory = await categoryButton.textContent();
     await categoryButton.click();
 
@@ -123,8 +148,13 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('編集をキャンセルできる', async () => {
+    // 取引データが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
+
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
+    await expect(categoryButton).toBeVisible({ timeout: 10000 });
     const originalCategory = await categoryButton.textContent();
     await categoryButton.click();
 
@@ -143,8 +173,13 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('更新中はボタンが無効化される', async () => {
+    // 取引データが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
+
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
+    await expect(categoryButton).toBeVisible({ timeout: 10000 });
     await categoryButton.click();
 
     // セレクトボックスが表示される
@@ -170,11 +205,16 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('エラーメッセージが表示される（ネットワークエラー時）', async () => {
+    // 取引データが表示されるまで待つ
+    const table = page.locator('table');
+    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
+
     // ネットワークをオフラインにする
     await page.context().setOffline(true);
 
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
+    await expect(categoryButton).toBeVisible({ timeout: 10000 });
     await categoryButton.click();
 
     // セレクトボックスが表示される

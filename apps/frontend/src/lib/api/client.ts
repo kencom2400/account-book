@@ -35,7 +35,9 @@ export class ApiError extends Error {
  * HTTP GETリクエスト
  */
 async function get<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +56,9 @@ async function get<T>(endpoint: string): Promise<T> {
  * HTTP POSTリクエスト
  */
 async function post<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -74,7 +78,9 @@ async function post<T>(endpoint: string, body: unknown): Promise<T> {
  * HTTP PATCHリクエスト
  */
 async function patch<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -94,7 +100,9 @@ async function patch<T>(endpoint: string, body: unknown): Promise<T> {
  * HTTP PUTリクエスト
  */
 async function put<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -114,7 +122,9 @@ async function put<T>(endpoint: string, body: unknown): Promise<T> {
  * HTTP DELETEリクエスト
  */
 async function del<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -138,7 +148,9 @@ async function del<T>(endpoint: string): Promise<T> {
  * ファイルダウンロード
  */
 async function downloadFile(endpoint: string, params?: URLSearchParams): Promise<void> {
-  const url = `${API_BASE_URL}${endpoint}${params ? `?${params.toString()}` : ''}`;
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}${params ? `?${params.toString()}` : ''}`;
   const response = await fetch(url, {
     method: 'GET',
   });

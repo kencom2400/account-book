@@ -49,6 +49,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  timeout: 60000, // 各テストのタイムアウトを60秒に設定（webServer起動待ちを考慮）
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['json', { outputFile: 'playwright-report/results.json' }],
@@ -84,7 +85,7 @@ export default defineConfig({
       command: 'cd ../.. && pnpm --filter @account-book/backend dev',
       url: `http://localhost:${backendPort}/api/health/institutions`,
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
@@ -106,7 +107,7 @@ export default defineConfig({
       command: 'cd ../.. && pnpm --filter @account-book/frontend dev',
       url: `http://localhost:${frontendPort}`,
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
