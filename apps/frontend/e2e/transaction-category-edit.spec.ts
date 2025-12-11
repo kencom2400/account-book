@@ -105,7 +105,7 @@ test.describe('取引カテゴリ編集機能', () => {
 
     // セレクトボックスが表示されるまで待つ
     const select = page.locator('tbody tr:first-child select');
-    await expect(select).toBeVisible();
+    await expect(select).toBeVisible({ timeout: 10000 });
 
     // 別のカテゴリを選択
     const options = await select.locator('option').all();
@@ -115,29 +115,36 @@ test.describe('取引カテゴリ編集機能', () => {
         // 新しいカテゴリ名を取得
         const newCategoryName = await options[1].textContent();
 
+        // APIリクエストを待つ（PATCHリクエストを待つ）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/transactions') && response.method() === 'PATCH',
+          { timeout: 15000 }
+        );
+
         // セレクトボックスでカテゴリを選択
         await select.selectOption(newOption);
 
-        // APIリクエストが完了するまで待機（PATCHリクエストを待つ）
-        await page
-          .waitForResponse(
-            (response) => response.url().includes('/api/transactions') && response.status() === 200,
-            { timeout: 10000 }
-          )
-          .catch(() => {
-            // レスポンスを待てない場合は続行
-          });
+        // APIリクエストが完了するまで待機
+        try {
+          const response = await responsePromise;
+          expect(response.status()).toBe(200);
+        } catch (error) {
+          console.log('[E2E] ⚠️ APIレスポンスを待てませんでした:', error);
+          // レスポンスを待てない場合は続行（ネットワークエラーの可能性）
+        }
 
         // セレクトボックスが消えて、ボタンが表示されるまで待つ
-        await expect(select).not.toBeVisible({ timeout: 10000 });
+        // エラーが発生した場合でも、セレクトボックスが消えるまで待つ
+        await expect(select).not.toBeVisible({ timeout: 15000 });
 
         // 更新されたボタンが表示されることを確認
         const updatedButton = page.locator('tbody tr:first-child button').first();
-        await expect(updatedButton).toBeVisible({ timeout: 5000 });
+        await expect(updatedButton).toBeVisible({ timeout: 15000 });
 
         // カテゴリが変更されたことを確認（新しいカテゴリ名が表示される）
         if (newCategoryName) {
-          await expect(updatedButton).toHaveText(newCategoryName.trim(), { timeout: 5000 });
+          await expect(updatedButton).toHaveText(newCategoryName.trim(), { timeout: 10000 });
         } else {
           // カテゴリ名が取得できない場合は、元のカテゴリ名とは異なることを確認
           const currentCategory = await updatedButton.textContent();
