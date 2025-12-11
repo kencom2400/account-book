@@ -118,7 +118,7 @@ test.describe('取引カテゴリ編集機能', () => {
         // APIリクエストを待つ（PATCHリクエストを待つ）
         const responsePromise = page.waitForResponse(
           (response) =>
-            response.url().includes('/api/transactions') && response.method() === 'PATCH',
+            response.url().includes('/api/transactions') && response.request().method() === 'PATCH',
           { timeout: 15000 }
         );
 
