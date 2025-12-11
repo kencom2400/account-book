@@ -80,20 +80,28 @@ async function post<T>(endpoint: string, body: unknown): Promise<T> {
 async function patch<T>(endpoint: string, body: unknown): Promise<T> {
   // エンドポイントが/apiで始まっていない場合は追加
   const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
-  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
+  // eslint-disable-next-line no-console
+  console.log('[API Client] PATCH request:', url, { body, API_BASE_URL });
+  try {
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
 
-  if (!response.ok) {
-    await handleErrorResponse(response);
+    if (!response.ok) {
+      await handleErrorResponse(response);
+    }
+
+    const result = (await response.json()) as ApiResponse<T>;
+    return result.data;
+  } catch (error) {
+    console.error('[API Client] PATCH request failed:', error, { url, API_BASE_URL });
+    throw error;
   }
-
-  const result = (await response.json()) as ApiResponse<T>;
-  return result.data;
 }
 
 /**

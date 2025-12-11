@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
@@ -123,6 +124,8 @@ class UpdateCategoryRequestDto {
  */
 @Controller('transactions')
 export class TransactionController {
+  private readonly logger = new Logger(TransactionController.name);
+
   constructor(
     private readonly createTransactionUseCase: CreateTransactionUseCase,
     private readonly getTransactionsUseCase: GetTransactionsUseCase,
@@ -249,6 +252,9 @@ export class TransactionController {
     success: boolean;
     data: TransactionJSONResponse;
   }> {
+    this.logger.log(
+      `PATCH /api/transactions/${id}/category - カテゴリ更新リクエスト受信`,
+    );
     const transaction = await this.updateTransactionCategoryUseCase.execute({
       transactionId: id,
       category: body.category,
