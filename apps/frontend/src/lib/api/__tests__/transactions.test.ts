@@ -7,6 +7,7 @@ import { apiClient } from '../client';
 import {
   createTransaction,
   getTransactions,
+  getTransactionById,
   getMonthlySummary,
   updateTransactionCategory,
   updateTransactionSubcategory,
@@ -161,6 +162,82 @@ describe('Transaction API Client', () => {
       expect(mockApiClient.get).toHaveBeenCalledWith(
         '/api/transactions?institutionId=inst-1&year=2025&month=11'
       );
+    });
+  });
+
+  describe('getTransactionById', () => {
+    it('取引をIDで取得できる', async () => {
+      const transactionId = 'tx-1';
+      const mockTransaction = {
+        id: transactionId,
+        date: '2025-11-30T00:00:00.000Z',
+        amount: 1000,
+        category: {
+          id: 'cat-1',
+          name: '食費',
+          type: CategoryType.EXPENSE,
+        },
+        description: 'スーパーマーケット',
+        institutionId: 'inst-1',
+        accountId: 'acc-1',
+        status: TransactionStatus.COMPLETED,
+        isReconciled: false,
+        createdAt: '2025-11-30T00:00:00.000Z',
+        updatedAt: '2025-11-30T00:00:00.000Z',
+        confirmedAt: null,
+        subcategoryId: null,
+        classificationConfidence: null,
+        classificationReason: null,
+        merchantId: null,
+        merchantName: null,
+      };
+
+      mockApiClient.get.mockResolvedValue(mockTransaction);
+
+      const result = await getTransactionById(transactionId);
+
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/transactions/tx-1');
+      // getTransactionByIdはdate、createdAt、updatedAt、confirmedAtをDateオブジェクトに変換する
+      expect(result).toEqual({
+        ...mockTransaction,
+        date: new Date(mockTransaction.date),
+        createdAt: new Date(mockTransaction.createdAt),
+        updatedAt: new Date(mockTransaction.updatedAt),
+        confirmedAt: null,
+      });
+    });
+
+    it('confirmedAtが存在する場合も正しく変換される', async () => {
+      const transactionId = 'tx-1';
+      const mockTransaction = {
+        id: transactionId,
+        date: '2025-11-30T00:00:00.000Z',
+        amount: 1000,
+        category: {
+          id: 'cat-1',
+          name: '食費',
+          type: CategoryType.EXPENSE,
+        },
+        description: 'スーパーマーケット',
+        institutionId: 'inst-1',
+        accountId: 'acc-1',
+        status: TransactionStatus.COMPLETED,
+        isReconciled: false,
+        createdAt: '2025-11-30T00:00:00.000Z',
+        updatedAt: '2025-11-30T00:00:00.000Z',
+        confirmedAt: '2025-11-30T12:00:00.000Z',
+        subcategoryId: null,
+        classificationConfidence: null,
+        classificationReason: null,
+        merchantId: null,
+        merchantName: null,
+      };
+
+      mockApiClient.get.mockResolvedValue(mockTransaction);
+
+      const result = await getTransactionById(transactionId);
+
+      expect(result.confirmedAt).toEqual(new Date(mockTransaction.confirmedAt));
     });
   });
 
