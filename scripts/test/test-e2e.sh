@@ -120,8 +120,16 @@ case $TARGET in
     echo "ℹ️  PlaywrightのwebServer設定により、バックエンドは自動的に起動されます"
     
     # フロントエンドE2Eテスト実行（Playwrightがバックエンドを自動起動）
+    # タイムアウトを設定（webServer起動120秒 + テスト実行60秒 × テスト数 + 余裕）
     cd apps/frontend
-    pnpm test:e2e
+    timeout 600 pnpm test:e2e || {
+      EXIT_CODE=$?
+      if [ $EXIT_CODE -eq 124 ]; then
+        echo "❌ E2Eテストがタイムアウトしました（10分）"
+        echo "   webServerの起動やテスト実行に時間がかかっている可能性があります"
+      fi
+      exit $EXIT_CODE
+    }
     ;;
   all)
     echo "🧪 すべてのE2Eテスト実行中..."

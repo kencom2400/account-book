@@ -9556,4 +9556,161 @@ expect(filename).toMatch(/^transactions_.*\.csv$/);
 
 **参照**: PR #390 - Issue #78: FR-031 データエクスポート機能の実装（Gemini Code Assistレビュー指摘）
 
+### 14. エクスポート機能の一貫性: クライアント側フィルタ条件の反映 🔴 High
+
+**問題**: エクスポート機能で、画面に適用されているすべてのフィルタ条件が反映されていない。バックエンドで処理されるフィルタ（金融機関、日付範囲）のみがエクスポート時に反映され、クライアント側で適用されているフィルタ（カテゴリタイプ、照合ステータス）が考慮されていない。
+
+**解決策**: クライアント側でフィルタリング・ソート済みのデータ（`filteredAndSortedTransactions`）をもとにCSV/JSONを生成し、ダウンロードさせる。
+
+```typescript
+// ❌ 悪い例: バックエンドAPIに一部のフィルタ条件のみを渡す
+const handleExport = useCallback(
+  async (format: ExportFormat): Promise<void> => {
+    const params: GetTransactionsParams = {};
+    if (institutionFilter !== 'all') {
+      params.institutionId = institutionFilter;
+    }
+    if (startDate) {
+      params.startDate = startDate;
+    }
+    if (endDate) {
+      params.endDate = endDate;
+    }
+    // categoryTypeFilterやreconciledFilterは反映されない
+    await exportTransactions({ ...params, format });
+  },
+  [institutionFilter, startDate, endDate]
+);
+
+// ✅ 良い例: クライアント側でフィルタリング済みのデータを使用
+const handleExport = useCallback(
+  async (format: ExportFormat): Promise<void> => {
+    // クライアント側でフィルタリング・ソート済みのデータを使用
+    const dataToExport = filteredAndSortedTransactions;
+
+    if (dataToExport.length === 0) {
+      setError('エクスポートするデータがありません。');
+      setExporting(false);
+      return;
+    }
+
+    // クライアント側でCSV/JSONを生成
+    let content: string;
+    let mimeType: string;
+
+    if (format === 'csv') {
+      content = convertTransactionsToCSV(dataToExport);
+      mimeType = 'text/csv; charset=utf-8';
+    } else {
+      content = convertTransactionsToJSON(dataToExport);
+      mimeType = 'application/json; charset=utf-8';
+    }
+
+    // ダウンロード
+    await downloadFile(content, filename, mimeType);
+  },
+  [filteredAndSortedTransactions]
+);
+```
+
+**理由**:
+
+- ユーザーが画面で見ている内容とエクスポートされるファイルの内容が一致する
+- ユーザーの混乱を防ぐことができる
+- すべてのフィルタ条件（バックエンド・クライアント側）が一貫して反映される
+
+**参照**: PR #392 - Issue #108: [TASK] E-2: 取引履歴一覧画面の実装（Gemini Code Assistレビュー指摘）
+
+### 15. エラーハンドリングの一貫性: ユーザーへの通知 🔴 Medium
+
+**問題**: API呼び出しが失敗した場合、コンソールにログが出力されるのみで、ユーザーには何も通知されない。これにより、ユーザーが原因を特定するのが難しくなる。
+
+**解決策**: `catch`ブロックでエラー状態を更新し、ユーザーにエラーメッセージを表示する。
+
+```typescript
+// ❌ 悪い例: コンソールログのみ
+useEffect(() => {
+  const fetchData = async (): Promise<void> => {
+    try {
+      const institutionsData = await getInstitutions();
+      setInstitutions(institutionsData);
+    } catch (err) {
+      console.error('データの取得に失敗しました:', err);
+      // ユーザーには何も通知されない
+    }
+  };
+  void fetchData();
+}, []);
+
+// ✅ 良い例: エラー状態を更新してユーザーに通知
+useEffect(() => {
+  const fetchData = async (): Promise<void> => {
+    try {
+      const institutionsData = await getInstitutions();
+      setInstitutions(institutionsData);
+    } catch (err) {
+      console.error('金融機関一覧の取得に失敗しました:', err);
+      setError('金融機関一覧の取得に失敗しました。ページを再読み込みしてください。');
+    }
+  };
+  void fetchData();
+}, []);
+```
+
+**理由**:
+
+- ユーザーがエラーの原因を特定しやすくなる
+- エラー発生時に適切なアクション（再読み込みなど）を促せる
+- ユーザーエクスペリエンスが向上する
+
+**参照**: PR #392 - Issue #108: [TASK] E-2: 取引履歴一覧画面の実装（Gemini Code Assistレビュー指摘）
+
+### 16. テストの厳密性: ソート機能の検証 🔴 Medium
+
+**問題**: ソート機能のテストケースが、実際に要素がソートされているかどうかの検証を行っていない。現在はソート順を変更した後、リストが存在することを確認しているだけ。
+
+**解決策**: `within`ヘルパーなどを使用して、リスト内の要素の順序が期待通りに変わっていることをアサーションに追加する。
+
+```typescript
+// ❌ 悪い例: リストの存在のみを確認
+it('ソート機能が動作する', async () => {
+  await userEvent.selectOptions(sortFieldSelect, 'amount');
+  await userEvent.selectOptions(sortOrderSelect, 'asc');
+
+  await waitFor(() => {
+    const transactionList = screen.getByTestId('transaction-list');
+    expect(transactionList).toBeInTheDocument();
+    // ソート順の検証がない
+  });
+});
+
+// ✅ 良い例: 実際のソート順を検証
+import { within } from '@testing-library/react';
+
+it('ソート機能が動作する', async () => {
+  await userEvent.selectOptions(sortFieldSelect, 'amount');
+  await userEvent.selectOptions(sortOrderSelect, 'asc');
+
+  await waitFor(() => {
+    const transactionList = screen.getByTestId('transaction-list');
+    const items = within(transactionList).getAllByTestId(/transaction-/);
+
+    // 金額の昇順でソートした場合、絶対値が小さい順になるはず
+    // mockTransactions: tx-1 (amount: -1000), tx-3 (amount: -2000), tx-2 (amount: 50000)
+    // Math.abs(amount): tx-1 (1000), tx-3 (2000), tx-2 (50000)
+    expect(items[0]).toHaveAttribute('data-testid', 'transaction-tx-1');
+    expect(items[1]).toHaveAttribute('data-testid', 'transaction-tx-3');
+    expect(items[2]).toHaveAttribute('data-testid', 'transaction-tx-2');
+  });
+});
+```
+
+**理由**:
+
+- ソート機能が正しく動作していることを保証できる
+- テストの信頼性が向上する
+- バグの早期発見につながる
+
+**参照**: PR #392 - Issue #108: [TASK] E-2: 取引履歴一覧画面の実装（Gemini Code Assistレビュー指摘）
+
 ---

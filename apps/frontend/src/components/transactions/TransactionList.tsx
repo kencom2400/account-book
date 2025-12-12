@@ -113,6 +113,7 @@ export function TransactionList({
     } catch (err) {
       setError('カテゴリの更新に失敗しました');
       console.error('カテゴリ更新エラー:', err);
+      // エラー時もセレクトボックスを表示したままにする（setEditingIdは呼ばない）
     } finally {
       setUpdating(null);
     }

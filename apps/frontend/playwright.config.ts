@@ -49,6 +49,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  timeout: 60000, // 各テストのタイムアウトを60秒に設定（webServer起動待ちを考慮）
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['json', { outputFile: 'playwright-report/results.json' }],
@@ -81,12 +82,13 @@ export default defineConfig({
   webServer: [
     // バックエンドサーバー
     {
-      command: 'cd ../.. && pnpm --filter @account-book/backend dev',
-      url: `http://localhost:${backendPort}/api/health/institutions`,
+      command: 'pnpm --filter @account-book/backend dev',
+      url: `http://127.0.0.1:${backendPort}/api/health/institutions`,
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',
+      cwd: '../..', // プロジェクトルートを明示的に指定
       env: {
         ENCRYPTION_KEY:
           process.env.ENCRYPTION_KEY || 'dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy1mb3ItZTJlLXRlc3Q=',
@@ -103,17 +105,18 @@ export default defineConfig({
     },
     // フロントエンドサーバー
     {
-      command: 'cd ../.. && pnpm --filter @account-book/frontend dev',
-      url: `http://localhost:${frontendPort}`,
+      command: 'pnpm --filter @account-book/frontend dev',
+      url: `http://127.0.0.1:${frontendPort}`,
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',
+      cwd: '../..', // プロジェクトルートを明示的に指定
       env: {
         // フロントエンドポートを環境別に設定
         PORT: frontendPort,
-        // バックエンドAPIのURLも環境別に設定
-        NEXT_PUBLIC_API_URL: `http://localhost:${backendPort}`,
+        // バックエンドAPIのURLも環境別に設定（IPv4で明示的に指定）
+        NEXT_PUBLIC_API_URL: `http://127.0.0.1:${backendPort}`,
       },
     },
   ],

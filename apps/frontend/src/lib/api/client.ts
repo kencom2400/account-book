@@ -35,7 +35,9 @@ export class ApiError extends Error {
  * HTTP GETリクエスト
  */
 async function get<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +56,9 @@ async function get<T>(endpoint: string): Promise<T> {
  * HTTP POSTリクエスト
  */
 async function post<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -74,27 +78,52 @@ async function post<T>(endpoint: string, body: unknown): Promise<T> {
  * HTTP PATCHリクエスト
  */
 async function patch<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
+  // eslint-disable-next-line no-console
+  console.log('[API Client] PATCH request:', url, { body, API_BASE_URL });
+  try {
+    // AbortControllerを使用してタイムアウトを設定（30秒）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    await handleErrorResponse(response);
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      await handleErrorResponse(response);
+    }
+
+    const result = (await response.json()) as ApiResponse<T>;
+    // eslint-disable-next-line no-console
+    console.log('[API Client] PATCH response received:', { url, status: response.status });
+    return result.data;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[API Client] PATCH request timeout:', { url, API_BASE_URL });
+      throw new Error('リクエストがタイムアウトしました。もう一度お試しください。');
+    }
+    console.error('[API Client] PATCH request failed:', error, { url, API_BASE_URL });
+    throw error;
   }
-
-  const result = (await response.json()) as ApiResponse<T>;
-  return result.data;
 }
 
 /**
  * HTTP PUTリクエスト
  */
 async function put<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -114,7 +143,9 @@ async function put<T>(endpoint: string, body: unknown): Promise<T> {
  * HTTP DELETEリクエスト
  */
 async function del<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -138,7 +169,9 @@ async function del<T>(endpoint: string): Promise<T> {
  * ファイルダウンロード
  */
 async function downloadFile(endpoint: string, params?: URLSearchParams): Promise<void> {
-  const url = `${API_BASE_URL}${endpoint}${params ? `?${params.toString()}` : ''}`;
+  // エンドポイントが/apiで始まっていない場合は追加
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}${params ? `?${params.toString()}` : ''}`;
   const response = await fetch(url, {
     method: 'GET',
   });

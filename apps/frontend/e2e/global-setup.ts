@@ -21,21 +21,26 @@ async function globalSetup(): Promise<void> {
     process.env.NEXT_PUBLIC_API_URL = API_BASE_URL;
 
     console.log(`📡 API Base URL: ${API_BASE_URL}`);
-    const maxRetries = 30;
-    const retryInterval = 1000; // 1秒
+    const maxRetries = 30; // webServerのタイムアウト（120秒）を考慮して30回に設定
+    const retryInterval = 2000; // 2秒間隔（合計最大60秒）
+    const requestTimeout = 3000; // 各リクエストのタイムアウトを3秒に設定
 
     console.log(`⏳ Waiting for backend server at ${API_BASE_URL}...`);
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/health/institutions`);
+        const response = await fetch(`${API_BASE_URL}/api/health/institutions`, {
+          signal: AbortSignal.timeout(requestTimeout),
+        });
         if (response.ok) {
           console.log('✅ Backend server is ready!');
           break;
         }
       } catch (_error) {
         if (i === maxRetries - 1) {
-          throw new Error(`Backend server not available after ${maxRetries} retries`);
+          throw new Error(
+            `Backend server not available after ${maxRetries} retries (${(maxRetries * retryInterval) / 1000} seconds)`
+          );
         }
         await new Promise((resolve) => setTimeout(resolve, retryInterval));
       }
