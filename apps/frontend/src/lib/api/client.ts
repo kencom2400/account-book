@@ -84,21 +84,34 @@ async function patch<T>(endpoint: string, body: unknown): Promise<T> {
   // eslint-disable-next-line no-console
   console.log('[API Client] PATCH request:', url, { body, API_BASE_URL });
   try {
+    // AbortControllerを使用してタイムアウトを設定（30秒）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       await handleErrorResponse(response);
     }
 
     const result = (await response.json()) as ApiResponse<T>;
+    // eslint-disable-next-line no-console
+    console.log('[API Client] PATCH response received:', { url, status: response.status });
     return result.data;
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[API Client] PATCH request timeout:', { url, API_BASE_URL });
+      throw new Error('リクエストがタイムアウトしました。もう一度お試しください。');
+    }
     console.error('[API Client] PATCH request failed:', error, { url, API_BASE_URL });
     throw error;
   }

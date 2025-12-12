@@ -215,6 +215,7 @@ describe('Transaction API Client', () => {
         isReconciled: false,
         createdAt: '2025-11-30T00:00:00.000Z',
         updatedAt: '2025-11-30T00:00:00.000Z',
+        confirmedAt: null,
       };
 
       mockApiClient.patch.mockResolvedValue(mockUpdatedTransaction);
@@ -224,7 +225,14 @@ describe('Transaction API Client', () => {
       expect(mockApiClient.patch).toHaveBeenCalledWith('/api/transactions/tx-1/category', {
         category,
       });
-      expect(result).toEqual(mockUpdatedTransaction);
+      // updateTransactionCategoryはdate、createdAt、updatedAt、confirmedAtをDateオブジェクトに変換する
+      expect(result).toEqual({
+        ...mockUpdatedTransaction,
+        date: new Date(mockUpdatedTransaction.date),
+        createdAt: new Date(mockUpdatedTransaction.createdAt),
+        updatedAt: new Date(mockUpdatedTransaction.updatedAt),
+        confirmedAt: null,
+      });
     });
   });
 

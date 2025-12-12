@@ -260,10 +260,18 @@ export class TransactionController {
       category: body.category,
     });
 
-    return {
+    const response = {
       success: true,
       data: transaction.toJSON(),
     };
+    this.logger.log(
+      `PATCH /api/transactions/${id}/category - レスポンス送信開始: ${JSON.stringify(response).substring(0, 100)}...`,
+    );
+    const result = response;
+    this.logger.log(
+      `PATCH /api/transactions/${id}/category - レスポンス送信完了`,
+    );
+    return result;
   }
 
   /**

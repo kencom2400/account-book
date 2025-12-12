@@ -100,9 +100,17 @@ export async function updateTransactionCategory(
     type: CategoryType;
   }
 ): Promise<Transaction> {
-  return await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/category`, {
+  const data = await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/category`, {
     category,
   });
+  // dateフィールドがISO文字列として返されるため、Dateオブジェクトに変換
+  return {
+    ...data,
+    date: new Date(data.date),
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+    confirmedAt: data.confirmedAt ? new Date(data.confirmedAt) : null,
+  };
 }
 
 /**

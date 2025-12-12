@@ -77,10 +77,7 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('カテゴリをクリックすると編集モードになる', async () => {
-    // 取引データが表示されるまで待つ
-    const table = page.locator('table');
-    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
-
+    // beforeEachで既に取引一覧が表示されるまで待っているため、ここでは確認不要
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
     await expect(categoryButton).toBeVisible({ timeout: 10000 });
@@ -93,10 +90,7 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('カテゴリを変更できる', async () => {
-    // 取引データが表示されるまで待つ
-    const table = page.locator('table');
-    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
-
+    // beforeEachで既に取引一覧が表示されるまで待っているため、ここでは確認不要
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
     await expect(categoryButton).toBeVisible({ timeout: 10000 });
@@ -114,14 +108,23 @@ test.describe('取引カテゴリ編集機能', () => {
         // 新しいカテゴリ名を取得
         const newCategoryName = await options[1].textContent();
 
+        // セレクトボックスでカテゴリを選択（リクエストが送信される）
         // APIリクエストを待つ（PATCHリクエストを待つ）
+        // selectOptionの直後にwaitForResponseを設定することで、リクエスト送信直後に待機を開始できる
         const responsePromise = page.waitForResponse(
-          (response) =>
-            response.url().includes('/api/transactions') && response.request().method() === 'PATCH',
-          { timeout: 15000 }
+          (response) => {
+            const url = response.url();
+            const method = response.request().method();
+            const matches =
+              url.includes('/api/transactions') && url.includes('/category') && method === 'PATCH';
+            if (matches) {
+              console.log('[E2E] PATCHレスポンスを検出:', url, method);
+            }
+            return matches;
+          },
+          { timeout: 30000 }
         );
 
-        // セレクトボックスでカテゴリを選択
         await select.selectOption(newOption);
 
         // APIリクエストが完了するまで待機
@@ -131,6 +134,7 @@ test.describe('取引カテゴリ編集機能', () => {
           // レスポンスが存在し、ステータスが200の場合のみ成功とみなす
           if (response && response.status() === 200) {
             apiSuccess = true;
+            console.log('[E2E] ✅ APIリクエスト成功:', response.status());
           } else {
             console.log(
               '[E2E] ⚠️ APIレスポンスのステータスが200ではありません:',
@@ -145,10 +149,24 @@ test.describe('取引カテゴリ編集機能', () => {
 
         if (apiSuccess) {
           // APIリクエストが成功した場合、セレクトボックスが消えて、ボタンが表示されるまで待つ
+          // UIの更新を待つ（セレクトボックスが非表示になるまで）
           await expect(select).not.toBeVisible({ timeout: 15000 });
 
           // 更新されたボタンが表示されることを確認
-          const updatedButton = page.locator('tbody tr:first-child button').first();
+          // セレクトボックスが非表示になった後、ボタンが表示されるまで待つ
+          // カテゴリボタンは、セレクトボックスと同じtd要素内にある
+          // まず、ボタンが存在することを確認（セレクトボックスが非表示になった後）
+          const updatedButton = page.locator('tbody tr:first-child').locator('button').first();
+          // セレクトボックスが非表示になったことを確認してから、ボタンを探す
+          await page.waitForFunction(
+            () => {
+              const row = document.querySelector('tbody tr:first-child');
+              if (!row) return false;
+              const selectInRow = row.querySelector('select');
+              return selectInRow === null; // セレクトボックスが存在しないことを確認
+            },
+            { timeout: 15000 }
+          );
           await expect(updatedButton).toBeVisible({ timeout: 15000 });
 
           // カテゴリが変更されたことを確認（新しいカテゴリ名が表示される）
@@ -169,10 +187,7 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('編集をキャンセルできる', async () => {
-    // 取引データが表示されるまで待つ
-    const table = page.locator('table');
-    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
-
+    // beforeEachで既に取引一覧が表示されるまで待っているため、ここでは確認不要
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
     await expect(categoryButton).toBeVisible({ timeout: 10000 });
@@ -194,10 +209,7 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('更新中はボタンが無効化される', async () => {
-    // 取引データが表示されるまで待つ
-    const table = page.locator('table');
-    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
-
+    // beforeEachで既に取引一覧が表示されるまで待っているため、ここでは確認不要
     // 最初の取引のカテゴリをクリック
     const categoryButton = page.locator('tbody tr:first-child button').first();
     await expect(categoryButton).toBeVisible({ timeout: 10000 });
@@ -226,10 +238,7 @@ test.describe('取引カテゴリ編集機能', () => {
   });
 
   test('エラーメッセージが表示される（ネットワークエラー時）', async () => {
-    // 取引データが表示されるまで待つ
-    const table = page.locator('table');
-    await expect(table.locator('tbody tr').first()).toBeVisible({ timeout: 30000 });
-
+    // beforeEachで既に取引一覧が表示されるまで待っているため、ここでは確認不要
     // ネットワークをオフラインにする
     await page.context().setOffline(true);
 
