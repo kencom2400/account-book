@@ -183,17 +183,17 @@ test.describe('取引詳細画面', () => {
       timeout: 60000,
     });
 
+    // ローディングが完了するまで待機
+    await page
+      .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
+      .catch(() => {
+        // ローディングが表示されない場合も続行
+      });
+
     // エラーメッセージまたは「取引が見つかりませんでした」が表示されることを確認
-    await expect(
-      Promise.race([
-        page
-          .waitForSelector('text=取引が見つかりませんでした', { timeout: 10000 })
-          .then(() => true),
-        page
-          .waitForSelector('text=取引データの取得に失敗しました', { timeout: 10000 })
-          .then(() => true),
-        page.waitForSelector('text=エラー', { timeout: 10000 }).then(() => true),
-      ])
-    ).resolves.toBe(true);
+    // バックエンドのエラーメッセージは「取引ID ... が見つかりません」の形式
+    await expect(page.getByText(/取引.*見つかりません/, { exact: false })).toBeVisible({
+      timeout: 10000,
+    });
   });
 });
