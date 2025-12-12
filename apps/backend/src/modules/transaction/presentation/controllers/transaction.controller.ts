@@ -21,6 +21,7 @@ import {
 } from 'class-validator';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
+import { GetTransactionByIdUseCase } from '../../application/use-cases/get-transaction-by-id.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
@@ -129,6 +130,7 @@ export class TransactionController {
   constructor(
     private readonly createTransactionUseCase: CreateTransactionUseCase,
     private readonly getTransactionsUseCase: GetTransactionsUseCase,
+    private readonly getTransactionByIdUseCase: GetTransactionByIdUseCase,
     private readonly updateTransactionCategoryUseCase: UpdateTransactionCategoryUseCase,
     private readonly calculateMonthlySummaryUseCase: CalculateMonthlySummaryUseCase,
     private readonly classifyTransactionUseCase: ClassifyTransactionUseCase,
@@ -300,5 +302,24 @@ export class TransactionController {
       `attachment; filename="${result.filename}"`,
     );
     res.send(result.content);
+  }
+
+  /**
+   * 取引をIDで取得
+   * GET /transactions/:id
+   * Issue #109: [TASK] E-3: 取引詳細画面の実装
+   * 注意: このルートは他の具体的なルート（export, summary/monthlyなど）より後に定義する必要がある
+   */
+  @Get(':id')
+  async findById(@Param('id') id: string): Promise<{
+    success: boolean;
+    data: TransactionJSONResponse;
+  }> {
+    const transaction = await this.getTransactionByIdUseCase.execute(id);
+
+    return {
+      success: true,
+      data: transaction.toJSON(),
+    };
   }
 }

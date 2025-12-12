@@ -17,6 +17,7 @@ import { AssetBalanceDomainService } from './domain/services/asset-balance-domai
 import { CategoryClassificationService } from './domain/services/category-classification.service';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from './application/use-cases/get-transactions.use-case';
+import { GetTransactionByIdUseCase } from './application/use-cases/get-transaction-by-id.use-case';
 import { UpdateTransactionCategoryUseCase } from './application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from './application/use-cases/calculate-monthly-summary.use-case';
 import { CalculateMonthlyBalanceUseCase } from './application/use-cases/calculate-monthly-balance.use-case';
@@ -67,6 +68,7 @@ import { InstitutionModule } from '../institution/institution.module';
     // Use Cases
     CreateTransactionUseCase,
     GetTransactionsUseCase,
+    GetTransactionByIdUseCase,
     UpdateTransactionCategoryUseCase,
     CalculateMonthlySummaryUseCase,
     CalculateMonthlyBalanceUseCase,

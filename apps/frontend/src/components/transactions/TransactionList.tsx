@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Transaction, CategoryType, Category } from '@account-book/types';
 import { formatCurrency } from '@account-book/utils';
 import { updateTransactionCategory } from '@/lib/api/transactions';
@@ -162,7 +163,14 @@ export function TransactionList({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {new Date(transaction.date).toLocaleDateString('ja-JP')}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">{transaction.description}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  <Link
+                    href={`/transactions/${transaction.id}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {transaction.description}
+                  </Link>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {editingId === transaction.id ? (
                     <div className="flex items-center space-x-2">
