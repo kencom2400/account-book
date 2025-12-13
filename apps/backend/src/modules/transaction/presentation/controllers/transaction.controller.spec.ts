@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionController } from './transaction.controller';
 import { CreateTransactionUseCase } from '../../application/use-cases/create-transaction.use-case';
 import { GetTransactionsUseCase } from '../../application/use-cases/get-transactions.use-case';
+import { GetTransactionByIdUseCase } from '../../application/use-cases/get-transaction-by-id.use-case';
 import { UpdateTransactionCategoryUseCase } from '../../application/use-cases/update-transaction-category.use-case';
 import { CalculateMonthlySummaryUseCase } from '../../application/use-cases/calculate-monthly-summary.use-case';
 import { ClassifyTransactionUseCase } from '../../application/use-cases/classify-transaction.use-case';
@@ -17,6 +18,7 @@ describe('TransactionController', () => {
   let controller: TransactionController;
   let createUseCase: jest.Mocked<CreateTransactionUseCase>;
   let getUseCase: jest.Mocked<GetTransactionsUseCase>;
+  let getByIdUseCase: jest.Mocked<GetTransactionByIdUseCase>;
   let updateCategoryUseCase: jest.Mocked<UpdateTransactionCategoryUseCase>;
   let calculateSummaryUseCase: jest.Mocked<CalculateMonthlySummaryUseCase>;
   let classifyUseCase: jest.Mocked<ClassifyTransactionUseCase>;
@@ -49,6 +51,10 @@ describe('TransactionController', () => {
           useValue: { execute: jest.fn() },
         },
         {
+          provide: GetTransactionByIdUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: UpdateTransactionCategoryUseCase,
           useValue: { execute: jest.fn() },
         },
@@ -70,6 +76,7 @@ describe('TransactionController', () => {
     controller = module.get<TransactionController>(TransactionController);
     createUseCase = module.get(CreateTransactionUseCase);
     getUseCase = module.get(GetTransactionsUseCase);
+    getByIdUseCase = module.get(GetTransactionByIdUseCase);
     updateCategoryUseCase = module.get(UpdateTransactionCategoryUseCase);
     calculateSummaryUseCase = module.get(CalculateMonthlySummaryUseCase);
     classifyUseCase = module.get(ClassifyTransactionUseCase);
@@ -267,6 +274,18 @@ describe('TransactionController', () => {
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-01-31'),
       });
+    });
+  });
+
+  describe('findById', () => {
+    it('should get a transaction by ID', async () => {
+      getByIdUseCase.execute.mockResolvedValue(mockTransaction);
+
+      const result = await controller.findById('tx_1');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockTransaction.toJSON());
+      expect(getByIdUseCase.execute).toHaveBeenCalledWith('tx_1');
     });
   });
 });

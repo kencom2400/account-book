@@ -83,6 +83,33 @@ export async function getTransactions(params?: GetTransactionsParams): Promise<T
 }
 
 /**
+ * Transaction型の日付フィールドをDateオブジェクトに変換
+ * dateフィールドがISO文字列として返されるため、Dateオブジェクトに変換
+ */
+function toTransactionWithDates(data: Transaction): Transaction {
+  return {
+    ...data,
+    date: data.date instanceof Date ? data.date : new Date(data.date),
+    createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+    updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+    confirmedAt: data.confirmedAt
+      ? data.confirmedAt instanceof Date
+        ? data.confirmedAt
+        : new Date(data.confirmedAt)
+      : null,
+  };
+}
+
+/**
+ * 取引をIDで取得
+ * Issue #109: [TASK] E-3: 取引詳細画面の実装
+ */
+export async function getTransactionById(id: string): Promise<Transaction> {
+  const data = await apiClient.get<Transaction>(`/api/transactions/${id}`);
+  return toTransactionWithDates(data);
+}
+
+/**
  * 月次サマリーを取得
  */
 export async function getMonthlySummary(year: number, month: number): Promise<MonthlySummary> {
@@ -103,14 +130,7 @@ export async function updateTransactionCategory(
   const data = await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/category`, {
     category,
   });
-  // dateフィールドがISO文字列として返されるため、Dateオブジェクトに変換
-  return {
-    ...data,
-    date: new Date(data.date),
-    createdAt: new Date(data.createdAt),
-    updatedAt: new Date(data.updatedAt),
-    confirmedAt: data.confirmedAt ? new Date(data.confirmedAt) : null,
-  };
+  return toTransactionWithDates(data);
 }
 
 /**
