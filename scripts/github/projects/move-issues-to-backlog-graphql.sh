@@ -9,7 +9,6 @@ if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
 fi
 
 # リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
-REPO="${REPO:-${REPO_OWNER:-kencom2400}/${REPO_NAME:-account-book}}"
 OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
 PROJECT_ID="${PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}"
 STATUS_FIELD_ID="${STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}"
