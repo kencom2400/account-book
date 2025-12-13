@@ -5,12 +5,12 @@ import { Category, CategoryType } from '@account-book/types';
 import {
   getCategories,
   createCategory,
-  updateCategory,
   deleteCategory,
   checkCategoryUsage,
 } from '@/lib/api/categories';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { CategoryList } from '@/components/categories/CategoryList';
+import { CategoryEditModal } from '@/components/categories/CategoryEditModal';
 import { DeleteConfirmModal } from '@/components/categories/DeleteConfirmModal';
 import { Card } from '@/components/ui/Card';
 
@@ -21,7 +21,7 @@ export default function CategoryManagementPage(): React.JSX.Element {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [filterType, setFilterType] = useState<CategoryType | 'ALL'>('ALL');
 
@@ -66,18 +66,10 @@ export default function CategoryManagementPage(): React.JSX.Element {
     }
   };
 
-  // 費目更新
-  const handleUpdate = async (
-    id: string,
-    data: { name: string; icon?: string | null; color?: string | null }
-  ): Promise<void> => {
-    try {
-      await updateCategory(id, data);
-      await loadCategories();
-      setSelectedCategory(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '費目の更新に失敗しました');
-    }
+  // 費目更新（モーダル経由で呼ばれる）
+  const handleUpdateSuccess = async (): Promise<void> => {
+    await loadCategories();
+    setEditCategoryId(null);
   };
 
   // 費目削除
@@ -96,9 +88,9 @@ export default function CategoryManagementPage(): React.JSX.Element {
     }
   };
 
-  // 編集ボタンクリック
+  // 編集ボタンクリック（モーダルを開く）
   const handleEdit = (category: Category): void => {
-    setSelectedCategory(category);
+    setEditCategoryId(category.id);
   };
 
   // 削除ボタンクリック
@@ -106,9 +98,9 @@ export default function CategoryManagementPage(): React.JSX.Element {
     setDeleteTarget(category);
   };
 
-  // 新規作成ボタンクリック
+  // 新規作成ボタンクリック（フォームをリセット）
   const handleNewClick = (): void => {
-    setSelectedCategory(null);
+    // フォームは常に新規作成モードで表示されるため、特に処理は不要
   };
 
   return (
@@ -129,19 +121,12 @@ export default function CategoryManagementPage(): React.JSX.Element {
         <div className="lg:col-span-1">
           <Card>
             <CategoryForm
-              category={selectedCategory}
+              category={null}
               onSubmit={(data) => {
-                if (selectedCategory) {
-                  void handleUpdate(
-                    selectedCategory.id,
-                    data as { name: string; icon?: string | null; color?: string | null }
-                  );
-                } else {
-                  void handleCreate(data);
-                }
+                void handleCreate(data);
               }}
               onCancel={() => {
-                setSelectedCategory(null);
+                // フォームをリセット（特に処理は不要）
               }}
             />
           </Card>
@@ -201,6 +186,14 @@ export default function CategoryManagementPage(): React.JSX.Element {
           </Card>
         </div>
       </div>
+
+      {/* 編集モーダル */}
+      <CategoryEditModal
+        categoryId={editCategoryId}
+        isOpen={editCategoryId !== null}
+        onClose={() => setEditCategoryId(null)}
+        onSuccess={handleUpdateSuccess}
+      />
 
       {/* 削除確認モーダル */}
       {deleteTarget && (

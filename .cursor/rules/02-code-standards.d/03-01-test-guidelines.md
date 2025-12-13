@@ -361,6 +361,7 @@ const updatedCategory = await page.locator('...').textContent();
 
 - テストが不安定になる（環境によって必要な時間が異なる）
 - 不必要に遅くなる（実際には500msで完了するのに1000ms待つ）
+- Playwrightの自動待機機能を活用していない
 
 ```typescript
 // ✅ 良い例: UI状態の確認で待機
@@ -373,8 +374,43 @@ await expect(page.locator('tbody tr:first-child button').first()).not.toHaveText
 
 **原則**:
 
-- **UI状態の確認で待機**: `expect(...).toBeVisible()`、`expect(...).toHaveText()`など
+- **UI状態の確認で待機**: `expect(...).toBeVisible()`、`expect(...).toHaveText()`、`expect(...).not.toBeEmpty()`など
+- **自動待機機能を活用**: `not.toBeVisible()`などは自動的に待機するため、その前の`waitForTimeout`は不要
 - **固定時間待機は最終手段**: どうしても必要な場合のみ使用
+
+#### ❌ 避けるべきパターン: `waitForFunction`のcatchブロックで潜在的な問題を隠蔽
+
+```typescript
+// ❌ 悪い例: catchブロックでエラーを握りつぶす
+await page
+  .waitForFunction(
+    (input) => {
+      const element = input as HTMLInputElement;
+      return element.value.length > 0;
+    },
+    await nameInput.elementHandle(),
+    { timeout: 10000 }
+  )
+  .catch(async () => {
+    // タイムアウトした場合は、少し待ってから再確認
+    await page.waitForTimeout(1000); // 潜在的な問題を隠蔽
+  });
+```
+
+**問題**:
+
+- `waitForFunction`がタイムアウトするのはテストが期待通りに動作していない兆候
+- 潜在的な問題を隠蔽してしまう
+
+```typescript
+// ✅ 良い例: より堅牢なアサーションを使用
+await expect(nameInput).not.toBeEmpty({ timeout: 10000 }); // より堅牢な待機方法
+```
+
+**原則**:
+
+- **潜在的な問題を隠蔽しない**: `waitForFunction`のcatchブロックでエラーを握りつぶさない
+- **より堅牢なアサーションを使用**: `expect(...).not.toBeEmpty()`など、Playwrightの自動待機機能を活用
 
 #### ✅ E2Eテストでのデータベース状態の検証
 
