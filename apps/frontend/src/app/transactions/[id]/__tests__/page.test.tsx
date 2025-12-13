@@ -15,10 +15,6 @@ import { Transaction, CategoryType, TransactionStatus } from '@account-book/type
 // モック
 jest.mock('@/lib/api/transactions');
 jest.mock('@/stores/subcategory.store');
-jest.mock('next/navigation', () => ({
-  useParams: jest.fn(),
-  useRouter: jest.fn(),
-}));
 jest.mock('next/link', () => {
   const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>

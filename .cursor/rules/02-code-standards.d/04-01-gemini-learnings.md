@@ -9714,3 +9714,264 @@ it('ソート機能が動作する', async () => {
 **参照**: PR #392 - Issue #108: [TASK] E-2: 取引履歴一覧画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## テストコードの重複排除とヘルパー関数の活用
+
+### 問題
+
+E2Eテストで、複数のテストケースで同じ準備コード（取引一覧から詳細ページへの遷移など）が重複している。
+
+### 解決策
+
+共通ロジックをヘルパー関数として切り出す。
+
+**例: E2Eテストのヘルパー関数**
+
+```typescript
+/**
+ * 取引一覧から最初の取引の詳細ページに遷移するヘルパー関数
+ */
+async function navigateToFirstTransactionDetail(page: Page): Promise<void> {
+  // 取引一覧にデータがあるか確認
+  const table = page.locator('table');
+  const hasData = await table.isVisible({ timeout: 5000 }).catch(() => false);
+
+  if (!hasData) {
+    test.skip();
+    return;
+  }
+
+  // 最初の取引の説明をクリック（リンクになっている）
+  const firstTransactionLink = page.locator('table tbody tr').first().locator('a').first();
+  await expect(firstTransactionLink).toBeVisible({ timeout: 10000 });
+
+  // リンクのhrefを取得して遷移
+  const href = await firstTransactionLink.getAttribute('href');
+  if (href) {
+    await page.goto(href, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+  } else {
+    // hrefがない場合はクリック
+    await firstTransactionLink.click();
+  }
+}
+
+// テストケース内での呼び出し
+test('取引詳細情報が正しく表示される', async () => {
+  await navigateToFirstTransactionDetail(page);
+  // ...以降のアサーション
+});
+```
+
+**理由**:
+
+- コードの重複を減らし、メンテナンス性が向上する
+- テストケースが簡潔になり、可読性が向上する
+- 共通ロジックの変更が1箇所で済む
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+## テストコードの命名規則の一貫性
+
+### 問題
+
+テストコードで、モック変数の命名規則が一貫していない（例：`_getByIdUseCase`と`getUseCase`）。
+
+### 解決策
+
+テストコード内の変数命名規則を統一する。アンダースコアの接頭辞は使用しない。
+
+**例: バックエンドテストの命名規則**
+
+```typescript
+// ❌ 悪い例: アンダースコアの接頭辞を使用
+let _getByIdUseCase: jest.Mocked<GetTransactionByIdUseCase>;
+
+// ✅ 良い例: 他の変数と統一された命名規則
+let getByIdUseCase: jest.Mocked<GetTransactionByIdUseCase>;
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- 命名規則の一貫性が保たれる
+- 未使用の変数が明確になる
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+## モック定義の重複排除
+
+### 問題
+
+テストファイル内で、同じモジュールのモックが複数回定義されている。
+
+### 解決策
+
+モック定義は1箇所に集約する。
+
+**例: ユニットテストのモック定義**
+
+```typescript
+// ❌ 悪い例: モックが2回定義されている
+jest.mock('next/navigation', () => ({
+  useParams: jest.fn(),
+  useRouter: jest.fn(),
+}));
+// ... 他のモック定義 ...
+jest.mock('next/navigation', () => ({
+  useParams: () => mockUseParams(),
+  useRouter: jest.fn(),
+}));
+
+// ✅ 良い例: モック定義を1箇所に集約
+const mockUseParams = jest.fn();
+jest.mock('next/navigation', () => ({
+  useParams: () => mockUseParams(),
+  useRouter: jest.fn(),
+}));
+```
+
+**理由**:
+
+- コードの可読性と保守性が向上する
+- モック定義の重複を防ぐ
+- モックの動作が明確になる
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+## Reactコンポーネントのデータ取得ロジックの分離
+
+### 問題
+
+`useEffect`内にデータ取得ロジックが直接記述されているため、エラー時の再取得処理がページ全体のリロードなしで行えない。
+
+### 解決策
+
+データ取得ロジックを`useCallback`でメモ化し、`useEffect`から分離する。
+
+**例: フロントエンドページのデータ取得**
+
+```typescript
+// ❌ 悪い例: useEffect内に直接記述
+useEffect(() => {
+  const fetchTransaction = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTransactionById(transactionId);
+      setTransaction(data);
+      if (data) {
+        await fetchSubcategories(data.category.type);
+      }
+    } catch (err) {
+      console.error('取引データの取得に失敗しました:', err);
+      setError(err instanceof Error ? err.message : '取引データの取得に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (transactionId) {
+    void fetchTransaction();
+  }
+}, [transactionId, fetchSubcategories]);
+
+// ✅ 良い例: useCallbackでメモ化
+const fetchTransaction = useCallback(async (): Promise<void> => {
+  try {
+    setLoading(true);
+    setError(null);
+    const data = await getTransactionById(transactionId);
+    setTransaction(data);
+    if (data) {
+      await fetchSubcategories(data.category.type);
+    }
+  } catch (err) {
+    console.error('取引データの取得に失敗しました:', err);
+    setError(err instanceof Error ? err.message : '取引データの取得に失敗しました');
+  } finally {
+    setLoading(false);
+  }
+}, [transactionId, fetchSubcategories]);
+
+useEffect(() => {
+  if (transactionId) {
+    void fetchTransaction();
+  }
+}, [transactionId, fetchTransaction]);
+
+// 再読み込みボタンのハンドラ
+<button onClick={() => void fetchTransaction()}>再読み込み</button>
+```
+
+**理由**:
+
+- エラー時の再取得処理をページ全体のリロードなしで行える
+- ユーザー体験が向上する
+- ロジックの再利用性が高まる
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+## APIクライアントの共通ロジックの抽出
+
+### 問題
+
+複数のAPI関数で同じ日付変換ロジックが重複している。
+
+### 解決策
+
+共通ロジックをヘルパー関数として切り出す。
+
+**例: APIクライアントの日付変換**
+
+```typescript
+// ✅ 良い例: 共通のヘルパー関数
+function toTransactionWithDates(data: Transaction): Transaction {
+  return {
+    ...data,
+    date: data.date instanceof Date ? data.date : new Date(data.date),
+    createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+    updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+    confirmedAt: data.confirmedAt
+      ? data.confirmedAt instanceof Date
+        ? data.confirmedAt
+        : new Date(data.confirmedAt)
+      : null,
+  };
+}
+
+export async function getTransactionById(id: string): Promise<Transaction> {
+  const data = await apiClient.get<Transaction>(`/api/transactions/${id}`);
+  return toTransactionWithDates(data);
+}
+
+export async function updateTransactionCategory(
+  transactionId: string,
+  category: { id: string; name: string; type: CategoryType }
+): Promise<Transaction> {
+  const data = await apiClient.patch<Transaction>(`/api/transactions/${transactionId}/category`, {
+    category,
+  });
+  return toTransactionWithDates(data);
+}
+```
+
+**理由**:
+
+- コードの重複を避け、保守性が向上する
+- 日付変換ロジックの変更が1箇所で済む
+- 一貫性が保たれる
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---

@@ -5,6 +5,36 @@ import { test, expect, Page } from '@playwright/test';
  * FR-009: 詳細費目分類機能
  */
 
+/**
+ * 取引一覧から最初の取引の詳細ページに遷移するヘルパー関数
+ */
+async function navigateToFirstTransactionDetail(page: Page): Promise<void> {
+  // 取引一覧にデータがあるか確認
+  const table = page.locator('table');
+  const hasData = await table.isVisible({ timeout: 5000 }).catch(() => false);
+
+  if (!hasData) {
+    test.skip();
+    return;
+  }
+
+  // 最初の取引の説明をクリック（リンクになっている）
+  const firstTransactionLink = page.locator('table tbody tr').first().locator('a').first();
+  await expect(firstTransactionLink).toBeVisible({ timeout: 10000 });
+
+  // リンクのhrefを取得して遷移
+  const href = await firstTransactionLink.getAttribute('href');
+  if (href) {
+    await page.goto(href, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+  } else {
+    // hrefがない場合はクリック
+    await firstTransactionLink.click();
+  }
+}
+
 test.describe('取引詳細画面', () => {
   let page: Page;
 
@@ -52,30 +82,7 @@ test.describe('取引詳細画面', () => {
   });
 
   test('取引詳細画面に遷移できる', async () => {
-    // 取引一覧にデータがあるか確認
-    const table = page.locator('table');
-    const hasData = await table.isVisible({ timeout: 5000 }).catch(() => false);
-
-    if (!hasData) {
-      test.skip();
-      return;
-    }
-
-    // 最初の取引の説明をクリック（リンクになっている）
-    const firstTransactionLink = page.locator('table tbody tr').first().locator('a').first();
-    await expect(firstTransactionLink).toBeVisible({ timeout: 10000 });
-
-    // リンクのhrefを取得して遷移
-    const href = await firstTransactionLink.getAttribute('href');
-    if (href) {
-      await page.goto(href, {
-        waitUntil: 'domcontentloaded',
-        timeout: 60000,
-      });
-    } else {
-      // hrefがない場合はクリック
-      await firstTransactionLink.click();
-    }
+    await navigateToFirstTransactionDetail(page);
 
     // 取引詳細ページのタイトルが表示されることを確認
     await expect(page.getByRole('heading', { name: '取引詳細' })).toBeVisible({
@@ -87,28 +94,7 @@ test.describe('取引詳細画面', () => {
   });
 
   test('取引詳細情報が正しく表示される', async () => {
-    // 取引一覧にデータがあるか確認
-    const table = page.locator('table');
-    const hasData = await table.isVisible({ timeout: 5000 }).catch(() => false);
-
-    if (!hasData) {
-      test.skip();
-      return;
-    }
-
-    // 最初の取引の説明をクリック
-    const firstTransactionLink = page.locator('table tbody tr').first().locator('a').first();
-    await expect(firstTransactionLink).toBeVisible({ timeout: 10000 });
-
-    const href = await firstTransactionLink.getAttribute('href');
-    if (href) {
-      await page.goto(href, {
-        waitUntil: 'domcontentloaded',
-        timeout: 60000,
-      });
-    } else {
-      await firstTransactionLink.click();
-    }
+    await navigateToFirstTransactionDetail(page);
 
     // 取引詳細ページのタイトルが表示されることを確認
     await expect(page.getByRole('heading', { name: '取引詳細' })).toBeVisible({
@@ -137,28 +123,7 @@ test.describe('取引詳細画面', () => {
   });
 
   test('取引一覧に戻れる', async () => {
-    // 取引一覧にデータがあるか確認
-    const table = page.locator('table');
-    const hasData = await table.isVisible({ timeout: 5000 }).catch(() => false);
-
-    if (!hasData) {
-      test.skip();
-      return;
-    }
-
-    // 最初の取引の説明をクリック
-    const firstTransactionLink = page.locator('table tbody tr').first().locator('a').first();
-    await expect(firstTransactionLink).toBeVisible({ timeout: 10000 });
-
-    const href = await firstTransactionLink.getAttribute('href');
-    if (href) {
-      await page.goto(href, {
-        waitUntil: 'domcontentloaded',
-        timeout: 60000,
-      });
-    } else {
-      await firstTransactionLink.click();
-    }
+    await navigateToFirstTransactionDetail(page);
 
     // 取引詳細ページのタイトルが表示されることを確認
     await expect(page.getByRole('heading', { name: '取引詳細' })).toBeVisible({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Transaction, CategoryType } from '@account-book/types';
 import { getTransactionById, updateTransactionSubcategory } from '@/lib/api/transactions';
@@ -29,29 +29,29 @@ export default function TransactionDetailPage(): React.JSX.Element {
   const { getSubcategoryById, fetchSubcategories } = useSubcategoryStore();
 
   // 取引データを取得
-  useEffect(() => {
-    const fetchTransaction = async (): Promise<void> => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getTransactionById(transactionId);
-        setTransaction(data);
-        // サブカテゴリ一覧を取得
-        if (data) {
-          await fetchSubcategories(data.category.type);
-        }
-      } catch (err) {
-        console.error('取引データの取得に失敗しました:', err);
-        setError(err instanceof Error ? err.message : '取引データの取得に失敗しました');
-      } finally {
-        setLoading(false);
+  const fetchTransaction = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTransactionById(transactionId);
+      setTransaction(data);
+      // サブカテゴリ一覧を取得
+      if (data) {
+        await fetchSubcategories(data.category.type);
       }
-    };
+    } catch (err) {
+      console.error('取引データの取得に失敗しました:', err);
+      setError(err instanceof Error ? err.message : '取引データの取得に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  }, [transactionId, fetchSubcategories]);
 
+  useEffect(() => {
     if (transactionId) {
       void fetchTransaction();
     }
-  }, [transactionId, fetchSubcategories]);
+  }, [transactionId, fetchTransaction]);
 
   const subcategory = transaction?.subcategoryId
     ? getSubcategoryById(transaction.subcategoryId)
@@ -133,7 +133,7 @@ export default function TransactionDetailPage(): React.JSX.Element {
                     取引一覧に戻る
                   </Link>
                   <button
-                    onClick={() => window.location.reload()}
+                    onClick={() => void fetchTransaction()}
                     className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
                   >
                     再読み込み
