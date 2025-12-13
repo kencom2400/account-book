@@ -492,10 +492,10 @@ function MonthSelectorModal({
 
         {/* 月選択 */}
         <div className="mb-6">
-          <label htmlFor="month-select" className="block text-sm font-medium text-gray-700 mb-2">
+          <div id="month-select-label" className="block text-sm font-medium text-gray-700 mb-2">
             月
-          </label>
-          <div className="grid grid-cols-4 gap-2">
+          </div>
+          <div role="group" aria-labelledby="month-select-label" className="grid grid-cols-4 gap-2">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <button
                 key={m}
