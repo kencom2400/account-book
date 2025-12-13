@@ -26,7 +26,7 @@ export default function TransactionDetailPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [isEditingSubcategory, setIsEditingSubcategory] = useState(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const { getSubcategoryById, fetchSubcategories } = useSubcategoryStore();
+  const { getSubcategoryById, fetchSubcategories, error: subcategoryError } = useSubcategoryStore();
 
   // 取引データを取得
   const fetchTransaction = useCallback(async (): Promise<void> => {
@@ -192,9 +192,14 @@ export default function TransactionDetailPage(): React.JSX.Element {
         </div>
 
         {/* エラー表示 */}
-        {error && (
+        {(error || subcategoryError) && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {subcategoryError && (
+              <p className="text-sm text-red-600">
+                サブカテゴリの読み込みに失敗しました: {subcategoryError}
+              </p>
+            )}
           </div>
         )}
 
