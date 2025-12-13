@@ -14,6 +14,10 @@ import Link from 'next/link';
  * 月次レポート画面
  * FR-016: 月別収支集計
  */
+
+// 内訳セクションで表示する最大項目数
+const MAX_BREAKDOWN_ITEMS = 5;
+
 export function MonthlyBalanceReportContent(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -374,7 +378,7 @@ function BreakdownSection({
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">収入</h3>
             <div className="space-y-2">
-              {incomeBreakdown.slice(0, 5).map((item) => (
+              {incomeBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
                 <div
                   key={item.categoryId || item.institutionId}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50"
@@ -397,7 +401,7 @@ function BreakdownSection({
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">支出</h3>
             <div className="space-y-2">
-              {expenseBreakdown.slice(0, 5).map((item) => (
+              {expenseBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
                 <div
                   key={item.categoryId || item.institutionId}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50"
