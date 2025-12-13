@@ -12,7 +12,7 @@ set -e
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/config.sh"
+source "${SCRIPT_DIR}/../config.sh"
 
 # 使い方表示
 show_usage() {

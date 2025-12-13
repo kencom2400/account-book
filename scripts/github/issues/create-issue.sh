@@ -7,8 +7,8 @@ set -e
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
-  source "${SCRIPT_DIR}/../workflow/config.sh"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
 fi
 
 # プロジェクト設定（環境変数で上書き可能、設定ファイルが優先）

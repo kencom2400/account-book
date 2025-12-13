@@ -2,8 +2,8 @@
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
-  source "${SCRIPT_DIR}/../workflow/config.sh"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
 fi
 
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）

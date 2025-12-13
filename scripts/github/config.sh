@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GitHub Projects設定ファイル
-# このファイルはstart-task.shなどのワークフロースクリプトから参照されます
+# このファイルはGitHub操作スクリプト全般から参照されます
 
 # リポジトリ情報
 export REPO_OWNER="kencom2400"
