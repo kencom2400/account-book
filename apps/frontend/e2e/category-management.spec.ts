@@ -87,7 +87,7 @@ test.describe('Category Management', () => {
       await expect(nameInput).toBeVisible({ timeout: 10000 });
 
       // 入力フィールドに値が入るまで待機（ローディング完了を確認）
-      await page.waitForTimeout(500);
+      await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
 
       // 名前を変更
       const editedName = `${uniqueName}（編集）`;
