@@ -7,11 +7,17 @@
 
 set -e
 
-# プロジェクト設定（環境変数で上書き可能）
-OWNER=${GH_OWNER:-"kencom2400"}
-REPO=${GH_REPO:-"account-book"}
-PROJECT_ID=${GH_PROJECT_ID:-"PVT_kwHOANWYrs4BIOm-"}
-STATUS_FIELD_ID=${GH_STATUS_FIELD_ID:-"PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"}
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# プロジェクト設定（環境変数で上書き可能、設定ファイルが優先）
+OWNER="${OWNER:-${GH_OWNER:-kencom2400}}"
+REPO="${REPO_NAME:-${GH_REPO:-account-book}}"
+PROJECT_ID="${PROJECT_ID:-${GH_PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}}"
+STATUS_FIELD_ID="${STATUS_FIELD_ID:-${GH_STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}}"
 
 # 使用方法を表示
 show_usage() {

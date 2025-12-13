@@ -9,10 +9,10 @@ fi
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
 
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+REPO="${REPO:-${REPO_OWNER:-kencom2400}/${REPO_NAME:-account-book}}"
 
 # CloseされたIssueの完了状況詳細確認スクリプト
-
-REPO="kencom2400/account-book"
 REOPEN_LIST=()
 COMPLETED_LIST=()
 

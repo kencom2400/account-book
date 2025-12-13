@@ -18,9 +18,10 @@ API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
 
 set -e
 
-OWNER="kencom2400"
-REPO="account-book"
-PROJECT_NUMBER=1
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
+REPO="${REPO_NAME:-${GH_REPO:-account-book}}"
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
 
 echo "════════════════════════════════════════════════════════════════"
 echo "   🔗 すべてのPRとプロジェクトIssueの紐づけ"

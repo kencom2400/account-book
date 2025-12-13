@@ -146,5 +146,7 @@ gh project item-edit \
 echo ""
 echo "✅ Issue #${ISSUE_NUMBER} のステータスを '${STATUS}' に変更しました！"
 echo ""
-echo "確認: https://github.com/${OWNER}/account-book/issues/${ISSUE_NUMBER}"
+# リポジトリ名を設定ファイルから取得（未設定の場合はデフォルト値）
+REPO_NAME_FOR_URL="${REPO_NAME:-account-book}"
+echo "確認: https://github.com/${OWNER}/${REPO_NAME_FOR_URL}/issues/${ISSUE_NUMBER}"
 

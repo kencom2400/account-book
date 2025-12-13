@@ -5,14 +5,20 @@
 
 set -e
 
-# プロジェクト設定（環境変数で上書き可能）
-PROJECT_OWNER=${GH_PROJECT_OWNER:-kencom2400}
-PROJECT_NUMBER=${GH_PROJECT_NUMBER:-1}
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# プロジェクト設定（環境変数で上書き可能、設定ファイルが優先）
+PROJECT_OWNER="${PROJECT_OWNER:-${GH_PROJECT_OWNER:-kencom2400}}"
+PROJECT_NUMBER="${PROJECT_NUMBER:-${GH_PROJECT_NUMBER:-1}}"
 
 # プロジェクトボード設定（GitHub Projects V2）
-PROJECT_ID=${GH_PROJECT_ID:-"PVT_kwHOANWYrs4BIOm-"}
-STATUS_FIELD_ID=${GH_STATUS_FIELD_ID:-"PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"}
-BACKLOG_OPTION_ID=${GH_BACKLOG_OPTION_ID:-"f908f688"}
+PROJECT_ID="${PROJECT_ID:-${GH_PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}}"
+STATUS_FIELD_ID="${STATUS_FIELD_ID:-${GH_STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}}"
+BACKLOG_OPTION_ID="${BACKLOG_OPTION_ID:-${GH_BACKLOG_OPTION_ID:-f908f688}}"
 
 # 使用方法を表示
 show_usage() {
@@ -141,7 +147,7 @@ if [ $? -eq 0 ] && [ -n "$ISSUE_URL" ]; then
         # プロジェクトアイテムIDを取得
         PROJECT_ITEM_ID=$(gh api graphql -f query="
         query {
-          repository(owner: \"$PROJECT_OWNER\", name: \"account-book\") {
+          repository(owner: \"$PROJECT_OWNER\", name: \"$REPO_NAME\") {
             issue(number: $ISSUE_NUM) {
               projectItems(first: 10) {
                 nodes {

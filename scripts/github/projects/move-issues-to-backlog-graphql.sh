@@ -2,11 +2,18 @@
 
 # 未実装IssueをプロジェクトボードのBacklogに移動（GraphQL API使用）
 
-REPO="kencom2400/account-book"
-OWNER="kencom2400"
-PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
-STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"
-BACKLOG_OPTION_ID="f75ad846"
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
+  source "${SCRIPT_DIR}/../workflow/config.sh"
+fi
+
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+REPO="${REPO:-${REPO_OWNER:-kencom2400}/${REPO_NAME:-account-book}}"
+OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
+PROJECT_ID="${PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}"
+STATUS_FIELD_ID="${STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}"
+BACKLOG_OPTION_ID="${BACKLOG_OPTION_ID:-f908f688}"
 
 # 未実装のIssue一覧（カテゴリ別）
 declare -A CATEGORIES
@@ -42,7 +49,7 @@ for category in C D E F G H; do
         echo -n "Issue #$issue_num ... "
         
         # 1. Issueのnode IDを取得
-        ISSUE_ID=$(gh api repos/$OWNER/account-book/issues/$issue_num --jq '.node_id' 2>&1)
+        ISSUE_ID=$(gh api repos/$OWNER/$REPO_NAME/issues/$issue_num --jq '.node_id' 2>&1)
         
         if [ $? -ne 0 ]; then
             echo "❌ Issue取得エラー: $ISSUE_ID"

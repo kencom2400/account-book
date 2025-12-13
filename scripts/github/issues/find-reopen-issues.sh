@@ -9,10 +9,10 @@ fi
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
 GH_API_LIMIT="${GH_API_LIMIT:-9999}"
 
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+REPO="${REPO:-${REPO_OWNER:-kencom2400}/${REPO_NAME:-account-book}}"
 
 # 「未実装」「Reopen」などのキーワードを含むIssueコメントを検索
-
-REPO="kencom2400/account-book"
 SEARCH_KEYWORDS=("未実装" "Reopen" "reopenします" "再開" "未完了")
 
 echo "════════════════════════════════════════════════════════════════"
