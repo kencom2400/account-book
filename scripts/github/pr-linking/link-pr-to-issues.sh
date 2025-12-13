@@ -2,8 +2,8 @@
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
-  source "${SCRIPT_DIR}/../workflow/config.sh"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
 fi
 
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
@@ -18,9 +18,10 @@ API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
 
 set -e
 
-OWNER="kencom2400"
-REPO="account-book"
-PROJECT_NUMBER=1
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
+REPO_NAME="${REPO_NAME:-${GH_REPO:-account-book}}"
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
 
 echo "════════════════════════════════════════════════════════════════"
 echo "   🔗 PRとToDo Issueの紐づけ"
@@ -42,7 +43,7 @@ echo ""
 
 # 2. すべてのPRを取得（Open + Merged + Closed）
 echo "📋 すべてのPRを取得中..."
-ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit "$GH_API_LIMIT" --json number,title,state,headRefName,body)
+ALL_PRS=$(gh pr list --repo "$OWNER/$REPO_NAME" --state all --limit "$GH_API_LIMIT" --json number,title,state,headRefName,body)
 echo "✅ PR数: $(echo "$ALL_PRS" | jq '. | length') 個"
 echo ""
 
@@ -60,7 +61,7 @@ for issue_num in $TODO_ISSUES; do
   echo "[Issue #$issue_num]"
   
   # Issueの詳細を取得
-  ISSUE_DATA=$(gh issue view "$issue_num" --repo "$OWNER/$REPO" --json number,title,body)
+  ISSUE_DATA=$(gh issue view "$issue_num" --repo "$OWNER/$REPO_NAME" --json number,title,body)
   ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
   ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // ""')
   
@@ -94,7 +95,7 @@ for issue_num in $TODO_ISSUES; do
     echo "    → PR #$pr_num を確認中..."
     
     # PRの本文を取得
-    PR_BODY=$(gh pr view "$pr_num" --repo "$OWNER/$REPO" --json body --jq '.body // ""')
+    PR_BODY=$(gh pr view "$pr_num" --repo "$OWNER/$REPO_NAME" --json body --jq '.body // ""')
     
     # すでにIssue参照が含まれているかチェック
     if echo "$PR_BODY" | grep -qE "(Closes|Fixes|Resolves|Related to|Ref|Issue|#).*#?${issue_num}(\s|\)|$)"; then
@@ -118,7 +119,7 @@ Related to #${issue_num}"
     fi
     
     # PRの本文を更新
-    gh pr edit "$pr_num" --repo "$OWNER/$REPO" --body "$NEW_BODY" 2>&1
+    gh pr edit "$pr_num" --repo "$OWNER/$REPO_NAME" --body "$NEW_BODY" 2>&1
     
     if [ $? -eq 0 ]; then
       echo "      ✅ PR #${pr_num} を更新しました"

@@ -2,9 +2,15 @@
 
 # 未実装Issueをプロジェクトボードの Backlog に移動
 
-REPO="kencom2400/account-book"
-OWNER="kencom2400"
-PROJECT_NUMBER="1"
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
+fi
+
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
+PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
 
 # 未実装のIssue一覧
 REOPEN_ISSUES=(
@@ -34,7 +40,7 @@ for issue_num in "${REOPEN_ISSUES[@]}"; do
     # プロジェクトにIssueを追加
     result=$(gh project item-add "$PROJECT_NUMBER" \
         --owner "$OWNER" \
-        --url "https://github.com/$OWNER/account-book/issues/$issue_num" 2>&1)
+        --url "https://github.com/$OWNER/$REPO_NAME/issues/$issue_num" 2>&1)
     
     if echo "$result" | grep -q "already exists"; then
         echo "✅ 既に追加済み"

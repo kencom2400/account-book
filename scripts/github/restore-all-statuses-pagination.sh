@@ -1,9 +1,16 @@
 #!/bin/bash
 
-REPO_OWNER="kencom2400"
-REPO_NAME="account-book"
-PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
-STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"
+# 設定ファイルの読み込み
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
+fi
+
+# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
+REPO_OWNER="${REPO_OWNER:-kencom2400}"
+REPO_NAME="${REPO_NAME:-account-book}"
+PROJECT_ID="${PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}"
+STATUS_FIELD_ID="${STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}"
 
 echo "🔄 全Issueのステータスを履歴から復元（ページネーション対応）"
 echo "============================================================"
@@ -21,9 +28,9 @@ END_CURSOR="null"
 
 while [ "$HAS_NEXT_PAGE" = "true" ]; do
   if [ "$END_CURSOR" = "null" ]; then
-    response=$(gh api graphql -f query='query { repository(owner: "kencom2400", name: "account-book") { issues(first: 100, states: [OPEN, CLOSED]) { pageInfo { hasNextPage endCursor } nodes { number } } } }')
+    response=$(gh api graphql -f query="query { repository(owner: \"$REPO_OWNER\", name: \"$REPO_NAME\") { issues(first: 100, states: [OPEN, CLOSED]) { pageInfo { hasNextPage endCursor } nodes { number } } } }")
   else
-    response=$(gh api graphql -f query="query { repository(owner: \"kencom2400\", name: \"account-book\") { issues(first: 100, states: [OPEN, CLOSED], after: \"$END_CURSOR\") { pageInfo { hasNextPage endCursor } nodes { number } } } }")
+    response=$(gh api graphql -f query="query { repository(owner: \"$REPO_OWNER\", name: \"$REPO_NAME\") { issues(first: 100, states: [OPEN, CLOSED], after: \"$END_CURSOR\") { pageInfo { hasNextPage endCursor } nodes { number } } } }")
   fi
   
   page_issues=$(echo "$response" | jq -r '.data.repository.issues.nodes[].number')

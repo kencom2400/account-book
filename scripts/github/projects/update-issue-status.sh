@@ -26,8 +26,8 @@ OWNER="${OWNER:-kencom2400}"
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "${SCRIPT_DIR}/../workflow/config.sh" ]; then
-  source "${SCRIPT_DIR}/../workflow/config.sh"
+if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
+  source "${SCRIPT_DIR}/../config.sh"
 fi
 
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
@@ -146,5 +146,7 @@ gh project item-edit \
 echo ""
 echo "✅ Issue #${ISSUE_NUMBER} のステータスを '${STATUS}' に変更しました！"
 echo ""
-echo "確認: https://github.com/${OWNER}/account-book/issues/${ISSUE_NUMBER}"
+# リポジトリ名を設定ファイルから取得（未設定の場合はデフォルト値）
+REPO_NAME_FOR_URL="${REPO_NAME:-account-book}"
+echo "確認: https://github.com/${OWNER}/${REPO_NAME_FOR_URL}/issues/${ISSUE_NUMBER}"
 
