@@ -8,7 +8,6 @@ export REPO_OWNER="kencom2400"
 export REPO_NAME="account-book"
 export REPO="${REPO_OWNER}/${REPO_NAME}"  # リポジトリの完全な形式（owner/repo）
 export OWNER="${REPO_OWNER}"  # 後方互換性のためのエイリアス
-export REPO_OWNER_ALIAS="${REPO_OWNER}"  # 別名（一部スクリプトで使用）
 
 # プロジェクト情報
 export PROJECT_NUMBER=1
