@@ -93,6 +93,27 @@ export function CategoryForm({
         </div>
       )}
 
+      {category && (
+        <div>
+          <label htmlFor="category-type-disabled" className="block text-sm font-medium mb-1">
+            タイプ
+          </label>
+          <select
+            id="category-type-disabled"
+            value={type}
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-gray-500 cursor-not-allowed"
+          >
+            <option value={CategoryType.EXPENSE}>支出</option>
+            <option value={CategoryType.INCOME}>収入</option>
+            <option value={CategoryType.TRANSFER}>振替</option>
+            <option value={CategoryType.REPAYMENT}>返済</option>
+            <option value={CategoryType.INVESTMENT}>投資</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">カテゴリタイプは変更できません</p>
+        </div>
+      )}
+
       <div>
         <label htmlFor="category-icon" className="block text-sm font-medium mb-1">
           アイコン（絵文字）
@@ -134,20 +155,18 @@ export function CategoryForm({
 
       <div className="flex gap-2 pt-4">
         <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          キャンセル
+        </button>
+        <button
           type="submit"
           className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          {category ? '更新' : '作成'}
+          {category ? '保存' : '追加'}
         </button>
-        {category && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            キャンセル
-          </button>
-        )}
       </div>
     </form>
   );

@@ -64,8 +64,7 @@ test.describe('Category Management', () => {
     await page.waitForTimeout(500);
   });
 
-  // TODO: Issue #110 - 編集機能の不具合が修正されたら、このテストを有効化する
-  test.skip('費目を編集できる', async ({ page }) => {
+  test('費目を編集できる', async ({ page }) => {
     // 最初の編集ボタンをクリック（システム定義以外）
     const editButtons = page.locator('button:has-text("編集")');
     const count = await editButtons.count();
@@ -73,19 +72,26 @@ test.describe('Category Management', () => {
     if (count > 0) {
       await editButtons.first().click();
 
-      // フォームが編集モードになることを確認
-      await expect(page.locator('h2:has-text("費目編集")')).toBeVisible();
+      // モーダルが表示されることを確認
+      await expect(page.locator('text=費目を編集')).toBeVisible();
+
+      // モーダル内の費目名入力フィールドを取得
+      const nameInput = page.locator('input[id="category-name"]');
+      await expect(nameInput).toBeVisible();
 
       // 名前を変更
       const editedName = `${uniqueName}（編集）`;
-      await page.fill('input[value]', editedName);
+      await nameInput.fill(editedName);
 
-      // 更新ボタンをクリック
-      await page.click('button:has-text("更新")');
+      // 保存ボタンをクリック
+      await page.click('button:has-text("保存")');
+
+      // モーダルが閉じることを確認
+      await page.waitForTimeout(500);
+      await expect(page.locator('text=費目を編集')).not.toBeVisible();
 
       // 更新された費目が一覧に表示されることを確認
-      await page.waitForTimeout(500);
-      await expect(page.locator(`text=${editedName}`)).toBeVisible();
+      await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 5000 });
     }
   });
 
