@@ -69,7 +69,9 @@ test.describe('月次レポート画面', () => {
 
   test('前月ボタンをクリックすると前月のデータが表示される', async () => {
     // 現在の月を確認
-    const currentMonthText = await page.locator('button:has-text("年")').textContent();
+    const currentMonthText = await page
+      .getByRole('button', { name: /\d{4}年\d{1,2}月/ })
+      .textContent();
     expect(currentMonthText).toBeTruthy();
 
     // APIリクエストを待つ（前月データ取得用）
@@ -94,7 +96,9 @@ test.describe('月次レポート画面', () => {
 
   test('次月ボタンをクリックすると次月のデータが表示される', async () => {
     // 現在の月を確認
-    const currentMonthText = await page.locator('button:has-text("年")').textContent();
+    const currentMonthText = await page
+      .getByRole('button', { name: /\d{4}年\d{1,2}月/ })
+      .textContent();
     expect(currentMonthText).toBeTruthy();
 
     // APIリクエストを待つ（次月データ取得用）
@@ -119,7 +123,7 @@ test.describe('月次レポート画面', () => {
 
   test('月選択モーダルが表示される', async () => {
     // 月選択ボタンをクリック
-    const monthButton = page.locator('button:has-text("年")').first();
+    const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
     await expect(monthButton).toBeVisible({ timeout: 10000 });
     await monthButton.click();
 
@@ -131,7 +135,7 @@ test.describe('月次レポート画面', () => {
 
   test('月選択モーダルで月を選択できる', async () => {
     // 月選択ボタンをクリック
-    const monthButton = page.locator('button:has-text("年")').first();
+    const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
     await expect(monthButton).toBeVisible({ timeout: 10000 });
     await monthButton.click();
 
@@ -168,7 +172,7 @@ test.describe('月次レポート画面', () => {
 
   test('月選択モーダルをキャンセルできる', async () => {
     // 月選択ボタンをクリック
-    const monthButton = page.locator('button:has-text("年")').first();
+    const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
     await expect(monthButton).toBeVisible({ timeout: 10000 });
     await monthButton.click();
 
