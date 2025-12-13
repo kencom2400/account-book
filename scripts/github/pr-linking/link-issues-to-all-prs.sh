@@ -20,7 +20,7 @@ set -e
 
 # リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
 OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
-REPO="${REPO_NAME:-${GH_REPO:-account-book}}"
+REPO_NAME="${REPO_NAME:-${GH_REPO:-account-book}}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
 
 echo "════════════════════════════════════════════════════════════════"
@@ -43,7 +43,7 @@ echo ""
 
 # 2. すべてのPRを取得
 echo "📋 すべてのPRを取得中..."
-ALL_PRS=$(gh pr list --repo "$OWNER/$REPO" --state all --limit "$GH_API_LIMIT" --json number,title,state,headRefName,body)
+ALL_PRS=$(gh pr list --repo "$OWNER/$REPO_NAME" --state all --limit "$GH_API_LIMIT" --json number,title,state,headRefName,body)
 echo "✅ PR数: $(echo "$ALL_PRS" | jq '. | length') 個"
 echo ""
 
@@ -139,7 +139,7 @@ Related to$ISSUES_TO_ADD"
   fi
   
   # PRの本文を更新
-  UPDATE_RESULT=$(gh pr edit "$pr_num" --repo "$OWNER/$REPO" --body "$NEW_BODY" 2>&1)
+  UPDATE_RESULT=$(gh pr edit "$pr_num" --repo "$OWNER/$REPO_NAME" --body "$NEW_BODY" 2>&1)
   
   if [ $? -eq 0 ]; then
     echo "  ✅ PR #${pr_num} を更新しました"
