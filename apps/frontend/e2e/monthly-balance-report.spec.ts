@@ -4,6 +4,19 @@ import { test, expect, Page } from '@playwright/test';
  * FR-016: 月別収支集計 E2Eテスト
  */
 
+// ヘルパー関数: 月次収支APIレスポンスを待つ
+const waitForMonthlyBalanceAPI = (page: Page) =>
+  page
+    .waitForResponse(
+      (response) =>
+        response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
+      { timeout: 30000 }
+    )
+    .catch(() => {
+      console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
+      return null;
+    });
+
 test.describe('月次レポート画面', () => {
   let page: Page;
 
@@ -21,16 +34,7 @@ test.describe('月次レポート画面', () => {
 
     // APIリクエストが完了するまで待つ（/api/aggregation/monthly-balanceへのリクエストを待つ）
     // page.goto()の前に設定することで、リクエストを確実にキャッチできる
-    const monthlyBalanceResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 月次レポート画面に遷移
     await page.goto('/aggregation/monthly-balance', {
@@ -69,16 +73,7 @@ test.describe('月次レポート画面', () => {
     expect(currentMonthText).toBeTruthy();
 
     // APIリクエストを待つ（前月データ取得用）
-    const monthlyBalanceResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 前月ボタンをクリック
     const previousButton = page.getByLabel('前月');
@@ -103,16 +98,7 @@ test.describe('月次レポート画面', () => {
     expect(currentMonthText).toBeTruthy();
 
     // APIリクエストを待つ（次月データ取得用）
-    const monthlyBalanceResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 次月ボタンをクリック
     const nextButton = page.getByLabel('次月');
@@ -153,16 +139,7 @@ test.describe('月次レポート画面', () => {
     await expect(page.getByText('月を選択')).toBeVisible({ timeout: 10000 });
 
     // APIリクエストを待つ（3月データ取得用）
-    const monthlyBalanceResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 3月を選択
     const marchButton = page.getByText('3月');
@@ -227,16 +204,7 @@ test.describe('月次レポート画面', () => {
 
   test('カテゴリ別内訳画面に遷移できる', async () => {
     // APIリクエストを待つ（カテゴリ別内訳画面用）
-    const categoryResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // カテゴリ別内訳の「詳細を見る」ボタンをクリック
     const categoryDetailButton = page
@@ -264,16 +232,7 @@ test.describe('月次レポート画面', () => {
 
   test('金融機関別内訳画面に遷移できる', async () => {
     // APIリクエストを待つ（金融機関別内訳画面用）
-    const institutionResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const institutionResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 金融機関別内訳の「詳細を見る」ボタンをクリック
     const institutionDetailButton = page
@@ -301,16 +260,7 @@ test.describe('月次レポート画面', () => {
 
   test('カテゴリ別内訳画面で収入/支出を切り替えできる', async () => {
     // APIリクエストを待つ（カテゴリ別内訳画面用）
-    const categoryResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
@@ -340,16 +290,7 @@ test.describe('月次レポート画面', () => {
 
   test('金融機関別内訳画面で収入/支出を切り替えできる', async () => {
     // APIリクエストを待つ（金融機関別内訳画面用）
-    const institutionResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const institutionResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
@@ -379,16 +320,7 @@ test.describe('月次レポート画面', () => {
 
   test('カテゴリ別内訳画面でソート機能が動作する', async () => {
     // APIリクエストを待つ（カテゴリ別内訳画面用）
-    const categoryResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
@@ -418,16 +350,7 @@ test.describe('月次レポート画面', () => {
 
   test('金融機関別内訳画面でソート機能が動作する', async () => {
     // APIリクエストを待つ（金融機関別内訳画面用）
-    const institutionResponsePromise = page
-      .waitForResponse(
-        (response) =>
-          response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-        return null;
-      });
+    const institutionResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
