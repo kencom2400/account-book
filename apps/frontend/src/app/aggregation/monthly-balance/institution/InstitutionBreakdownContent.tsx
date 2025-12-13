@@ -103,6 +103,13 @@ export function InstitutionBreakdownContent(): React.JSX.Element {
   const COLOR_EXPENSE = '#F44336';
   const barColor = categoryType === CategoryType.INCOME ? COLOR_INCOME : COLOR_EXPENSE;
 
+  // カテゴリタイプの切り替え
+  const handleTypeChange = (newType: CategoryType): void => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('type', newType === CategoryType.INCOME ? 'income' : 'expense');
+    router.push(`/aggregation/monthly-balance/institution?${params.toString()}`);
+  };
+
   // ローディング表示
   if (loading) {
     return (
@@ -165,11 +172,7 @@ export function InstitutionBreakdownContent(): React.JSX.Element {
       <div className="mb-6">
         <div className="flex gap-2">
           <button
-            onClick={() =>
-              router.push(
-                `/aggregation/monthly-balance/institution?year=${year}&month=${month}&type=income`
-              )
-            }
+            onClick={() => handleTypeChange(CategoryType.INCOME)}
             className={`px-4 py-2 rounded-lg ${
               categoryType === CategoryType.INCOME
                 ? 'bg-green-600 text-white'
@@ -179,11 +182,7 @@ export function InstitutionBreakdownContent(): React.JSX.Element {
             収入
           </button>
           <button
-            onClick={() =>
-              router.push(
-                `/aggregation/monthly-balance/institution?year=${year}&month=${month}&type=expense`
-              )
-            }
+            onClick={() => handleTypeChange(CategoryType.EXPENSE)}
             className={`px-4 py-2 rounded-lg ${
               categoryType === CategoryType.EXPENSE
                 ? 'bg-red-600 text-white'
