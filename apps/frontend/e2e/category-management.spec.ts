@@ -202,24 +202,7 @@ test.describe('Category Management', () => {
         await expect(nameInput).toBeVisible({ timeout: 10000 });
 
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await page
-          .waitForFunction(
-            (input) => {
-              const element = input as HTMLInputElement;
-              return element.value.length > 0;
-            },
-            await nameInput.elementHandle(),
-            { timeout: 10000 }
-          )
-          .catch(async () => {
-            // タイムアウトした場合は、少し待ってから再確認
-            await page.waitForTimeout(1000);
-          });
-
-        // 既存のデータが正しく表示されることを確認
-        // 入力フィールドに値が入っていることを確認
-        const inputValue = await nameInput.inputValue();
-        expect(inputValue.length).toBeGreaterThan(0);
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
       }
     });
 
