@@ -172,9 +172,8 @@ describe('CategoryEditModal', () => {
 
     // 費目名を変更
     const nameInput = screen.getByLabelText(/費目名/);
-    // 全選択してから新しい値を入力
-    await user.tripleClick(nameInput);
-    await user.keyboard('{Delete}');
+    // 入力フィールドをクリアしてから新しい値を入力
+    await user.clear(nameInput);
     await user.type(nameInput, '更新された費目');
 
     // 保存ボタンをクリック

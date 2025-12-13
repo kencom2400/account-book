@@ -57,7 +57,10 @@ export function CategoryEditModal({
   };
 
   // フォーム送信
-  const handleSubmit = async (data: {
+  const handleSubmit = async ({
+    type: _type,
+    ...updateData
+  }: {
     name: string;
     type: string;
     icon?: string | null;
@@ -67,11 +70,8 @@ export function CategoryEditModal({
 
     try {
       setError(null);
-      await updateCategory(categoryId, {
-        name: data.name,
-        icon: data.icon,
-        color: data.color,
-      });
+      // typeは更新時に使用しないため、分割代入で除外
+      await updateCategory(categoryId, updateData);
       onSuccess();
       handleClose();
     } catch (err) {
