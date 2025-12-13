@@ -170,10 +170,19 @@ describe('CategoryEditModal', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    // 費目名を変更
-    const nameInput = screen.getByLabelText(/費目名/);
-    // 入力フィールドをクリアしてから新しい値を入力
+    // データが読み込まれるまで待機
+    const nameInput = await waitFor(() => {
+      const input = screen.getByLabelText(/費目名/);
+      expect(input).toHaveValue('テスト費目'); // 初期値が設定されていることを確認
+      return input;
+    });
+
+    // 費目名を変更（user.clear()を使用）
     await user.clear(nameInput);
+    // クリアが完了するまで待機
+    await waitFor(() => {
+      expect(nameInput).toHaveValue('');
+    });
     await user.type(nameInput, '更新された費目');
 
     // 保存ボタンをクリック
