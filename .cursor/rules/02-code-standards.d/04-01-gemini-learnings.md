@@ -9975,3 +9975,45 @@ export async function updateTransactionCategory(
 **参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## ストアのエラー状態の監視と表示
+
+### 問題
+
+ストア（Zustandなど）が内部でエラーをキャッチし、自身の`error` stateにセットしていても、コンポーネントがそのエラーを監視していない場合、ユーザーにエラーが通知されない。
+
+### 解決策
+
+ストアから`error` stateを取得し、UIに表示する。
+
+**例: サブカテゴリストアのエラー表示**
+
+```typescript
+// ❌ 悪い例: エラーを監視していない
+const { getSubcategoryById, fetchSubcategories } = useSubcategoryStore();
+
+// ✅ 良い例: エラーを監視し、UIに表示
+const { getSubcategoryById, fetchSubcategories, error: subcategoryError } = useSubcategoryStore();
+
+// UIでの表示
+{(error || subcategoryError) && (
+  <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+    {error && <p className="text-sm text-red-600">{error}</p>}
+    {subcategoryError && (
+      <p className="text-sm text-red-600">
+        サブカテゴリの読み込みに失敗しました: {subcategoryError}
+      </p>
+    )}
+  </div>
+)}
+```
+
+**理由**:
+
+- データ取得に問題があった場合にユーザーが状況を把握できる
+- サブカテゴリセレクターが空で表示されるなどの問題を防ぐ
+- エラーハンドリングの一貫性が保たれる
+
+**参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
+
+---
