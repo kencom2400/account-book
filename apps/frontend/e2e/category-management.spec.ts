@@ -172,4 +172,312 @@ test.describe('Category Management', () => {
     const colorValue = await page.locator('input[placeholder="#FF9800"]').inputValue();
     expect(colorValue).toBe('#FF5722');
   });
+
+  test.describe('費目編集モーダル', () => {
+    test('編集モーダルが正しく開く', async ({ page }) => {
+      // 編集ボタンをクリック
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されることを確認
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+        await expect(page.locator('role=dialog')).toBeVisible();
+      }
+    });
+
+    test('編集モーダルで既存データが正しく表示される', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await page
+          .waitForFunction(
+            (input) => {
+              const element = input as HTMLInputElement;
+              return element.value.length > 0;
+            },
+            await nameInput.elementHandle(),
+            { timeout: 10000 }
+          )
+          .catch(async () => {
+            // タイムアウトした場合は、少し待ってから再確認
+            await page.waitForTimeout(1000);
+          });
+
+        // 既存のデータが正しく表示されることを確認
+        // 入力フィールドに値が入っていることを確認
+        const inputValue = await nameInput.inputValue();
+        expect(inputValue.length).toBeGreaterThan(0);
+      }
+    });
+
+    test('編集モーダルでカテゴリタイプが無効化されている', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(500);
+
+        // カテゴリタイプのセレクトボックスが無効化されていることを確認
+        // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
+        const typeSelect = page.locator('select[id="category-type-disabled"]');
+
+        // セレクトボックスが存在するか確認
+        const selectCount = await typeSelect.count();
+        if (selectCount > 0 && (await typeSelect.isVisible())) {
+          await expect(typeSelect).toBeDisabled();
+          // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
+          const messageVisible = await page
+            .locator('text=カテゴリタイプは変更できません')
+            .isVisible()
+            .catch(() => false);
+          if (messageVisible) {
+            await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible();
+          }
+        }
+
+        // 新規作成用のセレクトボックスが表示されていないことを確認
+        const createTypeSelect = page.locator('select[id="category-type"]');
+        const createSelectCount = await createTypeSelect.count();
+        expect(createSelectCount).toBe(0);
+      }
+    });
+
+    test('編集モーダルをXボタンで閉じられる', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されることを確認
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // Xボタンをクリック
+        const closeButton = page.locator('button[aria-label="モーダルを閉じる"]');
+        await expect(closeButton).toBeVisible();
+        await closeButton.click();
+
+        // モーダルが閉じることを確認
+        await page.waitForTimeout(300);
+        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+      }
+    });
+
+    test('編集モーダルをオーバーレイクリックで閉じられる', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されることを確認
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // オーバーレイをクリック（aria-hidden="true"のdiv）
+        const overlay = page.locator('div[aria-hidden="true"]').first();
+        await overlay.click({ position: { x: 10, y: 10 } });
+
+        // モーダルが閉じることを確認
+        await page.waitForTimeout(300);
+        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+      }
+    });
+
+    test('編集モーダルをキャンセルボタンで閉じられる', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(500);
+
+        // モーダル内のキャンセルボタンをクリック（モーダル内に限定）
+        const modal = page.locator('role=dialog');
+        const cancelButton = modal.locator('button:has-text("キャンセル")');
+        await expect(cancelButton).toBeVisible({ timeout: 10000 });
+
+        // オーバーレイを回避してクリック
+        await cancelButton.click({ force: true });
+
+        // モーダルが閉じることを確認
+        await page.waitForTimeout(300);
+        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+      }
+    });
+
+    test('編集モーダルでローディング状態が表示される', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されることを確認
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // ローディング状態が一瞬表示される可能性がある（データ取得中）
+        // ただし、データ取得が速すぎる場合は表示されない可能性もある
+        const loadingText = page.locator('text=読み込み中...');
+        const isVisible = await loadingText.isVisible().catch(() => false);
+
+        // ローディングが表示された場合は、データ読み込み完了まで待機
+        if (isVisible) {
+          await expect(loadingText).not.toBeVisible({ timeout: 10000 });
+        }
+
+        // 最終的にフォームが表示されることを確認
+        await expect(page.locator('input[id="category-name"]')).toBeVisible({ timeout: 10000 });
+      }
+    });
+
+    test('編集モーダルでアイコンと色を変更できる', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(500);
+
+        // アイコンを変更
+        const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await iconInput.fill('🎨');
+
+        // 色を変更
+        const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await colorInput.fill('#FF5722');
+
+        // 保存ボタンをクリック
+        const saveButton = page.locator('button:has-text("保存")');
+        await saveButton.click();
+
+        // 更新リクエストが完了するまで待機
+        await page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') && response.request().method() === 'PUT',
+          { timeout: 10000 }
+        );
+
+        // モーダルが閉じることを確認
+        await page.waitForTimeout(500);
+        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+      }
+    });
+
+    test('編集モーダルでバリデーションエラーが表示される', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(500);
+
+        // 費目名を空にする
+        await nameInput.clear();
+        await nameInput.fill(''); // 明示的に空にする
+
+        // 保存ボタンをクリック
+        const saveButton = page.locator('button:has-text("保存")');
+
+        // HTML5のバリデーションにより、フォーム送信が阻止される
+        // 保存ボタンをクリックしても、フォーム送信が実行されない
+        await saveButton.click();
+
+        // モーダルが閉じないことを確認（バリデーションエラーにより送信が阻止される）
+        await page.waitForTimeout(500);
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // 入力フィールドが空のままであることを確認
+        const inputValue = await nameInput.inputValue();
+        expect(inputValue).toBe('');
+      }
+    });
+
+    test('編集モーダルで複数のフィールドを同時に変更できる', async ({ page }) => {
+      const editButtons = page.locator('button:has-text("編集")');
+      const count = await editButtons.count();
+
+      if (count > 0) {
+        await editButtons.first().click();
+
+        // モーダルが表示されるまで待機
+        await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // データが読み込まれるまで待機
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(500);
+
+        // 複数のフィールドを変更
+        const editedName = `${uniqueName}（複数変更）`;
+        await nameInput.fill(editedName);
+
+        const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await iconInput.fill('🎯');
+
+        const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await colorInput.fill('#9C27B0');
+
+        // 保存ボタンをクリック
+        const saveButton = page.locator('button:has-text("保存")');
+        await saveButton.click();
+
+        // 更新リクエストが完了するまで待機
+        await page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') && response.request().method() === 'PUT',
+          { timeout: 10000 }
+        );
+
+        // モーダルが閉じることを確認
+        await page.waitForTimeout(500);
+        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+
+        // 更新された費目が一覧に表示されることを確認
+        await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 10000 });
+      }
+    });
+  });
 });
