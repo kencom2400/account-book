@@ -15,7 +15,7 @@ fi
 
 # プロジェクト設定（環境変数で上書き可能、設定ファイルが優先）
 OWNER="${OWNER:-${GH_OWNER:-kencom2400}}"
-REPO="${REPO_NAME:-${GH_REPO:-account-book}}"
+REPO_NAME="${REPO_NAME:-${GH_REPO:-account-book}}"
 PROJECT_ID="${PROJECT_ID:-${GH_PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}}"
 STATUS_FIELD_ID="${STATUS_FIELD_ID:-${GH_STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}}"
 
@@ -181,7 +181,7 @@ LABEL_IDS=()
 # リポジトリIDを取得
 REPO_ID=$(gh api graphql -f query="
 query {
-  repository(owner: \"$OWNER\", name: \"$REPO\") {
+  repository(owner: \"$OWNER\", name: \"$REPO_NAME\") {
     id
   }
 }" | jq -r '.data.repository.id')
@@ -206,7 +206,7 @@ if [ -n "$LABELS" ] || [ -n "$PRIORITY" ]; then
           }
         }
       }
-    }' -f owner="$OWNER" -f repo="$REPO" | jq '.data.repository.labels.nodes')
+    }' -f owner="$OWNER" -f repo="$REPO_NAME" | jq '.data.repository.labels.nodes')
 
     if [ "$ALL_LABELS_JSON" = "null" ] || [ -z "$ALL_LABELS_JSON" ]; then
         echo "❌ エラー: ラベルの取得に失敗しました。リポジトリ名や権限を確認してください。"
