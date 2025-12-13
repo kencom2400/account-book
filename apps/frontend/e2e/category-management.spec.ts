@@ -107,8 +107,7 @@ test.describe('Category Management', () => {
         { timeout: 10000 }
       );
 
-      // モーダルが閉じることを確認
-      await page.waitForTimeout(500);
+      // モーダルが閉じることを確認（not.toBeVisible()が自動待機するため、waitForTimeoutは不要）
       await expect(page.locator('text=費目を編集')).not.toBeVisible();
 
       // 更新された費目が一覧に表示されることを確認
