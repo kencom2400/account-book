@@ -10017,3 +10017,174 @@ const { getSubcategoryById, fetchSubcategories, error: subcategoryError } = useS
 **参照**: PR #393 - Issue #109: [TASK] E-3: 取引詳細画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-60. E2EテストでのPlaywright自動待機機能の活用（PR #395）
+
+**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+#### waitForTimeoutの削除と自動待機機能の活用
+
+**問題**: `page.waitForTimeout()`の使用は、テストの実行速度を低下させ、不安定さ（flakiness）を招く可能性がある。
+
+**解決策**: PlaywrightのWeb-firstアサーションは自動的に待機してくれるため、固定の待機時間は通常不要。適切なアサーションを使用する。
+
+```typescript
+// ❌ 悪い例: waitForTimeoutの使用
+const nameInput = page.locator('input[id="category-name"]');
+await expect(nameInput).toBeVisible({ timeout: 10000 });
+await page.waitForTimeout(500); // 不要な固定待機
+await nameInput.fill(editedName);
+
+// ❌ 悪い例: not.toBeVisible()の前のwaitForTimeout
+await page.waitForTimeout(500); // 不要（not.toBeVisible()が自動待機する）
+await expect(page.locator('text=費目を編集')).not.toBeVisible();
+
+// ❌ 悪い例: waitForFunctionのcatchブロックで潜在的な問題を隠蔽
+await page
+  .waitForFunction(
+    (input) => {
+      const element = input as HTMLInputElement;
+      return element.value.length > 0;
+    },
+    await nameInput.elementHandle(),
+    { timeout: 10000 }
+  )
+  .catch(async () => {
+    // タイムアウトした場合は、少し待ってから再確認
+    await page.waitForTimeout(1000); // 潜在的な問題を隠蔽
+  });
+```
+
+```typescript
+// ✅ 良い例: not.toBeEmpty()アサーションを使用
+const nameInput = page.locator('input[id="category-name"]');
+await expect(nameInput).toBeVisible({ timeout: 10000 });
+await expect(nameInput).not.toBeEmpty({ timeout: 10000 }); // データ読み込み完了を確認
+await nameInput.fill(editedName);
+
+// ✅ 良い例: not.toBeVisible()が自動待機するため、waitForTimeoutは不要
+await expect(page.locator('text=費目を編集')).not.toBeVisible(); // 自動待機
+
+// ✅ 良い例: waitForFunctionのcatchブロックを削除（潜在的な問題を隠蔽しない）
+await expect(nameInput).not.toBeEmpty({ timeout: 10000 }); // より堅牢な待機方法
+```
+
+**理由**:
+
+- Playwrightの自動待機機能を活用することで、テストの安定性が向上
+- 固定時間待機を削除することで、テストの実行速度が向上
+- 潜在的な問題を隠蔽しないことで、テストの信頼性が向上
+
+**原則**:
+
+- **自動待機機能を活用**: `expect(...).toBeVisible()`, `expect(...).not.toBeEmpty()`, `expect(...).not.toBeVisible()`など
+- **waitForTimeoutは避ける**: どうしても必要な場合のみ使用（最終手段）
+- **潜在的な問題を隠蔽しない**: `waitForFunction`のcatchブロックでエラーを握りつぶさない
+
+**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-61. 分割代入によるコードの意図の明確化（PR #395）
+
+**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 更新に不要なプロパティの明示的な除外
+
+**問題**: 関数が受け取るオブジェクトの中に、更新時に使用しないプロパティが含まれている場合、コードの意図が不明確になる。
+
+**解決策**: 分割代入と残余構文(...)を使って、更新に必要なプロパティだけを明示的に渡す。
+
+```typescript
+// ❌ 悪い例: 使用しないプロパティも含めて渡す
+const handleSubmit = async (data: {
+  name: string;
+  type: string;
+  icon?: string | null;
+  color?: string | null;
+}): Promise<void> => {
+  if (!categoryId) return;
+  try {
+    setError(null);
+    await updateCategory(categoryId, {
+      name: data.name,
+      icon: data.icon,
+      color: data.color,
+      // typeは使用されていないが、明示的に除外されていない
+    });
+    onSuccess();
+    handleClose();
+  } catch (err) {
+    // ...
+  }
+};
+```
+
+```typescript
+// ✅ 良い例: 分割代入で使用しないプロパティを明示的に除外
+const handleSubmit = async ({
+  type: _type,
+  ...updateData
+}: {
+  name: string;
+  type: string;
+  icon?: string | null;
+  color?: string | null;
+}): Promise<void> => {
+  if (!categoryId) return;
+  try {
+    setError(null);
+    // typeは更新時に使用しないため、分割代入で除外
+    await updateCategory(categoryId, updateData);
+    onSuccess();
+    handleClose();
+  } catch (err) {
+    // ...
+  }
+};
+```
+
+**理由**:
+
+- コードの意図がより明確になる（どのデータが使われるかが一目でわかる）
+- 更新に必要なプロパティだけが渡されることが保証される
+- 未使用変数のlintエラーを防ぐ（`_type`のようにプレフィックスを付与）
+
+**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-62. テストコードの一貫性の維持（PR #395）
+
+**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+#### テストコードでの一貫したメソッドの使用
+
+**問題**: 同じ目的の操作を異なる方法で実装していると、コードの可読性と保守性が低下する。
+
+**解決策**: プロジェクト内で一貫したメソッドを使用する。
+
+```typescript
+// ❌ 悪い例: 複雑な方法で入力フィールドをクリア
+const nameInput = screen.getByLabelText(/費目名/);
+await user.tripleClick(nameInput);
+await user.keyboard('{Delete}');
+await user.type(nameInput, '更新された費目');
+```
+
+```typescript
+// ✅ 良い例: より一般的で意図が明確な方法を使用
+const nameInput = screen.getByLabelText(/費目名/);
+await user.clear(nameInput); // より一般的で意図が明確
+await user.type(nameInput, '更新された費目');
+```
+
+**理由**:
+
+- より一般的で意図が明確なメソッドを使用することで、コードの可読性が向上
+- プロジェクト内で一貫した方法を使用することで、保守性が向上
+- 他のテストファイルとの一貫性が保たれる
+
+**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+
+---
