@@ -246,8 +246,8 @@ test.describe('月次レポート画面', () => {
     // APIレスポンスを待つ
     await institutionResponsePromise;
 
-    // 金融機関別内訳画面に遷移する
-    await expect(page.getByRole('heading', { name: '金融機関別内訳' })).toBeVisible({
+    // 金融機関別内訳画面に遷移する（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: '金融機関別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
@@ -301,8 +301,8 @@ test.describe('月次レポート画面', () => {
     // APIレスポンスを待つ
     await institutionResponsePromise;
 
-    // ページタイトルが表示されるまで待つ
-    await expect(page.getByRole('heading', { name: '金融機関別内訳' })).toBeVisible({
+    // ページタイトルが表示されるまで待つ（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: '金融機関別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
@@ -339,8 +339,8 @@ test.describe('月次レポート画面', () => {
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // ソート選択を変更
-    const sortSelect = page.getByLabel('並び替え:');
+    // ソート選択を変更（select要素を直接取得）
+    const sortSelect = page.locator('#sort-field, #sort-by').first();
     await expect(sortSelect).toBeVisible({ timeout: 10000 });
     await sortSelect.selectOption('count');
 
@@ -361,16 +361,16 @@ test.describe('月次レポート画面', () => {
     // APIレスポンスを待つ
     await institutionResponsePromise;
 
-    // ページタイトルが表示されるまで待つ
-    await expect(page.getByRole('heading', { name: '金融機関別内訳' })).toBeVisible({
+    // ページタイトルが表示されるまで待つ（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: '金融機関別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // ソート選択を変更
-    const sortSelect = page.getByLabel('並び替え:');
+    // ソート選択を変更（select要素を直接取得）
+    const sortSelect = page.locator('#sort-field, #sort-by').first();
     await expect(sortSelect).toBeVisible({ timeout: 10000 });
     await sortSelect.selectOption('count');
 
