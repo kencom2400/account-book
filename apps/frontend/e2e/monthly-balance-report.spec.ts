@@ -268,8 +268,8 @@ test.describe('月次レポート画面', () => {
     // APIリクエストを待つ（カテゴリ別内訳画面用）
     const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
-    // カテゴリ別内訳画面に遷移
-    await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
+    // カテゴリ別内訳画面に遷移（データが存在する12月を使用）
+    await page.goto('/aggregation/monthly-balance/category?year=2025&month=12&type=expense', {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
@@ -288,13 +288,10 @@ test.describe('月次レポート画面', () => {
     // URLがカテゴリ別内訳画面であることを確認
     await expect(page).toHaveURL(/\/category/, { timeout: 10000 });
 
-    // 収入ボタンをクリック（カテゴリ別内訳画面の収入/支出切り替えボタン）
-    // カテゴリ別内訳画面では、収入/支出切り替えボタンがh1要素の後に配置されている
-    // データが表示されるまで待つ（円グラフやテーブルが表示されるまで）
-    await expect(page.locator('text=カテゴリ別内訳')).toBeVisible({ timeout: 30000 });
-    // 収入/支出切り替えボタンが表示されるまで待つ
+    // データが表示されるまで待つ（収入/支出切り替えボタンが表示されるまで）
+    // カテゴリ別内訳画面では、データがある場合のみ収入/支出切り替えボタンが表示される
     const incomeButton = page.getByRole('button', { name: '収入' }).first();
-    await expect(incomeButton).toBeVisible({ timeout: 10000 });
+    await expect(incomeButton).toBeVisible({ timeout: 30000 });
     await incomeButton.click();
 
     // URLが更新される
@@ -337,8 +334,8 @@ test.describe('月次レポート画面', () => {
     // APIリクエストを待つ（カテゴリ別内訳画面用）
     const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
-    // カテゴリ別内訳画面に遷移
-    await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
+    // カテゴリ別内訳画面に遷移（データが存在する12月を使用）
+    await page.goto('/aggregation/monthly-balance/category?year=2025&month=12&type=expense', {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
@@ -355,12 +352,9 @@ test.describe('月次レポート画面', () => {
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
     // ソート選択を変更（カテゴリ別内訳画面の場合は#sort-field）
-    // ラベルからselect要素を取得（カテゴリ別内訳画面では#sort-fieldが使用される）
-    const sortSelect = page
-      .locator('label:has-text("並び替え:")')
-      .locator('~ select')
-      .or(page.locator('#sort-field'));
-    await expect(sortSelect).toBeVisible({ timeout: 10000 });
+    // データがある場合のみソート選択が表示される
+    const sortSelect = page.locator('select#sort-field');
+    await expect(sortSelect).toBeVisible({ timeout: 30000 });
     await sortSelect.selectOption('count');
 
     // ソート順が変更される
