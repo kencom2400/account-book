@@ -212,10 +212,8 @@ test.describe('月次レポート画面', () => {
 
     // カテゴリ別内訳の「詳細を見る」ボタンをクリック
     const categoryDetailButton = page
-      .locator('text=カテゴリ別内訳')
-      .locator('..')
-      .locator('text=詳細を見る →')
-      .first();
+      .locator('div:has(h2:has-text("カテゴリ別内訳"))')
+      .getByRole('link', { name: '詳細を見る →' });
     await expect(categoryDetailButton).toBeVisible({ timeout: 15000 });
     await categoryDetailButton.click();
 
@@ -240,10 +238,8 @@ test.describe('月次レポート画面', () => {
 
     // 金融機関別内訳の「詳細を見る」ボタンをクリック
     const institutionDetailButton = page
-      .locator('text=金融機関別内訳')
-      .locator('..')
-      .locator('text=詳細を見る →')
-      .first();
+      .locator('div:has(h2:has-text("金融機関別内訳"))')
+      .getByRole('link', { name: '詳細を見る →' });
     await expect(institutionDetailButton).toBeVisible({ timeout: 15000 });
     await institutionDetailButton.click();
 
