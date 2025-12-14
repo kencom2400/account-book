@@ -65,6 +65,17 @@ export function MonthlyBalanceReportContent(): React.JSX.Element {
     void fetchData();
   }, [fetchData]);
 
+  // 詳細画面へのリンクを生成（既存のクエリパラメータを維持）
+  const getDetailHref = useCallback(
+    (type: 'category' | 'institution'): string => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('year', year.toString());
+      params.set('month', month.toString());
+      return `/aggregation/monthly-balance/${type}?${params.toString()}`;
+    },
+    [searchParams, year, month]
+  );
+
   // 前月・次月の計算
   const previousMonth = useMemo(() => {
     if (month === 1) {
@@ -224,9 +235,7 @@ export function MonthlyBalanceReportContent(): React.JSX.Element {
           title="カテゴリ別内訳"
           incomeBreakdown={data.income.byCategory}
           expenseBreakdown={data.expense.byCategory}
-          type="category"
-          year={year}
-          month={month}
+          detailHref={getDetailHref('category')}
         />
 
         {/* 金融機関別内訳 */}
@@ -234,9 +243,7 @@ export function MonthlyBalanceReportContent(): React.JSX.Element {
           title="金融機関別内訳"
           incomeBreakdown={data.income.byInstitution}
           expenseBreakdown={data.expense.byInstitution}
-          type="institution"
-          year={year}
-          month={month}
+          detailHref={getDetailHref('institution')}
         />
       </div>
     </div>
@@ -355,18 +362,14 @@ interface BreakdownSectionProps {
     amount: number;
     percentage: number;
   }>;
-  type: 'category' | 'institution';
-  year: number;
-  month: number;
+  detailHref: string;
 }
 
 function BreakdownSection({
   title,
   incomeBreakdown,
   expenseBreakdown,
-  type,
-  year,
-  month,
+  detailHref,
 }: BreakdownSectionProps): React.JSX.Element {
   return (
     <Card>
@@ -423,7 +426,7 @@ function BreakdownSection({
           </div>
           <div className="pt-4 border-t">
             <Link
-              href={`/aggregation/monthly-balance/${type}?year=${year}&month=${month}`}
+              href={detailHref}
               className="text-sm text-blue-600 hover:text-blue-800 font-medium"
             >
               詳細を見る →
