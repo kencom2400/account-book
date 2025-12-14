@@ -2597,6 +2597,312 @@ return this.createUseCase.execute(userId, dto);
 
 - 認証要件は設計段階から明確に記載
 - 将来実装時の参考となる具体例を提供
+
+---
+
+## 18. E2EテストとURLパラメータ管理から学んだ観点（Issue #111 / PR #397）
+
+### 18-1. URLパラメータの扱い方 🔴 Critical
+
+**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: URLを直接組み立てる
+
+```typescript
+// ❌ 悪い例: 既存のクエリパラメータが失われる
+<button
+  onClick={() =>
+    router.push(
+      `/aggregation/monthly-balance/institution?year=${year}&month=${month}&type=income`
+    )
+  }
+>
+  収入
+</button>
+```
+
+**問題点**:
+
+- 既存の他のクエリパラメータ（もしあれば）が失われる
+- 将来的にソート順序などもURLクエリで管理する場合に問題となる可能性
+- メンテナンス性が低い
+
+#### ✅ 正しいパターン: useSearchParamsを使用して既存パラメータを維持
+
+```typescript
+// ✅ 良い例: 既存のクエリパラメータを維持
+const handleTypeChange = (newType: CategoryType): void => {
+  const params = new URLSearchParams(searchParams.toString());
+  params.set('type', newType === CategoryType.INCOME ? 'income' : 'expense');
+  router.push(`/aggregation/monthly-balance/institution?${params.toString()}`);
+};
+
+// JSX内での呼び出し
+<button onClick={() => handleTypeChange(CategoryType.INCOME)}>
+  収入
+</button>
+```
+
+**理由**:
+
+- 既存のクエリパラメータを維持できる
+- 将来的な拡張に対応しやすい
+- コードの一貫性が保たれる
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
+#### 補足: ヘルパー関数内でのURLパラメータ処理
+
+**問題**: ヘルパー関数（フックを使えない関数）内でURLを直接組み立てる場合
+
+```typescript
+// ❌ 悪い例: ヘルパー関数内でURLを直接組み立て
+function BreakdownSection({ type, year, month }: Props) {
+  return (
+    <Link href={`/path/${type}?year=${year}&month=${month}`}>
+      詳細を見る
+    </Link>
+  );
+}
+```
+
+**解決策**: 親コンポーネントで`href`を生成し、propsとして渡す
+
+```typescript
+// ✅ 良い例: 親コンポーネントでhrefを生成
+const getDetailHref = useCallback(
+  (type: 'category' | 'institution'): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('year', year.toString());
+    params.set('month', month.toString());
+    return `/aggregation/monthly-balance/${type}?${params.toString()}`;
+  },
+  [searchParams, year, month]
+);
+
+// ヘルパー関数にpropsとして渡す
+<BreakdownSection detailHref={getDetailHref('category')} />
+```
+
+**理由**:
+
+- ヘルパー関数はフックを使えないため、親コンポーネントで処理する必要がある
+- 既存のクエリパラメータを維持できる
+- 一貫性のあるURL生成が可能
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
+
+---
+
+### 18-2. E2Eテストの重複排除 🔵 Important
+
+**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: 重複したAPIレスポンス待機ロジック
+
+```typescript
+// ❌ 悪い例: 複数のテストケースで同じロジックが重複
+const monthlyBalanceResponsePromise = page
+  .waitForResponse(
+    (response) =>
+      response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
+    { timeout: 30000 }
+  )
+  .catch(() => {
+    console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
+    return null;
+  });
+// このロジックが複数のテストケースで重複
+```
+
+**問題点**:
+
+- コードの重複によりメンテナンス性が低下
+- ロジック変更時に複数箇所の修正が必要
+- 可読性が低下
+
+#### ✅ 正しいパターン: ヘルパー関数として抽出
+
+```typescript
+// ✅ 良い例: ヘルパー関数として抽出
+const waitForMonthlyBalanceAPI = (page: Page) =>
+  page
+    .waitForResponse(
+      (response) =>
+        response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
+      { timeout: 30000 }
+    )
+    .catch(() => {
+      console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
+      return null;
+    });
+
+// 使用例
+const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
+```
+
+**理由**:
+
+- コードの重複を排除し、メンテナンス性を向上
+- ロジックの変更時に1箇所の修正で済む
+- 可読性が向上
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
+---
+
+### 18-3. E2Eテストのセレクタの堅牢性 🔵 Important
+
+**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: 脆弱なセレクタ
+
+```typescript
+// ❌ 悪い例: セレクタの特異性が低い
+const monthButton = page.locator('button:has-text("年")').first();
+```
+
+**問題点**:
+
+- "年"という文字を含む他のボタンが存在する場合に意図しない要素を選択する可能性
+- `.first()`を使っていることからも、セレクタの特異性が低いことが伺える
+- テストの安定性が低い
+
+#### ✅ 正しいパターン: getByRoleと正規表現を使用
+
+```typescript
+// ✅ 良い例: getByRoleと正規表現を使用
+const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
+```
+
+**理由**:
+
+- セレクタの特異性が高く、意図した要素を確実に選択できる
+- テストの安定性が向上
+- アクセシビリティの観点からも適切（roleベースのセレクタ）
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
+#### 補足: DOM構造に依存しないセレクタ（詳細ボタンなど）
+
+**問題**: `.locator('..')`や`.first()`を使用したセレクタ
+
+```typescript
+// ❌ 悪い例: DOM構造に強く依存
+const categoryDetailButton = page
+  .locator('text=カテゴリ別内訳')
+  .locator('..')
+  .locator('text=詳細を見る →')
+  .first();
+```
+
+**解決策**: `div:has()`と`getByRole`を組み合わせる
+
+```typescript
+// ✅ 良い例: セクションを特定してからリンクを取得
+const categoryDetailButton = page
+  .locator('div:has(h2:has-text("カテゴリ別内訳"))')
+  .getByRole('link', { name: '詳細を見る →' });
+```
+
+**理由**:
+
+- DOM構造の変更に強い
+- セレクタの特異性が高い
+- テストの安定性が向上
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
+
+---
+
+### 18-4. マジックナンバーの定数化 🔵 Important
+
+**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: マジックナンバーの使用
+
+```typescript
+// ❌ 悪い例: マジックナンバーが何を表しているのか分かりにくい
+{incomeBreakdown.slice(0, 5).map((item) => (
+  // ...
+))}
+{expenseBreakdown.slice(0, 5).map((item) => (
+  // ...
+))}
+```
+
+**問題点**:
+
+- 数値が何を表しているのか分かりにくい
+- 将来のメンテナンスを困難にする可能性
+- 表示件数を変更する際に、関連するすべての箇所を修正し忘れるリスク
+
+#### ✅ 正しいパターン: 定数として定義
+
+```typescript
+// ✅ 良い例: 定数として定義
+const MAX_BREAKDOWN_ITEMS = 5;
+
+// 使用例
+{incomeBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
+  // ...
+))}
+{expenseBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
+  // ...
+))}
+```
+
+**理由**:
+
+- コードの可読性が向上
+- メンテナンス性が向上（1箇所の変更で済む）
+- 意図が明確になる
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
+---
+
+### 18-5. アクセシビリティの改善 🔵 Important
+
+**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
+
+#### ❌ 避けるべきパターン: label要素とidの不一致
+
+```typescript
+// ❌ 悪い例: label要素のhtmlForと対応するidが存在しない
+<label htmlFor="month-select" className="block text-sm font-medium text-gray-700 mb-2">
+  月
+</label>
+<div className="grid grid-cols-4 gap-2">
+  {/* id="month-select"が存在しない */}
+</div>
+```
+
+**問題点**:
+
+- アクセシビリティ上の問題（label要素がコントロールと関連付けられていない）
+- スクリーンリーダーが適切に読み上げられない可能性
+
+#### ✅ 正しいパターン: role="group"とaria-labelledbyを使用
+
+```typescript
+// ✅ 良い例: role="group"とaria-labelledbyを使用
+<div id="month-select-label" className="block text-sm font-medium text-gray-700 mb-2">
+  月
+</div>
+<div role="group" aria-labelledby="month-select-label" className="grid grid-cols-4 gap-2">
+  {/* ボタングループ */}
+</div>
+```
+
+**理由**:
+
+- アクセシビリティが向上（スクリーンリーダーが適切に読み上げられる）
+- label要素とボタングループを適切に関連付け
+- ESLint警告も解消
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
 - セキュリティリスクを事前に認識
 
 ---
