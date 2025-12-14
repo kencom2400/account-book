@@ -10,7 +10,7 @@ const waitForMonthlyBalanceAPI = (page: Page) =>
     .waitForResponse(
       (response) =>
         response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-      { timeout: 30000 }
+      { timeout: 20000 } // タイムアウトを20秒に短縮（CI環境での実行時間短縮）
     )
     .catch(() => {
       console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
@@ -22,7 +22,7 @@ test.describe('月次レポート画面', () => {
 
   test.beforeEach(async ({ page: p }) => {
     page = p;
-    test.setTimeout(60000); // 各テストのタイムアウトを60秒に設定
+    test.setTimeout(45000); // 各テストのタイムアウトを45秒に設定（CI環境での実行時間短縮）
 
     // コンソールログを監視
     page.on('console', (msg) => {
@@ -39,19 +39,19 @@ test.describe('月次レポート画面', () => {
     // 月次レポート画面に遷移
     await page.goto('/aggregation/monthly-balance', {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 30000, // タイムアウトを30秒に短縮
     });
+
+    // APIレスポンスを待つ（ページ遷移と同時に待機）
+    await monthlyBalanceResponsePromise;
 
     // ページタイトルが表示されるまで待つ
     await expect(page.getByRole('heading', { name: '月別収支レポート' })).toBeVisible({
-      timeout: 30000,
+      timeout: 15000, // タイムアウトを15秒に短縮
     });
 
     // ローディング状態が終了するまで待つ
-    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
-
-    // APIレスポンスを待つ
-    await monthlyBalanceResponsePromise;
+    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 15000 }); // タイムアウトを15秒に短縮
   });
 
   test('月次レポート画面が表示される', async () => {
@@ -265,7 +265,7 @@ test.describe('月次レポート画面', () => {
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 30000, // タイムアウトを30秒に短縮
     });
 
     // APIレスポンスを待つ
@@ -295,7 +295,7 @@ test.describe('月次レポート画面', () => {
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 30000, // タイムアウトを30秒に短縮
     });
 
     // APIレスポンスを待つ
@@ -325,7 +325,7 @@ test.describe('月次レポート画面', () => {
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 30000, // タイムアウトを30秒に短縮
     });
 
     // APIレスポンスを待つ
@@ -355,7 +355,7 @@ test.describe('月次レポート画面', () => {
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 30000, // タイムアウトを30秒に短縮
     });
 
     // APIレスポンスを待つ
