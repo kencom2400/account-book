@@ -2651,6 +2651,47 @@ const handleTypeChange = (newType: CategoryType): void => {
 
 **参考**: PR #397 - Issue #111: 月次レポート画面の実装
 
+#### 補足: ヘルパー関数内でのURLパラメータ処理
+
+**問題**: ヘルパー関数（フックを使えない関数）内でURLを直接組み立てる場合
+
+```typescript
+// ❌ 悪い例: ヘルパー関数内でURLを直接組み立て
+function BreakdownSection({ type, year, month }: Props) {
+  return (
+    <Link href={`/path/${type}?year=${year}&month=${month}`}>
+      詳細を見る
+    </Link>
+  );
+}
+```
+
+**解決策**: 親コンポーネントで`href`を生成し、propsとして渡す
+
+```typescript
+// ✅ 良い例: 親コンポーネントでhrefを生成
+const getDetailHref = useCallback(
+  (type: 'category' | 'institution'): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('year', year.toString());
+    params.set('month', month.toString());
+    return `/aggregation/monthly-balance/${type}?${params.toString()}`;
+  },
+  [searchParams, year, month]
+);
+
+// ヘルパー関数にpropsとして渡す
+<BreakdownSection detailHref={getDetailHref('category')} />
+```
+
+**理由**:
+
+- ヘルパー関数はフックを使えないため、親コンポーネントで処理する必要がある
+- 既存のクエリパラメータを維持できる
+- 一貫性のあるURL生成が可能
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
+
 ---
 
 ### 18-2. E2Eテストの重複排除 🔵 Important
@@ -2741,6 +2782,36 @@ const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
 - アクセシビリティの観点からも適切（roleベースのセレクタ）
 
 **参考**: PR #397 - Issue #111: 月次レポート画面の実装
+
+#### 補足: DOM構造に依存しないセレクタ（詳細ボタンなど）
+
+**問題**: `.locator('..')`や`.first()`を使用したセレクタ
+
+```typescript
+// ❌ 悪い例: DOM構造に強く依存
+const categoryDetailButton = page
+  .locator('text=カテゴリ別内訳')
+  .locator('..')
+  .locator('text=詳細を見る →')
+  .first();
+```
+
+**解決策**: `div:has()`と`getByRole`を組み合わせる
+
+```typescript
+// ✅ 良い例: セクションを特定してからリンクを取得
+const categoryDetailButton = page
+  .locator('div:has(h2:has-text("カテゴリ別内訳"))')
+  .getByRole('link', { name: '詳細を見る →' });
+```
+
+**理由**:
+
+- DOM構造の変更に強い
+- セレクタの特異性が高い
+- テストの安定性が向上
+
+**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
 
 ---
 
