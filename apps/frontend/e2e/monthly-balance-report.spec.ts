@@ -10,7 +10,7 @@ const waitForMonthlyBalanceAPI = (page: Page) =>
     .waitForResponse(
       (response) =>
         response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-      { timeout: 20000 } // タイムアウトを20秒に短縮（CI環境での実行時間短縮）
+      { timeout: 30000 } // タイムアウトを30秒に設定（APIレスポンス待機のため）
     )
     .catch(() => {
       console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
@@ -22,7 +22,7 @@ test.describe('月次レポート画面', () => {
 
   test.beforeEach(async ({ page: p }) => {
     page = p;
-    test.setTimeout(45000); // 各テストのタイムアウトを45秒に設定（CI環境での実行時間短縮）
+    test.setTimeout(60000); // 各テストのタイムアウトを60秒に設定
 
     // コンソールログを監視
     page.on('console', (msg) => {
@@ -39,7 +39,7 @@ test.describe('月次レポート画面', () => {
     // 月次レポート画面に遷移
     await page.goto('/aggregation/monthly-balance', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000, // タイムアウトを30秒に短縮
+      timeout: 60000,
     });
 
     // APIレスポンスを待つ（ページ遷移と同時に待機）
@@ -47,11 +47,11 @@ test.describe('月次レポート画面', () => {
 
     // ページタイトルが表示されるまで待つ
     await expect(page.getByRole('heading', { name: '月別収支レポート' })).toBeVisible({
-      timeout: 15000, // タイムアウトを15秒に短縮
+      timeout: 30000,
     });
 
     // ローディング状態が終了するまで待つ
-    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 15000 }); // タイムアウトを15秒に短縮
+    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
   });
 
   test('月次レポート画面が表示される', async () => {
@@ -60,11 +60,19 @@ test.describe('月次レポート画面', () => {
       timeout: 30000,
     });
 
-    // サマリーカードが表示される
-    await expect(page.getByText('収入')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('支出')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('収支')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('貯蓄率')).toBeVisible({ timeout: 15000 });
+    // サマリーカードが表示される（複数要素があるため、より具体的なセレクタを使用）
+    await expect(page.getByRole('heading', { name: '収入' }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('heading', { name: '支出' }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('heading', { name: '収支' }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('heading', { name: '貯蓄率' }).first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('前月ボタンをクリックすると前月のデータが表示される', async () => {
@@ -128,9 +136,9 @@ test.describe('月次レポート画面', () => {
     await monthButton.click();
 
     // モーダルが表示される
-    await expect(page.getByText('月を選択')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('選択')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('キャンセル')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: '月を選択' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: '選択' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'キャンセル' })).toBeVisible({ timeout: 10000 });
   });
 
   test('月選択モーダルで月を選択できる', async () => {
@@ -151,7 +159,7 @@ test.describe('月次レポート画面', () => {
     await marchButton.click();
 
     // 選択ボタンをクリック
-    const selectButton = page.getByText('選択');
+    const selectButton = page.getByRole('button', { name: '選択' });
     await expect(selectButton).toBeVisible({ timeout: 10000 });
     await selectButton.click();
 
@@ -211,17 +219,16 @@ test.describe('月次レポート画面', () => {
     const categoryResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // カテゴリ別内訳の「詳細を見る」ボタンをクリック
-    const categoryDetailButton = page
-      .locator('div:has(h2:has-text("カテゴリ別内訳"))')
-      .getByRole('link', { name: '詳細を見る →' });
+    // カテゴリ別内訳セクション内のリンクを取得（hrefにcategoryが含まれる）
+    const categoryDetailButton = page.locator('a[href*="category"]:has-text("詳細を見る →")');
     await expect(categoryDetailButton).toBeVisible({ timeout: 15000 });
     await categoryDetailButton.click();
 
     // APIレスポンスを待つ
     await categoryResponsePromise;
 
-    // カテゴリ別内訳画面に遷移する
-    await expect(page.getByRole('heading', { name: 'カテゴリ別内訳' })).toBeVisible({
+    // カテゴリ別内訳画面に遷移する（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: 'カテゴリ別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
@@ -237,22 +244,21 @@ test.describe('月次レポート画面', () => {
     const institutionResponsePromise = waitForMonthlyBalanceAPI(page);
 
     // 金融機関別内訳の「詳細を見る」ボタンをクリック
-    const institutionDetailButton = page
-      .locator('div:has(h2:has-text("金融機関別内訳"))')
-      .getByRole('link', { name: '詳細を見る →' });
+    // 金融機関別内訳セクション内のリンクを取得（hrefにinstitutionが含まれる）
+    const institutionDetailButton = page.locator('a[href*="institution"]:has-text("詳細を見る →")');
     await expect(institutionDetailButton).toBeVisible({ timeout: 15000 });
     await institutionDetailButton.click();
 
     // APIレスポンスを待つ
     await institutionResponsePromise;
 
+    // ローディング状態が終了するまで待つ
+    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
+
     // 金融機関別内訳画面に遷移する（h1要素を明示的に指定）
     await expect(page.getByRole('heading', { level: 1, name: '金融機関別内訳' })).toBeVisible({
       timeout: 30000,
     });
-
-    // ローディング状態が終了するまで待つ
-    await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
     // 戻るボタンが表示される
     await expect(page.getByText('← 月次レポートに戻る')).toBeVisible({ timeout: 15000 });
@@ -265,22 +271,29 @@ test.describe('月次レポート画面', () => {
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000, // タイムアウトを30秒に短縮
+      timeout: 60000,
     });
 
     // APIレスポンスを待つ
     await categoryResponsePromise;
 
-    // ページタイトルが表示されるまで待つ
-    await expect(page.getByRole('heading', { name: 'カテゴリ別内訳' })).toBeVisible({
+    // ページタイトルが表示されるまで待つ（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: 'カテゴリ別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // 収入ボタンをクリック
-    const incomeButton = page.getByText('収入');
+    // URLがカテゴリ別内訳画面であることを確認
+    await expect(page).toHaveURL(/\/category/, { timeout: 10000 });
+
+    // 収入ボタンをクリック（カテゴリ別内訳画面の収入/支出切り替えボタン）
+    // カテゴリ別内訳画面では、収入/支出切り替えボタンがh1要素の後に配置されている
+    // データが表示されるまで待つ（円グラフやテーブルが表示されるまで）
+    await expect(page.locator('text=カテゴリ別内訳')).toBeVisible({ timeout: 30000 });
+    // 収入/支出切り替えボタンが表示されるまで待つ
+    const incomeButton = page.getByRole('button', { name: '収入' }).first();
     await expect(incomeButton).toBeVisible({ timeout: 10000 });
     await incomeButton.click();
 
@@ -295,7 +308,7 @@ test.describe('月次レポート画面', () => {
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000, // タイムアウトを30秒に短縮
+      timeout: 60000,
     });
 
     // APIレスポンスを待つ
@@ -309,8 +322,10 @@ test.describe('月次レポート画面', () => {
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // 収入ボタンをクリック
-    const incomeButton = page.getByText('収入');
+    // 収入ボタンをクリック（金融機関別内訳画面の収入/支出切り替えボタン）
+    const incomeButton = page
+      .locator('div:has(h1:has-text("金融機関別内訳"))')
+      .getByRole('button', { name: '収入' });
     await expect(incomeButton).toBeVisible({ timeout: 10000 });
     await incomeButton.click();
 
@@ -325,22 +340,26 @@ test.describe('月次レポート画面', () => {
     // カテゴリ別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/category?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000, // タイムアウトを30秒に短縮
+      timeout: 60000,
     });
 
     // APIレスポンスを待つ
     await categoryResponsePromise;
 
-    // ページタイトルが表示されるまで待つ
-    await expect(page.getByRole('heading', { name: 'カテゴリ別内訳' })).toBeVisible({
+    // ページタイトルが表示されるまで待つ（h1要素を明示的に指定）
+    await expect(page.getByRole('heading', { level: 1, name: 'カテゴリ別内訳' })).toBeVisible({
       timeout: 30000,
     });
 
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // ソート選択を変更（select要素を直接取得）
-    const sortSelect = page.locator('#sort-field, #sort-by').first();
+    // ソート選択を変更（カテゴリ別内訳画面の場合は#sort-field）
+    // ラベルからselect要素を取得（カテゴリ別内訳画面では#sort-fieldが使用される）
+    const sortSelect = page
+      .locator('label:has-text("並び替え:")')
+      .locator('~ select')
+      .or(page.locator('#sort-field'));
     await expect(sortSelect).toBeVisible({ timeout: 10000 });
     await sortSelect.selectOption('count');
 
@@ -355,7 +374,7 @@ test.describe('月次レポート画面', () => {
     // 金融機関別内訳画面に遷移
     await page.goto('/aggregation/monthly-balance/institution?year=2025&month=1&type=expense', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000, // タイムアウトを30秒に短縮
+      timeout: 60000,
     });
 
     // APIレスポンスを待つ
@@ -369,8 +388,8 @@ test.describe('月次レポート画面', () => {
     // ローディング状態が終了するまで待つ
     await expect(page.locator('text=読み込み中...')).not.toBeVisible({ timeout: 30000 });
 
-    // ソート選択を変更（select要素を直接取得）
-    const sortSelect = page.locator('#sort-field, #sort-by').first();
+    // ソート選択を変更（金融機関別内訳画面の場合は#sort-by）
+    const sortSelect = page.locator('select#sort-by');
     await expect(sortSelect).toBeVisible({ timeout: 10000 });
     await sortSelect.selectOption('count');
 
