@@ -10494,3 +10494,112 @@ await user.type(nameInput, '更新された費目');
 **参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-63. 非同期処理完了後のUI自動更新（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 非同期処理が完了した際のUI自動更新
+
+**問題**: 非同期処理（例：同期処理）を開始した後に、UIが処理完了を検知する仕組みがない場合、ユーザーが手動でページをリロードするまで表示が更新されない。
+
+**解決策**: ポーリング（定期的なデータ取得）を実装して、処理中のステータスを自動で更新する。
+
+```typescript
+// ❌ 悪い例: 同期開始後に一度だけデータを再取得
+const handleSync = async (institutionId: string): Promise<void> => {
+  await startSync({ institutionIds: [institutionId] });
+  const updatedSettings = await getAllInstitutionSyncSettings();
+  setSettings(updatedSettings);
+  // 同期が完了するまで待機しないため、UIが更新されない
+};
+```
+
+```typescript
+// ✅ 良い例: ポーリングで同期ステータスを自動更新
+useEffect(() => {
+  const isSyncing = settings.some((s) => s.syncStatus === InstitutionSyncStatusEnum.SYNCING);
+
+  if (isSyncing) {
+    const timer = setTimeout(() => {
+      void (async (): Promise<void> => {
+        try {
+          const updatedSettings = await getAllInstitutionSyncSettings();
+          setSettings(updatedSettings);
+        } catch (err) {
+          console.error('Failed to poll sync status:', err);
+        }
+      })();
+    }, 5000); // 5秒ごとにポーリング
+
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }
+}, [settings]);
+```
+
+**理由**:
+
+- 非同期処理が完了したことをUIに自動で反映できる
+- ユーザーが手動でページをリロードする必要がなくなる
+- ユーザー体験が向上する
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-64. JSX内での条件式の重複排除（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### JSX内での条件式の重複をなくす
+
+**問題**: JSX内で同じ条件式が複数回使用されていると、可読性と保守性が低下する。
+
+**解決策**: 条件式を一度だけ評価し、変数に格納して再利用する。
+
+```typescript
+// ❌ 悪い例: 同じ条件式が重複
+<button
+  disabled={
+    syncingId === setting.institutionId ||
+    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
+  }
+>
+  {syncingId === setting.institutionId ||
+  setting.syncStatus === InstitutionSyncStatusEnum.SYNCING ? (
+    <span>同期中...</span>
+  ) : (
+    '今すぐ同期'
+  )}
+</button>
+```
+
+```typescript
+// ✅ 良い例: 条件式を変数に格納して再利用
+{settings.map((setting) => {
+  const isSyncing =
+    syncingId === setting.institutionId ||
+    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING;
+
+  return (
+    <Card key={setting.id}>
+      {/* ... */}
+      <button disabled={isSyncing}>
+        {isSyncing ? <span>同期中...</span> : '今すぐ同期'}
+      </button>
+    </Card>
+  );
+})}
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- 条件式の変更が一箇所で済むため、保守性が向上する
+- ロジックがより明確になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---

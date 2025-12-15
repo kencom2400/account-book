@@ -64,6 +64,28 @@ export function InstitutionSettingsTab(): React.JSX.Element {
     void fetchData();
   }, []);
 
+  // 同期中のステータスをポーリングで更新
+  useEffect(() => {
+    const isSyncing = settings.some((s) => s.syncStatus === InstitutionSyncStatusEnum.SYNCING);
+
+    if (isSyncing) {
+      const timer = setTimeout(() => {
+        void (async (): Promise<void> => {
+          try {
+            const updatedSettings = await getAllInstitutionSyncSettings();
+            setSettings(updatedSettings);
+          } catch (err) {
+            console.error('Failed to poll sync status:', err);
+          }
+        })();
+      }, 5000); // 5秒ごとにポーリング
+
+      return (): void => {
+        clearTimeout(timer);
+      };
+    }
+  }, [settings]);
+
   const handleEdit = (setting: InstitutionSyncSettingsResponseDto): void => {
     setEditingId(setting.id);
     setEditForm({
@@ -264,263 +286,265 @@ export function InstitutionSettingsTab(): React.JSX.Element {
         </Card>
       ) : (
         <div className="space-y-4">
-          {settings.map((setting) => (
-            <Card key={setting.id}>
-              <CardHeader>
-                <CardTitle>{getInstitutionName(setting.institutionId)}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {editingId === setting.id && editForm ? (
-                  <div className="space-y-4">
-                    <div>
-                      <div className="block text-sm font-medium text-gray-700 mb-2">同期間隔</div>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.REALTIME}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.REALTIME}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.REALTIME,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>リアルタイム（5分ごと）</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.FREQUENT}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.FREQUENT}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.FREQUENT,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>高頻度（1時間ごと）</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.STANDARD}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.STANDARD}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.STANDARD,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>標準（6時間ごと）</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.INFREQUENT}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.INFREQUENT}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.INFREQUENT,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>低頻度（1日1回）</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.MANUAL}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.MANUAL}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.MANUAL,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>手動のみ</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`interval-${setting.id}`}
-                            value={SyncIntervalTypeEnum.CUSTOM}
-                            checked={editForm.intervalType === SyncIntervalTypeEnum.CUSTOM}
-                            onChange={() =>
-                              setEditForm({
-                                ...editForm,
-                                intervalType: SyncIntervalTypeEnum.CUSTOM,
-                              })
-                            }
-                            className="mr-2"
-                          />
-                          <span>カスタム</span>
-                        </label>
-                        {editForm.intervalType === SyncIntervalTypeEnum.CUSTOM && (
-                          <div className="ml-6 flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="5"
-                              max="43200"
-                              value={editForm.customValue}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  customValue: Number(e.target.value),
-                                })
-                              }
-                              className="w-20 px-3 py-2 border border-gray-300 rounded-md"
-                            />
-                            <select
-                              value={editForm.customUnit}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  customUnit: e.target.value as TimeUnit,
-                                })
-                              }
-                              className="px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="minutes">分</option>
-                              <option value="hours">時間</option>
-                              <option value="days">日</option>
-                            </select>
-                            <span className="text-gray-600">ごと</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={editForm.enabled}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              enabled: e.target.checked,
-                            })
-                          }
-                          className="mr-2"
-                          aria-label="有効"
-                        />
-                        <span>有効</span>
-                      </label>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={handleCancelEdit}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                      >
-                        キャンセル
-                      </button>
-                      <button
-                        onClick={() => handleSave(setting.id)}
-                        disabled={savingId === setting.id}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {savingId === setting.id ? '保存中...' : '保存'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-sm text-gray-600">同期間隔: </span>
-                      <span className="font-medium">{formatInterval(setting.interval)}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">ステータス: </span>
-                      <span
-                        className={`font-medium ${
-                          setting.syncStatus === InstitutionSyncStatusEnum.ERROR
-                            ? 'text-red-600'
-                            : setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
-                              ? 'text-blue-600'
-                              : 'text-gray-600'
-                        }`}
-                      >
-                        {formatStatus(setting.syncStatus)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">最終同期: </span>
-                      <span className="font-medium">{formatDateTime(setting.lastSyncedAt)}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">次回同期: </span>
-                      <span className="font-medium">{formatDateTime(setting.nextSyncAt)}</span>
-                    </div>
-                    {setting.lastError && (
+          {settings.map((setting) => {
+            const isSyncing =
+              syncingId === setting.institutionId ||
+              setting.syncStatus === InstitutionSyncStatusEnum.SYNCING;
+
+            return (
+              <Card key={setting.id}>
+                <CardHeader>
+                  <CardTitle>{getInstitutionName(setting.institutionId)}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {editingId === setting.id && editForm ? (
+                    <div className="space-y-4">
                       <div>
-                        <span className="text-sm text-red-600">エラー: {setting.lastError}</span>
+                        <div className="block text-sm font-medium text-gray-700 mb-2">同期間隔</div>
+                        <div className="space-y-2">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.REALTIME}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.REALTIME}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.REALTIME,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>リアルタイム（5分ごと）</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.FREQUENT}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.FREQUENT}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.FREQUENT,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>高頻度（1時間ごと）</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.STANDARD}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.STANDARD}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.STANDARD,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>標準（6時間ごと）</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.INFREQUENT}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.INFREQUENT}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.INFREQUENT,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>低頻度（1日1回）</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.MANUAL}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.MANUAL}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.MANUAL,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>手動のみ</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`interval-${setting.id}`}
+                              value={SyncIntervalTypeEnum.CUSTOM}
+                              checked={editForm.intervalType === SyncIntervalTypeEnum.CUSTOM}
+                              onChange={() =>
+                                setEditForm({
+                                  ...editForm,
+                                  intervalType: SyncIntervalTypeEnum.CUSTOM,
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span>カスタム</span>
+                          </label>
+                          {editForm.intervalType === SyncIntervalTypeEnum.CUSTOM && (
+                            <div className="ml-6 flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="5"
+                                max="43200"
+                                value={editForm.customValue}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    customValue: Number(e.target.value),
+                                  })
+                                }
+                                className="w-20 px-3 py-2 border border-gray-300 rounded-md"
+                              />
+                              <select
+                                value={editForm.customUnit}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    customUnit: e.target.value as TimeUnit,
+                                  })
+                                }
+                                className="px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="minutes">分</option>
+                                <option value="hours">時間</option>
+                                <option value="days">日</option>
+                              </select>
+                              <span className="text-gray-600">ごと</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => handleEdit(setting)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        編集
-                      </button>
-                      <button
-                        onClick={() => handleSync(setting.institutionId)}
-                        disabled={
-                          syncingId === setting.institutionId ||
-                          setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
-                        }
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {syncingId === setting.institutionId ||
-                        setting.syncStatus === InstitutionSyncStatusEnum.SYNCING ? (
-                          <span className="flex items-center">
-                            <svg
-                              className="animate-spin h-4 w-4 mr-2"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            同期中...
-                          </span>
-                        ) : (
-                          '今すぐ同期'
-                        )}
-                      </button>
+                      <div>
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={editForm.enabled}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                enabled: e.target.checked,
+                              })
+                            }
+                            className="mr-2"
+                            aria-label="有効"
+                          />
+                          <span>有効</span>
+                        </label>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                        >
+                          キャンセル
+                        </button>
+                        <button
+                          onClick={() => handleSave(setting.id)}
+                          disabled={savingId === setting.id}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingId === setting.id ? '保存中...' : '保存'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  ) : (
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm text-gray-600">同期間隔: </span>
+                        <span className="font-medium">{formatInterval(setting.interval)}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">ステータス: </span>
+                        <span
+                          className={`font-medium ${
+                            setting.syncStatus === InstitutionSyncStatusEnum.ERROR
+                              ? 'text-red-600'
+                              : setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
+                                ? 'text-blue-600'
+                                : 'text-gray-600'
+                          }`}
+                        >
+                          {formatStatus(setting.syncStatus)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">最終同期: </span>
+                        <span className="font-medium">{formatDateTime(setting.lastSyncedAt)}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">次回同期: </span>
+                        <span className="font-medium">{formatDateTime(setting.nextSyncAt)}</span>
+                      </div>
+                      {setting.lastError && (
+                        <div>
+                          <span className="text-sm text-red-600">エラー: {setting.lastError}</span>
+                        </div>
+                      )}
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => handleEdit(setting)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => handleSync(setting.institutionId)}
+                          disabled={isSyncing}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSyncing ? (
+                            <span className="flex items-center">
+                              <svg
+                                className="animate-spin h-4 w-4 mr-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              同期中...
+                            </span>
+                          ) : (
+                            '今すぐ同期'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
