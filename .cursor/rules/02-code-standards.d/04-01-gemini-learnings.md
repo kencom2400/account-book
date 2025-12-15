@@ -10603,3 +10603,106 @@ useEffect(() => {
 **参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-65. 非同期処理のエラーハンドリングにおける競合状態の回避（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 非同期処理のエラーハンドリングにおける競合状態
+
+**問題**: `finally`ブロックで状態を無条件にリセットすると、非同期処理がバックグラウンドで実行中にもかかわらず、UI上では処理が完了したように見えてしまう。
+
+**解決策**: 成功した場合にのみ状態をリセットし、エラー時は状態を維持する。
+
+```typescript
+// ❌ 悪い例: finallyブロックで無条件にリセット
+const handleSync = async (institutionId: string): Promise<void> => {
+  try {
+    setSyncingId(institutionId);
+    await startSync({ institutionIds: [institutionId] });
+    const updatedSettings = await getAllInstitutionSyncSettings();
+    setSettings(updatedSettings);
+  } catch (err) {
+    // エラーハンドリング
+  } finally {
+    setSyncingId(null); // エラー時もリセットされてしまう
+  }
+};
+```
+
+```typescript
+// ✅ 良い例: 成功時のみリセット
+const handleSync = async (institutionId: string): Promise<void> => {
+  setSyncingId(institutionId);
+  setError(null);
+
+  try {
+    await startSync({ institutionIds: [institutionId] });
+    // 同期開始をUIに反映させるため設定を再取得
+    const updatedSettings = await getAllInstitutionSyncSettings();
+    setSettings(updatedSettings);
+    setSyncingId(null); // 成功時のみリセット
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : '同期の開始または状態の取得に失敗しました。';
+    setError(message);
+    console.error('同期の開始または状態の取得中にエラーが発生しました:', err);
+    // `startSync`が成功した後にエラーが発生した場合、`syncingId`はリセットされません。
+    // これにより、UIは安全に同期中の状態を維持します。
+  }
+};
+```
+
+**理由**:
+
+- バックグラウンドで処理が実行中の場合、UIが安全に処理中の状態を維持できる
+- ユーザーが多重に処理を開始することを防げる
+- エラーハンドリングがより正確になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-66. マジックナンバーの定数化（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### マジックナンバーの定数化
+
+**問題**: 数値リテラルが直接コードに記述されていると、意図が不明確で保守性が低下する。
+
+**解決策**: 意味のある名前の定数として定義する。
+
+```typescript
+// ❌ 悪い例: マジックナンバーが直接記述されている
+useEffect(() => {
+  const timer = setTimeout(() => {
+    // ...
+  }, 5000); // 5秒ごとにポーリング
+  return () => clearTimeout(timer);
+}, [settings]);
+```
+
+```typescript
+// ✅ 良い例: 定数として定義
+const POLLING_INTERVAL_MS = 5000;
+
+export function InstitutionSettingsTab(): React.JSX.Element {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // ...
+    }, POLLING_INTERVAL_MS); // 5秒ごとにポーリング
+    return () => clearTimeout(timer);
+  }, [settings]);
+}
+```
+
+**理由**:
+
+- コードの可読性が向上する（意図が明確になる）
+- 値の変更が一箇所で済むため、保守性が向上する
+- 定数名で意図を表現できる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---

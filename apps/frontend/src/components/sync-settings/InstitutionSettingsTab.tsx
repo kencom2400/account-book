@@ -26,6 +26,10 @@ import {
  * 金融機関設定タブコンポーネント
  * FR-030: データ同期間隔の設定
  */
+
+// ポーリング間隔（ミリ秒）
+const POLLING_INTERVAL_MS = 5000;
+
 export function InstitutionSettingsTab(): React.JSX.Element {
   const [settings, setSettings] = useState<InstitutionSyncSettingsResponseDto[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -78,7 +82,7 @@ export function InstitutionSettingsTab(): React.JSX.Element {
             console.error('Failed to poll sync status:', err);
           }
         })();
-      }, 5000); // 5秒ごとにポーリング
+      }, POLLING_INTERVAL_MS); // 5秒ごとにポーリング
 
       return (): void => {
         clearTimeout(timer);
@@ -102,23 +106,25 @@ export function InstitutionSettingsTab(): React.JSX.Element {
   };
 
   const handleSync = async (institutionId: string): Promise<void> => {
-    try {
-      setSyncingId(institutionId);
-      setError(null);
+    setSyncingId(institutionId);
+    setError(null);
 
+    try {
       await startSync({
         institutionIds: [institutionId],
       });
 
-      // 同期完了後に設定を再取得
+      // 同期開始をUIに反映させるため設定を再取得
       const updatedSettings = await getAllInstitutionSyncSettings();
       setSettings(updatedSettings);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
-      setError(message);
-      console.error('同期の開始中にエラーが発生しました:', err);
-    } finally {
       setSyncingId(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '同期の開始または状態の取得に失敗しました。';
+      setError(message);
+      console.error('同期の開始または状態の取得中にエラーが発生しました:', err);
+      // `startSync`が成功した後にエラーが発生した場合、`syncingId`はリセットされません。
+      // これにより、UIは安全に同期中の状態を維持します。
     }
   };
 
