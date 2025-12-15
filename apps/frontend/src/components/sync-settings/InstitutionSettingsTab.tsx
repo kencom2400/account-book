@@ -79,6 +79,8 @@ export function InstitutionSettingsTab(): React.JSX.Element {
             const updatedSettings = await getAllInstitutionSyncSettings();
             setSettings(updatedSettings);
           } catch (err) {
+            const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
+            setError(message);
             console.error('Failed to poll sync status:', err);
           }
         })();
@@ -114,17 +116,33 @@ export function InstitutionSettingsTab(): React.JSX.Element {
         institutionIds: [institutionId],
       });
 
-      // 同期開始をUIに反映させるため設定を再取得
-      const updatedSettings = await getAllInstitutionSyncSettings();
-      setSettings(updatedSettings);
+      // 同期開始を楽観的にUIに反映し、ポーリングを開始させる
+      setSettings((currentSettings) =>
+        currentSettings.map((s) =>
+          s.institutionId === institutionId
+            ? { ...s, syncStatus: InstitutionSyncStatusEnum.SYNCING }
+            : s
+        )
+      );
       setSyncingId(null);
+
+      // サーバーから最新の状態をフェッチしてUIを完全に同期する
+      // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
+      try {
+        const updatedSettings = await getAllInstitutionSyncSettings();
+        setSettings(updatedSettings);
+      } catch (err) {
+        console.error(
+          'Failed to fetch latest settings after sync start, polling will recover:',
+          err
+        );
+      }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '同期の開始または状態の取得に失敗しました。';
+      const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
       setError(message);
-      console.error('同期の開始または状態の取得中にエラーが発生しました:', err);
-      // `startSync`が成功した後にエラーが発生した場合、`syncingId`はリセットされません。
-      // これにより、UIは安全に同期中の状態を維持します。
+      console.error('同期の開始中にエラーが発生しました:', err);
+      // 同期開始自体が失敗した場合は、ユーザーが再試行できるようUIをリセット
+      setSyncingId(null);
     }
   };
 
