@@ -10494,3 +10494,449 @@ await user.type(nameInput, '更新された費目');
 **参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-63. 非同期処理完了後のUI自動更新（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 非同期処理が完了した際のUI自動更新
+
+**問題**: 非同期処理（例：同期処理）を開始した後に、UIが処理完了を検知する仕組みがない場合、ユーザーが手動でページをリロードするまで表示が更新されない。
+
+**解決策**: ポーリング（定期的なデータ取得）を実装して、処理中のステータスを自動で更新する。
+
+```typescript
+// ❌ 悪い例: 同期開始後に一度だけデータを再取得
+const handleSync = async (institutionId: string): Promise<void> => {
+  await startSync({ institutionIds: [institutionId] });
+  const updatedSettings = await getAllInstitutionSyncSettings();
+  setSettings(updatedSettings);
+  // 同期が完了するまで待機しないため、UIが更新されない
+};
+```
+
+```typescript
+// ✅ 良い例: ポーリングで同期ステータスを自動更新
+useEffect(() => {
+  const isSyncing = settings.some((s) => s.syncStatus === InstitutionSyncStatusEnum.SYNCING);
+
+  if (isSyncing) {
+    const timer = setTimeout(() => {
+      void (async (): Promise<void> => {
+        try {
+          const updatedSettings = await getAllInstitutionSyncSettings();
+          setSettings(updatedSettings);
+        } catch (err) {
+          console.error('Failed to poll sync status:', err);
+        }
+      })();
+    }, 5000); // 5秒ごとにポーリング
+
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }
+}, [settings]);
+```
+
+**理由**:
+
+- 非同期処理が完了したことをUIに自動で反映できる
+- ユーザーが手動でページをリロードする必要がなくなる
+- ユーザー体験が向上する
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-64. JSX内での条件式の重複排除（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### JSX内での条件式の重複をなくす
+
+**問題**: JSX内で同じ条件式が複数回使用されていると、可読性と保守性が低下する。
+
+**解決策**: 条件式を一度だけ評価し、変数に格納して再利用する。
+
+```typescript
+// ❌ 悪い例: 同じ条件式が重複
+<button
+  disabled={
+    syncingId === setting.institutionId ||
+    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
+  }
+>
+  {syncingId === setting.institutionId ||
+  setting.syncStatus === InstitutionSyncStatusEnum.SYNCING ? (
+    <span>同期中...</span>
+  ) : (
+    '今すぐ同期'
+  )}
+</button>
+```
+
+```typescript
+// ✅ 良い例: 条件式を変数に格納して再利用
+{settings.map((setting) => {
+  const isSyncing =
+    syncingId === setting.institutionId ||
+    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING;
+
+  return (
+    <Card key={setting.id}>
+      {/* ... */}
+      <button disabled={isSyncing}>
+        {isSyncing ? <span>同期中...</span> : '今すぐ同期'}
+      </button>
+    </Card>
+  );
+})}
+```
+
+**理由**:
+
+- コードの可読性が向上する
+- 条件式の変更が一箇所で済むため、保守性が向上する
+- ロジックがより明確になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-65. 非同期処理のエラーハンドリングにおける競合状態の回避（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 非同期処理のエラーハンドリングにおける競合状態
+
+**問題**: `finally`ブロックで状態を無条件にリセットすると、非同期処理がバックグラウンドで実行中にもかかわらず、UI上では処理が完了したように見えてしまう。
+
+**解決策**: 成功した場合にのみ状態をリセットし、エラー時は状態を維持する。
+
+```typescript
+// ❌ 悪い例: finallyブロックで無条件にリセット
+const handleSync = async (institutionId: string): Promise<void> => {
+  try {
+    setSyncingId(institutionId);
+    await startSync({ institutionIds: [institutionId] });
+    const updatedSettings = await getAllInstitutionSyncSettings();
+    setSettings(updatedSettings);
+  } catch (err) {
+    // エラーハンドリング
+  } finally {
+    setSyncingId(null); // エラー時もリセットされてしまう
+  }
+};
+```
+
+```typescript
+// ✅ 良い例: 楽観的更新を利用した実装
+const handleSync = async (institutionId: string): Promise<void> => {
+  setSyncingId(institutionId);
+  setError(null);
+
+  try {
+    await startSync({ institutionIds: [institutionId] });
+
+    // 同期開始を楽観的にUIに反映し、ポーリングを開始させる
+    setSettings((currentSettings) =>
+      currentSettings.map((s) =>
+        s.institutionId === institutionId
+          ? { ...s, syncStatus: InstitutionSyncStatusEnum.SYNCING }
+          : s
+      )
+    );
+    setSyncingId(null);
+
+    // サーバーから最新の状態をフェッチしてUIを完全に同期する
+    // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
+    try {
+      const updatedSettings = await getAllInstitutionSyncSettings();
+      setSettings(updatedSettings);
+    } catch (err) {
+      console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
+    setError(message);
+    console.error('同期の開始中にエラーが発生しました:', err);
+    // 同期開始自体が失敗した場合は、ユーザーが再試行できるようUIをリセット
+    setSyncingId(null);
+  }
+};
+```
+
+**理由**:
+
+- 楽観的更新により、`getAllInstitutionSyncSettings`が失敗してもUIがスタックしない
+- ポーリングが後で状態を修正するため、一時的なエラーでも自動的に回復する
+- ユーザーが多重に処理を開始することを防げる
+- エラーハンドリングがより堅牢になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-66. マジックナンバーの定数化（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### マジックナンバーの定数化
+
+**問題**: 数値リテラルが直接コードに記述されていると、意図が不明確で保守性が低下する。
+
+**解決策**: 意味のある名前の定数として定義する。
+
+```typescript
+// ❌ 悪い例: マジックナンバーが直接記述されている
+useEffect(() => {
+  const timer = setTimeout(() => {
+    // ...
+  }, 5000); // 5秒ごとにポーリング
+  return () => clearTimeout(timer);
+}, [settings]);
+```
+
+```typescript
+// ✅ 良い例: 定数として定義
+const POLLING_INTERVAL_MS = 5000;
+
+export function InstitutionSettingsTab(): React.JSX.Element {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // ...
+    }, POLLING_INTERVAL_MS); // 5秒ごとにポーリング
+    return () => clearTimeout(timer);
+  }, [settings]);
+}
+```
+
+**理由**:
+
+- コードの可読性が向上する（意図が明確になる）
+- 値の変更が一箇所で済むため、保守性が向上する
+- 定数名で意図を表現できる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-67. 楽観的更新によるUIスタックの回避（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### 楽観的更新によるUIスタックの回避
+
+**問題**: `startSync`が成功した後に`getAllInstitutionSyncSettings`が失敗すると、`syncingId`がリセットされず、`settings`も更新されないため、ポーリングが開始されず、UIが「同期中」の状態でスタックしてしまう。
+
+**解決策**: 楽観的更新を利用して、`startSync`成功時点でUIの状態を更新し、ポーリングを開始させる。
+
+```typescript
+// ❌ 悪い例: getAllInstitutionSyncSettingsが失敗するとUIがスタック
+const handleSync = async (institutionId: string): Promise<void> => {
+  setSyncingId(institutionId);
+  setError(null);
+
+  try {
+    await startSync({ institutionIds: [institutionId] });
+    const updatedSettings = await getAllInstitutionSyncSettings();
+    setSettings(updatedSettings);
+    setSyncingId(null);
+  } catch (err) {
+    // getAllInstitutionSyncSettingsが失敗すると、syncingIdがリセットされず、
+    // settingsも更新されないため、ポーリングが開始されずUIがスタック
+  }
+};
+```
+
+```typescript
+// ✅ 良い例: 楽観的更新でUIを即座に更新し、ポーリングを開始
+const handleSync = async (institutionId: string): Promise<void> => {
+  setSyncingId(institutionId);
+  setError(null);
+
+  try {
+    await startSync({ institutionIds: [institutionId] });
+
+    // 同期開始を楽観的にUIに反映し、ポーリングを開始させる
+    setSettings((currentSettings) =>
+      currentSettings.map((s) =>
+        s.institutionId === institutionId
+          ? { ...s, syncStatus: InstitutionSyncStatusEnum.SYNCING }
+          : s
+      )
+    );
+    setSyncingId(null);
+
+    // サーバーから最新の状態をフェッチしてUIを完全に同期する
+    // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
+    try {
+      const updatedSettings = await getAllInstitutionSyncSettings();
+      setSettings(updatedSettings);
+    } catch (err) {
+      console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
+    setError(message);
+    console.error('同期の開始中にエラーが発生しました:', err);
+    setSyncingId(null);
+  }
+};
+```
+
+**理由**:
+
+- `getAllInstitutionSyncSettings`が失敗しても、楽観的更新によりポーリングが開始される
+- ポーリングが後で状態を修正するため、一時的なエラーでも自動的に回復する
+- UIがスタックすることがなくなり、ユーザー体験が向上する
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-68. ポーリング処理中のエラーハンドリング（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### ポーリング処理中のエラーハンドリング
+
+**問題**: ポーリング処理中にエラーが発生した場合、コンソールにエラーを出力するだけで、ユーザーには通知されない。
+
+**解決策**: エラーをUIに表示し、ユーザーに通知する。
+
+```typescript
+// ❌ 悪い例: エラーがコンソールにのみ出力される
+useEffect(() => {
+  const isSyncing = settings.some((s) => s.syncStatus === SYNCING);
+
+  if (isSyncing) {
+    const timer = setTimeout(() => {
+      void (async (): Promise<void> => {
+        try {
+          const updatedSettings = await getAllInstitutionSyncSettings();
+          setSettings(updatedSettings);
+        } catch (err) {
+          console.error('Failed to poll sync status:', err);
+          // ユーザーには通知されない
+        }
+      })();
+    }, POLLING_INTERVAL_MS);
+
+    return () => clearTimeout(timer);
+  }
+}, [settings]);
+```
+
+```typescript
+// ✅ 良い例: エラーをUIに表示
+useEffect(() => {
+  const isSyncing = settings.some((s) => s.syncStatus === SYNCING);
+
+  if (isSyncing) {
+    const timer = setTimeout(() => {
+      void (async (): Promise<void> => {
+        try {
+          const updatedSettings = await getAllInstitutionSyncSettings();
+          setSettings(updatedSettings);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
+          setError(message);
+          console.error('Failed to poll sync status:', err);
+        }
+      })();
+    }, POLLING_INTERVAL_MS);
+
+    return () => clearTimeout(timer);
+  }
+}, [settings]);
+```
+
+**理由**:
+
+- ユーザーにエラーが通知される
+- ポーリングは`settings`の変更に依存して再試行されるため、一時的なエラーであれば次のポーリングで回復する可能性がある
+- エラーハンドリングが一貫性を持つ
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-69. エラーメッセージ生成の共通化（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### エラーメッセージ生成の共通化
+
+**問題**: エラーメッセージの生成ロジックが複数箇所で重複していると、保守性が低下する。
+
+**解決策**: プロジェクト内のユーティリティ関数（`getErrorMessage`）を使用して共通化する。
+
+```typescript
+// ❌ 悪い例: エラーメッセージ生成ロジックが重複
+catch (err) {
+  const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
+  setError(message);
+  console.error('Failed to poll sync status:', err);
+}
+```
+
+```typescript
+// ✅ 良い例: ユーティリティ関数を使用
+import { getErrorMessage } from '@/utils/error.utils';
+
+catch (err) {
+  setError(getErrorMessage(err, '同期状態の取得に失敗しました。'));
+  console.error('Failed to poll sync status:', err);
+}
+```
+
+**理由**:
+
+- コードの重複が削減される
+- エラーメッセージ生成ロジックが一箇所に集約され、保守性が向上する
+- プロジェクト全体で一貫したエラーハンドリングが可能になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-70. fire-and-forget処理の意図を明確にする（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### fire-and-forget処理の意図を明確にする
+
+**問題**: `async/await`を使用すると、処理が完了するまで待機する必要があるかのような印象を与え、fire-and-forgetの意図が曖昧になる。
+
+**解決策**: `.then().catch()`を使用して、処理が完了を待たないことを明確にする。
+
+```typescript
+// ❌ 悪い例: async/awaitでfire-and-forgetの意図が曖昧
+try {
+  const updatedSettings = await getAllInstitutionSyncSettings();
+  setSettings(updatedSettings);
+} catch (err) {
+  console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+}
+```
+
+```typescript
+// ✅ 良い例: .then().catch()でfire-and-forgetの意図を明確化
+getAllInstitutionSyncSettings()
+  .then(setSettings)
+  .catch((err) => {
+    console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+  });
+```
+
+**理由**:
+
+- 処理が完了を待たないことが明確になる
+- コードの意図がより明確になり、可読性が向上する
+- 補助的なデータ取得処理であることが分かりやすくなる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
