@@ -30,6 +30,14 @@ export function YearlyBalanceReportContent(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [isYearSelectorOpen, setIsYearSelectorOpen] = useState<boolean>(false);
 
+  // URLパラメータの変更を検知してyearステートを同期
+  useEffect(() => {
+    const yearFromParams = yearParam ? parseInt(yearParam, 10) : defaultYear;
+    if (yearFromParams !== year) {
+      setYear(yearFromParams);
+    }
+  }, [yearParam, defaultYear, year]);
+
   // データ取得
   const fetchData = useCallback(async (): Promise<void> => {
     try {
@@ -238,46 +246,50 @@ interface TrendAnalysisSectionProps {
   };
 }
 
+// トレンド方向の情報を定義
+const directionInfo = {
+  increasing: { label: '増加傾向', color: 'text-green-600', icon: '↑' },
+  decreasing: { label: '減少傾向', color: 'text-red-600', icon: '↓' },
+  stable: { label: '横ばい', color: 'text-gray-600', icon: '→' },
+} as const;
+
+interface TrendItemProps {
+  title: string;
+  trendData: {
+    direction: 'increasing' | 'decreasing' | 'stable';
+    changeRate: number;
+    standardDeviation: number;
+  };
+}
+
+function TrendItem({ title, trendData }: TrendItemProps): React.JSX.Element {
+  const info = directionInfo[trendData.direction] || {
+    label: '不明',
+    color: 'text-gray-600',
+    icon: '?',
+  };
+
+  return (
+    <div className="p-4 border border-gray-200 rounded-lg">
+      <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <span className={`text-lg font-bold ${info.color}`}>{info.icon}</span>
+          <span className={`text-sm font-semibold ${info.color}`}>{info.label}</span>
+        </div>
+        <div className="text-xs text-gray-500">
+          変化率: {trendData.changeRate >= 0 ? '+' : ''}
+          {trendData.changeRate.toFixed(2)}% / 月
+        </div>
+        <div className="text-xs text-gray-500">
+          標準偏差: {formatCurrency(Math.abs(trendData.standardDeviation))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrendAnalysisSection({ trend }: TrendAnalysisSectionProps): React.JSX.Element {
-  const getDirectionLabel = (direction: string): string => {
-    switch (direction) {
-      case 'increasing':
-        return '増加傾向';
-      case 'decreasing':
-        return '減少傾向';
-      case 'stable':
-        return '横ばい';
-      default:
-        return '不明';
-    }
-  };
-
-  const getDirectionColor = (direction: string): string => {
-    switch (direction) {
-      case 'increasing':
-        return 'text-green-600';
-      case 'decreasing':
-        return 'text-red-600';
-      case 'stable':
-        return 'text-gray-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  const getDirectionIcon = (direction: string): string => {
-    switch (direction) {
-      case 'increasing':
-        return '↑';
-      case 'decreasing':
-        return '↓';
-      case 'stable':
-        return '→';
-      default:
-        return '?';
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -285,83 +297,9 @@ function TrendAnalysisSection({ trend }: TrendAnalysisSectionProps): React.JSX.E
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 収入のトレンド */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">収入</h3>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-lg font-bold ${getDirectionColor(trend.incomeProgression.direction)}`}
-                >
-                  {getDirectionIcon(trend.incomeProgression.direction)}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${getDirectionColor(trend.incomeProgression.direction)}`}
-                >
-                  {getDirectionLabel(trend.incomeProgression.direction)}
-                </span>
-              </div>
-              <div className="text-xs text-gray-500">
-                変化率: {trend.incomeProgression.changeRate >= 0 ? '+' : ''}
-                {trend.incomeProgression.changeRate.toFixed(2)}% / 月
-              </div>
-              <div className="text-xs text-gray-500">
-                標準偏差: {formatCurrency(Math.abs(trend.incomeProgression.standardDeviation))}
-              </div>
-            </div>
-          </div>
-
-          {/* 支出のトレンド */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">支出</h3>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-lg font-bold ${getDirectionColor(trend.expenseProgression.direction)}`}
-                >
-                  {getDirectionIcon(trend.expenseProgression.direction)}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${getDirectionColor(trend.expenseProgression.direction)}`}
-                >
-                  {getDirectionLabel(trend.expenseProgression.direction)}
-                </span>
-              </div>
-              <div className="text-xs text-gray-500">
-                変化率: {trend.expenseProgression.changeRate >= 0 ? '+' : ''}
-                {trend.expenseProgression.changeRate.toFixed(2)}% / 月
-              </div>
-              <div className="text-xs text-gray-500">
-                標準偏差: {formatCurrency(Math.abs(trend.expenseProgression.standardDeviation))}
-              </div>
-            </div>
-          </div>
-
-          {/* 収支のトレンド */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">収支</h3>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-lg font-bold ${getDirectionColor(trend.balanceProgression.direction)}`}
-                >
-                  {getDirectionIcon(trend.balanceProgression.direction)}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${getDirectionColor(trend.balanceProgression.direction)}`}
-                >
-                  {getDirectionLabel(trend.balanceProgression.direction)}
-                </span>
-              </div>
-              <div className="text-xs text-gray-500">
-                変化率: {trend.balanceProgression.changeRate >= 0 ? '+' : ''}
-                {trend.balanceProgression.changeRate.toFixed(2)}% / 月
-              </div>
-              <div className="text-xs text-gray-500">
-                標準偏差: {formatCurrency(Math.abs(trend.balanceProgression.standardDeviation))}
-              </div>
-            </div>
-          </div>
+          <TrendItem title="収入" trendData={trend.incomeProgression} />
+          <TrendItem title="支出" trendData={trend.expenseProgression} />
+          <TrendItem title="収支" trendData={trend.balanceProgression} />
         </div>
       </CardContent>
     </Card>
@@ -377,7 +315,13 @@ interface HighlightsSectionProps {
   };
 }
 
-function HighlightsSection({ highlights }: HighlightsSectionProps): React.JSX.Element {
+interface HighlightItemProps {
+  title: string;
+  month: string | null;
+  color: string;
+}
+
+function HighlightItem({ title, month, color }: HighlightItemProps): React.JSX.Element {
   const formatMonth = (monthString: string | null): string => {
     if (!monthString) {
       return 'データなし';
@@ -388,43 +332,41 @@ function HighlightsSection({ highlights }: HighlightsSectionProps): React.JSX.El
   };
 
   return (
+    <div className="p-4 border border-gray-200 rounded-lg">
+      <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>
+      <div className={`text-lg font-bold ${color}`}>{formatMonth(month)}</div>
+    </div>
+  );
+}
+
+function HighlightsSection({ highlights }: HighlightsSectionProps): React.JSX.Element {
+  return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-gray-800">ハイライト情報</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 最大収入月 */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">最大収入月</h3>
-            <div className="text-lg font-bold text-green-600">
-              {formatMonth(highlights.maxIncomeMonth)}
-            </div>
-          </div>
-
-          {/* 最大支出月 */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">最大支出月</h3>
-            <div className="text-lg font-bold text-red-600">
-              {formatMonth(highlights.maxExpenseMonth)}
-            </div>
-          </div>
-
-          {/* 最高収支月 */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">最高収支月</h3>
-            <div className="text-lg font-bold text-blue-600">
-              {formatMonth(highlights.bestBalanceMonth)}
-            </div>
-          </div>
-
-          {/* 最低収支月 */}
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">最低収支月</h3>
-            <div className="text-lg font-bold text-orange-600">
-              {formatMonth(highlights.worstBalanceMonth)}
-            </div>
-          </div>
+          <HighlightItem
+            title="最大収入月"
+            month={highlights.maxIncomeMonth}
+            color="text-green-600"
+          />
+          <HighlightItem
+            title="最大支出月"
+            month={highlights.maxExpenseMonth}
+            color="text-red-600"
+          />
+          <HighlightItem
+            title="最高収支月"
+            month={highlights.bestBalanceMonth}
+            color="text-blue-600"
+          />
+          <HighlightItem
+            title="最低収支月"
+            month={highlights.worstBalanceMonth}
+            color="text-orange-600"
+          />
         </div>
       </CardContent>
     </Card>
@@ -444,16 +386,23 @@ function YearSelectorModal({
 }: YearSelectorModalProps): React.JSX.Element {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
-  // 年の選択範囲（現在年から前後10年）
+  // 年の選択範囲（現在年から前後10年、選択中の年も含める）
   const years = useMemo(() => {
     const now = new Date();
-    const currentYear = now.getFullYear();
+    const realCurrentYear = now.getFullYear();
     const yearList: number[] = [];
-    for (let i = currentYear - 10; i <= currentYear + 10; i++) {
+    for (let i = realCurrentYear - 10; i <= realCurrentYear + 10; i++) {
       yearList.push(i);
     }
+
+    // 選択中の年がリストに含まれていない場合は追加
+    if (!yearList.includes(currentYear)) {
+      yearList.push(currentYear);
+      yearList.sort((a, b) => a - b);
+    }
+
     return yearList;
-  }, []);
+  }, [currentYear]);
 
   const handleSelect = (): void => {
     onSelect(selectedYear);
