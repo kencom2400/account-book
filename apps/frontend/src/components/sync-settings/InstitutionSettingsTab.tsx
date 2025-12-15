@@ -7,6 +7,7 @@ import {
   updateInstitutionSyncSettings,
 } from '@/lib/api/sync-settings';
 import { getInstitutions } from '@/lib/api/institutions';
+import { startSync } from '@/lib/api/sync';
 import type {
   InstitutionSyncSettingsResponseDto,
   UpdateInstitutionSyncSettingsRequestDto,
@@ -31,6 +32,7 @@ export function InstitutionSettingsTab(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     intervalType: SyncIntervalType;
@@ -75,6 +77,27 @@ export function InstitutionSettingsTab(): React.JSX.Element {
   const handleCancelEdit = (): void => {
     setEditingId(null);
     setEditForm(null);
+  };
+
+  const handleSync = async (institutionId: string): Promise<void> => {
+    try {
+      setSyncingId(institutionId);
+      setError(null);
+
+      await startSync({
+        institutionIds: [institutionId],
+      });
+
+      // 同期完了後に設定を再取得
+      const updatedSettings = await getAllInstitutionSyncSettings();
+      setSettings(updatedSettings);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
+      setError(message);
+      console.error('同期の開始中にエラーが発生しました:', err);
+    } finally {
+      setSyncingId(null);
+    }
   };
 
   const handleSave = async (settingId: string): Promise<void> => {
@@ -448,12 +471,49 @@ export function InstitutionSettingsTab(): React.JSX.Element {
                         <span className="text-sm text-red-600">エラー: {setting.lastError}</span>
                       </div>
                     )}
-                    <div className="mt-4">
+                    <div className="mt-4 flex gap-2">
                       <button
                         onClick={() => handleEdit(setting)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
                         編集
+                      </button>
+                      <button
+                        onClick={() => handleSync(setting.institutionId)}
+                        disabled={
+                          syncingId === setting.institutionId ||
+                          setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
+                        }
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {syncingId === setting.institutionId ||
+                        setting.syncStatus === InstitutionSyncStatusEnum.SYNCING ? (
+                          <span className="flex items-center">
+                            <svg
+                              className="animate-spin h-4 w-4 mr-2"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            同期中...
+                          </span>
+                        ) : (
+                          '今すぐ同期'
+                        )}
                       </button>
                     </div>
                   </div>
