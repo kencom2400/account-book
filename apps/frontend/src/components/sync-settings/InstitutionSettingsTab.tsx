@@ -8,6 +8,7 @@ import {
 } from '@/lib/api/sync-settings';
 import { getInstitutions } from '@/lib/api/institutions';
 import { startSync } from '@/lib/api/sync';
+import { getErrorMessage } from '@/utils/error.utils';
 import type {
   InstitutionSyncSettingsResponseDto,
   UpdateInstitutionSyncSettingsRequestDto,
@@ -79,8 +80,7 @@ export function InstitutionSettingsTab(): React.JSX.Element {
             const updatedSettings = await getAllInstitutionSyncSettings();
             setSettings(updatedSettings);
           } catch (err) {
-            const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
-            setError(message);
+            setError(getErrorMessage(err, '同期状態の取得に失敗しました。'));
             console.error('Failed to poll sync status:', err);
           }
         })();
@@ -128,18 +128,16 @@ export function InstitutionSettingsTab(): React.JSX.Element {
 
       // サーバーから最新の状態をフェッチしてUIを完全に同期する
       // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
-      try {
-        const updatedSettings = await getAllInstitutionSyncSettings();
-        setSettings(updatedSettings);
-      } catch (err) {
-        console.error(
-          'Failed to fetch latest settings after sync start, polling will recover:',
-          err
-        );
-      }
+      getAllInstitutionSyncSettings()
+        .then(setSettings)
+        .catch((err) => {
+          console.error(
+            'Failed to fetch latest settings after sync start, polling will recover:',
+            err
+          );
+        });
     } catch (err) {
-      const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
-      setError(message);
+      setError(getErrorMessage(err, '同期の開始に失敗しました。'));
       console.error('同期の開始中にエラーが発生しました:', err);
       // 同期開始自体が失敗した場合は、ユーザーが再試行できるようUIをリセット
       setSyncingId(null);

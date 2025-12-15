@@ -10862,3 +10862,81 @@ useEffect(() => {
 **参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-69. エラーメッセージ生成の共通化（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### エラーメッセージ生成の共通化
+
+**問題**: エラーメッセージの生成ロジックが複数箇所で重複していると、保守性が低下する。
+
+**解決策**: プロジェクト内のユーティリティ関数（`getErrorMessage`）を使用して共通化する。
+
+```typescript
+// ❌ 悪い例: エラーメッセージ生成ロジックが重複
+catch (err) {
+  const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
+  setError(message);
+  console.error('Failed to poll sync status:', err);
+}
+```
+
+```typescript
+// ✅ 良い例: ユーティリティ関数を使用
+import { getErrorMessage } from '@/utils/error.utils';
+
+catch (err) {
+  setError(getErrorMessage(err, '同期状態の取得に失敗しました。'));
+  console.error('Failed to poll sync status:', err);
+}
+```
+
+**理由**:
+
+- コードの重複が削減される
+- エラーメッセージ生成ロジックが一箇所に集約され、保守性が向上する
+- プロジェクト全体で一貫したエラーハンドリングが可能になる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-70. fire-and-forget処理の意図を明確にする（PR #399）
+
+**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+#### fire-and-forget処理の意図を明確にする
+
+**問題**: `async/await`を使用すると、処理が完了するまで待機する必要があるかのような印象を与え、fire-and-forgetの意図が曖昧になる。
+
+**解決策**: `.then().catch()`を使用して、処理が完了を待たないことを明確にする。
+
+```typescript
+// ❌ 悪い例: async/awaitでfire-and-forgetの意図が曖昧
+try {
+  const updatedSettings = await getAllInstitutionSyncSettings();
+  setSettings(updatedSettings);
+} catch (err) {
+  console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+}
+```
+
+```typescript
+// ✅ 良い例: .then().catch()でfire-and-forgetの意図を明確化
+getAllInstitutionSyncSettings()
+  .then(setSettings)
+  .catch((err) => {
+    console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
+  });
+```
+
+**理由**:
+
+- 処理が完了を待たないことが明確になる
+- コードの意図がより明確になり、可読性が向上する
+- 補助的なデータ取得処理であることが分かりやすくなる
+
+**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
+
+---
