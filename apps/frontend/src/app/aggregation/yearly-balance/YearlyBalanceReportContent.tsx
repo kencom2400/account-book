@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { YearlyBalanceGraph } from '@/components/dashboard/YearlyBalanceGraph';
@@ -263,11 +263,7 @@ interface TrendItemProps {
 }
 
 function TrendItem({ title, trendData }: TrendItemProps): React.JSX.Element {
-  const info = directionInfo[trendData.direction] || {
-    label: '不明',
-    color: 'text-gray-600',
-    icon: '?',
-  };
+  const info = directionInfo[trendData.direction];
 
   return (
     <div className="p-4 border border-gray-200 rounded-lg">
@@ -385,6 +381,8 @@ function YearSelectorModal({
   onClose,
 }: YearSelectorModalProps): React.JSX.Element {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
 
   // 年の選択範囲（現在年から前後10年、選択中の年も含める）
   const years = useMemo(() => {
@@ -404,48 +402,130 @@ function YearSelectorModal({
     return yearList;
   }, [currentYear]);
 
+  // Escapeキーでモーダルを閉じる
+  useEffect((): (() => void) => {
+    const handleEscape = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return (): void => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  // フォーカストラップ: モーダルが開いたときに最初のフォーカス可能要素にフォーカス
+  useEffect((): void => {
+    if (selectRef.current) {
+      selectRef.current.focus();
+    }
+  }, []);
+
+  // フォーカストラップ: Tabキーでモーダル内の要素間を循環
+  useEffect((): (() => void) => {
+    const handleTabKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Tab' || !modalRef.current) {
+        return;
+      }
+
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleTabKey);
+    return (): void => {
+      document.removeEventListener('keydown', handleTabKey);
+    };
+  }, []);
+
   const handleSelect = (): void => {
     onSelect(selectedYear);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 className="text-xl font-bold mb-4">年を選択</h2>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* オーバーレイ */}
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+          onKeyDown={(e): void => {
+            if (e.key === 'Escape') {
+              onClose();
+            }
+          }}
+          role="presentation"
+          aria-label="モーダルを閉じる"
+        />
 
-        {/* 年選択 */}
-        <div className="mb-6">
-          <label htmlFor="year-select" className="block text-sm font-medium text-gray-700 mb-2">
-            年
-          </label>
-          <select
-            id="year-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}年
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* モーダル */}
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="year-selector-modal-title"
+          className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full"
+        >
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <h2 id="year-selector-modal-title" className="text-xl font-bold mb-4">
+              年を選択
+            </h2>
 
-        {/* ボタン */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleSelect}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            選択
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-          >
-            キャンセル
-          </button>
+            {/* 年選択 */}
+            <div className="mb-6">
+              <label htmlFor="year-select" className="block text-sm font-medium text-gray-700 mb-2">
+                年
+              </label>
+              <select
+                ref={selectRef}
+                id="year-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}年
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ボタン */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleSelect}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                選択
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
