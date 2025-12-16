@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
 export type BadgeSize = 'sm' | 'md' | 'lg';
@@ -38,7 +39,5 @@ export function Badge({
   const variantStyle = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
 
-  return (
-    <span className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}>{children}</span>
-  );
+  return <span className={cn(baseStyles, variantStyle, sizeStyle, className)}>{children}</span>;
 }

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Spinner } from './Spinner';
+import { cn } from '../../lib/utils';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -10,6 +11,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
+  loadingText?: string;
   children: React.ReactNode;
 }
 
@@ -42,6 +44,7 @@ export function Button({
   disabled,
   className = '',
   children,
+  loadingText = '読み込み中...',
   ...props
 }: ButtonProps): React.JSX.Element {
   const baseStyles =
@@ -54,13 +57,13 @@ export function Button({
     <button
       type="button"
       disabled={disabled || isLoading}
-      className={`${baseStyles} ${variantStyle} ${sizeStyle} ${loadingStyle} ${className}`}
+      className={cn(baseStyles, variantStyle, sizeStyle, loadingStyle, className)}
       {...props}
     >
       {isLoading ? (
         <>
           <Spinner size="sm" className="-ml-1 mr-2" />
-          <span>読み込み中...</span>
+          <span>{loadingText}</span>
         </>
       ) : (
         children

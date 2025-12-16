@@ -11387,3 +11387,180 @@ export function Radio({ name, ... }: RadioProps): React.JSX.Element {
 **参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
 
 ---
+
+## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第3回から学習）
+
+### 1. 状態管理: Radioコンポーネントのvalue/checked/defaultCheckedの適切な管理
+
+**問題**: `Radio`コンポーネントの実装で、`...props`が各ラジオボタンに展開されるため、`value`や`checked`、`defaultChecked`などのプロパティがすべての`<input>`要素に適用されてしまい、意図しない動作や不正なHTMLを生成する原因となります。
+
+**解決策**: グループ全体で単一の`value`（または`defaultValue`）を受け取り、それに基づいて選択状態を管理する。`value`、`checked`、`defaultChecked`を`...props`から除外する。
+
+```typescript
+// ❌ 悪い例: value/checked/defaultCheckedが...propsに含まれる
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id'
+> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+
+// ✅ 良い例: value/checked/defaultCheckedを除外し、グループ全体で管理
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id' | 'value' | 'defaultValue' | 'checked' | 'defaultChecked'
+> {
+  options: RadioOption[];
+  name: string;
+  value?: string;
+  defaultValue?: string;
+  // ...
+}
+
+export function Radio({
+  options,
+  name,
+  value,
+  defaultValue,
+  // ...
+}: RadioProps): React.JSX.Element {
+  // ...
+  {options.map((option) => {
+    return (
+      <input
+        type="radio"
+        name={name}
+        value={option.value}
+        checked={value !== undefined ? value === option.value : undefined}
+        defaultChecked={defaultValue !== undefined ? defaultValue === option.value : undefined}
+        // ...
+      />
+    );
+  })}
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 2. 再利用性: ButtonコンポーネントのloadingTextプロパティ
+
+**問題**: ローディング時のテキスト「読み込み中...」がハードコードされている。これにより、コンポーネントの再利用性が低下し、国際化（i18n）対応が困難になります。
+
+**解決策**: `ButtonProps`に`loadingText?: string;`を追加し、テキストをカスタマイズ可能にする。
+
+```typescript
+// ❌ 悪い例: ハードコードされたテキスト
+{isLoading ? (
+  <>
+    <Spinner size="sm" className="-ml-1 mr-2" />
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+
+// ✅ 良い例: loadingTextプロパティでカスタマイズ可能
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  isLoading?: boolean;
+  loadingText?: string;
+  children: React.ReactNode;
+}
+
+export function Button({
+  // ...
+  loadingText = '読み込み中...',
+  // ...
+}: ButtonProps): React.JSX.Element {
+  // ...
+  {isLoading ? (
+    <>
+      <Spinner size="sm" className="-ml-1 mr-2" />
+      <span>{loadingText}</span>
+    </>
+  ) : (
+    children
+  )}
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 3. 堅牢性: Modalコンポーネントのbody.overflow管理（複数モーダル対応）
+
+**問題**: `document.body.style.overflow`を直接操作する方法は、複数のモーダルが同時に（または入れ子で）表示される場合や、他のコンポーネントもbodyのoverflowを操作する場合に問題を引き起こす可能性があります。例えば、モーダルAが開いている最中にモーダルBが開かれ、その後モーダルBが閉じられると、モーダルAが開いているにもかかわらずbodyのスクロールが有効になってしまいます。
+
+**解決策**: 開かれているモーダルの数を管理するカウンターを使用する。
+
+```typescript
+// モーダルが開いている数を管理するカウンター
+let modalCount = 0;
+
+export function Modal({ isOpen, ... }: ModalProps): React.JSX.Element | null {
+  useEffect(() => {
+    if (isOpen) {
+      // モーダル表示時はbodyのスクロールを無効化（複数モーダル対応）
+      modalCount++;
+      if (modalCount === 1) {
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    return (): void => {
+      // モーダルが閉じられたとき、カウンターを減らす
+      if (isOpen) {
+        modalCount--;
+        // すべてのモーダルが閉じられたときのみ、bodyのスクロールを有効化
+        if (modalCount === 0) {
+          document.body.style.overflow = '';
+        }
+      }
+    };
+  }, [isOpen, onClose]);
+  // ...
+}
+```
+
+**代替案**: `react-remove-scroll`のようなライブラリの利用も検討する価値があります。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 4. スタイル管理: Tailwind CSSクラスの安全なマージ
+
+**問題**: Tailwind CSSのクラスを文字列結合で組み立てると、意図しないスタイルの上書きや競合が発生する可能性があります。例えば、利用者が`className` propで背景色を上書きしようとしても、コンポーネント内部のクラスと競合して期待通りに動作しない場合があります。
+
+**解決策**: `tailwind-merge`と`clsx`を組み合わせたユーティリティ関数を使用する。
+
+```typescript
+// ❌ 悪い例: 文字列結合
+<span className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}>
+  {children}
+</span>
+
+// ✅ 良い例: cn関数を使用
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
+<span className={cn(baseStyles, variantStyle, sizeStyle, className)}>
+  {children}
+</span>
+```
+
+**適用対象**: `Badge`、`Button`、`Input`、`Textarea`、`Select`、`Radio`、`Checkbox`、`Card`など、複数のクラス名を組み合わせるすべてのコンポーネント。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---

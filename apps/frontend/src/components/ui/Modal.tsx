@@ -3,6 +3,9 @@
 import React, { useEffect, useRef } from 'react';
 import FocusTrap from 'focus-trap-react';
 
+// モーダルが開いている数を管理するカウンター
+let modalCount = 0;
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,8 +54,11 @@ export function Modal({
         previousActiveElementRef.current = document.activeElement;
       }
       document.addEventListener('keydown', handleEscape);
-      // モーダル表示時はbodyのスクロールを無効化
-      document.body.style.overflow = 'hidden';
+      // モーダル表示時はbodyのスクロールを無効化（複数モーダル対応）
+      modalCount++;
+      if (modalCount === 1) {
+        document.body.style.overflow = 'hidden';
+      }
     } else {
       // モーダルを閉じたときにフォーカスを戻す
       if (previousActiveElementRef.current) {
@@ -63,7 +69,14 @@ export function Modal({
 
     return (): void => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
+      // モーダルが閉じられたとき、カウンターを減らす
+      if (isOpen) {
+        modalCount--;
+        // すべてのモーダルが閉じられたときのみ、bodyのスクロールを有効化
+        if (modalCount === 0) {
+          document.body.style.overflow = '';
+        }
+      }
     };
   }, [isOpen, onClose]);
 

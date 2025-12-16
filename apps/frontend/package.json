@@ -23,12 +23,14 @@
   "dependencies": {
     "@account-book/types": "workspace:^",
     "@account-book/utils": "workspace:^",
+    "clsx": "^2.1.1",
     "focus-trap-react": "^11.0.4",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.5.1",
+    "tailwind-merge": "^3.4.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

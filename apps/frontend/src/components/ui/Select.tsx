@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
+import { cn } from '../../lib/utils';
 
 export interface SelectOption {
   value: string;
@@ -44,7 +45,7 @@ export function Select({
     <div className="w-full relative">
       <select
         id={selectId}
-        className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
+        className={cn(baseStyles, errorStyles, disabledStyles, className)}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error || helperText ? `${selectId}-helper` : undefined}
         {...props}

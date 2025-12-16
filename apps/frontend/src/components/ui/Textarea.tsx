@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
+import { cn } from '../../lib/utils';
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
@@ -33,7 +34,7 @@ export function Textarea({
     <div className="w-full">
       <textarea
         id={textareaId}
-        className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
+        className={cn(baseStyles, errorStyles, disabledStyles, className)}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error || helperText ? `${textareaId}-helper` : undefined}
         {...props}

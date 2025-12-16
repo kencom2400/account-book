@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
+import { cn } from '../../lib/utils';
 
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -27,7 +28,10 @@ export function Checkbox({
         <input
           type="checkbox"
           id={checkboxId}
-          className={`h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 ${className}`}
+          className={cn(
+            'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500',
+            className
+          )}
           aria-invalid={error ? 'true' : 'false'}
           {...props}
         />

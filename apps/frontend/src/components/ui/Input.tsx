@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
+import { cn } from '../../lib/utils';
 
 export type InputType =
   | 'text'
@@ -48,7 +49,7 @@ export function Input({
       <input
         type={type}
         id={inputId}
-        className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
+        className={cn(baseStyles, errorStyles, disabledStyles, className)}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error || helperText ? `${inputId}-helper` : undefined}
         {...props}
