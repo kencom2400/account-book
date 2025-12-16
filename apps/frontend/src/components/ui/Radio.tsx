@@ -6,7 +6,10 @@ export interface RadioOption {
   disabled?: boolean;
 }
 
-export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id'
+> {
   options: RadioOption[];
   name: string;
   error?: string;
