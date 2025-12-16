@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useId } from 'react';
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
@@ -13,8 +15,11 @@ export function Textarea({
   error,
   helperText,
   className = '',
+  id,
   ...props
 }: TextareaProps): React.JSX.Element {
+  const reactId = useId();
+  const textareaId = id || reactId;
   const baseStyles =
     'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors resize-y';
   const errorStyles = error
@@ -27,14 +32,15 @@ export function Textarea({
   return (
     <div className="w-full">
       <textarea
+        id={textareaId}
         className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
         aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
+        aria-describedby={error || helperText ? `${textareaId}-helper` : undefined}
         {...props}
       />
       {(error || helperText) && (
         <p
-          id={`${props.id}-helper`}
+          id={`${textareaId}-helper`}
           className={`mt-1 text-sm ${error ? 'text-red-600' : 'text-gray-500'}`}
         >
           {error || helperText}
