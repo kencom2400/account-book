@@ -11243,3 +11243,147 @@ export function Input({ error, helperText, id, ...props }: InputProps): React.JS
 **参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第2回から学習）
+
+### 1. Next.js App Router: クライアントコンポーネントの明示的なマーク付け
+
+**問題**: イベントハンドラ（`onClick`、`onChange`など）を受け取るコンポーネントは、Next.jsのApp Router環境ではクライアントコンポーネントとしてマークする必要があります。これがないと、本番ビルドでエラーが発生する可能性があります。
+
+**解決策**: ファイルの先頭に`'use client'`ディレクティブを追加する。
+
+```typescript
+// ❌ 悪い例: 'use client'ディレクティブがない
+import React from 'react';
+
+export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
+  return <button onClick={onClick}>...</button>;
+}
+
+// ✅ 良い例: 'use client'ディレクティブを追加
+'use client';
+
+import React from 'react';
+
+export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
+  return <button onClick={onClick}>...</button>;
+}
+```
+
+**適用対象**:
+
+- イベントハンドラ（`onClick`、`onChange`、`onSubmit`など）を受け取るコンポーネント
+- React Hooks（`useState`、`useEffect`、`useId`など）を使用するコンポーネント
+- ブラウザAPI（`document`、`window`など）にアクセスするコンポーネント
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 2. 型安全性: document.activeElementの安全な型チェック
+
+**問題**: `document.activeElement`を`HTMLElement`として型アサーションしていますが、`document.activeElement`は`null`であったり、`SVGElement`のように`HTMLElement`ではない要素である可能性があります。`focus()`メソッドを持たない要素の場合、フォーカスを戻す際に実行時エラーが発生する可能性があります。
+
+**解決策**: `instanceof HTMLElement`でチェックしてから代入する。
+
+```typescript
+// ❌ 悪い例: 型アサーションのみ
+if (isOpen) {
+  previousActiveElementRef.current = document.activeElement as HTMLElement;
+}
+
+// ✅ 良い例: instanceofでチェック
+if (isOpen) {
+  if (document.activeElement instanceof HTMLElement) {
+    previousActiveElementRef.current = document.activeElement;
+  }
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 3. パフォーマンス: useEffectの依存配列とコールバック関数のメモ化
+
+**問題**: `useEffect`の依存配列に`onClose`が含まれている場合、親コンポーネントで`onClose`にインライン関数（例: `() => setOpen(false)`）を渡すと、親コンポーネントが再レンダリングされるたびに新しい関数が生成され、この`useEffect`が不必要に再実行されてしまいます。これにより、パフォーマンスの低下や意図しない副作用が生じる可能性があります。
+
+**解決策**: コンポーネントのドキュメントに、`onClose`関数を`useCallback`でメモ化することを推奨する旨を記載する。
+
+```typescript
+/**
+ * Modalコンポーネント
+ * モーダルダイアログ用のコンポーネント
+ *
+ * @param onClose - モーダルを閉じるコールバック関数
+ *   パフォーマンス最適化のため、親コンポーネントで`useCallback`を使用してメモ化することを推奨します。
+ *   例: `const handleClose = useCallback(() => setOpen(false), []);`
+ */
+export function Modal({
+  isOpen,
+  onClose,
+  // ...
+}: ModalProps): React.JSX.Element | null {
+  useEffect(() => {
+    // ...
+  }, [isOpen, onClose]);
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 4. アクセシビリティ: RadioコンポーネントのID重複防止
+
+**問題**: `groupId`が`name` propのみから生成されているため、同じページで同じ`name`を持つ`Radio`コンポーネントが複数存在すると、`aria-describedby`で使用されるヘルパーテキストの`id`が重複してしまいます。これは無効なHTMLとなり、アクセシビリティの問題を引き起こす可能性があります。
+
+**解決策**: Reactの`useId`フックを使用して、コンポーネントインスタンスごとに一意なIDを生成する。
+
+```typescript
+// ❌ 悪い例: nameのみからIDを生成（重複の可能性）
+const groupId = `radio-group-${name}`;
+
+// ✅ 良い例: useIdで一意なIDを生成
+'use client';
+import React, { useId } from 'react';
+
+export function Radio({ name, ... }: RadioProps): React.JSX.Element {
+  const reactId = useId();
+  const groupId = reactId;
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 5. UX改善: Selectコンポーネントのプレースホルダー表示
+
+**問題**: プレースホルダーとして機能する`<option>`が、ドロップダウンリストを開いたときにも選択肢として表示されてしまいます。通常、プレースホルダーはリスト内には表示させないのが一般的です。
+
+**解決策**: `hidden`属性を追加することで、このオプションをドロップダウンリストから隠す。
+
+```typescript
+// ❌ 悪い例: hidden属性がない
+{placeholder && (
+  <option value="" disabled>
+    {placeholder}
+  </option>
+)}
+
+// ✅ 良い例: hidden属性を追加
+{placeholder && (
+  <option value="" disabled hidden>
+    {placeholder}
+  </option>
+)}
+```
+
+**注意**: このプレースホルダーを初期値として表示するには、`Select`コンポーネントの呼び出し側で`defaultValue=""`のように設定する必要があります。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
