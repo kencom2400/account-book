@@ -11028,3 +11028,218 @@ it('PieChartTooltipが正しく設定される', () => {
 **参照**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 共通UIコンポーネントライブラリ構築時の重要な観点（Gemini PR#402レビューから学習）
+
+### 1. SSR対応: ID生成には必ず`useId`を使用
+
+**問題**: `Math.random()`を使用したID生成は、サーバーサイドレンダリング（SSR）時にサーバーとクライアントで異なるIDが生成され、ハイドレーションエラーを引き起こす。
+
+**解決策**: React 18の`useId`フックを使用してSSRでも安全な一意のIDを生成する。
+
+```typescript
+// ❌ 悪い例: Math.random()を使用（SSRで問題）
+const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
+
+// ✅ 良い例: useIdを使用（SSR対応）
+('use client');
+import React, { useId } from 'react';
+
+export function Checkbox({ id, ...props }: CheckboxProps): React.JSX.Element {
+  const reactId = useId();
+  const checkboxId = id || reactId;
+  // ...
+}
+```
+
+**適用対象**:
+
+- `Checkbox`コンポーネント
+- `Input`コンポーネント（`aria-describedby`でIDが必要な場合）
+- `Select`コンポーネント（`aria-describedby`でIDが必要な場合）
+- `Textarea`コンポーネント（`aria-describedby`でIDが必要な場合）
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 2. アクセシビリティ: モーダルのフォーカストラップ実装
+
+**問題**: モーダルが表示されているとき、フォーカスがモーダル内にトラップされていない。キーボードユーザーが`Tab`キーでモーダルの背後にある要素にフォーカスを移動できてしまう。
+
+**解決策**: `focus-trap-react`ライブラリを使用して、アクセシビリティに準拠したフォーカス管理を実装する。
+
+```typescript
+// ✅ 良い例: focus-trap-reactを使用
+'use client';
+import FocusTrap from 'focus-trap-react';
+
+export function Modal({ isOpen, onClose, ... }: ModalProps): React.JSX.Element | null {
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // モーダルを開く前のフォーカス要素を保存
+      previousActiveElementRef.current = document.activeElement as HTMLElement;
+    } else {
+      // モーダルを閉じたときにフォーカスを戻す
+      if (previousActiveElementRef.current) {
+        previousActiveElementRef.current.focus();
+        previousActiveElementRef.current = null;
+      }
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <FocusTrap
+      active={true}
+      focusTrapOptions={{
+        fallbackFocus: '.modal-content',
+        clickOutsideDeactivates: false,
+      }}
+    >
+      <div className="modal-content" role="dialog" aria-modal="true">
+        {/* モーダルコンテンツ */}
+      </div>
+    </FocusTrap>
+  );
+}
+```
+
+**重要なポイント**:
+
+- モーダルを開く前のフォーカス要素を保存
+- モーダルを閉じたときにフォーカスを戻す
+- `focus-trap-react`でフォーカストラップを実装
+- テスト時はモーダル内にタブ可能な要素（ボタンなど）を含める
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 3. コードの再利用性: 共通コンポーネントの活用
+
+**問題**: `Button`コンポーネントのローディング表示で、スピナーがハードコードされている。共通の`Spinner`コンポーネントが既に存在するため、コードの重複を避けるべき。
+
+**解決策**: 既存の共通コンポーネントを再利用する。`Spinner`コンポーネントの色指定を削除して、親要素から色を継承できるようにする。
+
+```typescript
+// ❌ 悪い例: スピナーをハードコード
+{isLoading ? (
+  <>
+    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" ...>
+      {/* SVGコード */}
+    </svg>
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+
+// ✅ 良い例: Spinnerコンポーネントを再利用
+import { Spinner } from './Spinner';
+
+{isLoading ? (
+  <>
+    <Spinner size="sm" className="-ml-1 mr-2" />
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+```
+
+**Spinnerコンポーネントの改善**:
+
+- 色指定（`text-blue-600`）を削除して、親要素から色を継承できるようにする
+- これにより、様々なコンテキストで再利用可能になる
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 4. 型安全性: 意図しない属性の上書き防止
+
+**問題**: `RadioProps`は`React.InputHTMLAttributes<HTMLInputElement>`を継承しているため、`id`属性をpropsとして受け取れてしまう。しかし、このコンポーネントは内部で各ラジオボタンに一意のIDを生成して割り当てている。外部から`id`が渡されると、すべてのラジオボタンに同じ`id`が適用されてしまい、HTMLの仕様に反する重複IDが発生する。
+
+**解決策**: `RadioProps`の型定義で`id`を`Omit`する。
+
+```typescript
+// ❌ 悪い例: id属性が受け取れてしまう
+export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+
+// ✅ 良い例: id属性をOmitして上書きを防止
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id'
+> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 5. アクセシビリティ: IDが指定されない場合のフォールバック
+
+**問題**: `Input`、`Select`、`Textarea`コンポーネントは`error`または`helperText`が指定された場合、`aria-describedby`を正しく機能させるために`id` propに依存している。しかし、`id`が渡されない場合のフォールバックがない。これにより、アクセシビリティが損なわれる可能性がある。
+
+**解決策**: Reactの`useId`フックを使って`id`が指定されなかった場合に安定したIDを生成する。
+
+```typescript
+// ❌ 悪い例: idが指定されない場合、aria-describedbyが機能しない
+export function Input({ error, helperText, ...props }: InputProps): React.JSX.Element {
+  return (
+    <div>
+      <input
+        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
+        {...props}
+      />
+      {(error || helperText) && (
+        <p id={`${props.id}-helper`}>
+          {error || helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ✅ 良い例: useIdでIDを生成
+'use client';
+import React, { useId } from 'react';
+
+export function Input({ error, helperText, id, ...props }: InputProps): React.JSX.Element {
+  const reactId = useId();
+  const inputId = id || reactId;
+
+  return (
+    <div>
+      <input
+        id={inputId}
+        aria-describedby={error || helperText ? `${inputId}-helper` : undefined}
+        {...props}
+      />
+      {(error || helperText) && (
+        <p id={`${inputId}-helper`}>
+          {error || helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
