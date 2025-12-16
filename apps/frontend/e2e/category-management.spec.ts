@@ -225,11 +225,15 @@ test.describe('Category Management', () => {
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
+        // セレクトボックスが表示されるまで待機
         await expect(typeSelect).toBeVisible({ timeout: 10000 });
+        // セレクトボックスが無効化されていることを確認
         await expect(typeSelect).toBeDisabled();
 
         // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
-        await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible();
+        await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible({
+          timeout: 5000,
+        });
 
         // 新規作成用のセレクトボックスが表示されていないことを確認
         const createTypeSelect = page.locator('select[id="category-type"]');
@@ -289,22 +293,25 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
         await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
 
-        // モーダル内のキャンセルボタンをクリック（モーダル内に限定）
+        // フォーム全体が表示されるまで待機（キャンセルボタンが存在することを確認）
         const modal = page.locator('role=dialog');
         const cancelButton = modal.locator('button:has-text("キャンセル")');
+        // キャンセルボタンが表示されるまで待機（フォームが完全にレンダリングされるまで）
         await expect(cancelButton).toBeVisible({ timeout: 10000 });
+        // ボタンがクリック可能になるまで少し待機
+        await expect(cancelButton).toBeEnabled({ timeout: 5000 });
 
         // オーバーレイを回避してクリック
         await cancelButton.click({ force: true });
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(300);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 5000 });
       }
     });
 
