@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useId } from 'react';
 
 export interface SelectOption {
   value: string;
@@ -26,8 +28,11 @@ export function Select({
   helperText,
   placeholder,
   className = '',
+  id,
   ...props
 }: SelectProps): React.JSX.Element {
+  const reactId = useId();
+  const selectId = id || reactId;
   const baseStyles =
     'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors appearance-none bg-white';
   const errorStyles = error
@@ -38,9 +43,10 @@ export function Select({
   return (
     <div className="w-full relative">
       <select
+        id={selectId}
         className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
         aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
+        aria-describedby={error || helperText ? `${selectId}-helper` : undefined}
         {...props}
       >
         {placeholder && (
@@ -67,7 +73,7 @@ export function Select({
       </div>
       {(error || helperText) && (
         <p
-          id={`${props.id}-helper`}
+          id={`${selectId}-helper`}
           className={`mt-1 text-sm ${error ? 'text-red-600' : 'text-gray-500'}`}
         >
           {error || helperText}
