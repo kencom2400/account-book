@@ -56,7 +56,8 @@ describe('Checkbox', () => {
     render(<Checkbox label="Test" />);
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toHaveAttribute('id');
-    expect(checkbox.getAttribute('id')).toMatch(/^checkbox-/);
+    // useIdで生成されるIDはReactの内部形式（例: :r1:など）なので、IDが存在することのみ確認
+    expect(checkbox.getAttribute('id')).toBeTruthy();
   });
 
   it('should use provided id', () => {

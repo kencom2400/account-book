@@ -7,7 +7,14 @@ describe('Modal', () => {
   const defaultProps = {
     isOpen: true,
     onClose: jest.fn(),
-    children: <p>Modal Content</p>,
+    children: (
+      <>
+        <p>Modal Content</p>
+        <button type="button" tabIndex={0}>
+          Test Button
+        </button>
+      </>
+    ),
   };
 
   beforeEach(() => {
@@ -154,7 +161,10 @@ describe('Modal', () => {
   it('should render children', () => {
     render(
       <Modal {...defaultProps}>
-        <div>Custom Content</div>
+        <div>
+          <p>Custom Content</p>
+          <button type="button">Action</button>
+        </div>
       </Modal>
     );
     expect(screen.getByText('Custom Content')).toBeInTheDocument();
@@ -170,7 +180,10 @@ describe('Modal', () => {
 
   it('should not render header when title and showCloseButton are both false', () => {
     const { container } = render(
-      <Modal {...defaultProps} title={undefined} showCloseButton={false} />
+      <Modal {...defaultProps} title={undefined} showCloseButton={false}>
+        <p>Modal Content</p>
+        <button type="button">Test Button</button>
+      </Modal>
     );
     const header = container.querySelector('.border-b');
     expect(header).not.toBeInTheDocument();
