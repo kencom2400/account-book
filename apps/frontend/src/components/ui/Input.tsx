@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useId } from 'react';
 
 export type InputType =
   | 'text'
@@ -27,8 +29,11 @@ export function Input({
   error,
   helperText,
   className = '',
+  id,
   ...props
 }: InputProps): React.JSX.Element {
+  const reactId = useId();
+  const inputId = id || reactId;
   const baseStyles =
     'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors';
   const errorStyles = error
@@ -42,14 +47,15 @@ export function Input({
     <div className="w-full">
       <input
         type={type}
+        id={inputId}
         className={`${baseStyles} ${errorStyles} ${disabledStyles} ${className}`}
         aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
+        aria-describedby={error || helperText ? `${inputId}-helper` : undefined}
         {...props}
       />
       {(error || helperText) && (
         <p
-          id={`${props.id}-helper`}
+          id={`${inputId}-helper`}
           className={`mt-1 text-sm ${error ? 'text-red-600' : 'text-gray-500'}`}
         >
           {error || helperText}
