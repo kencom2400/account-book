@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { YearlyBalanceGraph } from '@/components/dashboard/YearlyBalanceGraph';
+import { YearlyBalanceGraph } from '@/components/charts/YearlyBalanceGraph';
 import { aggregationApi, type YearlyBalanceResponse } from '@/lib/api/aggregation';
 import { formatCurrency } from '@account-book/utils';
 import Link from 'next/link';
