@@ -86,11 +86,15 @@ describe('Radio', () => {
   it('should set aria-describedby when error or helperText is present', () => {
     const { rerender } = render(<Radio name="test-radio" options={mockOptions} error="Error" />);
     let group = screen.getByRole('radiogroup');
-    expect(group).toHaveAttribute('aria-describedby', 'radio-group-test-radio-helper');
+    const ariaDescribedBy = group.getAttribute('aria-describedby');
+    expect(ariaDescribedBy).toBeTruthy();
+    expect(ariaDescribedBy).toMatch(/-helper$/);
 
     rerender(<Radio name="test-radio" options={mockOptions} helperText="Helper" />);
     group = screen.getByRole('radiogroup');
-    expect(group).toHaveAttribute('aria-describedby', 'radio-group-test-radio-helper');
+    const ariaDescribedBy2 = group.getAttribute('aria-describedby');
+    expect(ariaDescribedBy2).toBeTruthy();
+    expect(ariaDescribedBy2).toMatch(/-helper$/);
   });
 
   it('should apply custom className', () => {

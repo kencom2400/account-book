@@ -22,6 +22,10 @@ const sizeStyles: Record<string, string> = {
 /**
  * Modalコンポーネント
  * モーダルダイアログ用のコンポーネント
+ *
+ * @param onClose - モーダルを閉じるコールバック関数
+ *   パフォーマンス最適化のため、親コンポーネントで`useCallback`を使用してメモ化することを推奨します。
+ *   例: `const handleClose = useCallback(() => setOpen(false), []);`
  */
 export function Modal({
   isOpen,
@@ -43,7 +47,9 @@ export function Modal({
 
     if (isOpen) {
       // モーダルを開く前のフォーカス要素を保存
-      previousActiveElementRef.current = document.activeElement as HTMLElement;
+      if (document.activeElement instanceof HTMLElement) {
+        previousActiveElementRef.current = document.activeElement;
+      }
       document.addEventListener('keydown', handleEscape);
       // モーダル表示時はbodyのスクロールを無効化
       document.body.style.overflow = 'hidden';

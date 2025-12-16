@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useId } from 'react';
 
 export interface RadioOption {
   value: string;
@@ -28,7 +30,8 @@ export function Radio({
   className = '',
   ...props
 }: RadioProps): React.JSX.Element {
-  const groupId = `radio-group-${name}`;
+  const reactId = useId();
+  const groupId = reactId;
 
   return (
     <div className="w-full">
