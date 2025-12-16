@@ -11028,3 +11028,539 @@ it('PieChartTooltipが正しく設定される', () => {
 **参照**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 共通UIコンポーネントライブラリ構築時の重要な観点（Gemini PR#402レビューから学習）
+
+### 1. SSR対応: ID生成には必ず`useId`を使用
+
+**問題**: `Math.random()`を使用したID生成は、サーバーサイドレンダリング（SSR）時にサーバーとクライアントで異なるIDが生成され、ハイドレーションエラーを引き起こす。
+
+**解決策**: React 18の`useId`フックを使用してSSRでも安全な一意のIDを生成する。
+
+```typescript
+// ❌ 悪い例: Math.random()を使用（SSRで問題）
+const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
+
+// ✅ 良い例: useIdを使用（SSR対応）
+('use client');
+import React, { useId } from 'react';
+
+export function Checkbox({ id, ...props }: CheckboxProps): React.JSX.Element {
+  const reactId = useId();
+  const checkboxId = id || reactId;
+  // ...
+}
+```
+
+**適用対象**:
+
+- `Checkbox`コンポーネント
+- `Input`コンポーネント（`aria-describedby`でIDが必要な場合）
+- `Select`コンポーネント（`aria-describedby`でIDが必要な場合）
+- `Textarea`コンポーネント（`aria-describedby`でIDが必要な場合）
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 2. アクセシビリティ: モーダルのフォーカストラップ実装
+
+**問題**: モーダルが表示されているとき、フォーカスがモーダル内にトラップされていない。キーボードユーザーが`Tab`キーでモーダルの背後にある要素にフォーカスを移動できてしまう。
+
+**解決策**: `focus-trap-react`ライブラリを使用して、アクセシビリティに準拠したフォーカス管理を実装する。
+
+```typescript
+// ✅ 良い例: focus-trap-reactを使用
+'use client';
+import FocusTrap from 'focus-trap-react';
+
+export function Modal({ isOpen, onClose, ... }: ModalProps): React.JSX.Element | null {
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // モーダルを開く前のフォーカス要素を保存
+      previousActiveElementRef.current = document.activeElement as HTMLElement;
+    } else {
+      // モーダルを閉じたときにフォーカスを戻す
+      if (previousActiveElementRef.current) {
+        previousActiveElementRef.current.focus();
+        previousActiveElementRef.current = null;
+      }
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <FocusTrap
+      active={true}
+      focusTrapOptions={{
+        fallbackFocus: '.modal-content',
+        clickOutsideDeactivates: false,
+      }}
+    >
+      <div className="modal-content" role="dialog" aria-modal="true">
+        {/* モーダルコンテンツ */}
+      </div>
+    </FocusTrap>
+  );
+}
+```
+
+**重要なポイント**:
+
+- モーダルを開く前のフォーカス要素を保存
+- モーダルを閉じたときにフォーカスを戻す
+- `focus-trap-react`でフォーカストラップを実装
+- テスト時はモーダル内にタブ可能な要素（ボタンなど）を含める
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 3. コードの再利用性: 共通コンポーネントの活用
+
+**問題**: `Button`コンポーネントのローディング表示で、スピナーがハードコードされている。共通の`Spinner`コンポーネントが既に存在するため、コードの重複を避けるべき。
+
+**解決策**: 既存の共通コンポーネントを再利用する。`Spinner`コンポーネントの色指定を削除して、親要素から色を継承できるようにする。
+
+```typescript
+// ❌ 悪い例: スピナーをハードコード
+{isLoading ? (
+  <>
+    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" ...>
+      {/* SVGコード */}
+    </svg>
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+
+// ✅ 良い例: Spinnerコンポーネントを再利用
+import { Spinner } from './Spinner';
+
+{isLoading ? (
+  <>
+    <Spinner size="sm" className="-ml-1 mr-2" />
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+```
+
+**Spinnerコンポーネントの改善**:
+
+- 色指定（`text-blue-600`）を削除して、親要素から色を継承できるようにする
+- これにより、様々なコンテキストで再利用可能になる
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 4. 型安全性: 意図しない属性の上書き防止
+
+**問題**: `RadioProps`は`React.InputHTMLAttributes<HTMLInputElement>`を継承しているため、`id`属性をpropsとして受け取れてしまう。しかし、このコンポーネントは内部で各ラジオボタンに一意のIDを生成して割り当てている。外部から`id`が渡されると、すべてのラジオボタンに同じ`id`が適用されてしまい、HTMLの仕様に反する重複IDが発生する。
+
+**解決策**: `RadioProps`の型定義で`id`を`Omit`する。
+
+```typescript
+// ❌ 悪い例: id属性が受け取れてしまう
+export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+
+// ✅ 良い例: id属性をOmitして上書きを防止
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id'
+> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+### 5. アクセシビリティ: IDが指定されない場合のフォールバック
+
+**問題**: `Input`、`Select`、`Textarea`コンポーネントは`error`または`helperText`が指定された場合、`aria-describedby`を正しく機能させるために`id` propに依存している。しかし、`id`が渡されない場合のフォールバックがない。これにより、アクセシビリティが損なわれる可能性がある。
+
+**解決策**: Reactの`useId`フックを使って`id`が指定されなかった場合に安定したIDを生成する。
+
+```typescript
+// ❌ 悪い例: idが指定されない場合、aria-describedbyが機能しない
+export function Input({ error, helperText, ...props }: InputProps): React.JSX.Element {
+  return (
+    <div>
+      <input
+        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
+        {...props}
+      />
+      {(error || helperText) && (
+        <p id={`${props.id}-helper`}>
+          {error || helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ✅ 良い例: useIdでIDを生成
+'use client';
+import React, { useId } from 'react';
+
+export function Input({ error, helperText, id, ...props }: InputProps): React.JSX.Element {
+  const reactId = useId();
+  const inputId = id || reactId;
+
+  return (
+    <div>
+      <input
+        id={inputId}
+        aria-describedby={error || helperText ? `${inputId}-helper` : undefined}
+        {...props}
+      />
+      {(error || helperText) && (
+        <p id={`${inputId}-helper`}>
+          {error || helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
+
+---
+
+## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第2回から学習）
+
+### 1. Next.js App Router: クライアントコンポーネントの明示的なマーク付け
+
+**問題**: イベントハンドラ（`onClick`、`onChange`など）を受け取るコンポーネントは、Next.jsのApp Router環境ではクライアントコンポーネントとしてマークする必要があります。これがないと、本番ビルドでエラーが発生する可能性があります。
+
+**解決策**: ファイルの先頭に`'use client'`ディレクティブを追加する。
+
+```typescript
+// ❌ 悪い例: 'use client'ディレクティブがない
+import React from 'react';
+
+export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
+  return <button onClick={onClick}>...</button>;
+}
+
+// ✅ 良い例: 'use client'ディレクティブを追加
+'use client';
+
+import React from 'react';
+
+export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
+  return <button onClick={onClick}>...</button>;
+}
+```
+
+**適用対象**:
+
+- イベントハンドラ（`onClick`、`onChange`、`onSubmit`など）を受け取るコンポーネント
+- React Hooks（`useState`、`useEffect`、`useId`など）を使用するコンポーネント
+- ブラウザAPI（`document`、`window`など）にアクセスするコンポーネント
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 2. 型安全性: document.activeElementの安全な型チェック
+
+**問題**: `document.activeElement`を`HTMLElement`として型アサーションしていますが、`document.activeElement`は`null`であったり、`SVGElement`のように`HTMLElement`ではない要素である可能性があります。`focus()`メソッドを持たない要素の場合、フォーカスを戻す際に実行時エラーが発生する可能性があります。
+
+**解決策**: `instanceof HTMLElement`でチェックしてから代入する。
+
+```typescript
+// ❌ 悪い例: 型アサーションのみ
+if (isOpen) {
+  previousActiveElementRef.current = document.activeElement as HTMLElement;
+}
+
+// ✅ 良い例: instanceofでチェック
+if (isOpen) {
+  if (document.activeElement instanceof HTMLElement) {
+    previousActiveElementRef.current = document.activeElement;
+  }
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 3. パフォーマンス: useEffectの依存配列とコールバック関数のメモ化
+
+**問題**: `useEffect`の依存配列に`onClose`が含まれている場合、親コンポーネントで`onClose`にインライン関数（例: `() => setOpen(false)`）を渡すと、親コンポーネントが再レンダリングされるたびに新しい関数が生成され、この`useEffect`が不必要に再実行されてしまいます。これにより、パフォーマンスの低下や意図しない副作用が生じる可能性があります。
+
+**解決策**: コンポーネントのドキュメントに、`onClose`関数を`useCallback`でメモ化することを推奨する旨を記載する。
+
+```typescript
+/**
+ * Modalコンポーネント
+ * モーダルダイアログ用のコンポーネント
+ *
+ * @param onClose - モーダルを閉じるコールバック関数
+ *   パフォーマンス最適化のため、親コンポーネントで`useCallback`を使用してメモ化することを推奨します。
+ *   例: `const handleClose = useCallback(() => setOpen(false), []);`
+ */
+export function Modal({
+  isOpen,
+  onClose,
+  // ...
+}: ModalProps): React.JSX.Element | null {
+  useEffect(() => {
+    // ...
+  }, [isOpen, onClose]);
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 4. アクセシビリティ: RadioコンポーネントのID重複防止
+
+**問題**: `groupId`が`name` propのみから生成されているため、同じページで同じ`name`を持つ`Radio`コンポーネントが複数存在すると、`aria-describedby`で使用されるヘルパーテキストの`id`が重複してしまいます。これは無効なHTMLとなり、アクセシビリティの問題を引き起こす可能性があります。
+
+**解決策**: Reactの`useId`フックを使用して、コンポーネントインスタンスごとに一意なIDを生成する。
+
+```typescript
+// ❌ 悪い例: nameのみからIDを生成（重複の可能性）
+const groupId = `radio-group-${name}`;
+
+// ✅ 良い例: useIdで一意なIDを生成
+'use client';
+import React, { useId } from 'react';
+
+export function Radio({ name, ... }: RadioProps): React.JSX.Element {
+  const reactId = useId();
+  const groupId = reactId;
+  // ...
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+### 5. UX改善: Selectコンポーネントのプレースホルダー表示
+
+**問題**: プレースホルダーとして機能する`<option>`が、ドロップダウンリストを開いたときにも選択肢として表示されてしまいます。通常、プレースホルダーはリスト内には表示させないのが一般的です。
+
+**解決策**: `hidden`属性を追加することで、このオプションをドロップダウンリストから隠す。
+
+```typescript
+// ❌ 悪い例: hidden属性がない
+{placeholder && (
+  <option value="" disabled>
+    {placeholder}
+  </option>
+)}
+
+// ✅ 良い例: hidden属性を追加
+{placeholder && (
+  <option value="" disabled hidden>
+    {placeholder}
+  </option>
+)}
+```
+
+**注意**: このプレースホルダーを初期値として表示するには、`Select`コンポーネントの呼び出し側で`defaultValue=""`のように設定する必要があります。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
+
+---
+
+## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第3回から学習）
+
+### 1. 状態管理: Radioコンポーネントのvalue/checked/defaultCheckedの適切な管理
+
+**問題**: `Radio`コンポーネントの実装で、`...props`が各ラジオボタンに展開されるため、`value`や`checked`、`defaultChecked`などのプロパティがすべての`<input>`要素に適用されてしまい、意図しない動作や不正なHTMLを生成する原因となります。
+
+**解決策**: グループ全体で単一の`value`（または`defaultValue`）を受け取り、それに基づいて選択状態を管理する。`value`、`checked`、`defaultChecked`を`...props`から除外する。
+
+```typescript
+// ❌ 悪い例: value/checked/defaultCheckedが...propsに含まれる
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id'
+> {
+  options: RadioOption[];
+  name: string;
+  // ...
+}
+
+// ✅ 良い例: value/checked/defaultCheckedを除外し、グループ全体で管理
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'id' | 'value' | 'defaultValue' | 'checked' | 'defaultChecked'
+> {
+  options: RadioOption[];
+  name: string;
+  value?: string;
+  defaultValue?: string;
+  // ...
+}
+
+export function Radio({
+  options,
+  name,
+  value,
+  defaultValue,
+  // ...
+}: RadioProps): React.JSX.Element {
+  // ...
+  {options.map((option) => {
+    return (
+      <input
+        type="radio"
+        name={name}
+        value={option.value}
+        checked={value !== undefined ? value === option.value : undefined}
+        defaultChecked={defaultValue !== undefined ? defaultValue === option.value : undefined}
+        // ...
+      />
+    );
+  })}
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 2. 再利用性: ButtonコンポーネントのloadingTextプロパティ
+
+**問題**: ローディング時のテキスト「読み込み中...」がハードコードされている。これにより、コンポーネントの再利用性が低下し、国際化（i18n）対応が困難になります。
+
+**解決策**: `ButtonProps`に`loadingText?: string;`を追加し、テキストをカスタマイズ可能にする。
+
+```typescript
+// ❌ 悪い例: ハードコードされたテキスト
+{isLoading ? (
+  <>
+    <Spinner size="sm" className="-ml-1 mr-2" />
+    <span>読み込み中...</span>
+  </>
+) : (
+  children
+)}
+
+// ✅ 良い例: loadingTextプロパティでカスタマイズ可能
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  isLoading?: boolean;
+  loadingText?: string;
+  children: React.ReactNode;
+}
+
+export function Button({
+  // ...
+  loadingText = '読み込み中...',
+  // ...
+}: ButtonProps): React.JSX.Element {
+  // ...
+  {isLoading ? (
+    <>
+      <Spinner size="sm" className="-ml-1 mr-2" />
+      <span>{loadingText}</span>
+    </>
+  ) : (
+    children
+  )}
+}
+```
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 3. 堅牢性: Modalコンポーネントのbody.overflow管理（複数モーダル対応）
+
+**問題**: `document.body.style.overflow`を直接操作する方法は、複数のモーダルが同時に（または入れ子で）表示される場合や、他のコンポーネントもbodyのoverflowを操作する場合に問題を引き起こす可能性があります。例えば、モーダルAが開いている最中にモーダルBが開かれ、その後モーダルBが閉じられると、モーダルAが開いているにもかかわらずbodyのスクロールが有効になってしまいます。
+
+**解決策**: 開かれているモーダルの数を管理するカウンターを使用する。
+
+```typescript
+// モーダルが開いている数を管理するカウンター
+let modalCount = 0;
+
+export function Modal({ isOpen, ... }: ModalProps): React.JSX.Element | null {
+  useEffect(() => {
+    if (isOpen) {
+      // モーダル表示時はbodyのスクロールを無効化（複数モーダル対応）
+      modalCount++;
+      if (modalCount === 1) {
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    return (): void => {
+      // モーダルが閉じられたとき、カウンターを減らす
+      if (isOpen) {
+        modalCount--;
+        // すべてのモーダルが閉じられたときのみ、bodyのスクロールを有効化
+        if (modalCount === 0) {
+          document.body.style.overflow = '';
+        }
+      }
+    };
+  }, [isOpen, onClose]);
+  // ...
+}
+```
+
+**代替案**: `react-remove-scroll`のようなライブラリの利用も検討する価値があります。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---
+
+### 4. スタイル管理: Tailwind CSSクラスの安全なマージ
+
+**問題**: Tailwind CSSのクラスを文字列結合で組み立てると、意図しないスタイルの上書きや競合が発生する可能性があります。例えば、利用者が`className` propで背景色を上書きしようとしても、コンポーネント内部のクラスと競合して期待通りに動作しない場合があります。
+
+**解決策**: `tailwind-merge`と`clsx`を組み合わせたユーティリティ関数を使用する。
+
+```typescript
+// ❌ 悪い例: 文字列結合
+<span className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}>
+  {children}
+</span>
+
+// ✅ 良い例: cn関数を使用
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
+<span className={cn(baseStyles, variantStyle, sizeStyle, className)}>
+  {children}
+</span>
+```
+
+**適用対象**: `Badge`、`Button`、`Input`、`Textarea`、`Select`、`Radio`、`Checkbox`、`Card`など、複数のクラス名を組み合わせるすべてのコンポーネント。
+
+**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
+
+---

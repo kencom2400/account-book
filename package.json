@@ -33,7 +33,7 @@
       "prettier --write"
     ],
     "apps/frontend/**/*.{ts,tsx,js,jsx}": [
-      "eslint --config apps/frontend/eslint.config.mjs --fix --max-warnings 0",
+      "eslint --config apps/frontend/eslint.config.mjs --fix --max-warnings 0 --no-warn-ignored",
       "prettier --write"
     ],
     "libs/**/*.{ts,tsx}": [
