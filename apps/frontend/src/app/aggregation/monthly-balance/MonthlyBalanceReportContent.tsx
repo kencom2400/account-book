@@ -3,8 +3,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { MonthlyBalanceGraph } from '@/components/dashboard/MonthlyBalanceGraph';
-import { CategoryPieChartContainer } from '@/components/dashboard/CategoryPieChartContainer';
+import { MonthlyBalanceGraph } from '@/components/charts/MonthlyBalanceGraph';
+import { CategoryPieChartContainer } from '@/components/charts/CategoryPieChartContainer';
 import { aggregationApi, type MonthlyBalanceResponse } from '@/lib/api/aggregation';
 import { formatCurrency } from '@account-book/utils';
 import { CategoryType } from '@account-book/types';

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AssetBalanceCard } from './AssetBalanceCard';
 import { InstitutionAssetList } from './InstitutionAssetList';
-import { AssetBalanceGraph } from './AssetBalanceGraph';
+import { AssetBalanceGraph } from '../charts/AssetBalanceGraph';
 import { aggregationApi, type AssetBalanceResponse } from '@/lib/api/aggregation';
 
 interface AssetBalanceContainerProps {

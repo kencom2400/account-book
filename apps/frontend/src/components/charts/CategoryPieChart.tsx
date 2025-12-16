@@ -105,7 +105,10 @@ interface PieChartTooltipProps {
   }>;
 }
 
-function PieChartTooltip({ active, payload }: PieChartTooltipProps): React.JSX.Element | null {
+export function PieChartTooltip({
+  active,
+  payload,
+}: PieChartTooltipProps): React.JSX.Element | null {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
@@ -135,7 +138,7 @@ interface CustomLegendProps {
   }>;
 }
 
-function CustomLegend({ payload }: CustomLegendProps): React.JSX.Element | null {
+export function CustomLegend({ payload }: CustomLegendProps): React.JSX.Element | null {
   if (!payload || payload.length === 0) {
     return null;
   }

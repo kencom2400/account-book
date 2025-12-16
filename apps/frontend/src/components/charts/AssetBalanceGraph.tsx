@@ -22,6 +22,68 @@ interface AssetBalanceGraphProps {
   institutions: InstitutionAssetDto[];
 }
 
+// グラフデータの型
+interface GraphDataItem {
+  name: string;
+  value: number;
+  percentage: number;
+  icon: string;
+}
+
+// カスタムツールチップ（テスト用にエクスポート）
+export function AssetBalanceCustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: { percentage: number; icon: string; name: string; value: number };
+  }>;
+}): React.JSX.Element | null {
+  if (active && payload && payload.length > 0) {
+    const data = payload[0]?.payload;
+    if (!data) {
+      return null;
+    }
+    return (
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="text-xl">{data.icon}</span>
+          <span className="font-semibold text-gray-900">{data.name}</span>
+        </div>
+        <div className="text-sm">
+          <div className="text-gray-600">金額: {formatCurrency(data.value)}</div>
+          <div className="text-gray-600">構成比: {data.percentage.toFixed(1)}%</div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+// カスタムラベル（Y軸のラベルにアイコンを表示）（テスト用にエクスポート）
+export function AssetBalanceCustomYAxisLabel(props: {
+  y: number;
+  payload?: { value: string };
+  graphData?: GraphDataItem[];
+}): React.JSX.Element {
+  const institution = props.graphData?.find((d) => d.name === props.payload?.value);
+  if (!institution) {
+    return (
+      <text y={props.y} fill="#666" fontSize={12} textAnchor="end" x={-10}>
+        {props.payload?.value}
+      </text>
+    );
+  }
+  return (
+    <text y={props.y} fill="#666" fontSize={12} textAnchor="end" x={-10}>
+      <tspan>{institution.icon} </tspan>
+      <tspan>{props.payload?.value}</tspan>
+    </text>
+  );
+}
+
 /**
  * 資産構成グラフコンポーネント（横棒グラフ）
  * FR-026: 金融機関別資産残高表示
@@ -53,59 +115,6 @@ export function AssetBalanceGraph({ institutions }: AssetBalanceGraphProps): Rea
     );
   }
 
-  // カスタムツールチップ
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{
-      value: number;
-      payload: { percentage: number; icon: string; name: string; value: number };
-    }>;
-  }): React.JSX.Element | null => {
-    if (active && payload && payload.length > 0) {
-      const data = payload[0]?.payload;
-      if (!data) {
-        return null;
-      }
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-xl">{data.icon}</span>
-            <span className="font-semibold text-gray-900">{data.name}</span>
-          </div>
-          <div className="text-sm">
-            <div className="text-gray-600">金額: {formatCurrency(data.value)}</div>
-            <div className="text-gray-600">構成比: {data.percentage.toFixed(1)}%</div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // カスタムラベル（Y軸のラベルにアイコンを表示）
-  const CustomYAxisLabel = (props: {
-    y: number;
-    payload?: { value: string };
-  }): React.JSX.Element => {
-    const institution = graphData.find((d) => d.name === props.payload?.value);
-    if (!institution) {
-      return (
-        <text y={props.y} fill="#666" fontSize={12} textAnchor="end" x={-10}>
-          {props.payload?.value}
-        </text>
-      );
-    }
-    return (
-      <text y={props.y} fill="#666" fontSize={12} textAnchor="end" x={-10}>
-        <tspan>{institution.icon} </tspan>
-        <tspan>{props.payload?.value}</tspan>
-      </text>
-    );
-  };
-
   // 最大値を取得（グラフのスケール調整用）
   const maxValue = Math.max(...graphData.map((d) => d.value));
   const chartMaxValue = maxValue * 1.1; // 10%のマージンを追加
@@ -128,8 +137,13 @@ export function AssetBalanceGraph({ institutions }: AssetBalanceGraphProps): Rea
               tickFormatter={(value: number) => formatCurrency(value)}
               domain={[0, chartMaxValue]}
             />
-            <YAxis type="category" dataKey="name" width={90} tick={CustomYAxisLabel} />
-            <Tooltip content={<CustomTooltip />} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={90}
+              tick={(props) => <AssetBalanceCustomYAxisLabel {...props} graphData={graphData} />}
+            />
+            <Tooltip content={<AssetBalanceCustomTooltip />} />
             <Legend />
             <Bar dataKey="value" name="資産残高" fill={BAR_CHART_COLOR} radius={[0, 4, 4, 0]} />
           </BarChart>

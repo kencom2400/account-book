@@ -10940,3 +10940,91 @@ getAllInstitutionSyncSettings()
 **参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 13-71. 内部コンポーネントのテストはエクスポートして専用テストファイルで実施（PR #400）
+
+**学習元**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
+
+#### 内部コンポーネントのテスト方法
+
+**問題**: コンポーネント内で定義された内部コンポーネント（例：`CustomTooltip`、`CustomYAxisLabel`）をテストする際、テスト名と実際の内容が一致しないテストケースが作成される。
+
+**具体例**:
+
+```typescript
+// ❌ 悪い例: テスト名と実際の内容が一致しない
+it('CustomTooltipがnullを返す（active=false）', () => {
+  // 実際にはnullを返すことを検証していない
+  const { container } = render(<AssetBalanceGraph institutions={mockInstitutions} />);
+  expect(container).toBeTruthy(); // 単にレンダリングされることを確認しているだけ
+});
+```
+
+**解決策**: 内部コンポーネントを`export`して、専用のテストファイルで個別にテストする。
+
+```typescript
+// ✅ 良い例: 内部コンポーネントをエクスポート
+export function AssetBalanceCustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{...}>;
+}): React.JSX.Element | null {
+  // コンポーネントの実装
+}
+
+// ✅ 良い例: 専用のテストファイルで正確にテスト
+describe('AssetBalanceCustomTooltip', () => {
+  it('active=falseの場合、何も表示しない', () => {
+    const { container } = render(
+      <AssetBalanceCustomTooltip active={false} payload={[...]} />
+    );
+    expect(container.firstChild).toBeNull(); // 実際にnullを返すことを検証
+  });
+});
+```
+
+**理由**:
+
+- テストの意図が明確になる
+- コンポーネントの振る舞いをより正確に検証できる
+- テスト名と実際の内容が一致する
+- テストの重複を避けられる
+
+#### テストの重複排除
+
+**問題**: 内部コンポーネントが専用のテストファイルで詳細にテストされている場合、親コンポーネントのテストファイル内の関連テストケースが冗長になる。
+
+**具体例**:
+
+```typescript
+// ❌ 悪い例: 専用テストファイルで既にテストされているのに重複
+// PieChartTooltip.test.tsxで既に詳細にテストされている
+it('PieChartTooltipがnullを返す（active=false）', () => {
+  const { container } = render(<CategoryPieChart data={mockData} />);
+  expect(container).toBeTruthy(); // 実際にはnullを返すことを検証していない
+});
+```
+
+**解決策**: 親コンポーネントのテストでは、`content`プロパティが渡されていることを確認するだけで十分。
+
+```typescript
+// ✅ 良い例: contentプロパティが渡されていることを確認するだけ
+it('PieChartTooltipが正しく設定される', () => {
+  render(<CategoryPieChart data={mockData} />);
+  const tooltip = screen.getByTestId('tooltip');
+  const hasContent = tooltip.getAttribute('data-has-content');
+  expect(hasContent).toBe('true');
+});
+```
+
+**理由**:
+
+- テストの重複と混乱を避けられる
+- テストの責務が明確になる
+- 保守性が向上する
+
+**参照**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
+
+---
