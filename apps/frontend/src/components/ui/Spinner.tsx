@@ -22,7 +22,7 @@ export function Spinner({ size = 'md', className = '' }: SpinnerProps): React.JS
 
   return (
     <svg
-      className={`animate-spin text-blue-600 ${sizeStyle} ${className}`}
+      className={`animate-spin ${sizeStyle} ${className}`}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
