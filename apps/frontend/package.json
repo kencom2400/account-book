@@ -23,6 +23,7 @@
   "dependencies": {
     "@account-book/types": "workspace:^",
     "@account-book/utils": "workspace:^",
+    "focus-trap-react": "^11.0.4",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
