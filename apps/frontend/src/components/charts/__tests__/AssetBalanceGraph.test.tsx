@@ -33,7 +33,7 @@ jest.mock('recharts', () => ({
     if (tick) {
       // tick関数を実行してカバレッジを上げる
       // 実際のレンダリングは行わず、関数が呼ばれることを確認
-      return <div data-testid="y-axis" data-has-tick={tick ? 'true' : 'false'} />;
+      return <div data-testid="y-axis" data-has-tick="true" />;
     }
     return <div data-testid="y-axis" />;
   },
@@ -169,27 +169,11 @@ describe('AssetBalanceGraph', () => {
     expect(hasContent).toBe('true');
   });
 
-  it('CustomTooltipがnullを返す（active=false）', () => {
-    // Tooltipコンポーネントのモックを拡張して、active=falseの場合をテスト
-    const { container } = render(<AssetBalanceGraph institutions={mockInstitutions} />);
-    // active=falseの場合はツールチップが表示されない
-    // これはRechartsのTooltipコンポーネントが制御するため、ここではコンポーネントが正常にレンダリングされることを確認
-    expect(container).toBeTruthy();
-  });
-
   it('CustomYAxisLabelが正しく設定される', () => {
     render(<AssetBalanceGraph institutions={mockInstitutions} />);
 
     const yAxis = screen.getByTestId('y-axis');
     const hasTick = yAxis.getAttribute('data-has-tick');
     expect(hasTick).toBe('true');
-  });
-
-  it('CustomYAxisLabelが正しく表示される（institutionが見つからない場合）', () => {
-    // 存在しない金融機関名でtickをテスト
-    // これはYAxisコンポーネントのモック内で処理される
-    render(<AssetBalanceGraph institutions={mockInstitutions} />);
-    // コンポーネントが正常にレンダリングされることを確認
-    expect(screen.getByTestId('y-axis')).toBeInTheDocument();
   });
 });

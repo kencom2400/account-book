@@ -345,32 +345,12 @@ describe('CategoryPieChart', () => {
     expect(hasContent).toBe('true');
   });
 
-  it('PieChartTooltipがnullを返す（active=false）', () => {
-    // PieChartTooltipコンポーネントがactive=falseの場合にnullを返すことを確認
-    // これはRechartsのTooltipコンポーネントが制御するため、ここではコンポーネントが正常にレンダリングされることを確認
-    const { container } = render(<CategoryPieChart data={mockData} />);
-    expect(container).toBeTruthy();
-  });
-
-  it('PieChartTooltipがnullを返す（payloadが空）', () => {
-    // payloadが空の場合にnullを返すことを確認
-    const { container } = render(<CategoryPieChart data={mockData} />);
-    expect(container).toBeTruthy();
-  });
-
   it('CustomLegendが正しく設定される', () => {
     render(<CategoryPieChart data={mockData} />);
 
     const legend = screen.getByTestId('legend');
     const hasContent = legend.getAttribute('data-has-content');
     expect(hasContent).toBe('true');
-  });
-
-  it('CustomLegendがnullを返す（payloadが空）', () => {
-    // payloadが空の場合にnullを返すことを確認
-    // これはRechartsのLegendコンポーネントが制御するため、ここではコンポーネントが正常にレンダリングされることを確認
-    const { container } = render(<CategoryPieChart data={mockData} />);
-    expect(container).toBeTruthy();
   });
 
   it('カテゴリ名から色が正しく取得される', () => {
