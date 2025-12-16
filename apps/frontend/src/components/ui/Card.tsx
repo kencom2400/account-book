@@ -39,3 +39,24 @@ interface CardContentProps {
 export function CardContent({ children, className = '' }: CardContentProps): React.JSX.Element {
   return <div className={className}>{children}</div>;
 }
+
+interface CardDescriptionProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardDescription({
+  children,
+  className = '',
+}: CardDescriptionProps): React.JSX.Element {
+  return <p className={`text-sm text-gray-600 ${className}`}>{children}</p>;
+}
+
+interface CardFooterProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardFooter({ children, className = '' }: CardFooterProps): React.JSX.Element {
+  return <div className={`mt-4 pt-4 border-t border-gray-200 ${className}`}>{children}</div>;
+}
