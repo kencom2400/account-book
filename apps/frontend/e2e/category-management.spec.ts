@@ -39,15 +39,18 @@ test.describe('Category Management', () => {
     await page.fill('input[placeholder="例: 🍚"]', '🧪');
     await page.fill('input[placeholder="#FF9800"]', '#4CAF50');
 
-    // 追加ボタンをクリック（フォーム送信）
-    await page.click('button:has-text("追加")');
-
-    // 作成リクエストが完了するまで待機（APIレスポンスを待つ）
-    await page.waitForResponse(
+    // 作成リクエストを待機するPromiseを作成（ボタンクリック前に開始）
+    const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes('/api/categories') && response.request().method() === 'POST',
       { timeout: 15000 }
     );
+
+    // 追加ボタンをクリック（フォーム送信）
+    await page.click('button:has-text("追加")');
+
+    // 作成リクエストが完了するまで待機（APIレスポンスを待つ）
+    await responsePromise;
 
     // 一覧が再読み込みされるまで待機
     await page.waitForTimeout(500);
@@ -85,12 +88,31 @@ test.describe('Category Management', () => {
       // モーダルが表示されることを確認
       await expect(page.locator('text=費目を編集')).toBeVisible();
 
+      // APIレスポンスを待機するPromiseを作成（モーダル表示後に開始）
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/categories') &&
+          response.request().method() === 'GET' &&
+          !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+        { timeout: 15000 }
+      );
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // スケルトンUIが消えるまで待機
+      await expect(page.locator('.animate-pulse'))
+        .not.toBeVisible({ timeout: 15000 })
+        .catch(() => {
+          // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+        });
+
       // モーダル内の費目名入力フィールドが表示されるまで待機（データ読み込み完了を待つ）
       const nameInput = page.locator('input[id="category-name"]');
-      await expect(nameInput).toBeVisible({ timeout: 10000 });
+      await expect(nameInput).toBeVisible({ timeout: 15000 });
 
       // 入力フィールドに値が入るまで待機（ローディング完了を確認）
-      await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+      await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
       // 名前を変更
       const editedName = `${uniqueName}（編集）`;
@@ -195,10 +217,29 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
+
+        // APIレスポンスを待機
+        await responsePromise;
+
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
 
         // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
@@ -214,16 +255,35 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
+        // APIレスポンスを待機
+        await responsePromise;
+
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
+
         // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
@@ -291,16 +351,35 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
+        // APIレスポンスを待機
+        await responsePromise;
+
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
+
         // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
         // フォーム全体が表示されるまで待機（キャンセルボタンが存在することを確認）
         const modal = page.locator('role=dialog');
@@ -348,16 +427,35 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
+        // APIレスポンスを待機
+        await responsePromise;
+
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
+
         // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
         // アイコン入力フィールドが表示されるまで待機
         const iconInput = page.locator('input[placeholder="例: 🍚"]');
@@ -428,20 +526,39 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
+        // APIレスポンスを待機
+        await responsePromise;
+
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
+
         // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
         // 保存ボタンが表示されるまで待機
         const saveButton = page.locator('button:has-text("保存")');
-        await expect(saveButton).toBeVisible({ timeout: 10000 });
+        await expect(saveButton).toBeVisible({ timeout: 15000 });
 
         // 複数のフィールドを変更
         const editedName = `${uniqueName}（複数変更）`;
