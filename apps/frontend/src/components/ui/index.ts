@@ -14,3 +14,7 @@ export { Badge, type BadgeProps, type BadgeVariant, type BadgeSize } from './Bad
 export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner';
 export { Modal, type ModalProps } from './Modal';
 export { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from './Card';
+export { Skeleton, type SkeletonProps, type SkeletonVariant } from './Skeleton';
+export { CardSkeleton, type CardSkeletonProps } from './CardSkeleton';
+export { ListSkeleton, type ListSkeletonProps } from './ListSkeleton';
+export { TableSkeleton, type TableSkeletonProps } from './TableSkeleton';
