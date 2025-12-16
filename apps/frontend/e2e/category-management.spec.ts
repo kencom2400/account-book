@@ -216,28 +216,20 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
         await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
 
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
+        await expect(typeSelect).toBeVisible({ timeout: 10000 });
+        await expect(typeSelect).toBeDisabled();
 
-        // セレクトボックスが存在するか確認
-        const selectCount = await typeSelect.count();
-        if (selectCount > 0 && (await typeSelect.isVisible())) {
-          await expect(typeSelect).toBeDisabled();
-          // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
-          const messageVisible = await page
-            .locator('text=カテゴリタイプは変更できません')
-            .isVisible()
-            .catch(() => false);
-          if (messageVisible) {
-            await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible();
-          }
-        }
+        // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
+        await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible();
 
         // 新規作成用のセレクトボックスが表示されていないことを確認
         const createTypeSelect = page.locator('select[id="category-type"]');
