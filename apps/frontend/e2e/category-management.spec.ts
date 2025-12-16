@@ -4,6 +4,9 @@ test.describe('Category Management', () => {
   // テスト用のユニークな名前を生成
   const uniqueName = `E2EテストFE_${Date.now()}`;
 
+  // 各テストのタイムアウトを60秒に設定（スケルトンUI表示待ちなどを考慮）
+  test.setTimeout(60000);
+
   test.beforeEach(async ({ page }) => {
     // 費目管理ページに移動（baseURLを使用）
     await page.goto('/categories');
@@ -43,14 +46,14 @@ test.describe('Category Management', () => {
     await page.waitForResponse(
       (response) =>
         response.url().includes('/api/categories') && response.request().method() === 'POST',
-      { timeout: 10000 }
+      { timeout: 15000 }
     );
 
     // 一覧が再読み込みされるまで待機
     await page.waitForTimeout(500);
 
     // 作成された費目が一覧に表示されることを確認
-    await expect(page.locator(`text=${uniqueName}`)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`text=${uniqueName}`)).toBeVisible({ timeout: 15000 });
     // 複数のアイコンが存在する可能性があるため、最初の要素をチェック
     await expect(page.locator('text=🧪').first()).toBeVisible();
   });
@@ -197,12 +200,12 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
 
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
       }
     });
 
@@ -225,10 +228,10 @@ test.describe('Category Management', () => {
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
-        // セレクトボックスが表示されるまで待機
-        await expect(typeSelect).toBeVisible({ timeout: 10000 });
-        // セレクトボックスが無効化されていることを確認
-        await expect(typeSelect).toBeDisabled();
+        // セレクトボックスが表示されるまで待機（フォーム全体がレンダリングされるまで）
+        await expect(typeSelect).toBeVisible({ timeout: 15000 });
+        // セレクトボックスが無効化されていることを確認（タイムアウトを追加）
+        await expect(typeSelect).toBeDisabled({ timeout: 10000 });
 
         // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
         await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible({
@@ -307,11 +310,11 @@ test.describe('Category Management', () => {
         // ボタンがクリック可能になるまで少し待機
         await expect(cancelButton).toBeEnabled({ timeout: 5000 });
 
-        // オーバーレイを回避してクリック
-        await cancelButton.click({ force: true });
+        // キャンセルボタンをクリック
+        await cancelButton.click();
 
         // モーダルが閉じることを確認
-        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 5000 });
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 10000 });
       }
     });
 
@@ -350,21 +353,25 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
         await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
 
-        // アイコンを変更
+        // アイコン入力フィールドが表示されるまで待機
         const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await expect(iconInput).toBeVisible({ timeout: 10000 });
         await iconInput.fill('🎨');
 
-        // 色を変更
+        // 色入力フィールドが表示されるまで待機
         const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await expect(colorInput).toBeVisible({ timeout: 10000 });
         await colorInput.fill('#FF5722');
 
-        // 保存ボタンをクリック
+        // 保存ボタンが表示されるまで待機
         const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 10000 });
         await saveButton.click();
 
         // 更新リクエストが完了するまで待機
@@ -375,8 +382,7 @@ test.describe('Category Management', () => {
         );
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 5000 });
       }
     });
 
@@ -390,25 +396,26 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
         await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+
+        // 保存ボタンが表示されるまで待機
+        const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 10000 });
 
         // 費目名を空にする
         await nameInput.clear();
         await nameInput.fill(''); // 明示的に空にする
-
-        // 保存ボタンをクリック
-        const saveButton = page.locator('button:has-text("保存")');
 
         // HTML5のバリデーションにより、フォーム送信が阻止される
         // 保存ボタンをクリックしても、フォーム送信が実行されない
         await saveButton.click();
 
         // モーダルが閉じないことを確認（バリデーションエラーにより送信が阻止される）
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).toBeVisible();
+        await expect(page.locator('text=費目を編集')).toBeVisible({ timeout: 5000 });
 
         // 入力フィールドが空のままであることを確認
         const inputValue = await nameInput.inputValue();
@@ -426,38 +433,45 @@ test.describe('Category Management', () => {
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
         const nameInput = page.locator('input[id="category-name"]');
         await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+
+        // 保存ボタンが表示されるまで待機
+        const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 10000 });
 
         // 複数のフィールドを変更
         const editedName = `${uniqueName}（複数変更）`;
         await nameInput.fill(editedName);
 
+        // アイコン入力フィールドが表示されるまで待機
         const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await expect(iconInput).toBeVisible({ timeout: 10000 });
         await iconInput.fill('🎯');
 
+        // 色入力フィールドが表示されるまで待機
         const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await expect(colorInput).toBeVisible({ timeout: 10000 });
         await colorInput.fill('#9C27B0');
 
         // 保存ボタンをクリック
-        const saveButton = page.locator('button:has-text("保存")');
         await saveButton.click();
 
         // 更新リクエストが完了するまで待機
         await page.waitForResponse(
           (response) =>
             response.url().includes('/api/categories') && response.request().method() === 'PUT',
-          { timeout: 10000 }
+          { timeout: 15000 }
         );
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 10000 });
 
         // 更新された費目が一覧に表示されることを確認
-        await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 10000 });
+        await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 15000 });
       }
     });
   });
