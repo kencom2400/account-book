@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
+import { cn } from '../../lib/utils';
 
 export interface RadioOption {
   value: string;
@@ -10,10 +11,12 @@ export interface RadioOption {
 
 export interface RadioProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'id'
+  'type' | 'id' | 'value' | 'defaultValue' | 'checked' | 'defaultChecked'
 > {
   options: RadioOption[];
   name: string;
+  value?: string;
+  defaultValue?: string;
   error?: string;
   helperText?: string;
 }
@@ -25,6 +28,8 @@ export interface RadioProps extends Omit<
 export function Radio({
   options,
   name,
+  value,
+  defaultValue,
   error,
   helperText,
   className = '',
@@ -49,8 +54,15 @@ export function Radio({
                 id={optionId}
                 name={name}
                 value={option.value}
+                checked={value !== undefined ? value === option.value : undefined}
+                defaultChecked={
+                  defaultValue !== undefined ? defaultValue === option.value : undefined
+                }
                 disabled={option.disabled || props.disabled}
-                className={`h-4 w-4 text-blue-600 border-gray-300 focus:ring-2 focus:ring-blue-500 ${className}`}
+                className={cn(
+                  'h-4 w-4 text-blue-600 border-gray-300 focus:ring-2 focus:ring-blue-500',
+                  className
+                )}
                 {...props}
               />
               <label htmlFor={optionId} className="ml-2 text-sm font-medium text-gray-700">

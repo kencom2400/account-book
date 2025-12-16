@@ -66,13 +66,28 @@ describe('Radio', () => {
     expect(handleChange).toHaveBeenCalledTimes(1);
   });
 
-  it('should set checked value when defaultChecked is used', async () => {
+  it('should set checked value when value prop is provided', async () => {
     const handleChange = jest.fn();
-    const user = userEvent.setup();
-    render(<Radio name="test-radio" options={mockOptions} onChange={handleChange} />);
+    const { rerender } = render(
+      <Radio name="test-radio" options={mockOptions} value="option2" onChange={handleChange} />
+    );
 
-    // オプション2をクリックして選択
-    await user.click(screen.getByLabelText('Option 2'));
+    // value propで指定されたオプションが選択されている
+    expect(screen.getByLabelText('Option 2')).toBeChecked();
+    expect(screen.getByLabelText('Option 1')).not.toBeChecked();
+
+    // value propを変更
+    rerender(
+      <Radio name="test-radio" options={mockOptions} value="option1" onChange={handleChange} />
+    );
+    expect(screen.getByLabelText('Option 1')).toBeChecked();
+    expect(screen.getByLabelText('Option 2')).not.toBeChecked();
+  });
+
+  it('should set defaultChecked value when defaultValue prop is provided', () => {
+    render(<Radio name="test-radio" options={mockOptions} defaultValue="option2" />);
+
+    // defaultValue propで指定されたオプションが初期選択されている
     expect(screen.getByLabelText('Option 2')).toBeChecked();
     expect(screen.getByLabelText('Option 1')).not.toBeChecked();
   });
