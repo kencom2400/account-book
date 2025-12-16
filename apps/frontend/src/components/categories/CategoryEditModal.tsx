@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Category } from '@account-book/types';
 import { getCategoryById, updateCategory } from '@/lib/api/categories';
 import { CategoryForm } from './CategoryForm';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface CategoryEditModalProps {
   categoryId: string | null;
@@ -133,7 +134,44 @@ export function CategoryEditModal({
           {/* Body */}
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             {loading ? (
-              <div className="text-center py-8">読み込み中...</div>
+              <div className="space-y-4">
+                {/* タイトルスケルトン */}
+                <Skeleton variant="text" width="w-24" height="h-6" />
+                {/* 費目名フィールドスケルトン */}
+                <div className="space-y-2">
+                  <Skeleton variant="text" width="w-20" height="h-4" />
+                  <Skeleton variant="text" width="w-full" height="h-10" />
+                </div>
+                {/* タイプフィールドスケルトン */}
+                <div className="space-y-2">
+                  <Skeleton variant="text" width="w-16" height="h-4" />
+                  <Skeleton variant="text" width="w-full" height="h-10" />
+                </div>
+                {/* アイコンフィールドスケルトン */}
+                <div className="space-y-2">
+                  <Skeleton variant="text" width="w-24" height="h-4" />
+                  <Skeleton variant="text" width="w-full" height="h-10" />
+                </div>
+                {/* カラーフィールドスケルトン */}
+                <div className="space-y-2">
+                  <Skeleton variant="text" width="w-16" height="h-4" />
+                  <div className="flex gap-2">
+                    <Skeleton variant="rectangular" width={48} height={40} />
+                    <div className="flex-1">
+                      <Skeleton variant="text" width="w-full" height="h-10" />
+                    </div>
+                  </div>
+                </div>
+                {/* ボタンスケルトン */}
+                <div className="flex gap-2 pt-4">
+                  <div className="flex-1">
+                    <Skeleton variant="rectangular" width="w-full" height={40} />
+                  </div>
+                  <div className="flex-1">
+                    <Skeleton variant="rectangular" width="w-full" height={40} />
+                  </div>
+                </div>
+              </div>
             ) : error ? (
               <div className="text-center py-8">
                 <p className="text-red-600 mb-4">{error}</p>
