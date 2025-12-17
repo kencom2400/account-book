@@ -46,3 +46,7 @@ test-results/
 # Turbo
 .turbo/
 apps/backend/src/coverage-reconciliation/
+
+# TypeScript build info
+*.tsbuildinfo
+**/tsconfig.tsbuildinfo
