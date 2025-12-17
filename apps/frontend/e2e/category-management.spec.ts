@@ -25,8 +25,6 @@ test.describe('Category Management', () => {
       });
     }
 
-    // ページをリロードして状態をリセット（テスト間の状態競合を防止）
-    await page.reload();
     // ページが完全に読み込まれるまで待機（networkidleは重いので、domcontentloadedに変更）
     await page.waitForLoadState('domcontentloaded');
   });
