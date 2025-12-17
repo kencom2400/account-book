@@ -40,7 +40,6 @@ Jest設定は `package.json` の `jest` セクションに定義されていま�
 - **rootDir**: `src` - テスト対象のソースコードのルートディレクトリ
 - **testRegex**: `.*\\.spec\\.ts$` - テストファイルのパターン
 - **testEnvironment**: `node` - Node.js環境で実行
-- **setupFilesAfterEnv**: `jest.setup.ts` - テスト実行前のセットアップファイル
 - **clearMocks**: `true` - 各テスト後にモックをクリア
 - **restoreMocks**: `true` - 各テスト後にモックを復元
 
@@ -49,6 +48,8 @@ Jest設定は `package.json` の `jest` セクションに定義されていま�
 `jest.setup.ts` では、以下の設定を行っています：
 
 - `@nestjs/swagger` のモック（テスト時に不要なため）
+
+**注意**: `@nestjs/swagger` のモックは `moduleNameMapper` によって解決されているため、`setupFilesAfterEnv` の設定は不要です。
 
 ## テストユーティリティ
 
@@ -103,10 +104,6 @@ describe('MyService', () => {
     service = module.get<MyService>(MyService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('methodName', () => {
     it('should do something', () => {
       // Arrange
@@ -153,10 +150,6 @@ describe('MyUseCase', () => {
     mockRepository = module.get(MY_REPOSITORY);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should call repository method', async () => {
     // Arrange
     mockRepository.findById.mockResolvedValue({ id: '1' });
@@ -198,7 +191,7 @@ pnpm test:cov
 
 ### 2. モックのクリーンアップ
 
-各テスト後に `jest.clearAllMocks()` を呼び出して、モックの状態をリセットします。
+Jestの設定（`clearMocks: true`, `restoreMocks: true`）により、各テストの前にモックは自動的にリセットされます。そのため、手動で `jest.clearAllMocks()` を呼び出す必要はありません。
 
 ### 3. テストの独立性
 

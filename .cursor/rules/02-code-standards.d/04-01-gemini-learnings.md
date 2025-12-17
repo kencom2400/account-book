@@ -2544,7 +2544,205 @@ refactor(category): Geminiレビュー対応
 
 ---
 
-## 17. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
+## 17. ユニットテスト環境構築から学んだ観点（Issue #93 / PR #404）
+
+### 17-1. Jest設定とドキュメントの整合性 🔴 Medium
+
+**学習元**: PR #404 - Backendユニットテスト環境構築
+
+#### ❌ 避けるべきパターン: Jest設定とドキュメントの不一致
+
+```typescript
+// package.json
+{
+  "jest": {
+    "clearMocks": true,
+    "restoreMocks": true
+  }
+}
+
+// ドキュメントの例
+afterEach(() => {
+  jest.clearAllMocks(); // 不要な手動クリーンアップ
+});
+```
+
+**問題点**:
+
+- Jest設定で`clearMocks: true`と`restoreMocks: true`が有効な場合、手動で`jest.clearAllMocks()`を呼び出す必要がない
+- ドキュメントと実際の設定が矛盾している
+- 不要なコードが含まれることで、設定の意図が不明確になる
+
+#### ✅ 正しいパターン: 設定とドキュメントの整合性
+
+```typescript
+// package.json
+{
+  "jest": {
+    "clearMocks": true,
+    "restoreMocks": true
+  }
+}
+
+// ドキュメントの例（afterEachブロックを削除）
+describe('MyService', () => {
+  let service: MyService;
+
+  beforeEach(async () => {
+    // セットアップ
+  });
+
+  // afterEachブロックは不要（Jest設定で自動的に処理される）
+
+  it('should do something', () => {
+    // テスト
+  });
+});
+```
+
+**推奨アプローチ**:
+
+1. Jest設定で`clearMocks`と`restoreMocks`を有効にする場合は、ドキュメントでもその旨を明記
+2. 手動での`jest.clearAllMocks()`呼び出しは不要であることをドキュメントに記載
+3. 設定とドキュメントの例を一致させる
+
+**ドキュメントの記載例**:
+
+```markdown
+### 2. モックのクリーンアップ
+
+Jestの設定（`clearMocks: true`, `restoreMocks: true`）により、各テストの前にモックは自動的にリセットされます。そのため、手動で `jest.clearAllMocks()` を呼び出す必要はありません。
+```
+
+### 17-2. setupFilesAfterEnvの適切な使用 🔴 Medium
+
+**学習元**: PR #404 - Backendユニットテスト環境構築
+
+#### ❌ 避けるべきパターン: 副作用のないファイルをsetupFilesAfterEnvに指定
+
+```json
+{
+  "jest": {
+    "moduleNameMapper": {
+      "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
+    },
+    "setupFilesAfterEnv": ["<rootDir>/../jest.setup.ts"]
+  }
+}
+```
+
+**問題点**:
+
+- `jest.setup.ts`がモジュールのエクスポートのみで副作用がない場合、`setupFilesAfterEnv`は不要
+- `moduleNameMapper`で既に解決されているため、重複設定になる
+- 設定が冗長で、意図が不明確
+
+#### ✅ 正しいパターン: 必要な場合のみsetupFilesAfterEnvを使用
+
+```json
+{
+  "jest": {
+    "moduleNameMapper": {
+      "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
+    }
+    // setupFilesAfterEnvは、グローバルなセットアップ処理がある場合のみ使用
+  }
+}
+```
+
+**推奨アプローチ**:
+
+1. `setupFilesAfterEnv`は、グローバルなセットアップ処理（例: 環境変数の設定、グローバルモックの設定）がある場合のみ使用
+2. モジュールのエクスポートのみの場合は`moduleNameMapper`で十分
+3. 将来的にグローバルセットアップを追加する予定がある場合は、その旨をコメントで明記
+
+### 17-3. モックファクトリーの型安全性 🔴 Medium
+
+**学習元**: PR #404 - Backendユニットテスト環境構築
+
+#### ❌ 避けるべきパターン: 手動で型定義を重複定義
+
+```typescript
+export function createMockTransaction(
+  overrides?: Partial<{
+    id: string;
+    date: Date;
+    amount: number;
+    // ... 手動で全てのプロパティを定義
+  }>
+): TransactionEntity {
+  // ...
+}
+```
+
+**問題点**:
+
+- エンティティのプロパティが変更された際に、モックファクトリーの型定義も手動で更新する必要がある
+- 型定義の重複により、メンテナンス性が低下
+- 型の不整合が発生するリスク
+
+#### ✅ 正しいパターン: エンティティの型を直接使用
+
+```typescript
+export function createMockTransaction(overrides?: Partial<TransactionEntity>): TransactionEntity {
+  const defaultDate = new Date('2024-01-15');
+  return new TransactionEntity(
+    overrides?.id ?? 'tx_test_123',
+    overrides?.date ?? defaultDate
+    // ...
+  );
+}
+```
+
+**推奨アプローチ**:
+
+1. モックファクトリーの`overrides`パラメータは`Partial<EntityType>`を使用
+2. エンティティの型変更に自動的に追従できる
+3. 型定義の重複を避け、メンテナンス性を向上
+
+### 17-4. Null合体演算子の使用 🔴 Medium
+
+**学習元**: PR #404 - Backendユニットテスト環境構築
+
+#### ❌ 避けるべきパターン: 論理OR演算子（||）の不適切な使用
+
+```typescript
+return new TransactionEntity(
+  overrides?.id || 'tx_test_123',
+  overrides?.amount || 1000,
+  overrides?.isReconciled || false
+);
+```
+
+**問題点**:
+
+- `''`（空文字）や`0`のようなFalsyな値を意図的に`overrides`で渡したい場合に、意図せずデフォルト値が使われてしまう
+- テストデータの意図が正確に反映されない可能性がある
+
+#### ✅ 正しいパターン: Null合体演算子（??）の使用
+
+```typescript
+return new TransactionEntity(
+  overrides?.id ?? 'tx_test_123',
+  overrides?.amount ?? 1000,
+  overrides?.isReconciled ?? false
+);
+```
+
+**推奨アプローチ**:
+
+1. デフォルト値の設定には`??`（Null合体演算子）を使用
+2. `null`または`undefined`の場合のみデフォルト値を使用
+3. Falsyな値（`0`, `''`, `false`）を意図的に渡せるようにする
+
+**判断基準**:
+
+- `||`を使用: 値がFalsyな場合にデフォルト値を使用したい場合（例: 空文字列をデフォルト値に変換）
+- `??`を使用: 値が`null`または`undefined`の場合のみデフォルト値を使用したい場合（推奨）
+
+---
+
+## 18. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
 
 ### 16-1. 認証設計の明確化 🔴 Critical
 
