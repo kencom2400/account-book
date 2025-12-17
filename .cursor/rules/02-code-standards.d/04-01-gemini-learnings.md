@@ -12029,3 +12029,136 @@ return 'エラー';
 **参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘 第2回）
 
 ---
+
+### 13-XX. UIコンポーネントのクラス名マージ（PR #405）
+
+**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+#### cnユーティリティの使用
+
+**問題**: テンプレートリテラルでクラス名を結合している
+
+**解決策**: `cn`ユーティリティを使用してクラス名をマージする
+
+```typescript
+// ❌ 悪い例: テンプレートリテラルで結合
+<div className={`min-h-screen flex items-center justify-center ${className}`}>
+
+// ✅ 良い例: cnユーティリティを使用
+import { cn } from '../../lib/utils';
+
+<div className={cn('min-h-screen flex items-center justify-center', className)}>
+```
+
+**理由**:
+
+- プロジェクト全体で一貫性を保つ
+- 予期せぬスタイルの上書きを防ぐ
+- 条件付きクラス名の追加が容易
+
+**適用対象**: すべてのUIコンポーネントで、クラス名を結合する場合。
+
+**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-YY. コンポーネントのレイアウト責務（PR #405）
+
+**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+#### ページ全体レイアウトを持つコンポーネントの使用
+
+**問題**: ページ全体のレイアウト（`min-h-screen`など）を持つコンポーネントを、さらにdivで囲んでいる
+
+**解決策**: コンポーネント自体がレイアウトを持っている場合は、直接返す
+
+```typescript
+// ❌ 悪い例: 不要なdivで囲む
+if (loading) {
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <PageLoading />
+      </div>
+    </div>
+  );
+}
+
+// ✅ 良い例: コンポーネントを直接返す
+if (loading) {
+  return <PageLoading />;
+}
+```
+
+**理由**:
+
+- コードがシンプルになる
+- コンポーネントの責務が明確になる
+- 不要なDOM要素を削減できる
+
+**適用対象**: ページ全体のレイアウトを持つコンポーネント（`PageLoading`など）を使用する場合。
+
+**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 13-ZZ. E2Eテストのヘルパー関数化（PR #405）
+
+**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+#### 重複するテストロジックの抽出
+
+**問題**: 複数のテストケースで同じロジックが重複している
+
+**解決策**: ヘルパー関数として抽出する
+
+```typescript
+// ❌ 悪い例: ロジックが重複
+test('テスト1', async ({ page }) => {
+  const responsePromise = page.waitForResponse(...);
+  await editButton.click();
+  await expect(...).toBeVisible();
+  await responsePromise;
+  // ... 同じロジックが繰り返される
+});
+
+test('テスト2', async ({ page }) => {
+  const responsePromise = page.waitForResponse(...);
+  await editButton.click();
+  await expect(...).toBeVisible();
+  await responsePromise;
+  // ... 同じロジックが繰り返される
+});
+
+// ✅ 良い例: ヘルパー関数として抽出
+async function openAndAwaitEditModal(page: Page) {
+  const editButton = page.locator('button:has-text("編集")').first();
+  const responsePromise = page.waitForResponse(...);
+  await editButton.click();
+  await expect(...).toBeVisible();
+  await responsePromise;
+  // ... 共通ロジック
+}
+
+test('テスト1', async ({ page }) => {
+  await openAndAwaitEditModal(page);
+  // テスト固有のアサーション
+});
+
+test('テスト2', async ({ page }) => {
+  await openAndAwaitEditModal(page);
+  // テスト固有のアサーション
+});
+```
+
+**理由**:
+
+- テストの可読性が向上
+- メンテナンス性が向上（ロジック変更時に1箇所の修正で済む）
+- テストコードの重複を排除
+
+**適用対象**: E2Eテストで、複数のテストケースで同じロジックが繰り返される場合。
+
+**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
+
+---
