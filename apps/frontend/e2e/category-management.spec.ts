@@ -83,12 +83,7 @@ test.describe('Category Management', () => {
     const count = await editButtons.count();
 
     if (count > 0) {
-      await editButtons.first().click();
-
-      // モーダルが表示されることを確認
-      await expect(page.locator('text=費目を編集')).toBeVisible();
-
-      // APIレスポンスを待機するPromiseを作成（モーダル表示後に開始）
+      // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
       const responsePromise = page.waitForResponse(
         (response) =>
           response.url().includes('/api/categories') &&
@@ -96,6 +91,11 @@ test.describe('Category Management', () => {
           !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
         { timeout: 15000 }
       );
+
+      await editButtons.first().click();
+
+      // モーダルが表示されることを確認
+      await expect(page.locator('text=費目を編集')).toBeVisible();
 
       // APIレスポンスを待機
       await responsePromise;
