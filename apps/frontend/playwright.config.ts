@@ -48,7 +48,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // ローカル環境でも並列実行を無効化して、テスト間の状態競合を防止（Issue #414）
+  workers: 1,
   timeout: 60000, // 各テストのタイムアウトを60秒に設定（webServer起動待ちを考慮）
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
