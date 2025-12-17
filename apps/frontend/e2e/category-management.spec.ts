@@ -204,14 +204,14 @@ test.describe('Category Management', () => {
     async function openAndAwaitEditModal(page: Page) {
       const editButton = page.locator('button:has-text("編集")').first();
       const responsePromise = page.waitForResponse(
-        (response) => {
+        async (response) => {
           const url = response.url();
-          return (
-            url.includes('/api/categories') &&
-            response.request().method() === 'GET' &&
-            !url.includes('/api/categories?') && // クエリパラメータがない（一覧取得ではない）
-            url.match(/\/api\/categories\/[^/?]+$/) !== null // UUIDパターンに一致（個別取得）
-          );
+          const isCategoryGet =
+            url.includes('/api/categories') && response.request().method() === 'GET';
+          const isNotList = !url.includes('/api/categories?'); // クエリパラメータがない（一覧取得ではない）
+          const isIndividual = url.match(/\/api\/categories\/[^/?]+$/) !== null; // UUIDパターンに一致（個別取得）
+          const isSuccess = response.status() === 200;
+          return isCategoryGet && isNotList && isIndividual && isSuccess;
         },
         { timeout: 15000 }
       );
@@ -220,7 +220,9 @@ test.describe('Category Management', () => {
       await expect(page.locator('text=費目を編集')).toBeVisible();
 
       // APIレスポンスを待機
-      await responsePromise;
+      const response = await responsePromise;
+      // レスポンスが成功していることを確認
+      expect(response.status()).toBe(200);
 
       // スケルトンUIが消えるまで待機
       await expect(page.locator('.animate-pulse'))
