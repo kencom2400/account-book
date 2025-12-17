@@ -12374,3 +12374,122 @@ test.beforeEach(async ({ page }) => {
 **参照**: PR #416 - Issue #414: E2Eテストの不安定な失敗を修正（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 13-XX-8. テストコードの品質向上: import文の統合、マジックストリングの定数化、固定日付の使用（PR #418）
+
+**問題**: テストコードで以下の問題が指摘された：
+
+1. **import文の分離**: 同じモジュールから複数の要素を別々のimport文でインポートしている
+2. **マジックストリングの使用**: テスト全体で`'tx_1'`, `'cat_1'`, `'Food'`などのマジックストリングが繰り返し使用されている
+3. **動的日付の使用**: `new Date()`を使用しており、テストの再現性が低い
+
+**解決策**:
+
+### 1. import文の統合
+
+同じモジュールから複数の要素をインポートする場合、1つの`import`文にまとめる：
+
+```typescript
+// ❌ 悪い例: 別々のimport文
+import { TRANSACTION_REPOSITORY } from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
+import { ITransactionRepository } from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
+
+// ✅ 良い例: 1つのimport文にまとめる
+import {
+  TRANSACTION_REPOSITORY,
+  ITransactionRepository,
+} from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
+```
+
+**理由**:
+
+- コードがすっきりし、可読性が向上
+- 同じモジュールからのインポートが一目で分かる
+
+### 2. マジックストリングの定数化
+
+テスト全体で使用されるマジックストリングを`describe`ブロックの先頭で定数として定義：
+
+```typescript
+// ✅ 良い例: テストデータ定数を定義
+describe('TransactionTypeOrmRepository Integration', () => {
+  // テストデータ定数
+  const TX_ID_1 = 'tx_1';
+  const TX_ID_2 = 'tx_2';
+  const CAT_ID_1 = 'cat_1';
+  const CAT_ID_2 = 'cat_2';
+  const CAT_NAME_1 = 'Food';
+  const CAT_NAME_2 = 'Transport';
+  const INST_ID_1 = 'inst_1';
+  const ACC_ID_1 = 'acc_1';
+  const TEST_DESCRIPTION = 'Test transaction';
+  const TEST_AMOUNT_1 = 1000;
+  const TEST_AMOUNT_2 = 2000;
+
+  // テスト内で使用
+  it('should save a transaction', async () => {
+    const transaction = new TransactionEntity(
+      TX_ID_1,
+      TEST_DATE_1,
+      TEST_AMOUNT_1,
+      {
+        id: CAT_ID_1,
+        name: CAT_NAME_1,
+        type: CategoryType.EXPENSE,
+      },
+      TEST_DESCRIPTION,
+      INST_ID_1,
+      ACC_ID_1
+      // ...
+    );
+  });
+});
+```
+
+**理由**:
+
+- 値を変更する必要が生じた場合に一箇所を修正するだけで済む
+- タイプミスによるエラーを防ぎやすい
+- テストの可読性と保守性が向上
+
+### 3. 固定日付の使用
+
+`new Date()`の代わりに固定の日付を使用してテストの再現性を高める：
+
+```typescript
+// ❌ 悪い例: 動的日付
+const transaction = new TransactionEntity(
+  'tx_1',
+  new Date('2024-01-15'),
+  1000,
+  // ...
+  new Date(),
+  new Date()
+);
+
+// ✅ 良い例: 固定日付
+const FIXED_DATE = new Date('2024-01-01T00:00:00Z');
+const TEST_DATE_1 = new Date('2024-01-15T00:00:00Z');
+const TEST_DATE_2 = new Date('2024-01-16T00:00:00Z');
+
+const transaction = new TransactionEntity(
+  TX_ID_1,
+  TEST_DATE_1,
+  TEST_AMOUNT_1,
+  // ...
+  FIXED_DATE,
+  FIXED_DATE
+);
+```
+
+**理由**:
+
+- テストが実行されるタイミングに依存しなくなり、より安定したテストになる
+- テストの再現性が向上
+- 日付関連のテストケースで期待値を明確に設定できる
+
+**適用対象**: 統合テスト、E2Eテスト、ユニットテスト（特に日付を使用するテスト）
+
+**参照**: PR #418 - Issue #99: Repository統合テストの実装（Gemini Code Assistレビュー指摘）
+
+---
