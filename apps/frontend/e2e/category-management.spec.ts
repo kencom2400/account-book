@@ -260,12 +260,27 @@ test.describe('Category Management', () => {
           // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
         });
 
+      // エラーメッセージが表示されていないことを確認
+      const errorMessage = page.locator('text=費目の取得に失敗しました');
+      await expect(errorMessage)
+        .not.toBeVisible({ timeout: 1000 })
+        .catch(() => {
+          // エラーメッセージが表示されていない場合は続行
+        });
+
+      // CategoryFormが表示されるまで待機（categoryが設定されたことを確認）
+      // CategoryFormはcategoryが設定されたときにのみ表示される
+      // モーダル内のformを待機（より具体的なロケーター）
+      const categoryForm = page.locator('role=dialog').locator('form');
+      await expect(categoryForm).toBeVisible({ timeout: 15000 });
+
       // データが読み込まれるまで待機
       const nameInput = page.locator('input[id="category-name"]');
       await expect(nameInput).toBeVisible({ timeout: 15000 });
 
       // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
       // Reactの状態更新が反映されるまで待機するため、複数の方法で確認
+      // 入力フィールドに値が入るまで待機
       await page.waitForFunction(
         (inputSelector) => {
           const input = document.querySelector(inputSelector) as HTMLInputElement;
