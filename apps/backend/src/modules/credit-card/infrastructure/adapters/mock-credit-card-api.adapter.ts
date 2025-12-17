@@ -83,7 +83,6 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i * Math.floor(daysDiff / 20));
 
-      const isInstallment = Math.random() > 0.8;
       transactions.push({
         id: `tx_${Date.now()}_${i}`,
         date,
@@ -92,10 +91,9 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
         merchantName: this.getMockMerchantName(),
         merchantCategory: this.getMockMerchantCategory(),
         description: 'カード利用',
-        isInstallment,
-        // isInstallmentがtrueの場合、installmentCountは2以上である必要がある
-        installmentCount: isInstallment ? 12 : undefined,
-        installmentNumber: isInstallment ? 1 : undefined,
+        isInstallment: Math.random() > 0.8,
+        installmentCount: Math.random() > 0.8 ? 12 : undefined,
+        installmentNumber: Math.random() > 0.8 ? 1 : undefined,
       });
     }
 

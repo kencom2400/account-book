@@ -1,4 +1,4 @@
-import { IsString, Matches } from 'class-validator';
+import { IsString, IsUUID, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -6,18 +6,11 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class AggregateCardTransactionsRequestDto {
   @ApiProperty({
-    description:
-      'クレジットカードID（UUID形式、またはcc_プレフィックス付きUUID形式）',
-    example: 'cc_550e8400-e29b-41d4-a716-446655440000',
+    description: 'クレジットカードID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
     type: String,
   })
-  @IsString()
-  @Matches(
-    /^(cc_)?[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    {
-      message: 'cardId must be a valid UUID or cc_ prefixed UUID',
-    },
-  )
+  @IsUUID('4')
   cardId!: string;
 
   @ApiProperty({
