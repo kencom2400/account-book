@@ -4,8 +4,8 @@ import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
  * credit_cardsテーブルのIDカラムの長さを36文字から39文字に変更
  * cc_プレフィックス付きUUID（39文字）に対応するため
  */
-export class UpdateCreditCardIdLength1734500000000 implements MigrationInterface {
-  name = 'UpdateCreditCardIdLength1734500000000';
+export class UpdateCreditCardIdLength17345000000000 implements MigrationInterface {
+  name = 'UpdateCreditCardIdLength17345000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // credit_cardsテーブルのIDカラムの長さを36文字から39文字に変更
