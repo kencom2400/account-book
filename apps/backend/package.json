@@ -106,6 +106,8 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
-    }
+    },
+    "clearMocks": true,
+    "restoreMocks": true
   }
 }

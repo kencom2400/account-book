@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Category } from '@account-book/types';
 import { checkCategoryUsage } from '@/lib/api/categories';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { showErrorToast } from '@/components/ui';
+import { Alert } from '@/components/ui/Alert';
 
 interface DeleteConfirmModalProps {
   category: Category;
@@ -65,10 +66,11 @@ export function DeleteConfirmModal({
             <p className="mb-4">「{category.name}」を削除してもよろしいですか？</p>
 
             {isUsed && (
-              <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
-                <p className="text-sm text-yellow-800 mb-2">
-                  ⚠️ この費目は{usageCount}件の取引で使用されています
-                </p>
+              <Alert
+                variant="warning"
+                message={`この費目は${usageCount}件の取引で使用されています`}
+                className="mb-4"
+              >
                 <div className="mt-3">
                   <label htmlFor="replacement-category" className="block text-sm font-medium mb-1">
                     代替費目を選択してください <span className="text-red-500">*</span>
@@ -88,7 +90,7 @@ export function DeleteConfirmModal({
                     ))}
                   </select>
                 </div>
-              </div>
+              </Alert>
             )}
 
             <div className="flex gap-2 mt-6">

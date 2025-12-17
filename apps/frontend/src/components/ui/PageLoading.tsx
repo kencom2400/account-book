@@ -1,5 +1,6 @@
 import React from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
+import { cn } from '../../lib/utils';
 
 export interface PageLoadingProps {
   /**
@@ -22,7 +23,7 @@ export function PageLoading({
   className = '',
 }: PageLoadingProps): React.JSX.Element {
   return (
-    <div className={`min-h-screen flex items-center justify-center ${className}`}>
+    <div className={cn('min-h-screen flex items-center justify-center', className)}>
       <LoadingSpinner size="lg" text={text} />
     </div>
   );

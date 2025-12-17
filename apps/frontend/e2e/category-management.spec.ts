@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 test.describe('Category Management', () => {
   // テスト用のユニークな名前を生成
@@ -198,6 +198,39 @@ test.describe('Category Management', () => {
   });
 
   test.describe('費目編集モーダル', () => {
+    /**
+     * 編集モーダルを開いてデータが読み込まれるまで待機するヘルパー関数
+     */
+    async function openAndAwaitEditModal(page: Page) {
+      const editButton = page.locator('button:has-text("編集")').first();
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/categories') &&
+          response.request().method() === 'GET' &&
+          !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+        { timeout: 15000 }
+      );
+
+      await editButton.click();
+      await expect(page.locator('text=費目を編集')).toBeVisible();
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // スケルトンUIが消えるまで待機
+      await expect(page.locator('.animate-pulse'))
+        .not.toBeVisible({ timeout: 15000 })
+        .catch(() => {
+          // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+        });
+
+      // データが読み込まれるまで待機（スケルトンUIが消えるまで）
+      const nameInput = page.locator('input[id="category-name"]');
+      await expect(nameInput).toBeVisible({ timeout: 15000 });
+      // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+      await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+    }
+
     test('編集モーダルが正しく開く', async ({ page }) => {
       // 編集ボタンをクリック
       const editButtons = page.locator('button:has-text("編集")');
@@ -217,36 +250,7 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
-        const responsePromise = page.waitForResponse(
-          (response) =>
-            response.url().includes('/api/categories') &&
-            response.request().method() === 'GET' &&
-            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
-          { timeout: 15000 }
-        );
-
-        await editButtons.first().click();
-
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // APIレスポンスを待機
-        await responsePromise;
-
-        // スケルトンUIが消えるまで待機
-        await expect(page.locator('.animate-pulse'))
-          .not.toBeVisible({ timeout: 15000 })
-          .catch(() => {
-            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
-          });
-
-        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 15000 });
-
-        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+        await openAndAwaitEditModal(page);
       }
     });
 
@@ -255,35 +259,7 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
-        const responsePromise = page.waitForResponse(
-          (response) =>
-            response.url().includes('/api/categories') &&
-            response.request().method() === 'GET' &&
-            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
-          { timeout: 15000 }
-        );
-
-        await editButtons.first().click();
-
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // APIレスポンスを待機
-        await responsePromise;
-
-        // スケルトンUIが消えるまで待機
-        await expect(page.locator('.animate-pulse'))
-          .not.toBeVisible({ timeout: 15000 })
-          .catch(() => {
-            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
-          });
-
-        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 15000 });
-        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+        await openAndAwaitEditModal(page);
 
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
