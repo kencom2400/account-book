@@ -208,6 +208,10 @@ select_priority_issue() {
     echo ""
     echo "📝 現在のオープンIssue（自分にアサイン）:"
     echo "$TODO_ISSUES" | jq -r '.[] | "  - #\(.number): \(.title) [\(.projectItems[0].status.name // "プロジェクト未登録")]"'
+    echo ""
+    echo "ℹ️  意図しないタスクの実行を防ぐため、自動選択は「📝 To Do」ステータスのIssueのみを対象としています。"
+    echo "   特定のIssueを開始する場合は、Issue番号を指定してください:"
+    echo "   $0 #<ISSUE_NUMBER>"
     exit 1
   fi
   
