@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { startSync } from '@/lib/api/sync';
 import { deleteInstitution } from '@/lib/api/institutions';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { showErrorToast } from '@/components/ui';
 import { getErrorMessage } from '@/utils/error.utils';
 
 interface InstitutionCardProps {

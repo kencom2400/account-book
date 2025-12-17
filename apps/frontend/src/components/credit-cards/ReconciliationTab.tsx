@@ -7,7 +7,7 @@ import { ReconciliationListItem } from '@/lib/api/reconciliation';
 import type { ReconciliationReport } from '@account-book/types';
 import { ReconciliationStatus } from '@account-book/types';
 import { ReconciliationResultCard } from './ReconciliationResultCard';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { showErrorToast } from '@/components/ui';
 
 interface ReconciliationTabProps {
   cardId: string | null;

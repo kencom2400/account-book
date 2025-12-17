@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ErrorModal } from '@/components/notifications/ErrorModal';
+import { ErrorModal } from '@/components/ui';
 
 describe('ErrorModal', () => {
   const mockOnClose = jest.fn();
@@ -46,20 +46,24 @@ describe('ErrorModal', () => {
     expect(screen.getByText('テストエラーメッセージ')).toBeInTheDocument();
   });
 
-  it('エラータイプに応じて正しいヘッダーが表示される', () => {
+  it('エラータイプに応じて正しいタイトルが表示される', () => {
     const { rerender } = render(
-      <ErrorModal isOpen={true} onClose={mockOnClose} type="warning" message="警告" />
+      <ErrorModal isOpen={true} onClose={mockOnClose} type="warning" message="警告メッセージ" />
     );
 
-    expect(screen.getByText('⚠️ 警告')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '警告' })).toBeInTheDocument();
 
-    rerender(<ErrorModal isOpen={true} onClose={mockOnClose} type="error" message="エラー" />);
+    rerender(
+      <ErrorModal isOpen={true} onClose={mockOnClose} type="error" message="エラーメッセージ" />
+    );
 
-    expect(screen.getByText('❌ エラー')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'エラー' })).toBeInTheDocument();
 
-    rerender(<ErrorModal isOpen={true} onClose={mockOnClose} type="critical" message="重大" />);
+    rerender(
+      <ErrorModal isOpen={true} onClose={mockOnClose} type="critical" message="重大メッセージ" />
+    );
 
-    expect(screen.getByText('🚨 重大なエラー')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '重大なエラー' })).toBeInTheDocument();
   });
 
   it('詳細情報が表示される（文字列形式）', () => {
@@ -140,8 +144,9 @@ describe('ErrorModal', () => {
 
     render(<ErrorModal isOpen={true} onClose={mockOnClose} type="error" message="エラー" />);
 
-    const closeButton = screen.getByRole('button', { name: '閉じる' });
-    await user.click(closeButton);
+    const closeButtons = screen.getAllByRole('button', { name: '閉じる' });
+    // モーダル内の「閉じる」ボタンをクリック（最後のボタンがモーダル内のボタン）
+    await user.click(closeButtons[closeButtons.length - 1]);
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });

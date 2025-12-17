@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { aggregationApi } from '@/lib/api/aggregation';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { showErrorToast } from '@/components/ui';
 import { getErrorMessage } from '@/utils/error.utils';
 
 interface AggregateButtonProps {

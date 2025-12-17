@@ -8,7 +8,7 @@ import {
   type PaymentStatus,
 } from '@/lib/api/payment-status';
 import { formatDateTime } from '@/utils/date.utils';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
+import { showErrorToast } from '@/components/ui';
 import { getErrorMessage } from '@/utils/error.utils';
 
 const PAYMENT_STATUSES: PaymentStatus[] = [

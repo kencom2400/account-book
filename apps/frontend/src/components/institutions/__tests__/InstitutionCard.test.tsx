@@ -8,12 +8,13 @@ import { InstitutionCard } from '../InstitutionCard';
 import { Institution, InstitutionType } from '@account-book/types';
 import * as syncApi from '@/lib/api/sync';
 import * as institutionsApi from '@/lib/api/institutions';
-import * as errorToast from '@/components/notifications/ErrorToast';
+import * as errorToast from '@/components/ui';
 
 // モック
 jest.mock('@/lib/api/sync');
 jest.mock('@/lib/api/institutions');
-jest.mock('@/components/notifications/ErrorToast', () => ({
+jest.mock('@/components/ui', () => ({
+  ...jest.requireActual('@/components/ui'),
   showErrorToast: jest.fn(),
 }));
 
