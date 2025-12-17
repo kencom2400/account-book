@@ -11,6 +11,7 @@ import { AssetBalanceContainer } from '@/components/dashboard/AssetBalanceContai
 import { TrendGraph } from '@/components/charts/TrendGraph';
 import { TrendInsights } from '@/components/dashboard/TrendInsights';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { LoadingSpinner } from '@/components/ui';
 import { getTransactions, getMonthlySummary, type MonthlySummary } from '@/lib/api/transactions';
 import {
   aggregationApi,
@@ -226,12 +227,7 @@ export default function DashboardPage(): React.JSX.Element {
             </CardHeader>
             <CardContent>
               {yearlyLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-gray-600 text-sm">読み込み中...</p>
-                  </div>
-                </div>
+                <LoadingSpinner size="md" containerClassName="py-12" />
               ) : yearlyError ? (
                 <div className="text-center py-12">
                   <p className="text-red-600 mb-4">{yearlyError}</p>

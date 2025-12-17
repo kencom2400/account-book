@@ -65,13 +65,13 @@ describe('CategoryEditModal', () => {
       />
     );
 
-    // ローディング状態を確認
-    expect(screen.getByText('読み込み中...')).toBeInTheDocument();
+    // モーダルが表示されることを確認
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('費目を編集')).toBeInTheDocument();
 
-    // データ取得後、モーダルが表示されることを確認
+    // データ取得後、フォームが表示されることを確認
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByText('費目を編集')).toBeInTheDocument();
+      expect(screen.getByLabelText(/費目名/)).toBeInTheDocument();
     });
 
     expect(mockGetCategoryById).toHaveBeenCalledWith('cat-1');

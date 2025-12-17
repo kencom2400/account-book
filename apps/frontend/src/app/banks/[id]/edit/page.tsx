@@ -7,6 +7,7 @@ import { BankSelector } from '@/components/forms/BankSelector';
 import { BankCredentialsForm, BankCredentialsData } from '@/components/forms/BankCredentialsForm';
 import { ConnectionTestResult } from '@/components/forms/ConnectionTestResult';
 import { testBankConnection, updateInstitution, getInstitution } from '@/lib/api/institutions';
+import { PageLoading } from '@/components/ui';
 
 type Step = 'select' | 'credentials' | 'result';
 
@@ -200,16 +201,7 @@ export default function EditBankPage(): React.JSX.Element {
   };
 
   if (state.loadingInstitution) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">読み込み中...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!state.institution) {

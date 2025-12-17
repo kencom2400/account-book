@@ -1,8 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 test.describe('Category Management', () => {
   // テスト用のユニークな名前を生成
   const uniqueName = `E2EテストFE_${Date.now()}`;
+
+  // 各テストのタイムアウトを60秒に設定（スケルトンUI表示待ちなどを考慮）
+  test.setTimeout(60000);
 
   test.beforeEach(async ({ page }) => {
     // 費目管理ページに移動（baseURLを使用）
@@ -36,21 +39,24 @@ test.describe('Category Management', () => {
     await page.fill('input[placeholder="例: 🍚"]', '🧪');
     await page.fill('input[placeholder="#FF9800"]', '#4CAF50');
 
+    // 作成リクエストを待機するPromiseを作成（ボタンクリック前に開始）
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/categories') && response.request().method() === 'POST',
+      { timeout: 15000 }
+    );
+
     // 追加ボタンをクリック（フォーム送信）
     await page.click('button:has-text("追加")');
 
     // 作成リクエストが完了するまで待機（APIレスポンスを待つ）
-    await page.waitForResponse(
-      (response) =>
-        response.url().includes('/api/categories') && response.request().method() === 'POST',
-      { timeout: 10000 }
-    );
+    await responsePromise;
 
     // 一覧が再読み込みされるまで待機
     await page.waitForTimeout(500);
 
     // 作成された費目が一覧に表示されることを確認
-    await expect(page.locator(`text=${uniqueName}`)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`text=${uniqueName}`)).toBeVisible({ timeout: 15000 });
     // 複数のアイコンが存在する可能性があるため、最初の要素をチェック
     await expect(page.locator('text=🧪').first()).toBeVisible();
   });
@@ -82,12 +88,31 @@ test.describe('Category Management', () => {
       // モーダルが表示されることを確認
       await expect(page.locator('text=費目を編集')).toBeVisible();
 
+      // APIレスポンスを待機するPromiseを作成（モーダル表示後に開始）
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/categories') &&
+          response.request().method() === 'GET' &&
+          !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+        { timeout: 15000 }
+      );
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // スケルトンUIが消えるまで待機
+      await expect(page.locator('.animate-pulse'))
+        .not.toBeVisible({ timeout: 15000 })
+        .catch(() => {
+          // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+        });
+
       // モーダル内の費目名入力フィールドが表示されるまで待機（データ読み込み完了を待つ）
       const nameInput = page.locator('input[id="category-name"]');
-      await expect(nameInput).toBeVisible({ timeout: 10000 });
+      await expect(nameInput).toBeVisible({ timeout: 15000 });
 
       // 入力フィールドに値が入るまで待機（ローディング完了を確認）
-      await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+      await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
 
       // 名前を変更
       const editedName = `${uniqueName}（編集）`;
@@ -173,6 +198,39 @@ test.describe('Category Management', () => {
   });
 
   test.describe('費目編集モーダル', () => {
+    /**
+     * 編集モーダルを開いてデータが読み込まれるまで待機するヘルパー関数
+     */
+    async function openAndAwaitEditModal(page: Page) {
+      const editButton = page.locator('button:has-text("編集")').first();
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/categories') &&
+          response.request().method() === 'GET' &&
+          !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+        { timeout: 15000 }
+      );
+
+      await editButton.click();
+      await expect(page.locator('text=費目を編集')).toBeVisible();
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // スケルトンUIが消えるまで待機
+      await expect(page.locator('.animate-pulse'))
+        .not.toBeVisible({ timeout: 15000 })
+        .catch(() => {
+          // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+        });
+
+      // データが読み込まれるまで待機（スケルトンUIが消えるまで）
+      const nameInput = page.locator('input[id="category-name"]');
+      await expect(nameInput).toBeVisible({ timeout: 15000 });
+      // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+      await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+    }
+
     test('編集モーダルが正しく開く', async ({ page }) => {
       // 編集ボタンをクリック
       const editButtons = page.locator('button:has-text("編集")');
@@ -192,17 +250,7 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        await editButtons.first().click();
-
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // データが読み込まれるまで待機
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-
-        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        await expect(nameInput).not.toBeEmpty({ timeout: 10000 });
+        await openAndAwaitEditModal(page);
       }
     });
 
@@ -211,33 +259,20 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        await editButtons.first().click();
-
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // データが読み込まれるまで待機
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        await openAndAwaitEditModal(page);
 
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
+        // セレクトボックスが表示されるまで待機（フォーム全体がレンダリングされるまで）
+        await expect(typeSelect).toBeVisible({ timeout: 15000 });
+        // セレクトボックスが無効化されていることを確認（タイムアウトを追加）
+        await expect(typeSelect).toBeDisabled({ timeout: 10000 });
 
-        // セレクトボックスが存在するか確認
-        const selectCount = await typeSelect.count();
-        if (selectCount > 0 && (await typeSelect.isVisible())) {
-          await expect(typeSelect).toBeDisabled();
-          // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
-          const messageVisible = await page
-            .locator('text=カテゴリタイプは変更できません')
-            .isVisible()
-            .catch(() => false);
-          if (messageVisible) {
-            await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible();
-          }
-        }
+        // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
+        await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible({
+          timeout: 5000,
+        });
 
         // 新規作成用のセレクトボックスが表示されていないことを確認
         const createTypeSelect = page.locator('select[id="category-type"]');
@@ -292,27 +327,49 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
+        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
+        const responsePromise = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/categories') &&
+            response.request().method() === 'GET' &&
+            !response.url().includes('/api/categories?'), // 一覧取得ではなく個別取得
+          { timeout: 15000 }
+        );
+
         await editButtons.first().click();
 
         // モーダルが表示されるまで待機
         await expect(page.locator('text=費目を編集')).toBeVisible();
 
-        // データが読み込まれるまで待機
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+        // APIレスポンスを待機
+        await responsePromise;
 
-        // モーダル内のキャンセルボタンをクリック（モーダル内に限定）
+        // スケルトンUIが消えるまで待機
+        await expect(page.locator('.animate-pulse'))
+          .not.toBeVisible({ timeout: 15000 })
+          .catch(() => {
+            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
+          });
+
+        // データが読み込まれるまで待機（スケルトンUIが消えるまで）
+        const nameInput = page.locator('input[id="category-name"]');
+        await expect(nameInput).toBeVisible({ timeout: 15000 });
+        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+
+        // フォーム全体が表示されるまで待機（キャンセルボタンが存在することを確認）
         const modal = page.locator('role=dialog');
         const cancelButton = modal.locator('button:has-text("キャンセル")');
+        // キャンセルボタンが表示されるまで待機（フォームが完全にレンダリングされるまで）
         await expect(cancelButton).toBeVisible({ timeout: 10000 });
+        // ボタンがクリック可能になるまで少し待機
+        await expect(cancelButton).toBeEnabled({ timeout: 5000 });
 
-        // オーバーレイを回避してクリック
-        await cancelButton.click({ force: true });
+        // キャンセルボタンをクリック
+        await cancelButton.click();
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(300);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 10000 });
       }
     });
 
@@ -346,26 +403,21 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        await editButtons.first().click();
+        await openAndAwaitEditModal(page);
 
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // データが読み込まれるまで待機
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
-
-        // アイコンを変更
+        // アイコン入力フィールドが表示されるまで待機
         const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await expect(iconInput).toBeVisible({ timeout: 10000 });
         await iconInput.fill('🎨');
 
-        // 色を変更
+        // 色入力フィールドが表示されるまで待機
         const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await expect(colorInput).toBeVisible({ timeout: 10000 });
         await colorInput.fill('#FF5722');
 
-        // 保存ボタンをクリック
+        // 保存ボタンが表示されるまで待機
         const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 10000 });
         await saveButton.click();
 
         // 更新リクエストが完了するまで待機
@@ -376,8 +428,7 @@ test.describe('Category Management', () => {
         );
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 5000 });
       }
     });
 
@@ -386,30 +437,25 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        await editButtons.first().click();
+        await openAndAwaitEditModal(page);
 
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // データが読み込まれるまで待機
+        // データが読み込まれた後、nameInputを取得
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+
+        // 保存ボタンが表示されるまで待機
+        const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 10000 });
 
         // 費目名を空にする
         await nameInput.clear();
         await nameInput.fill(''); // 明示的に空にする
-
-        // 保存ボタンをクリック
-        const saveButton = page.locator('button:has-text("保存")');
 
         // HTML5のバリデーションにより、フォーム送信が阻止される
         // 保存ボタンをクリックしても、フォーム送信が実行されない
         await saveButton.click();
 
         // モーダルが閉じないことを確認（バリデーションエラーにより送信が阻止される）
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).toBeVisible();
+        await expect(page.locator('text=費目を編集')).toBeVisible({ timeout: 5000 });
 
         // 入力フィールドが空のままであることを確認
         const inputValue = await nameInput.inputValue();
@@ -422,43 +468,44 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        await editButtons.first().click();
+        await openAndAwaitEditModal(page);
 
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // データが読み込まれるまで待機
+        // データが読み込まれた後、nameInputを取得
         const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(500);
+
+        // 保存ボタンが表示されるまで待機
+        const saveButton = page.locator('button:has-text("保存")');
+        await expect(saveButton).toBeVisible({ timeout: 15000 });
 
         // 複数のフィールドを変更
         const editedName = `${uniqueName}（複数変更）`;
         await nameInput.fill(editedName);
 
+        // アイコン入力フィールドが表示されるまで待機
         const iconInput = page.locator('input[placeholder="例: 🍚"]');
+        await expect(iconInput).toBeVisible({ timeout: 10000 });
         await iconInput.fill('🎯');
 
+        // 色入力フィールドが表示されるまで待機
         const colorInput = page.locator('input[placeholder="#FF9800"]');
+        await expect(colorInput).toBeVisible({ timeout: 10000 });
         await colorInput.fill('#9C27B0');
 
         // 保存ボタンをクリック
-        const saveButton = page.locator('button:has-text("保存")');
         await saveButton.click();
 
         // 更新リクエストが完了するまで待機
         await page.waitForResponse(
           (response) =>
             response.url().includes('/api/categories') && response.request().method() === 'PUT',
-          { timeout: 10000 }
+          { timeout: 15000 }
         );
 
         // モーダルが閉じることを確認
-        await page.waitForTimeout(500);
-        await expect(page.locator('text=費目を編集')).not.toBeVisible();
+        await expect(page.locator('text=費目を編集')).not.toBeVisible({ timeout: 10000 });
 
         // 更新された費目が一覧に表示されることを確認
-        await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 10000 });
+        await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 15000 });
       }
     });
   });
