@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bank } from '@account-book/types';
-import { showErrorToast } from '@/components/notifications/ErrorToast';
-import { ErrorModal } from '@/components/notifications/ErrorModal';
+import { showErrorToast, ErrorModal } from '@/components/ui';
 import { useNotificationStore } from '@/stores/notification.store';
 
 interface BankCredentialsFormProps {

@@ -15,3 +15,5 @@ export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner';
 export { Modal, type ModalProps } from './Modal';
 export { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from './Card';
 export { Alert, type AlertProps, type AlertVariant, type AlertSize } from './Alert';
+export { ErrorModal, type ErrorModalProps } from './ErrorModal';
+export { ErrorToast, showErrorToast, ToasterContainer, type ErrorToastProps } from './ErrorToast';
