@@ -16,8 +16,12 @@ test.describe('ホームページ', () => {
   test('ナビゲーションが機能する', async ({ page }) => {
     await page.goto('/');
 
-    // ダッシュボードへのリンクをクリック
-    await page.getByRole('link', { name: 'ダッシュボードを開く' }).click();
+    // ダッシュボードへのリンクが表示されるまで待機
+    const dashboardLink = page.getByRole('link', { name: 'ダッシュボードを開く' });
+    await expect(dashboardLink).toBeVisible();
+
+    // リンクをクリックしてURLの変更を待機
+    await Promise.all([page.waitForURL(/.*dashboard/, { timeout: 10000 }), dashboardLink.click()]);
 
     // URLが変わることを確認
     await expect(page).toHaveURL(/.*dashboard/);
@@ -28,8 +32,9 @@ test.describe('ホームページ', () => {
 
     // 機能説明のカードが表示されることを確認（first()を使って最初の要素を取得）
     await expect(page.getByText(/収支の可視化|月次・年次での収支バランス/).first()).toBeVisible();
-    await expect(page.getByText(/一元管理|複数の金融機関の資産を一箇所で管理/).first()).toBeVisible();
+    await expect(
+      page.getByText(/一元管理|複数の金融機関の資産を一箇所で管理/).first()
+    ).toBeVisible();
     await expect(page.getByText(/自動分類|取引を自動的にカテゴリ分類/).first()).toBeVisible();
   });
 });
-

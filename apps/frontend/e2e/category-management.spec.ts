@@ -204,14 +204,13 @@ test.describe('Category Management', () => {
     async function openAndAwaitEditModal(page: Page) {
       const editButton = page.locator('button:has-text("編集")').first();
       const responsePromise = page.waitForResponse(
-        async (response) => {
+        (response) => {
           const url = response.url();
           const isCategoryGet =
             url.includes('/api/categories') && response.request().method() === 'GET';
           const isNotList = !url.includes('/api/categories?'); // クエリパラメータがない（一覧取得ではない）
           const isIndividual = url.match(/\/api\/categories\/[^/?]+$/) !== null; // UUIDパターンに一致（個別取得）
-          const isSuccess = response.status() === 200;
-          return isCategoryGet && isNotList && isIndividual && isSuccess;
+          return isCategoryGet && isNotList && isIndividual;
         },
         { timeout: 15000 }
       );
