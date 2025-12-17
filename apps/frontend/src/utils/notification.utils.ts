@@ -10,8 +10,10 @@ export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
     case 'error':
     case 'critical':
       return 'error';
-    default:
+    default: {
+      const _exhaustiveCheck: never = type;
       return 'error';
+    }
   }
 }
 
@@ -26,7 +28,9 @@ export function getNotificationTitle(type: NotificationType): string {
       return 'エラー';
     case 'critical':
       return '重大なエラー';
-    default:
+    default: {
+      const _exhaustiveCheck: never = type;
       return 'エラー';
+    }
   }
 }

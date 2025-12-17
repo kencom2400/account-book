@@ -11759,3 +11759,75 @@ import { getAlertVariant } from '@/utils/notification.utils';
 **参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 22-4. ユーティリティ関数の網羅性チェック 🟡 Medium
+
+**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘 第2回）
+
+#### ❌ 避けるべきパターン: ユーティリティ関数での網羅性チェックなし
+
+\`\`\`typescript
+// ❌ 悪い例: 網羅性チェックなし
+export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
+switch (type) {
+case 'warning':
+return 'warning';
+case 'error':
+case 'critical':
+return 'error';
+default:
+return 'error'; // 新しいNotificationTypeが追加されてもコンパイルエラーにならない
+}
+}
+\`\`\`
+
+**問題点**:
+
+- 新しい\`NotificationType\`が追加された場合、関連するロジックの更新漏れを防げない
+- コンパイル時にエラーが発生しない
+
+#### ✅ 正しいパターン: ユーティリティ関数でもexhaustive checkを使用
+
+\`\`\`typescript
+// ✅ 良い例: exhaustive checkで網羅性を保証
+export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
+switch (type) {
+case 'warning':
+return 'warning';
+case 'error':
+case 'critical':
+return 'error';
+default: {
+const \_exhaustiveCheck: never = type;
+return 'error';
+}
+}
+}
+
+export function getNotificationTitle(type: NotificationType): string {
+switch (type) {
+case 'warning':
+return '警告';
+case 'error':
+return 'エラー';
+case 'critical':
+return '重大なエラー';
+default: {
+const \_exhaustiveCheck: never = type;
+return 'エラー';
+}
+}
+}
+\`\`\`
+
+**理由**:
+
+- \`NotificationType\`に新しい値が追加された場合、コンパイルエラーが発生する
+- 関連するすべてのロジックが更新されることをコンパイラが保証する
+- 型安全性が向上する
+
+**適用対象**: すべてのユーティリティ関数で、型の網羅性を保証したい場合。
+
+**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘 第2回）
+
+---
