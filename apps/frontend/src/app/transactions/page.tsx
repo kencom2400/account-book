@@ -9,6 +9,7 @@ import {
 } from '@/lib/api/transactions';
 import { getInstitutions } from '@/lib/api/institutions';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { LoadingSpinner } from '@/components/ui';
 import { CategoryType } from '@account-book/types';
 import type { Transaction, Institution } from '@account-book/types';
 import {
@@ -407,25 +408,18 @@ export default function TransactionsPage(): React.JSX.Element {
         </Card>
 
         {/* 取引一覧 */}
-        {loading ? (
-          <Card>
-            <CardContent>
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <span className="ml-3 text-gray-600">読み込み中...</span>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent>
+        <Card>
+          <CardContent>
+            {loading ? (
+              <LoadingSpinner size="lg" containerClassName="py-12" />
+            ) : (
               <TransactionList
                 transactions={filteredAndSortedTransactions}
                 onTransactionUpdate={handleTransactionUpdate}
               />
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

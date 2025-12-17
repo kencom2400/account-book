@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { PageLoading } from '@/components/ui';
 import { alertApi, type Alert, AlertStatus, ActionType } from '@/lib/api/alerts';
 import { formatAlertLevel, formatAlertType, getAlertLevelColor } from '@/utils/alert.utils';
 
@@ -96,14 +97,7 @@ export default function AlertDetailPage(): React.JSX.Element {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (error || !alert) {

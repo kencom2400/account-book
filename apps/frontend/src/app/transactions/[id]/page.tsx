@@ -10,6 +10,7 @@ import { useSubcategoryStore } from '@/stores/subcategory.store';
 import { formatCurrency } from '@account-book/utils';
 import { getClassificationReasonText } from '@/utils/classification.utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { LoadingSpinner } from '@/components/ui';
 import Link from 'next/link';
 
 /**
@@ -106,10 +107,7 @@ export default function TransactionDetailPage(): React.JSX.Element {
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardContent>
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <span className="ml-3 text-gray-600">読み込み中...</span>
-              </div>
+              <LoadingSpinner size="lg" containerClassName="py-12" />
             </CardContent>
           </Card>
         </div>
