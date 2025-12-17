@@ -358,52 +358,7 @@ test.describe('Category Management', () => {
       const count = await editButtons.count();
 
       if (count > 0) {
-        // APIレスポンスを待機するPromiseを作成（ボタンクリック前に開始）
-        const responsePromise = page.waitForResponse(
-          (response) => {
-            const url = response.url();
-            const isCategoryGet =
-              url.includes('/api/categories') && response.request().method() === 'GET';
-            const isNotList = !url.includes('/api/categories?'); // クエリパラメータがない（一覧取得ではない）
-            const isIndividual = url.match(/\/api\/categories\/[^/?]+$/) !== null; // UUIDパターンに一致（個別取得）
-            return isCategoryGet && isNotList && isIndividual;
-          },
-          { timeout: 15000 }
-        );
-
-        await editButtons.first().click();
-
-        // モーダルが表示されるまで待機
-        await expect(page.locator('text=費目を編集')).toBeVisible();
-
-        // APIレスポンスを待機
-        const response = await responsePromise;
-        expect(response.status()).toBe(200);
-
-        // スケルトンUIが消えるまで待機
-        await expect(page.locator('.animate-pulse'))
-          .not.toBeVisible({ timeout: 15000 })
-          .catch(() => {
-            // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
-          });
-
-        // データが読み込まれるまで待機
-        const nameInput = page.locator('input[id="category-name"]');
-        await expect(nameInput).toBeVisible({ timeout: 15000 });
-
-        // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-        // まず、フォーム全体がレンダリングされるまで少し待機
-        await page.waitForTimeout(500);
-
-        // 入力フィールドに値が入るまで待機
-        await page.waitForFunction(
-          (inputSelector) => {
-            const input = document.querySelector(inputSelector) as HTMLInputElement;
-            return input && input.value !== '';
-          },
-          'input[id="category-name"]',
-          { timeout: 20000 }
-        );
+        await openAndAwaitEditModal(page);
 
         // フォーム全体が表示されるまで待機（キャンセルボタンが存在することを確認）
         const modal = page.locator('role=dialog');
