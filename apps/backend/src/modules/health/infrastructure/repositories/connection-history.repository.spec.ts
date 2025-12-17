@@ -314,7 +314,9 @@ describe('FileSystemConnectionHistoryRepository', () => {
       const result = await repository.findAll(2);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toBeInstanceOf(ConnectionHistory);
+      // findAllメソッドは日付の降順でソートするため、最新の2件（hist_3, hist_2）が返されることを確認
+      const resultIds = result.map((h) => h.id);
+      expect(resultIds).toEqual(['hist_3', 'hist_2']);
     });
   });
 

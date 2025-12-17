@@ -187,6 +187,11 @@ describe('InstitutionTypeOrmRepository', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBeInstanceOf(InstitutionEntity);
+      expect(mockInstitutionRepository.find).toHaveBeenCalledWith({
+        where: { isConnected: false },
+        relations: ['accounts'],
+        order: { createdAt: 'ASC' },
+      });
     });
   });
 
