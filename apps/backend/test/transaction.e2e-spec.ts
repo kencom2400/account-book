@@ -23,7 +23,9 @@ describe('Transaction Controller (e2e)', () => {
       imports: [AppModule],
     });
 
-    app = await createTestApp(moduleBuilder);
+    app = await createTestApp(moduleBuilder, {
+      setPrefix: 'api',
+    });
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);

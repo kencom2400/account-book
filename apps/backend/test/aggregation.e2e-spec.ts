@@ -18,7 +18,9 @@ describe('Aggregation Controller (e2e)', () => {
       imports: [AppModule],
     });
 
-    app = await createTestApp(moduleBuilder);
+    app = await createTestApp(moduleBuilder, {
+      setPrefix: 'api',
+    });
 
     // データベースヘルパーの初期化
     dbHelper = new E2ETestDatabaseHelper(app);
@@ -60,7 +62,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     // テスト用のクレジットカードを作成
     const cardResponse = await request(app.getHttpServer())
-      .post('/api/credit-cards/connect')
+      .post('/api/api/credit-cards/connect')
       .send({
         cardName: 'テストカード',
         cardNumber: '1234', // 下4桁のみ
@@ -98,7 +100,7 @@ describe('Aggregation Controller (e2e)', () => {
   describe('POST /api/aggregation/card/monthly', () => {
     it('should aggregate card transactions by month', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -112,7 +114,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should aggregate multiple months', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -126,7 +128,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should return 400 for missing cardId', async () => {
       await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           startMonth: '2025-01',
           endMonth: '2025-01',
@@ -136,7 +138,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should return 404 for non-existent card', async () => {
       await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: '00000000-0000-0000-0000-000000000000',
           startMonth: '2025-01',
@@ -150,7 +152,7 @@ describe('Aggregation Controller (e2e)', () => {
     beforeEach(async () => {
       // テスト用の集計を作成
       await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -160,7 +162,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should return all monthly card summaries', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/aggregation/card/monthly')
+        .get('/api/api/aggregation/card/monthly')
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -172,7 +174,7 @@ describe('Aggregation Controller (e2e)', () => {
     beforeEach(async () => {
       // テスト用の集計を作成
       await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -182,7 +184,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should return monthly summaries for a card', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/aggregation/card/monthly/card/${creditCardId}`)
+        .get(`/api/api/aggregation/card/monthly/card/${creditCardId}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -208,7 +210,7 @@ describe('Aggregation Controller (e2e)', () => {
     beforeEach(async () => {
       // テスト用の集計を作成
       const createResponse = await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -224,7 +226,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should return a monthly summary by id', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/api/aggregation/card/monthly/${summaryId}`)
+        .get(`/api/api/aggregation/card/monthly/${summaryId}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -247,7 +249,7 @@ describe('Aggregation Controller (e2e)', () => {
     beforeEach(async () => {
       // テスト用の集計を作成
       const createResponse = await request(app.getHttpServer())
-        .post('/api/aggregation/card/monthly')
+        .post('/api/api/aggregation/card/monthly')
         .send({
           cardId: creditCardId,
           startMonth: '2025-01',
@@ -263,7 +265,7 @@ describe('Aggregation Controller (e2e)', () => {
 
     it('should delete a monthly summary', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/aggregation/card/monthly/${summaryId}`)
+        .delete(`/api/api/aggregation/card/monthly/${summaryId}`)
         .expect(204);
     });
 
