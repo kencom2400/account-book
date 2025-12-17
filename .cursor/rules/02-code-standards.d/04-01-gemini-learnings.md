@@ -12227,3 +12227,98 @@ describe('CreateTransactionUseCase', () => {
 **参照**: PR #412 - Issue #96: Application層ユニットテスト（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 19. ユニットテストのアサーション強化（PR #417）
+
+**学習元**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
+
+### 19-1. テストのアサーションをより具体的にする 🟡 Medium
+
+**問題**: テストのアサーションが不十分で、件数だけをチェックしている場合、ソートや制限が正しく機能していることを保証できない
+
+**解決策**: 返されるデータのIDや順序を検証することで、ソートと制限が正しく機能していることを保証する
+
+```typescript
+// ❌ 悪い例: 件数だけをチェック
+it('should find histories with limit', async () => {
+  const result = await repository.findAll(2);
+
+  expect(result).toHaveLength(2);
+  expect(result[0]).toBeInstanceOf(ConnectionHistory);
+});
+
+// ✅ 良い例: 返されるデータのIDと順序を検証
+it('should find histories with limit', async () => {
+  const mockData = {
+    histories: [
+      { id: 'hist_1', checkedAt: '2024-01-15T00:00:00.000Z', ... },
+      { id: 'hist_2', checkedAt: '2024-01-16T00:00:00.000Z', ... },
+      { id: 'hist_3', checkedAt: '2024-01-17T00:00:00.000Z', ... },
+    ],
+  };
+
+  const result = await repository.findAll(2);
+
+  expect(result).toHaveLength(2);
+  // findAllメソッドは日付の降順でソートするため、最新の2件（hist_3, hist_2）が返されることを確認
+  const resultIds = result.map((h) => h.id);
+  expect(resultIds).toEqual(['hist_3', 'hist_2']);
+});
+```
+
+**理由**:
+
+- ソートや制限が正しく機能していることを保証できる
+- テストの信頼性が向上
+- バグの早期発見が可能
+
+**適用対象**: リポジトリメソッドなど、ソートや制限（limit）を実装しているメソッドのテスト。
+
+**参照**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-2. モックメソッドの呼び出しを検証する 🟡 Medium
+
+**問題**: モックメソッドが正しい引数で呼び出されたことを確認するアサーションが欠けている場合、テストの意図が不明確になる
+
+**解決策**: モックメソッドが期待される引数で呼び出されたことを検証するアサーションを追加する
+
+```typescript
+// ❌ 悪い例: モックメソッドの呼び出しを検証していない
+it('should find disconnected institutions', async () => {
+  mockInstitutionRepository.find.mockResolvedValue([disconnectedEntity as InstitutionOrmEntity]);
+
+  const result = await repository.findByConnectionStatus(false);
+
+  expect(result).toHaveLength(1);
+  expect(result[0]).toBeInstanceOf(InstitutionEntity);
+});
+
+// ✅ 良い例: モックメソッドが正しい引数で呼び出されたことを検証
+it('should find disconnected institutions', async () => {
+  mockInstitutionRepository.find.mockResolvedValue([disconnectedEntity as InstitutionOrmEntity]);
+
+  const result = await repository.findByConnectionStatus(false);
+
+  expect(result).toHaveLength(1);
+  expect(result[0]).toBeInstanceOf(InstitutionEntity);
+  expect(mockInstitutionRepository.find).toHaveBeenCalledWith({
+    where: { isConnected: false },
+    relations: ['accounts'],
+    order: { createdAt: 'ASC' },
+  });
+});
+```
+
+**理由**:
+
+- メソッドが正しい条件で呼び出されることを保証できる
+- テストの意図が明確になる
+- リファクタリング時の安全性が向上
+
+**適用対象**: リポジトリメソッドなど、条件付きでデータを取得するメソッドのテスト。
+
+**参照**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
+
+---

@@ -17,6 +17,13 @@ import { EventNotFoundException } from '../../domain/errors/event.errors';
 
 describe('EventController', () => {
   let controller: EventController;
+  let createEventUseCase: jest.Mocked<CreateEventUseCase>;
+  let updateEventUseCase: jest.Mocked<UpdateEventUseCase>;
+  let deleteEventUseCase: jest.Mocked<DeleteEventUseCase>;
+  let getEventByIdUseCase: jest.Mocked<GetEventByIdUseCase>;
+  let getEventsByDateRangeUseCase: jest.Mocked<GetEventsByDateRangeUseCase>;
+  let linkTransactionToEventUseCase: jest.Mocked<LinkTransactionToEventUseCase>;
+  let unlinkTransactionFromEventUseCase: jest.Mocked<UnlinkTransactionFromEventUseCase>;
   let suggestRelatedTransactionsUseCase: jest.Mocked<SuggestRelatedTransactionsUseCase>;
   let getEventFinancialSummaryUseCase: jest.Mocked<GetEventFinancialSummaryUseCase>;
 
@@ -124,12 +131,229 @@ describe('EventController', () => {
     }).compile();
 
     controller = module.get<EventController>(EventController);
+    createEventUseCase = module.get(CreateEventUseCase);
+    updateEventUseCase = module.get(UpdateEventUseCase);
+    deleteEventUseCase = module.get(DeleteEventUseCase);
+    getEventByIdUseCase = module.get(GetEventByIdUseCase);
+    getEventsByDateRangeUseCase = module.get(GetEventsByDateRangeUseCase);
+    linkTransactionToEventUseCase = module.get(LinkTransactionToEventUseCase);
+    unlinkTransactionFromEventUseCase = module.get(
+      UnlinkTransactionFromEventUseCase,
+    );
     suggestRelatedTransactionsUseCase = module.get(
       SuggestRelatedTransactionsUseCase,
     );
     getEventFinancialSummaryUseCase = module.get(
       GetEventFinancialSummaryUseCase,
     );
+  });
+
+  describe('POST /api/events', () => {
+    it('should create an event', async () => {
+      const event = createEvent();
+      createEventUseCase.execute.mockResolvedValue(event);
+
+      const dto = {
+        date: '2025-08-10',
+        title: '沖縄旅行',
+        description: '家族旅行',
+        category: EventCategory.TRAVEL,
+        tags: ['旅行', '沖縄'],
+      };
+
+      const result = await controller.create(dto);
+
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe(event.id);
+      expect(createEventUseCase.execute).toHaveBeenCalledWith({
+        date: new Date('2025-08-10'),
+        title: '沖縄旅行',
+        description: '家族旅行',
+        category: EventCategory.TRAVEL,
+        tags: ['旅行', '沖縄'],
+      });
+    });
+
+    it('should create an event without description and tags', async () => {
+      const event = createEvent();
+      createEventUseCase.execute.mockResolvedValue(event);
+
+      const dto = {
+        date: '2025-08-10',
+        title: '沖縄旅行',
+        category: EventCategory.TRAVEL,
+      };
+
+      const result = await controller.create(dto);
+
+      expect(result.success).toBe(true);
+      expect(createEventUseCase.execute).toHaveBeenCalledWith({
+        date: new Date('2025-08-10'),
+        title: '沖縄旅行',
+        description: null,
+        category: EventCategory.TRAVEL,
+        tags: [],
+      });
+    });
+  });
+
+  describe('GET /api/events/date-range', () => {
+    it('should find events by date range', async () => {
+      const event1 = createEvent();
+      const event2 = createEvent();
+      getEventsByDateRangeUseCase.execute.mockResolvedValue([event1, event2]);
+
+      const query = {
+        startDate: '2025-08-01',
+        endDate: '2025-08-31',
+      };
+
+      const result = await controller.findByDateRange(query);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+      expect(getEventsByDateRangeUseCase.execute).toHaveBeenCalledWith(
+        new Date('2025-08-01'),
+        new Date('2025-08-31'),
+      );
+    });
+
+    it('should return empty array when no events found', async () => {
+      getEventsByDateRangeUseCase.execute.mockResolvedValue([]);
+
+      const query = {
+        startDate: '2025-08-01',
+        endDate: '2025-08-31',
+      };
+
+      const result = await controller.findByDateRange(query);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+    });
+  });
+
+  describe('GET /api/events/:id', () => {
+    it('should find event by id', async () => {
+      const event = createEvent();
+      const transaction = createTransaction(
+        'txn_1',
+        new Date('2025-08-10'),
+        -50000,
+        '交通費',
+      );
+      getEventByIdUseCase.execute.mockResolvedValue({
+        event,
+        relatedTransactions: [transaction],
+      });
+
+      const result = await controller.findById(event.id);
+
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe(event.id);
+      expect(getEventByIdUseCase.execute).toHaveBeenCalledWith(event.id);
+    });
+
+    it('should throw error when event not found', async () => {
+      getEventByIdUseCase.execute.mockRejectedValue(
+        new EventNotFoundException('nonexistent'),
+      );
+
+      await expect(controller.findById('nonexistent')).rejects.toThrow(
+        EventNotFoundException,
+      );
+    });
+  });
+
+  describe('PUT /api/events/:id', () => {
+    it('should update an event', async () => {
+      const event = createEvent();
+      updateEventUseCase.execute.mockResolvedValue(event);
+
+      const dto = {
+        title: 'Updated Event',
+        description: 'Updated description',
+        category: EventCategory.TRAVEL,
+        tags: ['更新'],
+      };
+
+      const result = await controller.update(event.id, dto);
+
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe(event.id);
+      expect(updateEventUseCase.execute).toHaveBeenCalledWith(event.id, {
+        title: 'Updated Event',
+        description: 'Updated description',
+        category: EventCategory.TRAVEL,
+        tags: ['更新'],
+      });
+    });
+
+    it('should update an event with date', async () => {
+      const event = createEvent();
+      updateEventUseCase.execute.mockResolvedValue(event);
+
+      const dto = {
+        date: '2025-09-10',
+        title: 'Updated Event',
+        category: EventCategory.TRAVEL,
+      };
+
+      const result = await controller.update(event.id, dto);
+
+      expect(result.success).toBe(true);
+      expect(updateEventUseCase.execute).toHaveBeenCalledWith(event.id, {
+        date: new Date('2025-09-10'),
+        title: 'Updated Event',
+        description: undefined,
+        category: EventCategory.TRAVEL,
+        tags: undefined,
+      });
+    });
+  });
+
+  describe('DELETE /api/events/:id', () => {
+    it('should delete an event', async () => {
+      deleteEventUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.delete('event_1');
+
+      expect(deleteEventUseCase.execute).toHaveBeenCalledWith('event_1');
+    });
+  });
+
+  describe('POST /api/events/:id/transactions', () => {
+    it('should link transaction to event', async () => {
+      linkTransactionToEventUseCase.execute.mockResolvedValue(undefined);
+
+      const dto = {
+        transactionId: 'txn_1',
+      };
+
+      const result = await controller.linkTransaction('event_1', dto);
+
+      expect(result.success).toBe(true);
+      expect(result.data.message).toBe('取引とイベントを紐付けました');
+      expect(linkTransactionToEventUseCase.execute).toHaveBeenCalledWith(
+        'event_1',
+        'txn_1',
+      );
+    });
+  });
+
+  describe('DELETE /api/events/:id/transactions/:transactionId', () => {
+    it('should unlink transaction from event', async () => {
+      unlinkTransactionFromEventUseCase.execute.mockResolvedValue(undefined);
+
+      const result = await controller.unlinkTransaction('event_1', 'txn_1');
+
+      expect(result.success).toBe(true);
+      expect(result.data.message).toBe('取引とイベントの紐付けを解除しました');
+      expect(unlinkTransactionFromEventUseCase.execute).toHaveBeenCalledWith(
+        'event_1',
+        'txn_1',
+      );
+    });
   });
 
   describe('GET /api/events/:id/suggest-transactions', () => {
