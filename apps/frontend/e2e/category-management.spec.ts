@@ -445,6 +445,9 @@ test.describe('Category Management', () => {
       if (count > 0) {
         await openAndAwaitEditModal(page);
 
+        // フォーム全体がレンダリングされるまで少し待機
+        await page.waitForTimeout(500);
+
         // データが読み込まれた後、nameInputを取得
         const nameInput = page.locator('input[id="category-name"]');
 
@@ -475,6 +478,9 @@ test.describe('Category Management', () => {
 
       if (count > 0) {
         await openAndAwaitEditModal(page);
+
+        // フォーム全体がレンダリングされるまで少し待機
+        await page.waitForTimeout(500);
 
         // データが読み込まれた後、nameInputを取得
         const nameInput = page.locator('input[id="category-name"]');
