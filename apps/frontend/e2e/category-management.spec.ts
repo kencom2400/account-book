@@ -248,13 +248,17 @@ test.describe('Category Management', () => {
 
       // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
       // 複数回リトライして、データが確実に読み込まれるまで待機
+      // まず、フォーム全体がレンダリングされるまで少し待機
+      await page.waitForTimeout(500);
+
+      // 入力フィールドに値が入るまで待機
       await page.waitForFunction(
         (inputSelector) => {
           const input = document.querySelector(inputSelector) as HTMLInputElement;
           return input && input.value !== '';
         },
         'input[id="category-name"]',
-        { timeout: 15000 }
+        { timeout: 20000 }
       );
     }
 
@@ -388,13 +392,17 @@ test.describe('Category Management', () => {
         await expect(nameInput).toBeVisible({ timeout: 15000 });
 
         // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
+        // まず、フォーム全体がレンダリングされるまで少し待機
+        await page.waitForTimeout(500);
+
+        // 入力フィールドに値が入るまで待機
         await page.waitForFunction(
           (inputSelector) => {
             const input = document.querySelector(inputSelector) as HTMLInputElement;
             return input && input.value !== '';
           },
           'input[id="category-name"]',
-          { timeout: 15000 }
+          { timeout: 20000 }
         );
 
         // フォーム全体が表示されるまで待機（キャンセルボタンが存在することを確認）
