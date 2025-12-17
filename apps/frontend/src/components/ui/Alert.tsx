@@ -97,6 +97,13 @@ const sizeStyles: Record<AlertSize, { padding: string; text: string; icon: strin
   },
 };
 
+const focusRingStyles: Record<AlertVariant, string> = {
+  success: 'focus:ring-green-500',
+  warning: 'focus:ring-yellow-500',
+  error: 'focus:ring-red-500',
+  info: 'focus:ring-blue-500',
+};
+
 /**
  * Alertコンポーネント
  * エラー、警告、情報、成功メッセージを表示するコンポーネント
@@ -161,8 +168,10 @@ export function Alert({
             />
           </svg>
         );
-      default:
+      default: {
+        const _exhaustiveCheck: never = variant;
         return null;
+      }
     }
   };
 
@@ -195,7 +204,7 @@ export function Alert({
               className={cn(
                 'inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
                 variantStyle.text,
-                `focus:ring-${variant === 'success' ? 'green' : variant === 'warning' ? 'yellow' : variant === 'error' ? 'red' : 'blue'}-500`
+                focusRingStyles[variant]
               )}
               aria-label="アラートを閉じる"
             >

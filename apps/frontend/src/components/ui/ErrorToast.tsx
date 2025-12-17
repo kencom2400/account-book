@@ -5,6 +5,7 @@ import toast, { Toaster, Toast } from 'react-hot-toast';
 import { Alert } from './Alert';
 import { Button } from './Button';
 import type { NotificationType } from '@/stores/notification.store';
+import { getAlertVariant } from '@/utils/notification.utils';
 
 export interface ErrorToastProps {
   t: Toast;
@@ -14,18 +15,6 @@ export interface ErrorToastProps {
   onRetry?: () => void;
   onShowDetails?: () => void;
 }
-
-const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
-  switch (type) {
-    case 'warning':
-      return 'warning';
-    case 'error':
-    case 'critical':
-      return 'error';
-    default:
-      return 'error';
-  }
-};
 
 /**
  * ErrorToastコンポーネント

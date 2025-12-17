@@ -6,6 +6,7 @@ import { Alert } from './Alert';
 import { Button } from './Button';
 import type { NotificationType } from '@/stores/notification.store';
 import type { ErrorDetail } from '@account-book/types';
+import { getAlertVariant, getNotificationTitle } from '@/utils/notification.utils';
 
 export interface ErrorModalProps {
   isOpen: boolean;
@@ -18,31 +19,6 @@ export interface ErrorModalProps {
   timestamp?: Date;
   onRetry?: () => Promise<void> | void;
 }
-
-const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
-  switch (type) {
-    case 'warning':
-      return 'warning';
-    case 'error':
-    case 'critical':
-      return 'error';
-    default:
-      return 'error';
-  }
-};
-
-const getTitle = (type: NotificationType): string => {
-  switch (type) {
-    case 'warning':
-      return '警告';
-    case 'error':
-      return 'エラー';
-    case 'critical':
-      return '重大なエラー';
-    default:
-      return 'エラー';
-  }
-};
 
 /**
  * ErrorModalコンポーネント
@@ -76,7 +52,7 @@ export function ErrorModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={getTitle(type)} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={getNotificationTitle(type)} size="md">
       <div className="space-y-4">
         <Alert variant={getAlertVariant(type)} message={message} showIcon={true} />
 
