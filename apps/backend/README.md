@@ -57,6 +57,8 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+詳細なテスト環境の使用方法については、[docs/unit-testing.md](./docs/unit-testing.md) を参照してください。
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
