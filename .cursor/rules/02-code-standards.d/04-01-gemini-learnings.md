@@ -12162,3 +12162,68 @@ test('テスト2', async ({ page }) => {
 **参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 18. テストの安定性と決定性（PR #412）
+
+**学習元**: PR #412 - Issue #96: Application層ユニットテスト（Gemini Code Assistレビュー指摘）
+
+### 18-1. JestのFake Timersを使用した日時の固定 🔴 Medium
+
+**問題**: `new Date()`を直接使用すると、テストの実行タイミングによって値が変わり、テストが不安定になる可能性がある
+
+**解決策**: JestのFake Timers機能を利用して日時を固定する
+
+```typescript
+// ❌ 悪い例: new Date()を直接使用
+describe('CreateTransactionUseCase', () => {
+  it('should create transaction', async () => {
+    const savedTransaction = new TransactionEntity(
+      // ...
+      new Date(), // 実行タイミングによって値が変わる
+      new Date()
+    );
+    // ...
+    const savedCall = repository.save.mock.calls[0][0];
+    // createdAtとupdatedAtをアサートできない（値が予測不可能）
+  });
+});
+
+// ✅ 良い例: JestのFake Timersを使用
+describe('CreateTransactionUseCase', () => {
+  const fixedDate = new Date('2025-01-15T10:00:00Z');
+
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedDate);
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  it('should create transaction', async () => {
+    const savedTransaction = new TransactionEntity(
+      // ...
+      fixedDate,
+      fixedDate
+    );
+    // ...
+    const savedCall = repository.save.mock.calls[0][0];
+    // createdAtとupdatedAtを正確にアサートできる
+    expect(savedCall.createdAt).toEqual(fixedDate);
+    expect(savedCall.updatedAt).toEqual(fixedDate);
+  });
+});
+```
+
+**理由**:
+
+- テストの実行タイミングに依存しない決定的なテストになる
+- `createdAt`や`updatedAt`などのタイムスタンプを正確にアサートできる
+- テストの安定性と信頼性が向上
+
+**適用対象**: UseCaseやServiceなど、`new Date()`を使用してタイムスタンプを生成するロジックをテストする場合。
+
+**参照**: PR #412 - Issue #96: Application層ユニットテスト（Gemini Code Assistレビュー指摘）
+
+---

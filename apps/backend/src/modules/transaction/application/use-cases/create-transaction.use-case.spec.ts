@@ -9,6 +9,7 @@ describe('CreateTransactionUseCase', () => {
   let useCase: CreateTransactionUseCase;
   let repository: jest.Mocked<ITransactionRepository>;
 
+  const fixedDate = new Date('2025-01-15T10:00:00Z');
   const mockDto = {
     date: new Date('2025-01-15'),
     amount: -1500,
@@ -22,6 +23,15 @@ describe('CreateTransactionUseCase', () => {
     accountId: 'acc-001',
     status: TransactionStatus.COMPLETED,
   };
+
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedDate);
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
 
   beforeEach(async () => {
     repository = {
@@ -58,8 +68,8 @@ describe('CreateTransactionUseCase', () => {
         TransactionStatus.COMPLETED,
         false,
         null,
-        new Date(),
-        new Date(),
+        fixedDate,
+        fixedDate,
       );
       repository.save.mockResolvedValue(savedTransaction);
 
@@ -75,6 +85,8 @@ describe('CreateTransactionUseCase', () => {
       expect(savedCall).toBeInstanceOf(TransactionEntity);
       expect(savedCall.amount).toBe(mockDto.amount);
       expect(savedCall.status).toBe(TransactionStatus.COMPLETED);
+      expect(savedCall.createdAt).toEqual(fixedDate);
+      expect(savedCall.updatedAt).toEqual(fixedDate);
     });
 
     it('should create and save transaction with specified status', async () => {
@@ -89,8 +101,8 @@ describe('CreateTransactionUseCase', () => {
         TransactionStatus.PENDING,
         false,
         null,
-        new Date(),
-        new Date(),
+        fixedDate,
+        fixedDate,
       );
       repository.save.mockResolvedValue(savedTransaction);
 
@@ -104,6 +116,8 @@ describe('CreateTransactionUseCase', () => {
       expect(repository.save).toHaveBeenCalled();
       const savedCall = repository.save.mock.calls[0][0];
       expect(savedCall.status).toBe(TransactionStatus.PENDING);
+      expect(savedCall.createdAt).toEqual(fixedDate);
+      expect(savedCall.updatedAt).toEqual(fixedDate);
     });
 
     it('should create transaction with relatedTransactionId', async () => {
@@ -118,8 +132,8 @@ describe('CreateTransactionUseCase', () => {
         TransactionStatus.COMPLETED,
         false,
         'related-trans-001',
-        new Date(),
-        new Date(),
+        fixedDate,
+        fixedDate,
       );
       repository.save.mockResolvedValue(savedTransaction);
 
@@ -133,6 +147,8 @@ describe('CreateTransactionUseCase', () => {
       expect(repository.save).toHaveBeenCalled();
       const savedCall = repository.save.mock.calls[0][0];
       expect(savedCall.relatedTransactionId).toBe('related-trans-001');
+      expect(savedCall.createdAt).toEqual(fixedDate);
+      expect(savedCall.updatedAt).toEqual(fixedDate);
     });
   });
 });
