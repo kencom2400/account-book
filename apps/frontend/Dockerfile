@@ -11,7 +11,9 @@ COPY apps/frontend/package.json ./apps/frontend/
 COPY libs/types/package.json ./libs/types/
 COPY libs/utils/package.json ./libs/utils/
 
-RUN pnpm install --frozen-lockfile
+# postinstallスクリプトをスキップ（Alpine LinuxではPlaywrightの--with-depsが動作しないため）
+# 本番環境ではPlaywrightのブラウザインストールは不要
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ソースコードのコピーとビルド
 COPY . .
