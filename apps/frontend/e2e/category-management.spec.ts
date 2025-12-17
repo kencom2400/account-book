@@ -10,6 +10,36 @@ test.describe('Category Management', () => {
   test.beforeEach(async ({ page }) => {
     // 費目管理ページに移動（baseURLを使用）
     await page.goto('/categories');
+
+    // 前のテストで開いたモーダルが残っている可能性があるため、閉じる処理を追加
+    // モーダルが開いているか確認
+    const modalTitle = page.locator('text=費目を編集');
+    const isModalVisible = await modalTitle.isVisible().catch(() => false);
+
+    if (isModalVisible) {
+      // Xボタンをクリックしてモーダルを閉じる
+      const closeButton = page.locator('button[aria-label="モーダルを閉じる"]');
+      const isCloseButtonVisible = await closeButton.isVisible().catch(() => false);
+
+      if (isCloseButtonVisible) {
+        await closeButton.click();
+        // モーダルが閉じるまで待機
+        await expect(modalTitle)
+          .not.toBeVisible({ timeout: 3000 })
+          .catch(() => {
+            // タイムアウトしても続行（モーダルが既に閉じている可能性）
+          });
+      } else {
+        // Xボタンが見つからない場合は、ESCキーで閉じる
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+      }
+    }
+
+    // ページをリロードして状態をリセット（より確実）
+    await page.reload();
+    // ページが完全に読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
   });
 
   test('費目管理ページが表示される', async ({ page }) => {
