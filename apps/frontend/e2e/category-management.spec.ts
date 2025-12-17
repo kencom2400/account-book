@@ -230,11 +230,20 @@ test.describe('Category Management', () => {
           // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
         });
 
-      // データが読み込まれるまで待機（スケルトンUIが消えるまで）
+      // データが読み込まれるまで待機
       const nameInput = page.locator('input[id="category-name"]');
       await expect(nameInput).toBeVisible({ timeout: 15000 });
+
       // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-      await expect(nameInput).not.toBeEmpty({ timeout: 15000 });
+      // 複数回リトライして、データが確実に読み込まれるまで待機
+      await page.waitForFunction(
+        (inputSelector) => {
+          const input = document.querySelector(inputSelector) as HTMLInputElement;
+          return input && input.value !== '';
+        },
+        'input[id="category-name"]',
+        { timeout: 15000 }
+      );
     }
 
     test('編集モーダルが正しく開く', async ({ page }) => {
