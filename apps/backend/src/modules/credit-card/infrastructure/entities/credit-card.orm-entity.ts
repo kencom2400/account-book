@@ -16,7 +16,7 @@ import {
 @Index(['issuer'])
 @Index(['isConnected'])
 export class CreditCardOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 36 })
+  @PrimaryColumn({ type: 'varchar', length: 39 })
   id!: string;
 
   @Column({ type: 'varchar', length: 255, name: 'card_name' })
