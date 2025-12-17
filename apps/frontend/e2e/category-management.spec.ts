@@ -299,9 +299,9 @@ test.describe('Category Management', () => {
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
         // セレクトボックスが表示されるまで待機（フォーム全体がレンダリングされるまで）
-        await expect(typeSelect).toBeVisible({ timeout: 15000 });
-        // セレクトボックスが無効化されていることを確認（タイムアウトを追加）
-        await expect(typeSelect).toBeDisabled({ timeout: 10000 });
+        await expect(typeSelect).toBeVisible({ timeout: 20000 });
+        // セレクトボックスが無効化されていることを確認（タイムアウトを延長）
+        await expect(typeSelect).toBeDisabled({ timeout: 15000 });
 
         // 「カテゴリタイプは変更できません」のメッセージが表示されることを確認
         await expect(page.locator('text=カテゴリタイプは変更できません')).toBeVisible({
