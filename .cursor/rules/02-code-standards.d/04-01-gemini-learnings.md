@@ -12322,3 +12322,55 @@ it('should find disconnected institutions', async () => {
 **参照**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 19-3. E2Eテストでの状態リセット方法 🟡 Medium
+
+**問題**: E2Eテストの`beforeEach`で、モーダルを明示的に閉じるロジックと`page.reload()`の両方が含まれている場合、冗長でテストの実行時間を増加させる可能性がある
+
+**解決策**: `page.reload()`のみで状態をリセットする（`page.reload()`を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられる）
+
+```typescript
+// ❌ 悪い例: モーダルを閉じるロジックとpage.reload()の両方が含まれている
+test.beforeEach(async ({ page }) => {
+  await page.goto('/categories');
+
+  // モーダルを閉じる処理
+  const modalTitle = page.locator('text=費目を編集');
+  const isModalVisible = await modalTitle.isVisible({ timeout: 1000 }).catch(() => false);
+  if (isModalVisible) {
+    await page.keyboard.press('Escape');
+    await modalTitle.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
+  }
+
+  // ページをリロード
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+});
+
+// ✅ 良い例: page.reload()のみで状態をリセット
+test.beforeEach(async ({ page }) => {
+  await page.goto('/categories');
+
+  // 前のテストで開いたモーダルが残っている可能性があるため、ページをリロードして状態をリセット
+  // page.reload()を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられます
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+});
+```
+
+**理由**:
+
+- コードがシンプルになり、保守性が向上
+- テストの実行時間が短縮される可能性がある
+- `page.reload()`で状態が完全にリセットされるため、より堅牢
+
+**注意点**:
+
+- `page.reload()`を使用する場合は、`workers: 1`で並列実行を無効化することで、タイムアウト問題を回避できる
+- `page.goto()`の後に`page.reload()`を呼び出す場合は、`domcontentloaded`まで待機することを推奨（`networkidle`は重いため）
+
+**適用対象**: E2Eテストの`beforeEach`で、テスト間の状態をリセットする処理。
+
+**参照**: PR #416 - Issue #414: E2Eテストの不安定な失敗を修正（Gemini Code Assistレビュー指摘）
+
+---

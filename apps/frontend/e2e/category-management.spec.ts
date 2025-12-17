@@ -11,20 +11,9 @@ test.describe('Category Management', () => {
     // 費目管理ページに移動（baseURLを使用）
     await page.goto('/categories');
 
-    // 前のテストで開いたモーダルが残っている可能性があるため、閉じる処理を追加
-    // モーダルが開いているか確認（タイムアウトを短く設定）
-    const modalTitle = page.locator('text=費目を編集');
-    const isModalVisible = await modalTitle.isVisible({ timeout: 1000 }).catch(() => false);
-
-    if (isModalVisible) {
-      // ESCキーでモーダルを閉じる（最も確実な方法）
-      await page.keyboard.press('Escape');
-      // モーダルが閉じるまで待機（タイムアウトを短く設定）
-      await modalTitle.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {
-        // タイムアウトしても続行（モーダルが既に閉じている可能性）
-      });
-    }
-
+    // 前のテストで開いたモーダルが残っている可能性があるため、ページをリロードして状態をリセット
+    // page.reload()を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられます
+    await page.reload();
     // ページが完全に読み込まれるまで待機（networkidleは重いので、domcontentloadedに変更）
     await page.waitForLoadState('domcontentloaded');
   });
