@@ -292,6 +292,9 @@ test.describe('Category Management', () => {
       if (count > 0) {
         await openAndAwaitEditModal(page);
 
+        // フォーム全体がレンダリングされるまで少し待機
+        await page.waitForTimeout(500);
+
         // カテゴリタイプのセレクトボックスが無効化されていることを確認
         // 編集モードでは id="category-type-disabled" のセレクトボックスが表示される
         const typeSelect = page.locator('select[id="category-type-disabled"]');
