@@ -11564,3 +11564,198 @@ function cn(...inputs: ClassValue[]): string {
 **参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
 
 ---
+
+## 22. Tailwind CSSとTypeScriptの型安全性（Issue #119 / PR #403）
+
+### 22-1. Tailwind CSSの動的クラス生成の問題 🔴 High
+
+**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+#### ❌ 避けるべきパターン: 動的なクラス名生成
+
+Tailwind CSSのJITコンパイラは、ソースコードを静的に解析して使用されているクラスを検出します。\`focus:ring-\${...}\`のようにクラス名を動的に生成すると、Tailwindがクラスを検出できず、本番ビルドでスタイルが適用されない可能性があります。
+
+\`\`\`typescript
+// ❌ 悪い例: 動的なクラス名生成
+<button
+className={cn(
+'inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
+variantStyle.text,
+\`focus:ring-\${variant === 'success' ? 'green' : variant === 'warning' ? 'yellow' : variant === 'error' ? 'red' : 'blue'}-500\`
+)}
+
+> \`\`\`
+
+**問題点**:
+
+- TailwindのJITコンパイラがクラスを検出できない
+- 本番ビルドでスタイルが適用されない
+- デバッグが困難
+
+#### ✅ 正しいパターン: 静的なマッピングオブジェクト
+
+\`\`\`typescript
+// ✅ 良い例: 静的なマッピングオブジェクト
+const focusRingStyles: Record<AlertVariant, string> = {
+success: 'focus:ring-green-500',
+warning: 'focus:ring-yellow-500',
+error: 'focus:ring-red-500',
+info: 'focus:ring-blue-500',
+};
+
+<button
+className={cn(
+'inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
+variantStyle.text,
+focusRingStyles[variant]
+)}
+
+> \`\`\`
+
+**理由**:
+
+- Tailwindがクラス名を正しく検出できる
+- 本番ビルドで期待どおりのスタイルが生成される
+- 型安全性が保証される
+
+**適用対象**: すべてのTailwind CSSクラスを使用するコンポーネントで、動的なクラス名生成が必要な場合。
+
+**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 22-2. switch文の網羅性チェック 🟡 Medium
+
+**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+#### ❌ 避けるべきパターン: 網羅性チェックなしのswitch文
+
+\`\`\`typescript
+// ❌ 悪い例: 網羅性チェックなし
+switch (variant) {
+case 'success':
+return <SuccessIcon />;
+case 'warning':
+return <WarningIcon />;
+case 'error':
+return <ErrorIcon />;
+case 'info':
+return <InfoIcon />;
+default:
+return null; // 新しいvariantが追加されてもコンパイルエラーにならない
+}
+\`\`\`
+
+**問題点**:
+
+- 新しいvariantが追加された場合、関連するコードの更新漏れを防げない
+- コンパイル時にエラーが発生しない
+
+#### ✅ 正しいパターン: exhaustive checkを使用
+
+\`\`\`typescript
+// ✅ 良い例: exhaustive checkで網羅性を保証
+switch (variant) {
+case 'success':
+return <SuccessIcon />;
+case 'warning':
+return <WarningIcon />;
+case 'error':
+return <ErrorIcon />;
+case 'info':
+return <InfoIcon />;
+default: {
+const \_exhaustiveCheck: never = variant;
+return null;
+}
+}
+\`\`\`
+
+**理由**:
+
+- \`AlertVariant\`に新しい値が追加された場合、コンパイルエラーが発生する
+- 関連するコードの更新漏れを防げる
+- 型安全性が向上する
+
+**適用対象**: すべてのswitch文で、型の網羅性を保証したい場合。
+
+**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 22-3. 重複コードの共通化 🟡 Medium
+
+**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+#### ❌ 避けるべきパターン: 同じ関数の重複定義
+
+\`\`\`typescript
+// ❌ 悪い例: 同じ関数が複数のファイルで重複
+// ErrorModal.tsx
+const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
+switch (type) {
+case 'warning':
+return 'warning';
+case 'error':
+case 'critical':
+return 'error';
+default:
+return 'error';
+}
+};
+
+// ErrorToast.tsx
+const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
+switch (type) {
+case 'warning':
+return 'warning';
+case 'error':
+case 'critical':
+return 'error';
+default:
+return 'error';
+}
+};
+\`\`\`
+
+**問題点**:
+
+- コードの重複により保守性が低下
+- 修正時に複数箇所を更新する必要がある
+- バグの発生リスクが増加
+
+#### ✅ 正しいパターン: 共通のユーティリティファイルに抽出
+
+\`\`\`typescript
+// ✅ 良い例: 共通のユーティリティファイルに抽出
+// utils/notification.utils.ts
+export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
+switch (type) {
+case 'warning':
+return 'warning';
+case 'error':
+case 'critical':
+return 'error';
+default:
+return 'error';
+}
+}
+
+// ErrorModal.tsx
+import { getAlertVariant } from '@/utils/notification.utils';
+
+// ErrorToast.tsx
+import { getAlertVariant } from '@/utils/notification.utils';
+\`\`\`
+
+**理由**:
+
+- コードの重複を排除し、保守性を向上
+- 修正時に1箇所の更新で済む
+- テストが容易になる
+
+**適用対象**: 複数のファイルで同じロジックが使用されている場合。
+
+**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
+
+---
