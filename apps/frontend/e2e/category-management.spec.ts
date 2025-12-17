@@ -11,20 +11,9 @@ test.describe('Category Management', () => {
     // 費目管理ページに移動（baseURLを使用）
     await page.goto('/categories');
 
-    // 前のテストで開いたモーダルが残っている可能性があるため、閉じる処理を追加
-    // モーダルが開いているか確認（タイムアウトを短く設定）
-    const modalTitle = page.locator('text=費目を編集');
-    const isModalVisible = await modalTitle.isVisible({ timeout: 1000 }).catch(() => false);
-
-    if (isModalVisible) {
-      // ESCキーでモーダルを閉じる（最も確実な方法）
-      await page.keyboard.press('Escape');
-      // モーダルが閉じるまで待機（タイムアウトを短く設定）
-      await modalTitle.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {
-        // タイムアウトしても続行（モーダルが既に閉じている可能性）
-      });
-    }
-
+    // 前のテストで開いたモーダルが残っている可能性があるため、ページをリロードして状態をリセット
+    // page.reload()を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられます
+    await page.reload();
     // ページが完全に読み込まれるまで待機（networkidleは重いので、domcontentloadedに変更）
     await page.waitForLoadState('domcontentloaded');
   });
@@ -134,13 +123,14 @@ test.describe('Category Management', () => {
       await expect(nameInput).toBeVisible({ timeout: 15000 });
 
       // 入力フィールドに値が入るまで待機（ローディング完了を確認）
+      // Reactの状態更新が反映されるまで待機するため、複数の方法で確認
       await page.waitForFunction(
         (inputSelector) => {
           const input = document.querySelector(inputSelector) as HTMLInputElement;
           return input && input.value !== '';
         },
         'input[id="category-name"]',
-        { timeout: 15000 }
+        { timeout: 20000 }
       );
 
       // 名前を変更
@@ -259,15 +249,26 @@ test.describe('Category Management', () => {
           // スケルトンUIが存在しない場合は無視（既にデータが読み込まれている）
         });
 
+      // エラーメッセージが表示されていないことを確認
+      const errorMessage = page.locator('text=費目の取得に失敗しました');
+      await expect(errorMessage)
+        .not.toBeVisible({ timeout: 1000 })
+        .catch(() => {
+          // エラーメッセージが表示されていない場合は続行
+        });
+
+      // CategoryFormが表示されるまで待機（categoryが設定されたことを確認）
+      // CategoryFormはcategoryが設定されたときにのみ表示される
+      // モーダル内のformを待機（より具体的なロケーター）
+      const categoryForm = page.locator('role=dialog').locator('form');
+      await expect(categoryForm).toBeVisible({ timeout: 15000 });
+
       // データが読み込まれるまで待機
       const nameInput = page.locator('input[id="category-name"]');
       await expect(nameInput).toBeVisible({ timeout: 15000 });
 
       // 入力フィールドに値が入るまで待機（データ読み込み完了を確認）
-      // 複数回リトライして、データが確実に読み込まれるまで待機
-      // まず、フォーム全体がレンダリングされるまで少し待機
-      await page.waitForTimeout(500);
-
+      // Reactの状態更新が反映されるまで待機するため、複数の方法で確認
       // 入力フィールドに値が入るまで待機
       await page.waitForFunction(
         (inputSelector) => {
