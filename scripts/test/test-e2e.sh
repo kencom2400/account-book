@@ -183,100 +183,63 @@ if [ -n "$E2E_CONTAINERS" ]; then
   fi
 fi
 
-# MySQLコンテナの起動確認と自動起動
-echo "🔍 MySQLコンテナの起動状態を確認中..."
-MYSQL_RUNNING=$(docker ps --filter "name=$CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
-if [ -z "$MYSQL_RUNNING" ]; then
-  echo "ℹ️  MySQLコンテナが起動していません。自動的に起動します..."
-  echo ""
-  docker-compose -f "$COMPOSE_FILE" up -d mysql
-  echo ""
+# サービス起動待機関数（可読性とメンテナンス性向上のため）
+wait_for_service() {
+  local service_name=$1
+  local container_name=$2
+  local port=$3
+  local health_path=$4
+  local max_retries=${5:-60}
+  local retry_interval=${6:-2}
   
-  # MySQLの準備完了を待機
-  echo "⏳ MySQLの準備完了を待機中..."
-  RETRY_COUNT=0
-  MAX_RETRIES=30
-  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if docker-compose -f "$COMPOSE_FILE" exec -T mysql mysqladmin ping -h localhost -u root -p"${MYSQL_ROOT_PASSWORD:-root_password}" >/dev/null 2>&1; then
-      echo "✅ MySQLが準備完了しました"
-      break
+  echo "🔍 ${service_name}コンテナの起動状態を確認中..."
+  local running=$(docker ps --filter "name=$container_name" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
+  
+  if [ -z "$running" ]; then
+    echo "ℹ️  ${service_name}コンテナが起動していません。自動的に起動します..."
+    echo ""
+    docker-compose -f "$COMPOSE_FILE" up -d "$(echo "$container_name" | sed 's/account-book-//' | sed 's/-e2e//')"
+    echo ""
+    
+    # 準備完了を待機
+    echo "⏳ ${service_name}の準備完了を待機中..."
+    local retry_count=0
+    while [ $retry_count -lt $max_retries ]; do
+      if [ "$service_name" = "MySQL" ]; then
+        # MySQLの場合はmysqladmin pingを使用
+        if docker-compose -f "$COMPOSE_FILE" exec -T mysql mysqladmin ping -h localhost -u root -p"${MYSQL_ROOT_PASSWORD:-root_password}" >/dev/null 2>&1; then
+          echo "✅ ${service_name}が準備完了しました"
+          break
+        fi
+      else
+        # その他のサービスはcurlでヘルスチェック
+        if curl -f -s "http://127.0.0.1:${port}${health_path}" >/dev/null 2>&1; then
+          echo "✅ ${service_name}が準備完了しました"
+          break
+        fi
+      fi
+      retry_count=$((retry_count + 1))
+      sleep $retry_interval
+    done
+    
+    if [ $retry_count -eq $max_retries ]; then
+      echo "❌ ${service_name}の起動がタイムアウトしました"
+      exit 1
     fi
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    sleep 1
-  done
-  
-  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "❌ MySQLの起動がタイムアウトしました"
-    exit 1
+    echo ""
   fi
+  echo "✅ ${service_name}コンテナが起動しています"
   echo ""
-fi
-echo "✅ MySQLコンテナが起動しています"
-echo ""
+}
+
+# MySQLコンテナの起動確認と自動起動
+wait_for_service "MySQL" "$CONTAINER_NAME" "3326" "" 30 1
 
 # バックエンドコンテナの起動確認と自動起動
-echo "🔍 バックエンドコンテナの起動状態を確認中..."
-BACKEND_CONTAINER_NAME="account-book-backend-e2e"
-BACKEND_RUNNING=$(docker ps --filter "name=$BACKEND_CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
-if [ -z "$BACKEND_RUNNING" ]; then
-  echo "ℹ️  バックエンドコンテナが起動していません。自動的に起動します..."
-  echo ""
-  docker-compose -f "$COMPOSE_FILE" up -d backend
-  echo ""
-  
-  # バックエンドの準備完了を待機
-  echo "⏳ バックエンドの準備完了を待機中..."
-  RETRY_COUNT=0
-  MAX_RETRIES=60
-  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -f -s "http://127.0.0.1:${BACKEND_PORT}/api/health/institutions" >/dev/null 2>&1; then
-      echo "✅ バックエンドが準備完了しました"
-      break
-    fi
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    sleep 2
-  done
-  
-  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "❌ バックエンドの起動がタイムアウトしました"
-    exit 1
-  fi
-  echo ""
-fi
-echo "✅ バックエンドコンテナが起動しています"
-echo ""
+wait_for_service "バックエンド" "account-book-backend-e2e" "$BACKEND_PORT" "/api/health/institutions" 60 2
 
 # フロントエンドコンテナの起動確認と自動起動
-echo "🔍 フロントエンドコンテナの起動状態を確認中..."
-FRONTEND_CONTAINER_NAME="account-book-frontend-e2e"
-FRONTEND_RUNNING=$(docker ps --filter "name=$FRONTEND_CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
-if [ -z "$FRONTEND_RUNNING" ]; then
-  echo "ℹ️  フロントエンドコンテナが起動していません。自動的に起動します..."
-  echo ""
-  docker-compose -f "$COMPOSE_FILE" up -d frontend
-  echo ""
-  
-  # フロントエンドの準備完了を待機
-  echo "⏳ フロントエンドの準備完了を待機中..."
-  RETRY_COUNT=0
-  MAX_RETRIES=60
-  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -f -s "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; then
-      echo "✅ フロントエンドが準備完了しました"
-      break
-    fi
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    sleep 2
-  done
-  
-  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "❌ フロントエンドの起動がタイムアウトしました"
-    exit 1
-  fi
-  echo ""
-fi
-echo "✅ フロントエンドコンテナが起動しています"
-echo ""
+wait_for_service "フロントエンド" "account-book-frontend-e2e" "$FRONTEND_PORT" "/" 60 2
 
 # 引数でテスト対象を指定
 TARGET=${1:-all}

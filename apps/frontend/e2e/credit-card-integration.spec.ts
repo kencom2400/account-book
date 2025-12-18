@@ -97,7 +97,8 @@ test.describe('クレジットカードとの連携 (FR-002)', () => {
   test('カード会社選択画面が表示される', async ({ page }) => {
     // 直接APIを呼び出してレスポンスの内容を確認
     // エンドポイントは/api/api/credit-cards/companies/supported（@Controller('api/credit-cards') + setGlobalPrefix('api')）
-    const apiBaseUrl = 'http://localhost:3021';
+    // 環境変数からAPIベースURLを取得（テストの柔軟性を高めるため）
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3021';
     const apiResponse = await page.request.get(
       `${apiBaseUrl}/api/api/credit-cards/companies/supported`
     );
@@ -345,9 +346,10 @@ test.describe('クレジットカードとの連携 (FR-002)', () => {
     await page.getByLabel(/API認証キー/).fill(TEST_API_KEY);
 
     // 接続テストAPIリクエストを待機
+    // エンドポイントは/api/api/credit-cards/test-connection（@Controller('api/credit-cards') + setGlobalPrefix('api')）
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes('/api/credit-cards/test-connection') &&
+        response.url().includes('/api/api/credit-cards/test-connection') &&
         response.request().method() === 'POST',
       { timeout: 10000 }
     );

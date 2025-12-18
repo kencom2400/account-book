@@ -70,6 +70,8 @@ services:
       mysql:
         condition: service_healthy
     # libs/typesをビルドしてからdevサーバーを起動
+    # TODO: ビルド専用サービスを作成し、backendとfrontendがdepends_onで依存する構成に改善することで、
+    # ビルドの重複実行を避ける（Geminiレビュー指摘）
     command: sh -c "cd /app && pnpm run build --filter=@account-book/types && cd /app/apps/backend && pnpm dev"
     healthcheck:
       test:
@@ -119,6 +121,8 @@ services:
     depends_on:
       - backend
     # libs/typesをビルドしてからdevサーバーを起動
+    # TODO: ビルド専用サービスを作成し、backendとfrontendがdepends_onで依存する構成に改善することで、
+    # ビルドの重複実行を避ける（Geminiレビュー指摘）
     command: sh -c "cd /app && pnpm run build --filter=@account-book/types && cd /app/apps/frontend && pnpm dev"
 
 networks:
