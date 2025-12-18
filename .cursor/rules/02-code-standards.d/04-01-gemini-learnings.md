@@ -13192,3 +13192,163 @@ loading?: boolean;
 **参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 21. E2Eテストの信頼性向上（PR #451）
+
+**学習元**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+
+### 21-1. E2Eテストの非決定的（flaky）テストの回避 🔴 Critical
+
+**内容**:
+E2Eテストで実際のAPIの失敗に依存するテストは、テスト環境の状態によって成功したり失敗したりするため、非決定的（flaky）になり、信頼性が低くなる。エラー状態を確実に再現するために、`page.route()`を使用してAPIをモックする必要がある。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 実際のAPIの失敗に依存
+test('同期失敗時にトースト通知が表示される', async ({ page }) => {
+const responsePromise = page.waitForResponse(
+(response) => response.url().includes('/api/api/sync/start'),
+{ timeout: 15000 }
+);
+await syncButtons.first().click();
+const response = await responsePromise;
+if (response.status() !== 200) {
+// エラーレスポンスの場合のみテストが成功する
+await expect(page.locator('text=同期処理に失敗しました')).toBeVisible();
+}
+});
+
+// ✅ 良い例: APIをモックしてエラーを確実に再現
+test('同期失敗時にトースト通知が表示される', async ({ page }) => {
+// 同期APIをモックしてエラーを返す
+void page.route('\*\*/api/api/sync/start', (route) => {
+void route.fulfill({
+status: 500,
+contentType: 'application/json',
+body: JSON.stringify({
+success: false,
+error: { code: 'SYNC_FAILED', message: '同期処理に失敗しました' },
+}),
+});
+});
+
+await syncButtons.first().click();
+// エラー状態が確実に再現されるため、常にテストが成功する
+await expect(page.locator('text=同期処理に失敗しました')).toBeVisible({ timeout: 5000 });
+});
+\`\`\`
+
+**理由**:
+
+- テストの信頼性が向上する
+- エラー状態を確実に再現できる
+- テスト環境の状態に依存しない
+
+**適用対象**: E2Eテスト（エラー状態のテスト）
+
+**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-2. E2EテストのAPIエンドポイントURLの正確性 🟡 Medium
+
+**内容**:
+E2EテストでAPIエンドポイントのURLが不正確だと、混乱を招き、将来のリファクタリングで問題になる可能性がある。バックエンドのコントローラーとグローバルプレフィックスを確認し、正確なURLを使用する必要がある。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 不正確なURL（重複した/api）
+void page.route('\*\*/api/api/health/institutions', (route) => {
+// ...
+});
+
+// ✅ 良い例: 正確なURL
+// @Controller('health') + setGlobalPrefix('api') = /api/health/institutions
+void page.route('\*\*/api/health/institutions', (route) => {
+// ...
+});
+\`\`\`
+
+**理由**:
+
+- テストの意図が明確になる
+- 将来のリファクタリングで問題を防げる
+- コードレビューで混乱を避けられる
+
+**適用対象**: E2Eテスト（APIモッキング）
+
+**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-3. E2Eテストのアサーションの厳密性 🟡 Medium
+
+**内容**:
+E2Eテストでモックデータに基づいて期待値を設定している場合、アサーションもそれに合わせて厳密にする必要がある。曖昧なアサーション（`toBeGreaterThanOrEqual(1)`など）は、テストの意図が不明確になり、UIがすべてのエラーを正しく表示していることを保証できない。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 曖昧なアサーション
+void page.route('\*\*/api/health/institutions', (route) => {
+void route.fulfill({
+status: 200,
+body: JSON.stringify({
+results: [
+{ institutionId: 'bank-1', status: 'disconnected', errorMessage: '認証エラー' },
+{ institutionId: 'bank-2', status: 'disconnected', errorMessage: 'タイムアウト' },
+],
+errorCount: 2,
+}),
+});
+});
+
+const errorCards = page.locator('text=/エラー|✗/');
+const errorCardCount = await errorCards.count();
+expect(errorCardCount).toBeGreaterThanOrEqual(1); // モックでは2件なのに、1件以上でOK
+
+// ✅ 良い例: 厳密なアサーション
+expect(errorCardCount).toBe(2); // モックデータに合わせて厳密にチェック
+\`\`\`
+
+**理由**:
+
+- テストの意図が明確になる
+- UIがすべてのエラーを正しく表示していることを保証できる
+- テストの正確性が向上する
+
+**適用対象**: E2Eテスト（アサーション）
+
+**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+
+---
+
+### 21-4. E2Eテストのセレクタの正確性 🟡 Medium
+
+**内容**:
+E2EテストでUI要素を選択する際、実際のコンポーネントで定義されている`aria-label`やその他の属性と一致させる必要がある。不正確なセレクタは、脆弱なフォールバックセレクタに依存してしまい、テストの堅牢性が低下する。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 不正確なaria-label
+const closeButton = toast.locator('button[aria-label="閉じる"]');
+
+// ✅ 良い例: 実際のコンポーネントで定義されているaria-labelを使用
+// Alert.tsx: aria-label="アラートを閉じる"
+const closeButton = toast.locator('button[aria-label="アラートを閉じる"]');
+\`\`\`
+
+**理由**:
+
+- テストの堅牢性が向上する
+- 実際のUI実装と一致する
+- フォールバックセレクタへの依存を減らせる
+
+**適用対象**: E2Eテスト（セレクタ）
+
+**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+
+---
