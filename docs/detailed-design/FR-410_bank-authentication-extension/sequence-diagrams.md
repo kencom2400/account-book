@@ -297,7 +297,7 @@ sequenceDiagram
 
         UC-->>API: InstitutionEntity
         API->>API: InstitutionResponseDtoに変換
-        API-->>Form: 200 OK<br/>{id, name, type, isConnected}
+        API-->>Form: 201 Created<br/>{id, name, type, isConnected}
         Form->>User: 登録成功メッセージ表示
         Form->>Form: ダッシュボードへ遷移
 
