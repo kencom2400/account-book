@@ -106,12 +106,9 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行ボタンをクリック（銀行名を含むボタンを探す）
-    const firstBankButton = page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first();
-    await firstBankButton.click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    // 最初の銀行がUSERID_PASSWORD認証タイプの場合があるため、BRANCH_ACCOUNT認証タイプの銀行を明示的に選択
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -120,7 +117,7 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
     await expect(page.getByText('接続先銀行')).toBeVisible();
 
-    // 認証情報入力フォームが表示されることを確認
+    // 認証情報入力フォームが表示されることを確認（BRANCH_ACCOUNT認証タイプ）
     await expect(page.getByLabel(/銀行コード/)).toBeVisible();
     await expect(page.getByLabel(/支店コード/)).toBeVisible();
     await expect(page.getByLabel(/口座番号/)).toBeVisible();
@@ -135,12 +132,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 各入力フィールドが表示されることを確認
     // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
@@ -166,12 +159,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -195,12 +184,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -224,12 +209,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -267,12 +248,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -316,12 +293,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -343,12 +316,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
