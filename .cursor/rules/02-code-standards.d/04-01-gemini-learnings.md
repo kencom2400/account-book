@@ -12859,3 +12859,336 @@ await expect(card.getByText(/接続状態|正常|エラー/)).toBeVisible();
 **参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
 
 ---
+
+## 19. クレジットカード追加画面実装レビューから学んだ観点（PR #447）
+
+### 19-1. APIレスポンス形式の一貫性 🔴 Critical
+
+**内容**:
+APIクライアントがレスポンスボディの`data`プロパティを返すように設計されている場合、Controller層で`success`プロパティを分割してトップレベルに移動すると、フロントエンドで期待するデータ構造と不整合が発生する。UseCaseからの結果をそのまま`data`プロパティに含めるべき。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: successプロパティが失われる
+async testCreditCardConnection(
+@Body() dto: TestCreditCardConnectionDto,
+): Promise<{
+success: boolean;
+data: Record<string, unknown>;
+}> {
+const result = await this.testCreditCardConnectionUseCase.execute(dto);
+// result.successが失われる
+const { success, ...data } = result;
+return {
+success,
+data,
+};
+}
+
+// ✅ 良い例: UseCaseの結果をそのまま返す
+async testCreditCardConnection(
+@Body() dto: TestCreditCardConnectionDto,
+): Promise<{
+success: boolean;
+data: CreditCardConnectionTestResult;
+}> {
+const result = await this.testCreditCardConnectionUseCase.execute(dto);
+return {
+success: true,
+data: result,
+};
+}
+\`\`\`
+
+**理由**:
+
+- APIクライアントの設計と整合性が保たれる
+- フロントエンドでのデータアクセスが一貫性を持つ
+- 型安全性が向上する
+
+**適用対象**: NestJS Controller層
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-2. 内部エラーメッセージの漏洩防止 🔴 High
+
+**内容**:
+サーバー側の内部エラーメッセージ（スタックトレース、データベースエラーなど）をクライアントに返すと、セキュリティリスク（情報漏洩）が発生する。サーバー側で詳細なエラーをロギングし、クライアントには汎用的なエラーメッセージを返すべき。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 内部エラーメッセージが漏洩
+catch (error) {
+return {
+success: false,
+message: \`接続テストに失敗しました: \${error instanceof Error ? error.message : 'Unknown error'}\`,
+errorCode: 'CC002',
+};
+}
+
+// ✅ 良い例: 汎用的なエラーメッセージを返す
+catch (error) {
+// セキュリティ上の理由から、内部エラーメッセージはクライアントに返さない
+// 詳細なエラーはサーバー側でロギングする
+this.logger.error('クレジットカード接続テストでエラーが発生しました', error);
+return {
+success: false,
+message: '接続テストに失敗しました。管理者にお問い合わせください。',
+errorCode: 'CC002',
+};
+}
+\`\`\`
+
+**理由**:
+
+- セキュリティリスクを軽減する
+- システム内部の詳細情報を保護する
+- ユーザーに適切なガイダンスを提供する
+
+**適用対象**: エラーハンドリング全般
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-3. レスポンス型の厳密な型付け 🟡 Medium
+
+**内容**:
+Controllerのレスポンス型が\`unknown[]\`や\`Record<string, unknown>\`になっていると、型安全性が損なわれる。実際に返すデータ型を明示的に指定することで、型安全性が向上し、コードの意図が明確になる。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 型が曖昧
+getSupportedCardCompanies(@Query() query: GetSupportedCardCompaniesQueryDto): {
+success: boolean;
+data: unknown[];
+count: number;
+} {
+const companies = this.getSupportedCardCompaniesUseCase.execute(query);
+return {
+success: true,
+data: companies,
+count: companies.length,
+};
+}
+
+// ✅ 良い例: 明示的な型指定
+getSupportedCardCompanies(@Query() query: GetSupportedCardCompaniesQueryDto): {
+success: boolean;
+data: CardCompany[];
+count: number;
+} {
+const companies = this.getSupportedCardCompaniesUseCase.execute(query);
+return {
+success: true,
+data: companies,
+count: companies.length,
+};
+}
+\`\`\`
+
+**理由**:
+
+- 型安全性が向上する
+- IDEの補完機能が正しく動作する
+- コードの意図が明確になる
+
+**適用対象**: NestJS Controller層
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-4. エラーハンドリングでのApiErrorの適切な処理 🟡 Medium
+
+**内容**:
+フロントエンドでAPIエラーをキャッチする際、\`ApiError\`インスタンスをチェックして、バリデーションエラーなどの詳細なフィードバックをユーザーに表示すべき。汎用的なエラーメッセージのみを表示すると、ユーザー体験が低下する。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: エラー詳細が失われる
+catch (\_error) {
+setTestResult({
+success: false,
+message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
+});
+setCurrentStep('result');
+}
+
+// ✅ 良い例: ApiErrorを適切に処理
+catch (error) {
+const message =
+error instanceof ApiError
+? error.message
+: '接続テストに失敗しました。しばらくしてから再度お試しください。';
+const errorCode = error instanceof ApiError ? error.code : undefined;
+
+setTestResult({
+success: false,
+message,
+errorCode,
+});
+setCurrentStep('result');
+}
+\`\`\`
+
+**理由**:
+
+- ユーザーに具体的なエラー情報を提供できる
+- バリデーションエラーなどの詳細なフィードバックが可能になる
+- ユーザー体験が向上する
+
+**適用対象**: フロントエンドのエラーハンドリング
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-5. バックエンドAPIを活用したフィルタリング 🟡 Medium
+
+**内容**:
+フロントエンドで全データを取得してクライアントサイドでフィルタリングを行うと、パフォーマンスが低下し、クライアントの負荷が増加する。バックエンドAPIがフィルタリング機能を提供している場合は、それを活用すべき。検索入力にはデバウンスを適用して、過剰なAPI呼び出しを防ぐ。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: クライアントサイドでフィルタリング
+useEffect(() => {
+const fetchCompanies = async (): Promise<void> => {
+const data = await getSupportedCardCompanies();
+setCompanies(data);
+};
+void fetchCompanies();
+}, []);
+
+useEffect(() => {
+let result = [...companies];
+if (selectedCategory !== 'all') {
+result = result.filter((company) => company.category === selectedCategory);
+}
+if (searchTerm) {
+result = result.filter((company) => company.name.includes(searchTerm));
+}
+setFilteredCompanies(result);
+}, [companies, searchTerm, selectedCategory]);
+
+// ✅ 良い例: バックエンドAPIを活用
+const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+// デバウンス処理
+useEffect(() => {
+const timer = setTimeout((): void => {
+setDebouncedSearchTerm(searchTerm);
+}, 500);
+return (): void => clearTimeout(timer);
+}, [searchTerm]);
+
+// バックエンドAPIでフィルタリング
+useEffect(() => {
+const fetchCompanies = async (): Promise<void> => {
+const data = await getSupportedCardCompanies({
+category: selectedCategory !== 'all' ? selectedCategory : undefined,
+searchTerm: debouncedSearchTerm || undefined,
+});
+setCompanies(data);
+};
+void fetchCompanies();
+}, [selectedCategory, debouncedSearchTerm]);
+\`\`\`
+
+**理由**:
+
+- パフォーマンスが向上する
+- クライアントの負荷が軽減される
+- ネットワークトラフィックが削減される
+- デバウンスにより過剰なAPI呼び出しを防げる
+
+**適用対象**: フロントエンドのデータ取得処理
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-6. 日付文字列のタイムゾーン問題の回避 🟡 Medium
+
+**内容**:
+\`new Date('YYYY-MM-DD')\`のように日付文字列をパースすると、実行環境のタイムゾーンによって意図しない日付に解釈される可能性がある。特に、日付の境界付近で1日ずれる問題が発生しがち。年と月のみを表示する場合は、文字列から直接抽出する方が安全でシンプル。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: タイムゾーン問題が発生する可能性
+{new Date(result.cardInfo.expiryDate).toLocaleDateString('ja-JP', {
+year: 'numeric',
+month: '2-digit',
+})}
+
+// ✅ 良い例: 文字列から直接抽出
+{result.cardInfo.expiryDate.substring(0, 7).replace('-', '/')}
+\`\`\`
+
+**理由**:
+
+- タイムゾーンによる日付のずれを防げる
+- コードがシンプルになる
+- パフォーマンスが向上する（Dateオブジェクトの生成が不要）
+
+**適用対象**: 日付表示処理
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 19-7. 未使用のエラー処理ロジックの削除 🟡 Medium
+
+**内容**:
+コンポーネントにエラー処理のpropsやロジックが定義されているが、親コンポーネントから使用されていない場合、コードが複雑になり、保守性が低下する。未使用のロジックは削除するか、意図した動作であれば親コンポーネントを修正して使用するようにすべき。
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 未使用のエラー処理ロジック
+interface CreditCardCredentialsFormProps {
+company: CardCompany;
+onSubmit: (credentials: CreditCardCredentialsData) => void;
+loading?: boolean;
+error?: string | null; // 親コンポーネントから渡されていない
+errorDetails?: string; // 親コンポーネントから渡されていない
+}
+
+// エラー処理のロジックが複雑だが、実際には使用されていない
+const handleError = useCallback((errorMessage: string, details?: string): void => {
+// ... 複雑なエラー処理ロジック
+}, []);
+
+useEffect(() => {
+if (error && error !== prevErrorRef.current) {
+handleError(error, errorDetails);
+}
+}, [error, errorDetails, handleError]);
+
+// ✅ 良い例: 未使用のロジックを削除
+interface CreditCardCredentialsFormProps {
+company: CardCompany;
+onSubmit: (credentials: CreditCardCredentialsData) => void;
+loading?: boolean;
+}
+\`\`\`
+
+**理由**:
+
+- コードがシンプルになる
+- 保守性が向上する
+- 意図が明確になる
+
+**適用対象**: フロントエンドコンポーネント
+
+**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+
+---
