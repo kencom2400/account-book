@@ -61,19 +61,58 @@ for i in "${!ISSUES[@]}"; do
     FR_LOWER=$(echo "$FR" | tr '[:upper:]' '[:lower:]')
     JSON_FILE="$ISSUE_DATA_DIR/${FR_LOWER}.json"
     
-    # JSONファイルを作成
-    cat > "$JSON_FILE" << EOF
-{
-  "title": "$TITLE",
-  "labels": [
-    "testing",
-    "frontend",
-    "priority: medium",
-    "size: M"
-  ],
-  "body": "**Epic**: #192 - テスト実装\\n\\n---\\n\\n## 📋 概要\\n\\n$DESC\\n\\n## 🎯 目的\\n\\n機能要件 $FR に対するE2Eテストを実装し、ユーザーフローの動作を保証します。\\n\\n## ✅ Acceptance Criteria（受入基準）\\n- [ ] E2Eテストが実装されている\\n- [ ] 正常系の動作が確認できている\\n- [ ] エラーハンドリングが適切に実装されている\\n- [ ] すべてのテストがパスしている\\n\\n## 📋 Definition of Done（完了定義）\\n\\n### コード品質\\n- [ ] 実装が完了している\\n- [ ] コードレビューが完了している\\n- [ ] ESLint/Prettierエラーがない\\n- [ ] TypeScript型定義が適切に設定されている\\n\\n### テスト\\n- [ ] E2Eテストが書かれている\\n- [ ] すべてのテストがパスしている\\n- [ ] エッジケースのテストが含まれている\\n\\n### ドキュメント\\n- [ ] コードにコメントが適切に記載されている\\n\\n## 📁 関連ファイル\\n- 実装時に追記\\n\\n## 📚 参考資料\\n- \`docs/requirements-specification.md\`\\n- \`docs/functional-requirements/\`\\n- \`apps/frontend/e2e/\`\\n\\n## 💡 実装メモ\\n- 実装開始時に詳細を追記してください\\n- 技術的な課題や決定事項をここに記録します"
-}
-EOF
+    # JSONファイルを作成 (jqを使用)
+    BODY_CONTENT="**Epic**: #192 - テスト実装
+
+---
+
+## 📋 概要
+
+$DESC
+
+## 🎯 目的
+
+機能要件 $FR に対するE2Eテストを実装し、ユーザーフローの動作を保証します。
+
+## ✅ Acceptance Criteria（受入基準）
+- [ ] E2Eテストが実装されている
+- [ ] 正常系の動作が確認できている
+- [ ] エラーハンドリングが適切に実装されている
+- [ ] すべてのテストがパスしている
+
+## 📋 Definition of Done（完了定義）
+
+### コード品質
+- [ ] 実装が完了している
+- [ ] コードレビューが完了している
+- [ ] ESLint/Prettierエラーがない
+- [ ] TypeScript型定義が適切に設定されている
+
+### テスト
+- [ ] E2Eテストが書かれている
+- [ ] すべてのテストがパスしている
+- [ ] エッジケースのテストが含まれている
+
+### ドキュメント
+- [ ] コードにコメントが適切に記載されている
+
+## 📁 関連ファイル
+- 実装時に追記
+
+## 📚 参考資料
+- \`docs/requirements-specification.md\`
+- \`docs/functional-requirements/\`
+- \`apps/frontend/e2e/\`
+
+## 💡 実装メモ
+- 実装開始時に詳細を追記してください
+- 技術的な課題や決定事項をここに記録します"
+
+    jq -n \
+      --arg title "$TITLE" \
+      --argjson labels '["testing", "frontend", "priority: medium", "size: M"]' \
+      --arg body "$BODY_CONTENT" \
+      '{ "title": $title, "labels": $labels, "body": $body }' > "$JSON_FILE"
     
     echo "✅ $FR のIssueデータファイルを作成: $JSON_FILE"
 done

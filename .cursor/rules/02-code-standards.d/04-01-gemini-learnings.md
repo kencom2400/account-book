@@ -12493,3 +12493,196 @@ const transaction = new TransactionEntity(
 **参照**: PR #418 - Issue #99: Repository統合テストの実装（Gemini Code Assistレビュー指摘）
 
 ---
+
+## E2Eテスト: Playwrightの自動待機機能を活用する
+
+### 問題点
+
+E2Eテストで `page.waitForTimeout()` を使用すると、テストの不安定さ（flakiness）を招く可能性があります。固定時間の待機は、環境やネットワークの状態に依存し、テストの実行時間も長くなります。
+
+### 推奨される実装
+
+Playwrightの **Web-Firstアサーション**（自動待機機能）を活用し、特定の状態になるまで待機するようにします。
+
+**❌ 悪い例**:
+
+```typescript
+// 検索結果が更新されるまで待機
+await page.waitForTimeout(500);
+
+// 検索結果に「三菱」を含む銀行が表示されることを確認
+const filteredBanks = page.locator('button:has-text("三菱")');
+const count = await filteredBanks.count();
+expect(count).toBeGreaterThan(0);
+```
+
+**✅ 良い例**:
+
+```typescript
+// 検索結果が更新されるのを待機し、アサーションを行います。
+// Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
+await expect(page.locator('button:has-text("三菱")').first()).toBeVisible();
+```
+
+**理由**:
+
+- `expect()` は自動的に要素が表示されるまで待機するため、固定時間の待機が不要
+- テストの実行時間が短縮される
+- 環境やネットワークの状態に依存せず、より安定したテストになる
+- テストの信頼性と実行速度が向上する
+
+### その他の改善例
+
+**❌ 悪い例**:
+
+```typescript
+// フィルター結果が更新されるまで待機
+await page.waitForTimeout(500);
+
+// メガバンクタブがアクティブになっていることを確認
+const tabClass = await megaBankTab.getAttribute('class');
+expect(tabClass).toMatch(/border-blue-600|text-blue-600/);
+```
+
+**✅ 良い例**:
+
+```typescript
+// フィルター結果が更新されるまで待機し、メガバンクタブがアクティブになることを確認します。
+// Playwrightの自動待機機能を利用することで、waitForTimeoutを削除でき、より堅牢なテストになります。
+await expect(megaBankTab).toHaveClass(/border-blue-600|text-blue-600/);
+```
+
+### テストケースの完全性
+
+E2Eテストでは、すべてのテストケースで適切なアサーションを追加し、テストの信頼性を高める必要があります。
+
+**❌ 悪い例**:
+
+```typescript
+// 接続テスト結果画面に遷移することを確認
+await expect(page.getByText('3. 接続テスト')).toBeVisible();
+
+// エラーメッセージが表示される可能性があることを確認（APIの実装による）
+// 成功/失敗どちらの場合でも結果画面が表示される
+await page.waitForTimeout(1000);
+```
+
+**✅ 良い例**:
+
+```typescript
+// 接続テスト結果画面に遷移することを確認
+await expect(page.getByText('3. 接続テスト')).toBeVisible();
+
+// 接続失敗時のエラーメッセージが表示されることを確認
+// APIの実装により、エラーメッセージの内容は異なる可能性がありますが、
+// 少なくともエラーが表示されていることを確認します。
+await expect(page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i)).toBeVisible({
+  timeout: 5000,
+});
+```
+
+**理由**:
+
+- テストの目的が明確になる
+- エラーケースでも適切に検証できる
+- テストの信頼性が向上する
+
+### 状態検証の追加
+
+ボタンクリックなどの操作後は、必ず状態の変化を検証する必要があります。
+
+**❌ 悪い例**:
+
+```typescript
+// 戻るボタンをクリック
+await page.getByRole('button', { name: '戻る' }).click();
+
+// 前のページに戻ることを確認（URLが変更される）
+await page.waitForTimeout(500);
+// 戻るボタンが機能することを確認（具体的なURLは実装による）
+```
+
+**✅ 良い例**:
+
+```typescript
+// 戻るボタンをクリック
+await page.getByRole('button', { name: '戻る' }).click();
+
+// 前のページに戻ることを確認（URLが変更される）
+// ブラウザの履歴に依存するため、URLが変更されたことを確認します。
+await expect(page).not.toHaveURL('/banks/add');
+```
+
+**理由**:
+
+- 操作の結果を明確に検証できる
+- テストの目的が明確になる
+- テストの信頼性が向上する
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #443 - Issue #419: E2Eテスト: FR-001 銀行口座との連携（Gemini Code Assistレビュー指摘）
+
+---
+
+## シェルスクリプト: JSON生成にjqを使用する
+
+### 問題点
+
+`cat << EOF` を使って手動でJSONファイルを生成するのは、エスケープ処理が複雑になりがちで、エラーが発生しやすく保守性も低くなります。
+
+### 推奨される実装
+
+`jq`コマンドを使ってプログラム的にJSONを生成する方法に変更します。
+
+**❌ 悪い例**:
+
+```bash
+# JSONファイルを作成
+cat > "$JSON_FILE" << EOF
+{
+  "title": "$TITLE",
+  "labels": [
+    "testing",
+    "frontend",
+    "priority: medium",
+    "size: M"
+  ],
+  "body": "**Epic**: #192 - テスト実装\\n\\n---\\n\\n## 📋 概要\\n\\n$DESC\\n\\n..."
+}
+EOF
+```
+
+**✅ 良い例**:
+
+```bash
+# JSONファイルを作成 (jqを使用)
+BODY_CONTENT="**Epic**: #192 - テスト実装
+
+---
+
+## 📋 概要
+
+$DESC
+
+..."
+
+jq -n \
+  --arg title "$TITLE" \
+  --argjson labels '["testing", "frontend", "priority: medium", "size: M"]' \
+  --arg body "$BODY_CONTENT" \
+  '{ "title": $title, "labels": $labels, "body": $body }' > "$JSON_FILE"
+```
+
+**理由**:
+
+- エスケープ処理が不要になり、コードがクリーンになる
+- JSONの構文エラーを防げる
+- 将来の変更も容易になる
+- コードの可読性と保守性が向上する
+
+**適用対象**: シェルスクリプト（JSON生成）
+
+**参照**: PR #443 - Issue #419: E2Eテスト: FR-001 銀行口座との連携（Gemini Code Assistレビュー指摘）
+
+---

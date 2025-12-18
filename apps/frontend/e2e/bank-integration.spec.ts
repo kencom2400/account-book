@@ -67,13 +67,9 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     const searchInput = page.getByPlaceholder('銀行名または銀行コードで検索');
     await searchInput.fill('三菱');
 
-    // 検索結果が更新されるまで待機
-    await page.waitForTimeout(500);
-
-    // 検索結果に「三菱」を含む銀行が表示されることを確認
-    const filteredBanks = page.locator('button:has-text("三菱")');
-    const count = await filteredBanks.count();
-    expect(count).toBeGreaterThan(0);
+    // 検索結果が更新されるのを待機し、アサーションを行います。
+    // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
+    await expect(page.locator('button:has-text("三菱")').first()).toBeVisible();
   });
 
   test('カテゴリフィルターが機能する', async ({ page }) => {
@@ -92,13 +88,9 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // メガバンクタブをクリック
     await megaBankTab.click();
 
-    // フィルター結果が更新されるまで待機
-    await page.waitForTimeout(500);
-
-    // メガバンクタブがアクティブになっていることを確認（クラス名を確認）
-    // 複数の要素に一致する可能性があるため、.first()を使用
-    const tabClass = await megaBankTab.getAttribute('class');
-    expect(tabClass).toMatch(/border-blue-600|text-blue-600/);
+    // フィルター結果が更新されるまで待機し、メガバンクタブがアクティブになることを確認します。
+    // Playwrightの自動待機機能を利用することで、waitForTimeoutを削除でき、より堅牢なテストになります。
+    await expect(megaBankTab).toHaveClass(/border-blue-600|text-blue-600/);
   });
 
   test('銀行を選択して認証情報入力画面に遷移する', async ({ page }) => {
@@ -120,11 +112,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
-    // 選択した銀行名が表示されることを確認（接続先銀行セクション）
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
-
     // 接続先銀行セクションが表示されることを確認
+    // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
     await expect(page.getByText('接続先銀行')).toBeVisible();
 
     // 認証情報入力フォームが表示されることを確認
@@ -149,10 +138,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
-
     // 各入力フィールドが表示されることを確認
+    // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
     await expect(page.getByLabel(/銀行コード/)).toBeVisible();
     await expect(page.getByLabel(/支店コード/)).toBeVisible();
     await expect(page.getByLabel(/口座番号/)).toBeVisible();
@@ -182,8 +169,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // 不正な支店コードを入力（2桁）
     await page.getByLabel(/支店コード/).fill('12');
@@ -211,8 +198,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // 不正な口座番号を入力（6桁）
     await page.getByLabel(/口座番号/).fill('123456');
@@ -240,8 +227,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // 認証情報を入力
     await page.getByLabel(/支店コード/).fill(TEST_BRANCH_CODE);
@@ -283,8 +270,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // 不正な認証情報を入力
     await page.getByLabel(/支店コード/).fill('999');
@@ -307,9 +294,12 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // 接続テスト結果画面に遷移することを確認
     await expect(page.getByText('3. 接続テスト')).toBeVisible();
 
-    // エラーメッセージが表示される可能性があることを確認（APIの実装による）
-    // 成功/失敗どちらの場合でも結果画面が表示される
-    await page.waitForTimeout(1000);
+    // 接続失敗時のエラーメッセージが表示されることを確認
+    // APIの実装により、エラーメッセージの内容は異なる可能性がありますが、
+    // 少なくともエラーが表示されていることを確認します。
+    await expect(page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i)).toBeVisible(
+      { timeout: 5000 }
+    );
   });
 
   test('銀行を変更ボタンが機能する', async ({ page }) => {
@@ -328,8 +318,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // 銀行を変更ボタンをクリック
     await page.getByRole('button', { name: /銀行を変更/ }).click();
@@ -355,8 +345,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       .first()
       .click();
 
-    // 認証情報入力画面に遷移するまで待機
-    await page.waitForTimeout(500);
+    // 認証情報入力画面に遷移することを確認
+    await expect(page.getByText('2. 認証情報入力')).toBeVisible();
 
     // APIシークレット入力フィールドを取得
     const apiSecretInput = page.getByLabel(/APIシークレット/);
@@ -382,7 +372,7 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     await page.getByRole('button', { name: '戻る' }).click();
 
     // 前のページに戻ることを確認（URLが変更される）
-    await page.waitForTimeout(500);
-    // 戻るボタンが機能することを確認（具体的なURLは実装による）
+    // ブラウザの履歴に依存するため、URLが変更されたことを確認します。
+    await expect(page).not.toHaveURL('/banks/add');
   });
 });
