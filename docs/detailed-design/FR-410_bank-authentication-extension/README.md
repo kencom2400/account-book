@@ -168,7 +168,7 @@ interface BankCredentials {
   userId?: string; // ユーザID
   password?: string; // パスワード（暗号化して保存）
 
-  [key: string]: any; // その他の銀行固有の認証情報
+  [key: string]: unknown; // その他の銀行固有の認証情報
 }
 ```
 
