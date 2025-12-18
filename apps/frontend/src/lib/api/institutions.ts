@@ -4,6 +4,7 @@ import {
   Bank,
   BankCategory,
   BankConnectionTestResult,
+  AuthenticationType,
 } from '@account-book/types';
 import { apiClient } from './client';
 
@@ -35,10 +36,13 @@ export interface GetSupportedBanksParams {
 
 export interface TestBankConnectionRequest {
   bankCode: string;
-  branchCode: string;
-  accountNumber: string;
+  authenticationType: AuthenticationType;
+  branchCode?: string;
+  accountNumber?: string;
   apiKey?: string;
   apiSecret?: string;
+  userId?: string;
+  password?: string;
 }
 
 /**
