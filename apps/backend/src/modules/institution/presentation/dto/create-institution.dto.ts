@@ -8,7 +8,7 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from 'class-validator';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AuthenticationType } from '@account-book/types';
 
 /**
  * カスタムバリデーター: 銀行タイプの場合、credentialsに必要なフィールドをチェック
@@ -33,21 +33,57 @@ export class IsValidBankCredentialsConstraint implements ValidatorConstraintInte
       return true; // 銀行タイプ以外はスキップ
     }
 
-    const { bankCode, branchCode, accountNumber } = credentials;
+    const { bankCode, authenticationType } = credentials;
 
-    // 必須フィールドの存在、型、フォーマットをチェック
-    return (
-      typeof bankCode === 'string' &&
-      IsValidBankCredentialsConstraint.bankCodePattern.test(bankCode) &&
-      typeof branchCode === 'string' &&
-      IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
-      typeof accountNumber === 'string' &&
-      IsValidBankCredentialsConstraint.accountNumberPattern.test(accountNumber)
-    );
+    // 銀行コードのチェック
+    if (
+      typeof bankCode !== 'string' ||
+      !IsValidBankCredentialsConstraint.bankCodePattern.test(bankCode)
+    ) {
+      return false;
+    }
+
+    // 認証タイプのチェック
+    if (typeof authenticationType !== 'string') {
+      return false;
+    }
+
+    const authType = authenticationType as AuthenticationType;
+    if (
+      authType !== AuthenticationType.BRANCH_ACCOUNT &&
+      authType !== AuthenticationType.USERID_PASSWORD
+    ) {
+      return false;
+    }
+
+    // 認証方式に応じたバリデーション
+    if (authType === AuthenticationType.BRANCH_ACCOUNT) {
+      const { branchCode, accountNumber } = credentials;
+      return (
+        typeof branchCode === 'string' &&
+        IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
+        typeof accountNumber === 'string' &&
+        IsValidBankCredentialsConstraint.accountNumberPattern.test(
+          accountNumber,
+        )
+      );
+    } else if (authType === AuthenticationType.USERID_PASSWORD) {
+      const { userId, password } = credentials;
+      return (
+        typeof userId === 'string' &&
+        userId.length >= 1 &&
+        userId.length <= 100 &&
+        typeof password === 'string' &&
+        password.length >= 8 &&
+        password.length <= 100
+      );
+    }
+
+    return false;
   }
 
   defaultMessage(_args: ValidationArguments): string {
-    return '銀行タイプの場合、認証情報にはbankCode（4桁の数字）、branchCode（3桁の数字）、accountNumber（7桁の数字）が必要です';
+    return '認証方式に応じた必須フィールドが不足しています。支店コード＋口座番号認証の場合はbranchCodeとaccountNumber、ユーザID＋パスワード認証の場合はuserIdとpasswordが必要です';
   }
 }
 

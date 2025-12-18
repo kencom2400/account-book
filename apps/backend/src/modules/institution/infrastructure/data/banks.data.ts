@@ -1,4 +1,4 @@
-import { Bank, BankCategory } from '@account-book/types';
+import { Bank, BankCategory, AuthenticationType } from '@account-book/types';
 
 /**
  * 対応銀行マスターデータ
@@ -12,6 +12,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '三菱UFJ銀行',
     category: BankCategory.MEGA_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.USERID_PASSWORD,
   },
   {
     id: 'bank_smbc',
@@ -19,6 +20,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '三井住友銀行',
     category: BankCategory.MEGA_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
   {
     id: 'bank_mizuho',
@@ -26,6 +28,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: 'みずほ銀行',
     category: BankCategory.MEGA_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.USERID_PASSWORD,
   },
   {
     id: 'bank_resona',
@@ -33,6 +36,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: 'りそな銀行',
     category: BankCategory.MEGA_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
 
   // ネット銀行
@@ -42,6 +46,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '楽天銀行',
     category: BankCategory.ONLINE_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
   {
     id: 'bank_sbi',
@@ -49,6 +54,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '住信SBIネット銀行',
     category: BankCategory.ONLINE_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
   {
     id: 'bank_paypay',
@@ -56,6 +62,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: 'PayPay銀行',
     category: BankCategory.ONLINE_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
   {
     id: 'bank_sony',
@@ -63,6 +70,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: 'ソニー銀行',
     category: BankCategory.ONLINE_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
 
   // 地方銀行（サンプル）
@@ -72,6 +80,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '横浜銀行',
     category: BankCategory.REGIONAL_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
   {
     id: 'bank_chiba',
@@ -79,6 +88,7 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: '千葉銀行',
     category: BankCategory.REGIONAL_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
 
   // テスト用銀行
@@ -88,5 +98,6 @@ export const SUPPORTED_BANKS: Bank[] = [
     name: 'テスト銀行',
     category: BankCategory.ONLINE_BANK,
     isSupported: true,
+    authenticationType: AuthenticationType.BRANCH_ACCOUNT,
   },
 ];
