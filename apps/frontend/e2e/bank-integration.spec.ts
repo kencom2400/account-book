@@ -297,9 +297,10 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // 接続失敗時のエラーメッセージが表示されることを確認
     // APIの実装により、エラーメッセージの内容は異なる可能性がありますが、
     // 少なくともエラーが表示されていることを確認します。
-    await expect(page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i)).toBeVisible(
-      { timeout: 5000 }
-    );
+    // 複数の要素に一致する可能性があるため、.first()を使用します。
+    await expect(
+      page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i).first()
+    ).toBeVisible({ timeout: 5000 });
   });
 
   test('銀行を変更ボタンが機能する', async ({ page }) => {
