@@ -102,7 +102,7 @@
 - Domain Layer: `AuthenticationType` enum（新規）
 - Domain Layer: `BankCredentials`型の拡張（`libs/types/src/bank.types.ts`）
 - Infrastructure Layer: 銀行マスターデータに認証タイプ情報を追加（`apps/backend/src/modules/institution/infrastructure/data/banks.data.ts`）
-- Application Layer: 認証方式に応じたバリデーションロジック（`apps/backend/src/modules/institution/presentation/dto/create-institution.dto.ts`）
+- Presentation Layer: 認証方式に応じたバリデーションロジック（`apps/backend/src/modules/institution/presentation/dto/create-institution.dto.ts`）
 - Presentation Layer: 認証方式に応じた入力フォームの切り替え（`apps/frontend/src/components/forms/BankCredentialsForm.tsx`）
 
 ### 認証方式に応じたバリデーション
