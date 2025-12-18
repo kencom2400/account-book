@@ -3,7 +3,7 @@
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BankCredentialsForm } from '../BankCredentialsForm';
-import { Bank, BankCategory } from '@account-book/types';
+import { Bank, BankCategory, AuthenticationType } from '@account-book/types';
 
 const mockBank: Bank = {
   id: 'bank_test',
@@ -11,6 +11,7 @@ const mockBank: Bank = {
   name: 'テスト銀行',
   category: BankCategory.ONLINE_BANK,
   isSupported: true,
+  authenticationType: AuthenticationType.BRANCH_ACCOUNT,
 };
 
 describe('BankCredentialsForm', () => {
@@ -94,10 +95,13 @@ describe('BankCredentialsForm', () => {
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
         apiKey: '',
         apiSecret: '',
+        userId: '',
+        password: '',
       });
     });
   });
@@ -122,10 +126,13 @@ describe('BankCredentialsForm', () => {
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
         apiKey: 'test-api-key',
         apiSecret: 'test-api-secret',
+        userId: '',
+        password: '',
       });
     });
   });
