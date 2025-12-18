@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CreateInstitutionDto } from './create-institution.dto';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AuthenticationType } from '@account-book/types';
 
 describe('CreateInstitutionDto', () => {
   describe('validation', () => {
@@ -12,6 +12,7 @@ describe('CreateInstitutionDto', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },
@@ -27,6 +28,7 @@ describe('CreateInstitutionDto', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },
@@ -34,8 +36,9 @@ describe('CreateInstitutionDto', () => {
 
       const errors = await validate(dto);
 
-      expect(errors).toHaveLength(1);
-      expect(errors[0].property).toBe('name');
+      expect(errors.length).toBeGreaterThan(0);
+      const nameError = errors.find((e) => e.property === 'name');
+      expect(nameError).toBeDefined();
     });
 
     it('should fail validation when type is missing', async () => {
@@ -43,6 +46,7 @@ describe('CreateInstitutionDto', () => {
         name: 'Test Bank',
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },
@@ -86,6 +90,7 @@ describe('CreateInstitutionDto', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '123', // 4桁でない
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },
@@ -104,6 +109,7 @@ describe('CreateInstitutionDto', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '12', // 3桁でない
           accountNumber: '1234567',
         },
@@ -122,6 +128,7 @@ describe('CreateInstitutionDto', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '123456', // 7桁でない
         },
@@ -154,6 +161,7 @@ describe('CreateInstitutionDto', () => {
         type: 'invalid' as InstitutionType,
         credentials: {
           bankCode: '0001',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },

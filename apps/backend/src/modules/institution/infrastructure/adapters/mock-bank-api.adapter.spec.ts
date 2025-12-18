@@ -3,6 +3,7 @@ import {
   BankCredentials,
   BankAccountType,
   BankTransactionType,
+  AuthenticationType,
 } from '@account-book/types';
 
 describe('MockBankApiAdapter', () => {
@@ -27,6 +28,7 @@ describe('MockBankApiAdapter', () => {
     it('should return success for valid credentials', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -44,6 +46,7 @@ describe('MockBankApiAdapter', () => {
     it('should return failure for invalid bank code', async () => {
       const credentials: BankCredentials = {
         bankCode: 'invalid',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -58,6 +61,7 @@ describe('MockBankApiAdapter', () => {
     it('should return failure for invalid branch code', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: 'ab',
         accountNumber: '1234567',
       };
@@ -71,6 +75,7 @@ describe('MockBankApiAdapter', () => {
     it('should return failure for invalid account number', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '123',
       };
@@ -84,6 +89,7 @@ describe('MockBankApiAdapter', () => {
     it('should return account info with correct structure', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -106,6 +112,7 @@ describe('MockBankApiAdapter', () => {
     it('should return account info for valid credentials', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -138,6 +145,7 @@ describe('MockBankApiAdapter', () => {
     it('should return mock transactions', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -155,6 +163,7 @@ describe('MockBankApiAdapter', () => {
     it('should return transactions with correct structure', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -180,6 +189,7 @@ describe('MockBankApiAdapter', () => {
     it('should return transactions with valid types', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -211,6 +221,7 @@ describe('MockBankApiAdapter', () => {
     it('should return transactions sorted by date', async () => {
       const credentials: BankCredentials = {
         bankCode: '0000',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       };
@@ -239,6 +250,7 @@ describe('MockBankApiAdapter', () => {
       for (const code of validCodes) {
         const credentials: BankCredentials = {
           bankCode: code,
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         };
@@ -249,6 +261,7 @@ describe('MockBankApiAdapter', () => {
       for (const code of invalidCodes) {
         const credentials: BankCredentials = {
           bankCode: code,
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         };
@@ -264,6 +277,7 @@ describe('MockBankApiAdapter', () => {
       for (const code of validCodes) {
         const credentials: BankCredentials = {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: code,
           accountNumber: '1234567',
         };
@@ -274,6 +288,7 @@ describe('MockBankApiAdapter', () => {
       for (const code of invalidCodes) {
         const credentials: BankCredentials = {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: code,
           accountNumber: '1234567',
         };
@@ -289,6 +304,7 @@ describe('MockBankApiAdapter', () => {
       for (const number of validNumbers) {
         const credentials: BankCredentials = {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: number,
         };
@@ -299,6 +315,7 @@ describe('MockBankApiAdapter', () => {
       for (const number of invalidNumbers) {
         const credentials: BankCredentials = {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: number,
         };
