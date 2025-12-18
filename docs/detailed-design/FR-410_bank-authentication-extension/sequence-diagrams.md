@@ -117,7 +117,6 @@ sequenceDiagram
     participant Validator as IsValidBankCredentialsConstraint
     participant UC as TestBankConnectionUseCase
     participant Adapter as BankApiAdapter
-    participant Crypto as CryptoService
 
     User->>Form: 認証情報入力<br/>(branchCode, accountNumber)
     User->>Form: 接続テストボタンクリック
@@ -137,7 +136,6 @@ sequenceDiagram
         Validator-->>API: true
         API->>UC: execute(dto)
 
-        UC->>Crypto: 認証情報は平文のまま<br/>(接続テスト用)
         UC->>Adapter: testConnection(credentials)
 
         Adapter->>Adapter: 外部銀行APIに接続テスト
