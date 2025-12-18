@@ -4,7 +4,11 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 import { createTestApp } from './helpers/test-setup';
-import { CategoryType, InstitutionType } from '@account-book/types';
+import {
+  CategoryType,
+  InstitutionType,
+  AuthenticationType,
+} from '@account-book/types';
 
 describe('Aggregation Controller (e2e)', () => {
   let app: INestApplication;
@@ -49,6 +53,7 @@ describe('Aggregation Controller (e2e)', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },
