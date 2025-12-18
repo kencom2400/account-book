@@ -15,10 +15,14 @@ import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-cr
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
+import { GetSupportedCardCompaniesUseCase } from '../../application/use-cases/get-supported-card-companies.use-case';
+import { TestCreditCardConnectionUseCase } from '../../application/use-cases/test-credit-card-connection.use-case';
 import type { ICreditCardRepository } from '../../domain/repositories/credit-card.repository.interface';
 import { ConnectCreditCardDto } from '../dto/connect-credit-card.dto';
 import { GetTransactionsDto } from '../dto/get-transactions.dto';
 import { GetPaymentInfoDto } from '../dto/get-payment-info.dto';
+import { GetSupportedCardCompaniesQueryDto } from '../dto/get-supported-card-companies.dto';
+import { TestCreditCardConnectionDto } from '../dto/test-credit-card-connection.dto';
 import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
 import { CreditCardJSONResponse } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionJSONResponse } from '../../domain/entities/credit-card-transaction.entity';
@@ -31,9 +35,54 @@ export class CreditCardController {
     private readonly fetchTransactionsUseCase: FetchCreditCardTransactionsUseCase,
     private readonly fetchPaymentInfoUseCase: FetchPaymentInfoUseCase,
     private readonly refreshCreditCardDataUseCase: RefreshCreditCardDataUseCase,
+    private readonly getSupportedCardCompaniesUseCase: GetSupportedCardCompaniesUseCase,
+    private readonly testCreditCardConnectionUseCase: TestCreditCardConnectionUseCase,
     @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: ICreditCardRepository,
   ) {}
+
+  /**
+   * 対応カード会社一覧を取得
+   * GET /api/credit-cards/companies/supported
+   */
+  @Get('companies/supported')
+  getSupportedCardCompanies(
+    @Query() query: GetSupportedCardCompaniesQueryDto,
+  ): {
+    success: boolean;
+    data: unknown[];
+    count: number;
+  } {
+    const companies = this.getSupportedCardCompaniesUseCase.execute(query);
+
+    return {
+      success: true,
+      data: companies,
+      count: companies.length,
+    };
+  }
+
+  /**
+   * クレジットカード接続テスト
+   * POST /api/credit-cards/test-connection
+   */
+  @Post('test-connection')
+  @HttpCode(HttpStatus.OK)
+  async testCreditCardConnection(
+    @Body() dto: TestCreditCardConnectionDto,
+  ): Promise<{
+    success: boolean;
+    data: Record<string, unknown>;
+  }> {
+    const result = await this.testCreditCardConnectionUseCase.execute(dto);
+
+    // レスポンスの冗長性を解消: successはトップレベルのみ
+    const { success, ...data } = result;
+    return {
+      success,
+      data,
+    };
+  }
 
   /**
    * POST /api/credit-cards/connect

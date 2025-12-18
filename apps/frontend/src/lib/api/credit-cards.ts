@@ -1,4 +1,11 @@
-import { CreditCard, CreditCardTransaction, Payment } from '@account-book/types';
+import {
+  CreditCard,
+  CreditCardTransaction,
+  Payment,
+  CardCompany,
+  CardCompanyCategory,
+  CreditCardConnectionTestResult,
+} from '@account-book/types';
 import { apiClient } from './client';
 
 /**
@@ -113,4 +120,50 @@ export async function refreshCreditCardData(id: string): Promise<{
     transactions: CreditCardTransaction[];
     payment: Payment;
   }>(`/credit-cards/${id}/refresh`, {});
+}
+
+export interface GetSupportedCardCompaniesParams {
+  category?: CardCompanyCategory;
+  searchTerm?: string;
+}
+
+export interface TestCreditCardConnectionRequest {
+  cardNumber: string;
+  cardHolderName: string;
+  expiryDate: string; // YYYY-MM-DD形式
+  username: string;
+  password: string;
+  issuer: string;
+  apiKey?: string;
+}
+
+/**
+ * 対応カード会社一覧を取得
+ */
+export async function getSupportedCardCompanies(
+  params?: GetSupportedCardCompaniesParams
+): Promise<CardCompany[]> {
+  const searchParams = new URLSearchParams();
+
+  if (params) {
+    if (params.category) searchParams.append('category', params.category);
+    if (params.searchTerm) searchParams.append('searchTerm', params.searchTerm);
+  }
+
+  const endpoint = `/credit-cards/companies/supported${
+    searchParams.toString() ? `?${searchParams.toString()}` : ''
+  }`;
+  return await apiClient.get<CardCompany[]>(endpoint);
+}
+
+/**
+ * クレジットカード接続テスト
+ */
+export async function testCreditCardConnection(
+  data: TestCreditCardConnectionRequest
+): Promise<CreditCardConnectionTestResult> {
+  return await apiClient.post<CreditCardConnectionTestResult>(
+    '/credit-cards/test-connection',
+    data
+  );
 }

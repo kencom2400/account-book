@@ -10,6 +10,8 @@ import { ConnectCreditCardUseCase } from './application/use-cases/connect-credit
 import { FetchCreditCardTransactionsUseCase } from './application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from './application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from './application/use-cases/refresh-credit-card-data.use-case';
+import { GetSupportedCardCompaniesUseCase } from './application/use-cases/get-supported-card-companies.use-case';
+import { TestCreditCardConnectionUseCase } from './application/use-cases/test-credit-card-connection.use-case';
 
 // Repositories
 import {
@@ -46,6 +48,8 @@ import { CRYPTO_SERVICE } from '../institution/institution.tokens';
     FetchCreditCardTransactionsUseCase,
     FetchPaymentInfoUseCase,
     RefreshCreditCardDataUseCase,
+    GetSupportedCardCompaniesUseCase,
+    TestCreditCardConnectionUseCase,
 
     // Repositories - TypeORM版を使用（JSON版は予備として残す）
     {

@@ -1,9 +1,11 @@
 'use client';
 
-import { BankConnectionTestResult } from '@account-book/types';
+import { BankConnectionTestResult, CreditCardConnectionTestResult } from '@account-book/types';
+
+type ConnectionTestResult = BankConnectionTestResult | CreditCardConnectionTestResult;
 
 interface ConnectionTestResultProps {
-  result: BankConnectionTestResult;
+  result: ConnectionTestResult;
   onRetry?: () => void;
   onContinue?: () => void;
 }
@@ -40,8 +42,8 @@ export function ConnectionTestResult({
           </div>
         </div>
 
-        {/* 口座情報 */}
-        {result.accountInfo && (
+        {/* 口座情報（銀行の場合） */}
+        {'accountInfo' in result && result.accountInfo && (
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h4 className="text-sm font-medium text-gray-900 mb-4">取得した口座情報</h4>
             <dl className="grid grid-cols-1 gap-4">
@@ -79,13 +81,53 @@ export function ConnectionTestResult({
           </div>
         )}
 
+        {/* カード情報（クレジットカードの場合） */}
+        {'cardInfo' in result && result.cardInfo && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h4 className="text-sm font-medium text-gray-900 mb-4">取得したカード情報</h4>
+            <dl className="grid grid-cols-1 gap-4">
+              <div>
+                <dt className="text-sm text-gray-500">カード名</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {result.cardInfo.cardName}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">カード番号（下4桁）</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  **** **** **** {result.cardInfo.cardNumber}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">カード名義</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {result.cardInfo.cardHolderName}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">有効期限</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">
+                  {new Date(result.cardInfo.expiryDate).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                  })}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">発行会社</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900">{result.cardInfo.issuer}</dd>
+              </div>
+            </dl>
+          </div>
+        )}
+
         {/* アクションボタン */}
         {onContinue && (
           <button
             onClick={onContinue}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            この銀行を登録する
+            {'accountInfo' in result ? 'この銀行を登録する' : 'このクレジットカードを登録する'}
           </button>
         )}
       </div>
@@ -148,6 +190,19 @@ export function ConnectionTestResult({
           {result.errorCode === 'BE005' && (
             <ul className="list-disc list-inside space-y-1">
               <li>時間をおいてから再度お試しください</li>
+            </ul>
+          )}
+          {result.errorCode === 'CC001' && (
+            <ul className="list-disc list-inside space-y-1">
+              <li>カード番号、カード名義、有効期限を確認してください</li>
+              <li>ログインID・パスワードが正しいか確認してください</li>
+              <li>Web明細サービスの登録状況を確認してください</li>
+            </ul>
+          )}
+          {result.errorCode === 'CC002' && (
+            <ul className="list-disc list-inside space-y-1">
+              <li>インターネット接続を確認してください</li>
+              <li>しばらく待ってから再度お試しください</li>
             </ul>
           )}
           {!result.errorCode && <p>しばらく待ってから再度お試しください</p>}

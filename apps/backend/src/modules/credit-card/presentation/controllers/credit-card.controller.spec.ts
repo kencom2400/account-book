@@ -4,6 +4,8 @@ import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-cr
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
+import { GetSupportedCardCompaniesUseCase } from '../../application/use-cases/get-supported-card-companies.use-case';
+import { TestCreditCardConnectionUseCase } from '../../application/use-cases/test-credit-card-connection.use-case';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
 import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
@@ -62,6 +64,14 @@ describe('CreditCardController', () => {
         },
         {
           provide: RefreshCreditCardDataUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: GetSupportedCardCompaniesUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: TestCreditCardConnectionUseCase,
           useValue: { execute: jest.fn() },
         },
         {
