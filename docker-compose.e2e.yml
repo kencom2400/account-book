@@ -17,7 +17,17 @@ services:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-root_password}']
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-p${MYSQL_ROOT_PASSWORD:-root_password}',
+        ]
       timeout: 20s
       retries: 10
       interval: 10s
@@ -59,9 +69,16 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: pnpm dev
+    # libs/typesをビルドしてからdevサーバーを起動
+    # TODO: ビルド専用サービスを作成し、backendとfrontendがdepends_onで依存する構成に改善することで、
+    # ビルドの重複実行を避ける（Geminiレビュー指摘）
+    command: sh -c "cd /app && pnpm run build --filter=@account-book/types && cd /app/apps/backend && pnpm dev"
     healthcheck:
-      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          'wget --spider -q http://localhost:3001/ || curl -f http://localhost:3001/ || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -95,6 +112,7 @@ services:
     environment:
       - NODE_ENV=test
       - PORT=3000
+      # ブラウザからアクセスするURL（localhost:3021）
       - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT_E2E:-3021}
     env_file:
       - .env
@@ -102,7 +120,10 @@ services:
       - account-book-network-e2e
     depends_on:
       - backend
-    command: pnpm dev
+    # libs/typesをビルドしてからdevサーバーを起動
+    # TODO: ビルド専用サービスを作成し、backendとfrontendがdepends_onで依存する構成に改善することで、
+    # ビルドの重複実行を避ける（Geminiレビュー指摘）
+    command: sh -c "cd /app && pnpm run build --filter=@account-book/types && cd /app/apps/frontend && pnpm dev"
 
 networks:
   account-book-network-e2e:
@@ -110,4 +131,3 @@ networks:
 
 volumes:
   mysql-data-e2e:
-

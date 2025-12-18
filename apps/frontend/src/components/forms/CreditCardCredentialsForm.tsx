@@ -165,7 +165,7 @@ export function CreditCardCredentialsForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* 選択したカード会社の表示 */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="text-sm text-gray-600">接続先カード会社</div>

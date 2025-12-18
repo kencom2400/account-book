@@ -150,7 +150,12 @@ export async function getSupportedCardCompanies(
     if (params.searchTerm) searchParams.append('searchTerm', params.searchTerm);
   }
 
-  const endpoint = `/credit-cards/companies/supported${
+  // apiClient.getは自動的に/apiを追加するが、/apiで始まるエンドポイントはそのまま使用される
+  // @Controller('api/credit-cards') + setGlobalPrefix('api')により、
+  // 実際のエンドポイントは/api/api/credit-cards/companies/supportedになる
+  // そのため、/api/api/credit-cards/companies/supportedを指定する
+  // apiClient.get<T>()は既にdataプロパティを返すため、直接CardCompany[]を返す
+  const endpoint = `/api/api/credit-cards/companies/supported${
     searchParams.toString() ? `?${searchParams.toString()}` : ''
   }`;
   return await apiClient.get<CardCompany[]>(endpoint);
@@ -162,8 +167,12 @@ export async function getSupportedCardCompanies(
 export async function testCreditCardConnection(
   data: TestCreditCardConnectionRequest
 ): Promise<CreditCardConnectionTestResult> {
+  // apiClient.postは自動的に/apiを追加するが、/apiで始まるエンドポイントはそのまま使用される
+  // @Controller('api/credit-cards') + setGlobalPrefix('api')により、
+  // 実際のエンドポイントは/api/api/credit-cards/test-connectionになる
+  // そのため、/api/api/credit-cards/test-connectionを指定する
   return await apiClient.post<CreditCardConnectionTestResult>(
-    '/credit-cards/test-connection',
+    '/api/api/credit-cards/test-connection',
     data
   );
 }
