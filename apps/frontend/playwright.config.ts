@@ -81,11 +81,11 @@ export default defineConfig({
         // 必要に応じて `pnpm exec playwright install firefox webkit` を実行
       ],
   webServer: [
-    // バックエンドサーバー
+    // バックエンドサーバー（Dockerコンテナで起動済みの場合は再利用）
     {
       command: 'pnpm --filter @account-book/backend dev',
       url: `http://127.0.0.1:${backendPort}/api/health/institutions`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Dockerコンテナで起動しているサーバーを再利用
       timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',
@@ -104,11 +104,11 @@ export default defineConfig({
         MYSQL_DATABASE: process.env.MYSQL_DATABASE || 'account_book_e2e',
       },
     },
-    // フロントエンドサーバー
+    // フロントエンドサーバー（Dockerコンテナで起動済みの場合は再利用）
     {
       command: 'pnpm --filter @account-book/frontend dev',
       url: `http://127.0.0.1:${frontendPort}`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Dockerコンテナで起動しているサーバーを再利用
       timeout: 120 * 1000, // タイムアウトを120秒に設定（ルール推奨値、既存サーバーがある場合は即座に完了）
       stdout: 'pipe',
       stderr: 'pipe',

@@ -47,9 +47,9 @@ E2E_PORTS="3020 3021 3326"
 PORTS_TO_KILL=""
 
 # 停止対象となるコマンドパターン（E2E関連プロセスのみ）
-# pnpm dev、next-server、nest start watch、mysql（E2E用）などを対象とする
+# pnpm dev、next-server、nest start watch、nest.js、mysql（E2E用）などを対象とする
 # node経由でpnpmを実行している場合（例: node ... pnpm ... dev）も含める
-TARGET_COMMAND_PATTERNS="pnpm.*dev|node.*pnpm.*dev|next-server|nest.*start.*watch|nest.*dev|mysql"
+TARGET_COMMAND_PATTERNS="pnpm.*dev|node.*pnpm.*dev|next-server|nest.*start.*watch|nest.*dev|nest\.js|mysql"
 
 for port in $E2E_PORTS; do
   # TCPのLISTEN状態で正確にポート番号を指定
@@ -83,7 +83,7 @@ find_parent_pnpm_dev() {
   
   while [ $depth -lt $max_depth ] && [ -n "$pid" ] && [ "$pid" != "1" ]; do
     PROCESS_ARGS=$(ps -p "$pid" -o args= 2>/dev/null || echo "")
-    if echo "$PROCESS_ARGS" | grep -qE "pnpm.*dev|node.*pnpm.*dev"; then
+    if echo "$PROCESS_ARGS" | grep -qE "pnpm.*dev|node.*pnpm.*dev|nest\.js.*start|nest.*start.*watch"; then
       echo "$pid"
       return 0
     fi
@@ -110,7 +110,7 @@ for port in $E2E_PORTS; do
     fi
     # ポートを使用しているプロセス自体も確認
     PROCESS_ARGS=$(ps -p "$PORT_PID" -o args= 2>/dev/null || echo "")
-    if echo "$PROCESS_ARGS" | grep -qE "pnpm.*dev|node.*pnpm.*dev|next-server|nest.*start.*watch|nest.*dev"; then
+    if echo "$PROCESS_ARGS" | grep -qE "pnpm.*dev|node.*pnpm.*dev|next-server|nest.*start.*watch|nest.*dev|nest\.js"; then
       if echo "$PNPM_DEV_PIDS" | grep -qvE "\\b$PORT_PID\\b"; then
         PNPM_DEV_PIDS="$PNPM_DEV_PIDS $PORT_PID"
         echo "   pnpm devプロセス（E2E関連、ポート$port使用）: PID=$PORT_PID"
@@ -212,6 +212,70 @@ if [ -z "$MYSQL_RUNNING" ]; then
   echo ""
 fi
 echo "✅ MySQLコンテナが起動しています"
+echo ""
+
+# バックエンドコンテナの起動確認と自動起動
+echo "🔍 バックエンドコンテナの起動状態を確認中..."
+BACKEND_CONTAINER_NAME="account-book-backend-e2e"
+BACKEND_RUNNING=$(docker ps --filter "name=$BACKEND_CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
+if [ -z "$BACKEND_RUNNING" ]; then
+  echo "ℹ️  バックエンドコンテナが起動していません。自動的に起動します..."
+  echo ""
+  docker-compose -f "$COMPOSE_FILE" up -d backend
+  echo ""
+  
+  # バックエンドの準備完了を待機
+  echo "⏳ バックエンドの準備完了を待機中..."
+  RETRY_COUNT=0
+  MAX_RETRIES=60
+  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -f -s "http://127.0.0.1:${BACKEND_PORT}/api/health/institutions" >/dev/null 2>&1; then
+      echo "✅ バックエンドが準備完了しました"
+      break
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 2
+  done
+  
+  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "❌ バックエンドの起動がタイムアウトしました"
+    exit 1
+  fi
+  echo ""
+fi
+echo "✅ バックエンドコンテナが起動しています"
+echo ""
+
+# フロントエンドコンテナの起動確認と自動起動
+echo "🔍 フロントエンドコンテナの起動状態を確認中..."
+FRONTEND_CONTAINER_NAME="account-book-frontend-e2e"
+FRONTEND_RUNNING=$(docker ps --filter "name=$FRONTEND_CONTAINER_NAME" --filter "status=running" --format "{{.Names}}" 2>/dev/null)
+if [ -z "$FRONTEND_RUNNING" ]; then
+  echo "ℹ️  フロントエンドコンテナが起動していません。自動的に起動します..."
+  echo ""
+  docker-compose -f "$COMPOSE_FILE" up -d frontend
+  echo ""
+  
+  # フロントエンドの準備完了を待機
+  echo "⏳ フロントエンドの準備完了を待機中..."
+  RETRY_COUNT=0
+  MAX_RETRIES=60
+  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -f -s "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; then
+      echo "✅ フロントエンドが準備完了しました"
+      break
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 2
+  done
+  
+  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "❌ フロントエンドの起動がタイムアウトしました"
+    exit 1
+  fi
+  echo ""
+fi
+echo "✅ フロントエンドコンテナが起動しています"
 echo ""
 
 # 引数でテスト対象を指定
