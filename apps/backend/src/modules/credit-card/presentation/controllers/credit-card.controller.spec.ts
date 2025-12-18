@@ -4,6 +4,8 @@ import { ConnectCreditCardUseCase } from '../../application/use-cases/connect-cr
 import { FetchCreditCardTransactionsUseCase } from '../../application/use-cases/fetch-credit-card-transactions.use-case';
 import { FetchPaymentInfoUseCase } from '../../application/use-cases/fetch-payment-info.use-case';
 import { RefreshCreditCardDataUseCase } from '../../application/use-cases/refresh-credit-card-data.use-case';
+import { GetSupportedCardCompaniesUseCase } from '../../application/use-cases/get-supported-card-companies.use-case';
+import { TestCreditCardConnectionUseCase } from '../../application/use-cases/test-credit-card-connection.use-case';
 import { CreditCardEntity } from '../../domain/entities/credit-card.entity';
 import { EncryptedCredentials } from '../../../institution/domain/value-objects/encrypted-credentials.vo';
 import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
@@ -13,6 +15,8 @@ describe('CreditCardController', () => {
   let connectUseCase: jest.Mocked<ConnectCreditCardUseCase>;
   let fetchPaymentInfoUseCase: jest.Mocked<FetchPaymentInfoUseCase>;
   let refreshUseCase: jest.Mocked<RefreshCreditCardDataUseCase>;
+  let getSupportedCardCompaniesUseCase: jest.Mocked<GetSupportedCardCompaniesUseCase>;
+  let testCreditCardConnectionUseCase: jest.Mocked<TestCreditCardConnectionUseCase>;
   let creditCardRepository: any;
 
   const mockCredentials = new EncryptedCredentials(
@@ -65,6 +69,14 @@ describe('CreditCardController', () => {
           useValue: { execute: jest.fn() },
         },
         {
+          provide: GetSupportedCardCompaniesUseCase,
+          useValue: { execute: jest.fn(), findByCode: jest.fn() },
+        },
+        {
+          provide: TestCreditCardConnectionUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: CREDIT_CARD_REPOSITORY,
           useValue: creditCardRepository,
         },
@@ -77,6 +89,12 @@ describe('CreditCardController', () => {
     connectUseCase = module.get(ConnectCreditCardUseCase);
     fetchPaymentInfoUseCase = module.get(FetchPaymentInfoUseCase);
     refreshUseCase = module.get(RefreshCreditCardDataUseCase);
+    getSupportedCardCompaniesUseCase = module.get(
+      GetSupportedCardCompaniesUseCase,
+    );
+    testCreditCardConnectionUseCase = module.get(
+      TestCreditCardConnectionUseCase,
+    );
   });
 
   describe('connect', () => {
@@ -155,6 +173,199 @@ describe('CreditCardController', () => {
       const result = await controller.refresh('card_1');
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('getSupportedCardCompanies', () => {
+    it('should return all supported card companies when no query is provided', () => {
+      const mockCompanies = [
+        {
+          id: 'card_1',
+          code: 'SMBC',
+          name: '三井住友カード',
+          category: 'major',
+          isSupported: true,
+        },
+        {
+          id: 'card_2',
+          code: 'JCB',
+          name: 'JCB',
+          category: 'major',
+          isSupported: true,
+        },
+      ];
+
+      getSupportedCardCompaniesUseCase.execute.mockReturnValue(mockCompanies);
+
+      const result = controller.getSupportedCardCompanies({});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockCompanies);
+      expect(result.count).toBe(2);
+      expect(getSupportedCardCompaniesUseCase.execute).toHaveBeenCalledWith({});
+    });
+
+    it('should filter card companies by category', () => {
+      const mockCompanies = [
+        {
+          id: 'card_1',
+          code: 'SMBC',
+          name: '三井住友カード',
+          category: 'major',
+          isSupported: true,
+        },
+      ];
+
+      getSupportedCardCompaniesUseCase.execute.mockReturnValue(mockCompanies);
+
+      const result = controller.getSupportedCardCompanies({
+        category: 'major',
+      } as any);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockCompanies);
+      expect(result.count).toBe(1);
+      expect(getSupportedCardCompaniesUseCase.execute).toHaveBeenCalledWith({
+        category: 'major',
+      });
+    });
+
+    it('should filter card companies by search term', () => {
+      const mockCompanies = [
+        {
+          id: 'card_1',
+          code: 'SMBC',
+          name: '三井住友カード',
+          category: 'major',
+          isSupported: true,
+        },
+      ];
+
+      getSupportedCardCompaniesUseCase.execute.mockReturnValue(mockCompanies);
+
+      const result = controller.getSupportedCardCompanies({
+        searchTerm: '三井住友',
+      } as any);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockCompanies);
+      expect(result.count).toBe(1);
+      expect(getSupportedCardCompaniesUseCase.execute).toHaveBeenCalledWith({
+        searchTerm: '三井住友',
+      });
+    });
+
+    it('should combine category and search term filters', () => {
+      const mockCompanies: any[] = [];
+
+      getSupportedCardCompaniesUseCase.execute.mockReturnValue(mockCompanies);
+
+      const result = controller.getSupportedCardCompanies({
+        category: 'major',
+        searchTerm: 'JCB',
+      } as any);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockCompanies);
+      expect(result.count).toBe(0);
+      expect(getSupportedCardCompaniesUseCase.execute).toHaveBeenCalledWith({
+        category: 'major',
+        searchTerm: 'JCB',
+      });
+    });
+  });
+
+  describe('testCreditCardConnection', () => {
+    it('should return success result when connection test succeeds', async () => {
+      const mockDto = {
+        cardName: 'Test Card',
+        cardNumber: '1234567890123456',
+        cardHolderName: 'TARO YAMADA',
+        expiryDate: '2025-12-31',
+        username: 'test@example.com',
+        password: 'password123',
+        issuer: 'テストカード',
+        paymentDay: 15,
+        closingDay: 10,
+        apiKey: 'test-api-key',
+      };
+
+      const mockResult = {
+        success: true,
+        message: '接続に成功しました',
+        cardInfo: {
+          cardName: 'テストカード',
+          cardNumber: '3456',
+          cardHolderName: 'TARO YAMADA',
+          expiryDate: '2025-12-31',
+          issuer: 'テストカード',
+        },
+      };
+
+      testCreditCardConnectionUseCase.execute.mockResolvedValue(
+        mockResult as any,
+      );
+
+      const result = await controller.testCreditCardConnection(mockDto as any);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockResult);
+      expect(testCreditCardConnectionUseCase.execute).toHaveBeenCalledWith(
+        mockDto,
+      );
+    });
+
+    it('should return failure result when connection test fails', async () => {
+      const mockDto = {
+        cardName: 'Test Card',
+        cardNumber: '1234567890123456',
+        cardHolderName: 'TARO YAMADA',
+        expiryDate: '2025-12-31',
+        username: 'test@example.com',
+        password: 'password123',
+        issuer: 'テストカード',
+        paymentDay: 15,
+        closingDay: 10,
+      };
+
+      const mockResult = {
+        success: false,
+        message: '認証に失敗しました',
+        errorCode: 'CC001',
+      };
+
+      testCreditCardConnectionUseCase.execute.mockResolvedValue(
+        mockResult as any,
+      );
+
+      const result = await controller.testCreditCardConnection(mockDto as any);
+
+      expect(result.success).toBe(true); // Controller層では常にsuccess: trueを返す
+      expect(result.data).toEqual(mockResult);
+      expect(testCreditCardConnectionUseCase.execute).toHaveBeenCalledWith(
+        mockDto,
+      );
+    });
+
+    it('should handle error when use case throws an exception', async () => {
+      const mockDto = {
+        cardName: 'Test Card',
+        cardNumber: '1234567890123456',
+        cardHolderName: 'TARO YAMADA',
+        expiryDate: '2025-12-31',
+        username: 'test@example.com',
+        password: 'password123',
+        issuer: 'テストカード',
+        paymentDay: 15,
+        closingDay: 10,
+      };
+
+      const error = new Error('Unexpected error');
+      testCreditCardConnectionUseCase.execute.mockRejectedValue(error);
+
+      await expect(
+        controller.testCreditCardConnection(mockDto as any),
+      ).rejects.toThrow('Unexpected error');
     });
   });
 });

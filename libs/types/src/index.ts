@@ -1,6 +1,7 @@
 export * from './transaction.types';
 export * from './institution.types';
 export * from './bank.types';
+export * from './credit-card-company.types';
 export * from './api.types';
 export * from './api/error-response';
 export * from './api/trend-analysis-response';

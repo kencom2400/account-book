@@ -54,7 +54,7 @@ export class MockCreditCardAPIAdapter implements ICreditCardAPIClient {
     };
   }
 
-  async getCardInfo(): Promise<CardInfo> {
+  async getCardInfo(_credentials: Record<string, unknown>): Promise<CardInfo> {
     await this.simulateNetworkDelay();
 
     return {
