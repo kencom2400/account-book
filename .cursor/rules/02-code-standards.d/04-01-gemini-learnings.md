@@ -12686,3 +12686,176 @@ jq -n \
 **参照**: PR #443 - Issue #419: E2Eテスト: FR-001 銀行口座との連携（Gemini Code Assistレビュー指摘）
 
 ---
+
+### E2Eテスト: 意味のないアサーションを避ける
+
+**内容**:
+E2Eテストで、常に真になるアサーション（例: `toBeGreaterThanOrEqual(0)`）は実質的に何も検証していないため、意味のあるアサーションに修正する必要がある。
+
+**例**:
+
+```typescript
+// ❌ 悪い例: 常に真になるアサーション
+const statusCount = await statusText.count();
+expect(statusCount).toBeGreaterThanOrEqual(0); // 常に真
+
+// ✅ 良い例: 意味のあるアサーション
+const statusCount = await statusText.count();
+expect(statusCount).toBeGreaterThan(0); // 少なくとも1つは存在することを確認
+```
+
+**理由**:
+
+- テストが実際に何かを検証していることを保証する
+- テストの意図が明確になる
+- バグの検出能力が向上する
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
+
+---
+
+### E2Eテスト: CSSクラス名に依存するセレクタを避ける
+
+**内容**:
+`[class*="Card"]` のようなCSSクラス名に依存するセレクタは、UIのスタイル変更によってテストが壊れやすくなるため、保守性の観点から推奨されない。より堅牢なテストにするために、`data-testid` のようなテスト用の属性をコンポーネントに追加し、それを使って要素を選択することを推奨する。
+
+**例**:
+
+```typescript
+// ❌ 悪い例: CSSクラス名に依存
+const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /接続状態/ });
+
+// ✅ 良い例: data-testidを使用（コンポーネント側で実装が必要）
+const institutionCards = page.getByTestId('institution-card');
+
+// ⚠️ 暫定的な改善: テキストベースのセレクタ（data-testidが実装されるまでの暫定策）
+const institutionCards = page
+  .getByText(/接続状態/)
+  .locator('..')
+  .locator('..');
+```
+
+**理由**:
+
+- UIのスタイル変更に影響されない
+- テストの保守性が向上する
+- テストの意図が明確になる
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
+
+---
+
+### E2Eテスト: UI状態の検証を完全に実装する
+
+**内容**:
+E2Eテストでは、API呼び出しだけでなく、ユーザーに見えるUIの変化も確認することが重要。同期ボタンクリック後のUI状態（ボタンの無効化、ローディング表示など）を検証するアサーションを追加する。
+
+**例**:
+
+```typescript
+// ❌ 悪い例: UI状態の検証が不完全
+await firstSyncButton.click();
+await responsePromise;
+// 注: 実際のUI実装に応じて調整が必要（検証なし）
+
+// ✅ 良い例: UI状態を検証
+await firstSyncButton.click();
+// 同期処理が開始されたことを確認（ボタンが無効化される、またはローディング表示）
+await expect(firstSyncButton)
+  .toBeDisabled({ timeout: 1000 })
+  .catch(() => {
+    // ボタンが無効化されない実装の場合、ローディング表示を確認
+  });
+await responsePromise;
+```
+
+**理由**:
+
+- ユーザー体験を正確に検証できる
+- テストの価値が向上する
+- バグの検出能力が向上する
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
+
+---
+
+### E2Eテスト: 決定論的でないテストを避ける
+
+**内容**:
+`waitForResponse` を `.catch` で囲んで「呼び出される可能性がある」「API呼び出しがない場合は無視」としているテストは、決定論的ではなく、テストの価値が低く誤解を招く可能性がある。特定の条件下で特定の振る舞いが起こることを一貫して検証できるべき。もしそれがオプションの動作であるなら、テストケースを削除または設計を見直すべき。
+
+**例**:
+
+```typescript
+// ❌ 悪い例: 決定論的でないテスト
+await page
+  .waitForResponse(
+    (response) =>
+      response.url().includes('/api/health/institutions') && response.request().method() === 'GET',
+    { timeout: 15000 }
+  )
+  .catch(() => {
+    // API呼び出しがない場合は無視
+  });
+
+// ✅ 良い例: 決定論的なテスト（API呼び出しが期待される場合）
+await page.waitForResponse(
+  (response) =>
+    response.url().includes('/api/health/institutions') && response.request().method() === 'GET',
+  { timeout: 15000 }
+);
+
+// ✅ 良い例: テストケースを削除（オプションの動作の場合）
+// 注: このテストケースは削除しました。
+// 理由: 手動同期後に接続確認APIが呼び出されるかどうかは実装に依存し、
+// 決定論的でないテストはテストの価値が低く、誤解を招く可能性があるため。
+```
+
+**理由**:
+
+- テストの信頼性が向上する
+- テストの意図が明確になる
+- バグの検出能力が向上する
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
+
+---
+
+### E2Eテスト: デバッグしやすいアサーションを使用する
+
+**内容**:
+`.isVisible().catch(() => false)` のようなパターンは、アサーションが失敗した際にPlaywrightが提供する詳細なエラーメッセージ（タイムアウトまでの待機時間、試行されたセレクタなど）を得られないため、デバッグが難しくなる。Playwrightのベストプラクティスに従い、`await expect(...).toBeVisible()` のように直接的なアサーションを使用する。
+
+**例**:
+
+```typescript
+// ❌ 悪い例: デバッグが難しいアサーション
+const hasStatus = await card
+  .getByText(/接続状態|正常|エラー/)
+  .isVisible()
+  .catch(() => false);
+expect(hasStatus).toBe(true);
+
+// ✅ 良い例: 直接的なアサーション
+await expect(card.getByText(/接続状態|正常|エラー/)).toBeVisible();
+```
+
+**理由**:
+
+- テストが失敗した場合の原因特定が容易になる
+- Playwrightの自動待機機能を活用できる
+- エラーメッセージが詳細で有用になる
+
+**適用対象**: E2Eテスト（Playwright）
+
+**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
+
+---

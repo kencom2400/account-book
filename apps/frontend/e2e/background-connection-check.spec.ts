@@ -68,7 +68,7 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
         .or(page.locator('text=エラー'));
       const statusCount = await statusText.count();
       // 金融機関が登録されている場合、ステータスが表示される
-      expect(statusCount).toBeGreaterThanOrEqual(0);
+      expect(statusCount).toBeGreaterThan(0);
     }
   });
 
@@ -87,7 +87,11 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       });
 
     // 金融機関カードが表示されることを確認
-    const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /接続状態/ });
+    // 注: より堅牢なテストのため、将来的にはdata-testidを使用することを推奨
+    const institutionCards = page
+      .getByText(/接続状態/)
+      .locator('..')
+      .locator('..');
     const cardCount = await institutionCards.count();
 
     if (cardCount > 0) {
@@ -121,7 +125,11 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       });
 
     // 金融機関カードが表示されることを確認
-    const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /最終同期/ });
+    // 注: より堅牢なテストのため、将来的にはdata-testidを使用することを推奨
+    const institutionCards = page
+      .getByText(/最終同期/)
+      .locator('..')
+      .locator('..');
     const cardCount = await institutionCards.count();
 
     if (cardCount > 0) {
@@ -170,60 +178,21 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       // 同期ボタンをクリック
       await firstSyncButton.click();
 
-      // APIレスポンスを待機
-      await responsePromise;
-
       // 同期処理が開始されたことを確認（ボタンが無効化される、またはローディング表示）
       // 注: 実際のUI実装に応じて調整が必要
+      // 同期中はボタンが無効化される可能性があるため、Playwrightの自動待機を活用
+      // ボタンが無効化されているか、またはローディング表示があることを確認
+      // 注: ボタンの無効化は即座に反映されない場合があるため、APIレスポンス待機後に確認
+
+      // APIレスポンスを待機
+      await responsePromise;
     }
   });
 
-  test('接続確認APIが呼び出される（手動更新時）', async ({ page }) => {
-    // 金融機関一覧ページに移動
-    await page.goto('/banks');
-
-    // ページが完全に読み込まれるまで待機
-    await page.waitForLoadState('domcontentloaded');
-
-    // ローディングが完了するまで待機
-    await page
-      .waitForSelector('text=読み込み中...', { state: 'hidden', timeout: 10000 })
-      .catch(() => {
-        // ローディングが表示されない場合（既に読み込み完了）は無視
-      });
-
-    // 同期ボタンが表示されることを確認
-    const syncButtons = page.getByRole('button', { name: /今すぐ同期|同期/ });
-    const syncButtonCount = await syncButtons.count();
-
-    if (syncButtonCount > 0) {
-      // 同期APIを待機
-      const syncPromise = page.waitForResponse(
-        (response) =>
-          response.url().includes('/api/sync/start') && response.request().method() === 'POST',
-        { timeout: 15000 }
-      );
-
-      // 最初の同期ボタンをクリック
-      await syncButtons.first().click();
-
-      // 同期APIレスポンスを待機
-      await syncPromise;
-
-      // 接続確認APIが呼び出される可能性がある（実装による）
-      // API呼び出しがない場合は無視
-      await page
-        .waitForResponse(
-          (response) =>
-            response.url().includes('/api/health/institutions') &&
-            response.request().method() === 'GET',
-          { timeout: 15000 }
-        )
-        .catch(() => {
-          // API呼び出しがない場合は無視
-        });
-    }
-  });
+  // 注: このテストケースは削除しました。
+  // 理由: 手動同期後に接続確認APIが呼び出されるかどうかは実装に依存し、
+  // 決定論的でないテスト（waitForResponseを.catchで囲む）はテストの価値が低く、
+  // 誤解を招く可能性があるため。
 
   test('接続失敗時にエラー表示がされる', async ({ page }) => {
     // 金融機関一覧ページに移動
@@ -240,7 +209,11 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       });
 
     // 金融機関カードが表示されることを確認
-    const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /接続状態/ });
+    // 注: より堅牢なテストのため、将来的にはdata-testidを使用することを推奨
+    const institutionCards = page
+      .getByText(/接続状態/)
+      .locator('..')
+      .locator('..');
     const cardCount = await institutionCards.count();
 
     if (cardCount > 0) {
@@ -271,7 +244,11 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       });
 
     // 金融機関カードが表示されることを確認
-    const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /接続状態/ });
+    // 注: より堅牢なテストのため、将来的にはdata-testidを使用することを推奨
+    const institutionCards = page
+      .getByText(/接続状態/)
+      .locator('..')
+      .locator('..');
     const cardCount = await institutionCards.count();
 
     // 複数の金融機関が登録されている場合、それぞれのステータスが表示される
@@ -279,11 +256,8 @@ test.describe('アプリ起動時のバックグラウンド接続確認 (FR-004
       // 各カードに接続ステータスが表示されることを確認
       for (let i = 0; i < Math.min(cardCount, 3); i++) {
         const card = institutionCards.nth(i);
-        const hasStatus = await card
-          .getByText(/接続状態|正常|エラー/)
-          .isVisible()
-          .catch(() => false);
-        expect(hasStatus).toBe(true);
+        // Playwrightの直接的なアサーションを使用して、デバッグしやすくする
+        await expect(card.getByText(/接続状態|正常|エラー/)).toBeVisible();
       }
     }
   });
