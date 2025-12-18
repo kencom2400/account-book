@@ -425,13 +425,6 @@ classDiagram
 - **新規フィールド**: `authenticationType`、`userId`、`password`
 - **既存フィールド**: `bankCode`、`branchCode`、`accountNumber`、`apiKey`、`apiSecret`
 
-#### [ListComponentName]
-
-- **責務**: [リストコンポーネントの責務]
-- **Props**:
-  - `items`: 表示するアイテム配列
-  - `onSelect`: アイテム選択時のコールバック
-
 ---
 
 ## クラス間の関係性
