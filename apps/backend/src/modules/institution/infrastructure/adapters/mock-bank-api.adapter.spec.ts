@@ -323,5 +323,166 @@ describe('MockBankApiAdapter', () => {
         expect(result.success).toBe(false);
       }
     });
+
+    // USERID_PASSWORD認証のテストケース
+    describe('USERID_PASSWORD authentication', () => {
+      it('should return success for valid USERID_PASSWORD credentials', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'password123',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe('接続に成功しました');
+        expect(result.accountInfo).toBeDefined();
+        expect(result.accountInfo?.bankName).toBe('テスト銀行');
+        // USERID_PASSWORD認証の場合、accountNumberはuserIdの末尾4文字をマスクした形式
+        expect(result.accountInfo?.accountNumber).toBe('***user');
+      });
+
+      it('should return failure for invalid userId (too short)', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: '', // 空文字
+          password: 'password123',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return failure for invalid userId (too long)', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'a'.repeat(101), // 101文字
+          password: 'password123',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return failure for invalid password (too short)', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'short', // 7文字（8文字以上である必要がある）
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return failure for invalid password (too long)', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'a'.repeat(101), // 101文字
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return failure for missing userId', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          password: 'password123',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return failure for missing password', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('BE001');
+      });
+
+      it('should return account info with correct structure for USERID_PASSWORD', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'password123',
+        };
+
+        const result = await adapter.testConnection(credentials);
+
+        expect(result.accountInfo).toMatchObject({
+          bankName: expect.any(String),
+          branchName: expect.any(String),
+          accountNumber: expect.any(String),
+          accountHolder: expect.any(String),
+          accountType: expect.any(String),
+          balance: expect.any(Number),
+          availableBalance: expect.any(Number),
+        });
+      });
+
+      it('should get account info for USERID_PASSWORD credentials', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'password123',
+        };
+
+        const accountInfo = await adapter.getAccountInfo(credentials);
+
+        expect(accountInfo.bankName).toBe('テスト銀行');
+        // USERID_PASSWORD認証の場合、accountNumberはuserIdの末尾4文字をマスクした形式
+        expect(accountInfo.accountNumber).toBe('***user');
+        expect(accountInfo.accountHolder).toBe('テスト　タロウ');
+        expect(accountInfo.accountType).toBe(BankAccountType.ORDINARY);
+        expect(accountInfo.balance).toBe(1000000);
+        expect(accountInfo.availableBalance).toBe(1000000);
+      });
+
+      it('should get transactions for USERID_PASSWORD credentials', async () => {
+        const credentials: BankCredentials = {
+          bankCode: '0005',
+          authenticationType: AuthenticationType.USERID_PASSWORD,
+          userId: 'testuser',
+          password: 'password123',
+        };
+
+        const transactions = await adapter.getTransactions(
+          credentials,
+          '2025-11-01',
+          '2025-11-30',
+        );
+
+        expect(transactions).toBeInstanceOf(Array);
+        expect(transactions.length).toBeGreaterThan(0);
+      });
+    });
   });
 });

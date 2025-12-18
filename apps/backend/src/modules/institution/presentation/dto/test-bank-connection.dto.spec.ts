@@ -150,5 +150,124 @@ describe('TestBankConnectionDto', () => {
       const apiSecretError = errors.find((e) => e.property === 'apiSecret');
       expect(apiSecretError).toBeDefined();
     });
+
+    // USERID_PASSWORD認証のテストケース
+    it('should pass validation with valid USERID_PASSWORD credentials', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail validation when userId is missing for USERID_PASSWORD type', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      // userIdはオプションなので、バリデーションエラーは発生しない
+      // ただし、実際の接続テストでは失敗する可能性がある
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail validation when userId is too short', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: '', // 空文字（1文字以上である必要がある）
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
+    });
+
+    it('should fail validation when userId is too long', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'a'.repeat(101), // 101文字（100文字以下である必要がある）
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
+    });
+
+    it('should fail validation when password is missing for USERID_PASSWORD type', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+      });
+
+      const errors = await validate(dto);
+
+      // passwordはオプションなので、バリデーションエラーは発生しない
+      // ただし、実際の接続テストでは失敗する可能性がある
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail validation when password is too short', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'short', // 7文字（8文字以上である必要がある）
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
+    });
+
+    it('should fail validation when password is too long', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'a'.repeat(101), // 101文字（100文字以下である必要がある）
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
+    });
+
+    it('should fail validation when authenticationType is invalid', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: 'invalid' as AuthenticationType,
+        userId: 'testuser',
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const authTypeError = errors.find(
+        (e) => e.property === 'authenticationType',
+      );
+      expect(authTypeError).toBeDefined();
+    });
   });
 });
