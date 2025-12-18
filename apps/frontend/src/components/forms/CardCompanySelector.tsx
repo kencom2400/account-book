@@ -24,20 +24,31 @@ export function CardCompanySelector({
   selectedCompany,
 }: CardCompanySelectorProps): React.JSX.Element {
   const [companies, setCompanies] = useState<CardCompany[]>([]);
-  const [filteredCompanies, setFilteredCompanies] = useState<CardCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CardCompanyCategory | 'all'>('all');
 
-  // カード会社一覧を取得
+  // デバウンス処理: 検索キーワードの変更を500ms遅延させる
+  useEffect(() => {
+    const timer = setTimeout((): void => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return (): void => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // カード会社一覧を取得（カテゴリと検索キーワードでフィルタリング）
   useEffect(() => {
     const fetchCompanies = async (): Promise<void> => {
       try {
         setLoading(true);
-        const data = await getSupportedCardCompanies();
+        const data = await getSupportedCardCompanies({
+          category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          searchTerm: debouncedSearchTerm || undefined,
+        });
         setCompanies(data);
-        setFilteredCompanies(data);
         setError(null);
       } catch (_err) {
         setError('カード会社一覧の取得に失敗しました');
@@ -47,28 +58,7 @@ export function CardCompanySelector({
     };
 
     void fetchCompanies();
-  }, []);
-
-  // 検索とフィルタリング
-  useEffect(() => {
-    let result = [...companies];
-
-    // カテゴリでフィルタ
-    if (selectedCategory !== 'all') {
-      result = result.filter((company) => company.category === selectedCategory);
-    }
-
-    // 検索キーワードでフィルタ
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (company) =>
-          company.name.toLowerCase().includes(term) || company.code.toLowerCase().includes(term)
-      );
-    }
-
-    setFilteredCompanies(result);
-  }, [companies, searchTerm, selectedCategory]);
+  }, [selectedCategory, debouncedSearchTerm]);
 
   if (loading) {
     return (
@@ -128,12 +118,12 @@ export function CardCompanySelector({
 
       {/* カード会社一覧 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-        {filteredCompanies.length === 0 ? (
+        {companies.length === 0 ? (
           <div className="col-span-2 text-center text-gray-500 py-8">
             該当するカード会社が見つかりませんでした
           </div>
         ) : (
-          filteredCompanies.map((company) => (
+          companies.map((company) => (
             <button
               key={company.id}
               onClick={() => onSelectCompany(company)}

@@ -107,10 +107,7 @@ export function ConnectionTestResult({
               <div>
                 <dt className="text-sm text-gray-500">有効期限</dt>
                 <dd className="mt-1 text-sm font-medium text-gray-900">
-                  {new Date(result.cardInfo.expiryDate).toLocaleDateString('ja-JP', {
-                    year: 'numeric',
-                    month: '2-digit',
-                  })}
+                  {result.cardInfo.expiryDate.substring(0, 7).replace('-', '/')}
                 </dd>
               </div>
               <div>

@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { CardCompany } from '@account-book/types';
-import { showErrorToast, ErrorModal } from '@/components/ui';
-import { useNotificationStore } from '@/stores/notification.store';
 
 interface CreditCardCredentialsFormProps {
   company: CardCompany;
   onSubmit: (credentials: CreditCardCredentialsData) => void;
   loading?: boolean;
-  error?: string | null;
-  errorDetails?: string;
 }
 
 export interface CreditCardCredentialsData {
@@ -32,8 +28,6 @@ export function CreditCardCredentialsForm({
   company,
   onSubmit,
   loading = false,
-  error = null,
-  errorDetails,
 }: CreditCardCredentialsFormProps): React.JSX.Element {
   const [formData, setFormData] = useState<CreditCardCredentialsData>({
     cardNumber: '',
@@ -49,10 +43,6 @@ export function CreditCardCredentialsForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const addNotification = useNotificationStore((state) => state.addNotification);
-  const prevErrorRef = useRef<string | null>(null);
-  const errorTimestampRef = useRef<Date | null>(null);
   const formDataRef = useRef(formData);
 
   // formDataRefを常に最新の状態に保つ
@@ -147,48 +137,6 @@ export function CreditCardCredentialsForm({
 
     return sum % 10 === 0;
   };
-
-  // エラー発生時の通知処理
-  const handleError = useCallback(
-    (errorMessage: string, details?: string): void => {
-      // エラー発生時刻を記録（初回のみ）
-      if (!errorTimestampRef.current) {
-        errorTimestampRef.current = new Date();
-      }
-
-      // Zustand storeに通知を追加
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-        details,
-        institutionId: company.code,
-        retryable: true,
-      });
-
-      // トースト通知を表示
-      showErrorToast('error', errorMessage, {
-        details,
-        onRetry: () => {
-          // フォームを再送信（最新のformDataを使用）
-          if (validate(formDataRef.current)) {
-            onSubmit(formDataRef.current);
-          }
-        },
-        onShowDetails: () => {
-          setShowErrorModal(true);
-        },
-      });
-    },
-    [addNotification, company.code, onSubmit, validate]
-  );
-
-  // エラーがpropsで渡された場合の処理（useEffectで実行）
-  useEffect(() => {
-    if (error && error !== prevErrorRef.current) {
-      prevErrorRef.current = error;
-      handleError(error, errorDetails);
-    }
-  }, [error, errorDetails, handleError]);
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
@@ -441,22 +389,6 @@ export function CreditCardCredentialsForm({
           )}
         </button>
       </form>
-
-      {/* エラー詳細モーダル */}
-      <ErrorModal
-        isOpen={showErrorModal}
-        onClose={(): void => setShowErrorModal(false)}
-        type="error"
-        message={error || ''}
-        details={errorDetails}
-        institutionId={company.code}
-        timestamp={errorTimestampRef.current || undefined}
-        onRetry={(): void => {
-          if (validate(formDataRef.current)) {
-            onSubmit(formDataRef.current);
-          }
-        }}
-      />
     </>
   );
 }

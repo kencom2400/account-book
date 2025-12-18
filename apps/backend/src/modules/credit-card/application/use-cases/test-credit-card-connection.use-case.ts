@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   CreditCardCredentials,
   CreditCardConnectionTestResult,
@@ -21,6 +21,8 @@ export interface TestCreditCardConnectionDto {
  */
 @Injectable()
 export class TestCreditCardConnectionUseCase {
+  private readonly logger = new Logger(TestCreditCardConnectionUseCase.name);
+
   constructor(
     @Inject(CREDIT_CARD_API_CLIENT)
     private readonly creditCardApiClient: ICreditCardAPIClient,
@@ -68,9 +70,15 @@ export class TestCreditCardConnectionUseCase {
       };
     } catch (error) {
       // エラーの場合は汎用エラー
+      // セキュリティ上の理由から、内部エラーメッセージはクライアントに返さない
+      // 詳細なエラーはサーバー側でロギングする
+      this.logger.error(
+        'クレジットカード接続テストでエラーが発生しました',
+        error,
+      );
       return {
         success: false,
-        message: `接続テストに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: '接続テストに失敗しました。管理者にお問い合わせください。',
         errorCode: 'CC002',
       };
     }

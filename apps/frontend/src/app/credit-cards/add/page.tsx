@@ -54,10 +54,17 @@ export default function AddCreditCardPage(): React.JSX.Element {
 
       setTestResult(result);
       setCurrentStep('result');
-    } catch (_error) {
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : '接続テストに失敗しました。しばらくしてから再度お試しください。';
+      const errorCode = error instanceof ApiError ? error.code : undefined;
+
       setTestResult({
         success: false,
-        message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
+        message,
+        errorCode,
       });
       setCurrentStep('result');
     } finally {

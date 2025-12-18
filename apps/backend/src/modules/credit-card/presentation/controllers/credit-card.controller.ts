@@ -27,6 +27,10 @@ import { CREDIT_CARD_REPOSITORY } from '../../credit-card.tokens';
 import { CreditCardJSONResponse } from '../../domain/entities/credit-card.entity';
 import { CreditCardTransactionJSONResponse } from '../../domain/entities/credit-card-transaction.entity';
 import { PaymentJSONResponse } from '../../domain/value-objects/payment.vo';
+import {
+  CardCompany,
+  CreditCardConnectionTestResult,
+} from '@account-book/types';
 
 @Controller('api/credit-cards')
 export class CreditCardController {
@@ -50,7 +54,7 @@ export class CreditCardController {
     @Query() query: GetSupportedCardCompaniesQueryDto,
   ): {
     success: boolean;
-    data: unknown[];
+    data: CardCompany[];
     count: number;
   } {
     const companies = this.getSupportedCardCompaniesUseCase.execute(query);
@@ -72,15 +76,13 @@ export class CreditCardController {
     @Body() dto: TestCreditCardConnectionDto,
   ): Promise<{
     success: boolean;
-    data: Record<string, unknown>;
+    data: CreditCardConnectionTestResult;
   }> {
     const result = await this.testCreditCardConnectionUseCase.execute(dto);
 
-    // レスポンスの冗長性を解消: successはトップレベルのみ
-    const { success, ...data } = result;
     return {
-      success,
-      data,
+      success: true,
+      data: result,
     };
   }
 
