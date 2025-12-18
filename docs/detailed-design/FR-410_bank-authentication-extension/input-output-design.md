@@ -350,7 +350,7 @@ export interface BankCredentials {
   userId?: string; // ユーザID（1-100文字）
   password?: string; // パスワード（8-100文字、暗号化して保存）
 
-  [key: string]: any; // その他の銀行固有の認証情報
+  [key: string]: unknown; // その他の銀行固有の認証情報
 }
 ```
 
