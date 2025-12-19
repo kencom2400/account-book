@@ -37,19 +37,41 @@ export class ApiError extends Error {
 async function get<T>(endpoint: string): Promise<T> {
   // エンドポイントが/apiで始まっていない場合は追加
   const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
-  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
 
-  if (!response.ok) {
-    await handleErrorResponse(response);
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('🔍 [API Client] GET request:', url);
   }
 
-  const result = (await response.json()) as ApiResponse<T>;
-  return result.data;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      await handleErrorResponse(response);
+    }
+
+    const result = (await response.json()) as ApiResponse<T>;
+    return result.data;
+  } catch (error) {
+    // ネットワークエラーなどの場合
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [API Client] GET request failed:', {
+        url,
+        error,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+    throw new Error(
+      `ネットワークエラー: ${error instanceof Error ? error.message : '接続に失敗しました'}`
+    );
+  }
 }
 
 /**

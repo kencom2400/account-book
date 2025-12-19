@@ -42,9 +42,17 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps):
             error: err,
             errorType: err instanceof Error ? err.constructor.name : typeof err,
             errorMessage: err instanceof Error ? err.message : String(err),
+            errorStack: err instanceof Error ? err.stack : undefined,
+            errorString: JSON.stringify(err, Object.getOwnPropertyNames(err)),
           });
         }
-        setError('銀行一覧の取得に失敗しました');
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : '銀行一覧の取得に失敗しました';
+        setError(errorMessage || '銀行一覧の取得に失敗しました');
       } finally {
         setLoading(false);
       }
