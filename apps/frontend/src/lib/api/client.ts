@@ -61,34 +61,51 @@ async function get<T>(endpoint: string): Promise<T> {
   } catch (error) {
     // ネットワークエラーなどの場合
     if (process.env.NODE_ENV === 'development') {
+      // エラー情報を詳細に取得
       const errorDetails: Record<string, unknown> = {
         url,
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       };
 
-      if (error instanceof Error) {
-        errorDetails.errorStack = error.stack;
+      // エラーの種類を判定
+      if (error instanceof TypeError) {
+        errorDetails.errorType = 'TypeError';
+        errorDetails.errorMessage = error.message;
         errorDetails.errorName = error.name;
-        // Errorオブジェクトのすべてのプロパティを取得
-        Object.getOwnPropertyNames(error).forEach((key) => {
-          try {
-            errorDetails[`error_${key}`] = (error as Record<string, unknown>)[key];
-          } catch {
-            // プロパティの取得に失敗した場合はスキップ
-          }
-        });
+        errorDetails.errorStack = error.stack;
+        errorDetails.cause = error.cause;
+      } else if (error instanceof Error) {
+        errorDetails.errorType = error.constructor.name;
+        errorDetails.errorMessage = error.message;
+        errorDetails.errorName = error.name;
+        errorDetails.errorStack = error.stack;
+        if ('cause' in error) {
+          errorDetails.cause = (error as { cause?: unknown }).cause;
+        }
       } else {
-        errorDetails.errorString = String(error);
-        errorDetails.errorJSON = JSON.stringify(error);
+        errorDetails.errorType = typeof error;
+        errorDetails.errorValue = String(error);
+        try {
+          errorDetails.errorJSON = JSON.stringify(error);
+        } catch {
+          errorDetails.errorJSON = 'JSON.stringify failed';
+        }
       }
 
+      // 追加のデバッグ情報
+      errorDetails.API_BASE_URL = API_BASE_URL;
+      errorDetails.normalizedEndpoint = normalizedEndpoint;
+
       console.error('❌ [API Client] GET request failed:', errorDetails);
+      console.error('❌ [API Client] Raw error object:', error);
     }
 
     // エラーメッセージを構築
     let errorMessage = '接続に失敗しました';
-    if (error instanceof Error) {
+    if (error instanceof TypeError) {
+      // TypeErrorは通常、ネットワークエラーやCORSエラー
+      errorMessage = error.message || 'ネットワークエラーが発生しました';
+    } else if (error instanceof Error) {
       errorMessage = error.message || errorMessage;
     } else if (typeof error === 'string') {
       errorMessage = error;
