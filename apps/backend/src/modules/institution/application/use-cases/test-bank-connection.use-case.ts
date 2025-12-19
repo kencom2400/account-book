@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   BankCredentials,
   BankConnectionTestResult,
@@ -6,7 +6,7 @@ import {
 } from '@account-book/types';
 import type { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { BankConnectionError } from '../../domain/errors/bank-connection.error';
-import { BANK_API_ADAPTER } from '../../institution.tokens';
+import { BankApiAdapterFactory } from '../../infrastructure/adapters/bank-api-adapter.factory';
 
 export interface TestBankConnectionDto {
   bankCode: string;
@@ -24,13 +24,15 @@ export interface TestBankConnectionDto {
  */
 @Injectable()
 export class TestBankConnectionUseCase {
-  constructor(
-    @Inject(BANK_API_ADAPTER)
-    private readonly bankApiAdapter: IBankApiAdapter,
-  ) {}
+  constructor(private readonly adapterFactory: BankApiAdapterFactory) {}
 
   async execute(dto: TestBankConnectionDto): Promise<BankConnectionTestResult> {
     try {
+      // 銀行コードに応じて適切なアダプターを取得
+      const bankApiAdapter: IBankApiAdapter = this.adapterFactory.create(
+        dto.bankCode,
+      );
+
       // DTOをBankCredentialsに変換
       const credentials: BankCredentials = {
         bankCode: dto.bankCode,
@@ -44,10 +46,10 @@ export class TestBankConnectionUseCase {
       };
 
       // 銀行APIアダプターを使って接続テスト
-      const result = await this.bankApiAdapter.testConnection(credentials);
+      const result = await bankApiAdapter.testConnection(credentials);
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       // BankConnectionErrorの場合はそのまま返す
       if (error instanceof BankConnectionError) {
         return {
@@ -58,9 +60,11 @@ export class TestBankConnectionUseCase {
       }
 
       // その他のエラーの場合は汎用エラー
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        message: `接続テストに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `接続テストに失敗しました: ${errorMessage}`,
         errorCode: 'BE999',
       };
     }
