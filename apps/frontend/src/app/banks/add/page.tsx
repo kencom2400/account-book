@@ -50,11 +50,29 @@ export default function AddBankPage(): React.JSX.Element {
 
       setTestResult(result);
       setCurrentStep('result');
-    } catch (_error) {
-      setTestResult({
-        success: false,
-        message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
-      });
+    } catch (error) {
+      // ApiErrorの場合は詳細を表示
+      if (error instanceof ApiError) {
+        const errorMessage = error.message || '接続テストに失敗しました。';
+        const details = error.details
+          ?.map((detail) => `${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
+          .join(', ');
+        setTestResult({
+          success: false,
+          message: details || errorMessage,
+          errorCode: error.code,
+        });
+      } else {
+        // その他のエラーの場合
+        const errorMessage = getErrorMessage(
+          error,
+          '接続テストに失敗しました。しばらくしてから再度お試しください。'
+        );
+        setTestResult({
+          success: false,
+          message: errorMessage,
+        });
+      }
       setCurrentStep('result');
     } finally {
       setLoading(false);
