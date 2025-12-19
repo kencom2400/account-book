@@ -6,7 +6,7 @@ import {
   BankConnectionTestResult,
   AuthenticationType,
 } from '@account-book/types';
-import { apiClient } from './client';
+import { apiClient, ApiError } from './client';
 
 /**
  * Institution API
@@ -107,10 +107,62 @@ export async function getSupportedBanks(params?: GetSupportedBanksParams): Promi
 export async function testBankConnection(
   data: TestBankConnectionRequest
 ): Promise<BankConnectionTestResult> {
-  return await apiClient.post<BankConnectionTestResult>(
-    '/institutions/banks/test-connection',
-    data
+  // APIクライアントはresult.dataを返すが、バックエンドのレスポンス構造を考慮する必要がある
+  // バックエンドは { success: boolean, data: BankConnectionTestResult } を返す
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/institutions/banks/test-connection`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }
   );
+
+  if (!response.ok) {
+    // HTTPステータスがエラーの場合（400, 500など）
+    const errorResponse = (await response.json()) as {
+      success: boolean;
+      error?: {
+        message: string;
+        code: string;
+        details?: Array<{ field?: string; message: string }>;
+      };
+    };
+    if (errorResponse.error) {
+      throw new ApiError(
+        errorResponse.error.message,
+        errorResponse.error.code,
+        errorResponse.error.details,
+        response.status
+      );
+    }
+    throw new ApiError(
+      `API Error: ${response.status} ${response.statusText}`,
+      'UNKNOWN_ERROR',
+      undefined,
+      response.status
+    );
+  }
+
+  const result = (await response.json()) as {
+    success: boolean;
+    data: BankConnectionTestResult;
+  };
+
+  // successがfalseの場合はエラーとして扱う
+  if (!result.success) {
+    const errorData = result.data;
+    throw new ApiError(
+      errorData.message || '接続テストに失敗しました',
+      errorData.errorCode || 'BE999',
+      undefined,
+      200 // HTTPステータスは200だが、successがfalse
+    );
+  }
+
+  return result.data;
 }
 
 export interface DeleteInstitutionRequest {
