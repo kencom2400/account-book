@@ -205,8 +205,33 @@ interface ErrorResponse {
 # 三菱UFJ銀行API設定
 MUFG_API_BASE_URL=https://developer.api.bk.mufg.jp/btmu/retail/trial/v2/me/accounts
 MUFG_API_CLIENT_ID=your-client-id-here
+MUFG_API_CLIENT_SECRET=your-client-secret-here
 MUFG_API_TIMEOUT_MS=30000
 ```
+
+### 環境変数の説明
+
+- **MUFG_API_BASE_URL**: APIエンドポイントのベースURL（オプション、デフォルト値あり）
+- **MUFG_API_CLIENT_ID**: APIキー（必須、`X-IBM-Client-Id`ヘッダーに使用）
+- **MUFG_API_CLIENT_SECRET**: APIシークレット（オプション、将来の認証拡張用）
+- **MUFG_API_TIMEOUT_MS**: APIリクエストのタイムアウト（ミリ秒、デフォルト: 30000）
+
+### セキュリティ注意事項
+
+⚠️ **重要**: APIキーとシークレットは機密情報です。以下の点に注意してください：
+
+1. **環境変数ファイル（.env）をGitにコミットしない**
+   - `.env`ファイルは`.gitignore`に含まれていることを確認
+   - 本番環境では環境変数管理サービス（AWS Secrets Manager、Azure Key Vaultなど）の使用を推奨
+
+2. **本番環境での管理**
+   - 環境変数管理サービスを使用
+   - 定期的なローテーションを実施
+   - 最小権限の原則に従う
+
+3. **開発環境での管理**
+   - `.env.example`ファイルにプレースホルダーを記載（実際の値は含めない）
+   - チーム内で安全に共有する方法を確立
 
 ## 参考資料
 

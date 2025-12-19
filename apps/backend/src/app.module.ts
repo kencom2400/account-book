@@ -25,7 +25,7 @@ import { EventModule } from './modules/event/event.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, cryptoConfig],
+      load: [appConfig, cryptoConfig, mufgBankConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

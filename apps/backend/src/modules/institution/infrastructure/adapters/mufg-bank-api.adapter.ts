@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BankCredentials,
   BankAccountInfo,
@@ -92,19 +93,36 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
   private readonly bankCode = '0005';
   private readonly apiBaseUrl: string;
   private readonly clientId: string;
+  private readonly clientSecret: string;
   private readonly timeout: number;
 
-  constructor() {
-    // 環境変数からAPI設定を取得
-    this.apiBaseUrl =
-      process.env.MUFG_API_BASE_URL ||
-      'https://developer.api.bk.mufg.jp/btmu/retail/trial/v2/me/accounts';
-    this.clientId = process.env.MUFG_API_CLIENT_ID || '';
-    this.timeout = parseInt(process.env.MUFG_API_TIMEOUT_MS || '30000', 10);
+  constructor(private readonly configService: ConfigService) {
+    // ConfigServiceからAPI設定を取得
+    const mufgConfig = this.configService.get<{
+      apiBaseUrl: string;
+      clientId: string;
+      clientSecret: string;
+      timeout: number;
+    }>('mufgBank');
+
+    if (!mufgConfig) {
+      throw new Error('MUFG Bank API configuration is not set');
+    }
+
+    this.apiBaseUrl = mufgConfig.apiBaseUrl;
+    this.clientId = mufgConfig.clientId;
+    this.clientSecret = mufgConfig.clientSecret;
+    this.timeout = mufgConfig.timeout;
 
     if (!this.clientId) {
       this.logger.warn(
         'MUFG_API_CLIENT_ID is not set. API calls will fail without authentication.',
+      );
+    }
+
+    if (!this.clientSecret) {
+      this.logger.warn(
+        'MUFG_API_CLIENT_SECRET is not set. Some API features may not work.',
       );
     }
   }
