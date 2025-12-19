@@ -277,5 +277,40 @@ describe('TestBankConnectionDto', () => {
       );
       expect(authTypeError).toBeDefined();
     });
+
+    it('should ignore apiKey and apiSecret for USERID_PASSWORD authentication', async () => {
+      // USERID_PASSWORD認証の場合、apiKey/apiSecretは無視される（バリデーションエラーにならない）
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'password123',
+        apiKey: 'should-be-ignored',
+        apiSecret: 'should-be-ignored',
+      });
+
+      const errors = await validate(dto);
+
+      // apiKey/apiSecretのバリデーションは実行されないため、エラーは発生しない
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should validate apiKey and apiSecret for BRANCH_ACCOUNT authentication', async () => {
+      // BRANCH_ACCOUNT認証の場合、apiKey/apiSecretのバリデーションが実行される
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
+        branchCode: '001',
+        accountNumber: '1234567',
+        apiKey: 'a'.repeat(501), // 501文字（500文字以下である必要がある）
+        apiSecret: 'test-api-secret',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const apiKeyError = errors.find((e) => e.property === 'apiKey');
+      expect(apiKeyError).toBeDefined();
+    });
   });
 });

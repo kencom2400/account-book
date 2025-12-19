@@ -130,6 +130,9 @@ export class TestBankConnectionDto {
   })
   accountNumber?: string;
 
+  // API Key/SecretはBRANCH_ACCOUNT認証の場合のみ使用可能
+  // USERID_PASSWORD認証の場合は不要（値が提供されても無視される）
+  @ValidateIf((o) => o.authenticationType === AuthenticationType.BRANCH_ACCOUNT)
   @IsOptional()
   @IsString({ message: 'APIキーは文字列で指定してください' })
   @Length(1, 500, {
@@ -137,6 +140,7 @@ export class TestBankConnectionDto {
   })
   apiKey?: string;
 
+  @ValidateIf((o) => o.authenticationType === AuthenticationType.BRANCH_ACCOUNT)
   @IsOptional()
   @IsString({ message: 'APIシークレットは文字列で指定してください' })
   @Length(1, 500, {
