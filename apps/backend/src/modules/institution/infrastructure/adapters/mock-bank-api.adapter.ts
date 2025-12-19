@@ -61,11 +61,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
     }
 
     // テスト用の成功レスポンス
-    const accountNumber =
-      credentials.accountNumber ||
-      (typeof credentials.userId === 'string' && credentials.userId.length > 0
-        ? `***${credentials.userId.slice(-4)}`
-        : '*******');
+    const accountNumber = this.getDisplayAccountNumber(credentials);
     const accountInfo: BankAccountInfo = {
       bankName: 'テスト銀行',
       branchName: 'テスト支店',
@@ -91,11 +87,7 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       throw BankConnectionError.invalidCredentials();
     }
 
-    const accountNumber =
-      credentials.accountNumber ||
-      (typeof credentials.userId === 'string' && credentials.userId.length > 0
-        ? `***${credentials.userId.slice(-4)}`
-        : '*******');
+    const accountNumber = this.getDisplayAccountNumber(credentials);
     return Promise.resolve({
       bankName: 'テスト銀行',
       branchName: 'テスト支店',
@@ -210,5 +202,23 @@ export class MockBankApiAdapter implements IBankApiAdapter {
     }
 
     return true;
+  }
+
+  /**
+   * 表示用の口座番号を取得
+   * accountNumberが存在する場合はそのまま返し、
+   * 存在しない場合はuserIdの末尾4文字をマスクした形式を返す
+   */
+  private getDisplayAccountNumber(credentials: BankCredentials): string {
+    if (credentials.accountNumber) {
+      return credentials.accountNumber;
+    }
+    if (
+      typeof credentials.userId === 'string' &&
+      credentials.userId.length > 0
+    ) {
+      return `***${credentials.userId.slice(-4)}`;
+    }
+    return '*******';
   }
 }

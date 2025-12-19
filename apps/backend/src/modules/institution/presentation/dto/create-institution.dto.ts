@@ -57,29 +57,32 @@ export class IsValidBankCredentialsConstraint implements ValidatorConstraintInte
     }
 
     // 認証方式に応じたバリデーション
-    if (authType === AuthenticationType.BRANCH_ACCOUNT) {
-      const { branchCode, accountNumber } = credentials;
-      return (
-        typeof branchCode === 'string' &&
-        IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
-        typeof accountNumber === 'string' &&
-        IsValidBankCredentialsConstraint.accountNumberPattern.test(
-          accountNumber,
-        )
-      );
-    } else if (authType === AuthenticationType.USERID_PASSWORD) {
-      const { userId, password } = credentials;
-      return (
-        typeof userId === 'string' &&
-        userId.length >= 1 &&
-        userId.length <= 100 &&
-        typeof password === 'string' &&
-        password.length >= 8 &&
-        password.length <= 100
-      );
+    switch (authType) {
+      case AuthenticationType.BRANCH_ACCOUNT: {
+        const { branchCode, accountNumber } = credentials;
+        return (
+          typeof branchCode === 'string' &&
+          IsValidBankCredentialsConstraint.branchCodePattern.test(branchCode) &&
+          typeof accountNumber === 'string' &&
+          IsValidBankCredentialsConstraint.accountNumberPattern.test(
+            accountNumber,
+          )
+        );
+      }
+      case AuthenticationType.USERID_PASSWORD: {
+        const { userId, password } = credentials;
+        return (
+          typeof userId === 'string' &&
+          userId.length >= 1 &&
+          userId.length <= 100 &&
+          typeof password === 'string' &&
+          password.length >= 8 &&
+          password.length <= 100
+        );
+      }
+      default:
+        return false;
     }
-
-    return false;
   }
 
   defaultMessage(_args: ValidationArguments): string {

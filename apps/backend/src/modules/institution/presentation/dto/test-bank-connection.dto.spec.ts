@@ -70,14 +70,16 @@ describe('TestBankConnectionDto', () => {
 
       const errors = await validate(dto);
 
-      // branchCodeはオプションなので、バリデーションエラーは発生しない
-      // ただし、実際の接続テストでは失敗する可能性がある
-      expect(errors).toHaveLength(0);
+      // カスタムバリデーターにより、branchCodeが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const branchCodeError = errors.find((e) => e.property === 'branchCode');
+      expect(branchCodeError).toBeDefined();
     });
 
     it('should fail validation when branchCode is not 3 digits', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '12',
         accountNumber: '1234567',
       });
@@ -98,9 +100,12 @@ describe('TestBankConnectionDto', () => {
 
       const errors = await validate(dto);
 
-      // accountNumberはオプションなので、バリデーションエラーは発生しない
-      // ただし、実際の接続テストでは失敗する可能性がある
-      expect(errors).toHaveLength(0);
+      // カスタムバリデーターにより、accountNumberが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const accountNumberError = errors.find(
+        (e) => e.property === 'accountNumber',
+      );
+      expect(accountNumberError).toBeDefined();
     });
 
     it('should fail validation when accountNumber is not 7 digits', async () => {
@@ -174,9 +179,10 @@ describe('TestBankConnectionDto', () => {
 
       const errors = await validate(dto);
 
-      // userIdはオプションなので、バリデーションエラーは発生しない
-      // ただし、実際の接続テストでは失敗する可能性がある
-      expect(errors).toHaveLength(0);
+      // カスタムバリデーターにより、userIdが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
     });
 
     it('should fail validation when userId is too short', async () => {
@@ -218,9 +224,10 @@ describe('TestBankConnectionDto', () => {
 
       const errors = await validate(dto);
 
-      // passwordはオプションなので、バリデーションエラーは発生しない
-      // ただし、実際の接続テストでは失敗する可能性がある
-      expect(errors).toHaveLength(0);
+      // カスタムバリデーターにより、passwordが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
     });
 
     it('should fail validation when password is too short', async () => {
