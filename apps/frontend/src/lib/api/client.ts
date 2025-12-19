@@ -61,16 +61,40 @@ async function get<T>(endpoint: string): Promise<T> {
   } catch (error) {
     // ネットワークエラーなどの場合
     if (process.env.NODE_ENV === 'development') {
-      console.error('❌ [API Client] GET request failed:', {
+      const errorDetails: Record<string, unknown> = {
         url,
-        error,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
         errorMessage: error instanceof Error ? error.message : String(error),
-      });
+      };
+
+      if (error instanceof Error) {
+        errorDetails.errorStack = error.stack;
+        errorDetails.errorName = error.name;
+        // Errorオブジェクトのすべてのプロパティを取得
+        Object.getOwnPropertyNames(error).forEach((key) => {
+          try {
+            errorDetails[`error_${key}`] = (error as Record<string, unknown>)[key];
+          } catch {
+            // プロパティの取得に失敗した場合はスキップ
+          }
+        });
+      } else {
+        errorDetails.errorString = String(error);
+        errorDetails.errorJSON = JSON.stringify(error);
+      }
+
+      console.error('❌ [API Client] GET request failed:', errorDetails);
     }
-    throw new Error(
-      `ネットワークエラー: ${error instanceof Error ? error.message : '接続に失敗しました'}`
-    );
+
+    // エラーメッセージを構築
+    let errorMessage = '接続に失敗しました';
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+
+    throw new Error(`ネットワークエラー: ${errorMessage}`);
   }
 }
 

@@ -38,14 +38,30 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps):
       } catch (err) {
         // デバッグログ（開発環境のみ）
         if (process.env.NODE_ENV === 'development') {
-          console.error('❌ [BankSelector] Failed to fetch banks:', {
-            error: err,
+          const errorDetails: Record<string, unknown> = {
             errorType: err instanceof Error ? err.constructor.name : typeof err,
             errorMessage: err instanceof Error ? err.message : String(err),
-            errorStack: err instanceof Error ? err.stack : undefined,
-            errorString: JSON.stringify(err, Object.getOwnPropertyNames(err)),
-          });
+          };
+
+          if (err instanceof Error) {
+            errorDetails.errorStack = err.stack;
+            errorDetails.errorName = err.name;
+            // Errorオブジェクトのすべてのプロパティを取得
+            Object.getOwnPropertyNames(err).forEach((key) => {
+              try {
+                errorDetails[`error_${key}`] = (err as Record<string, unknown>)[key];
+              } catch {
+                // プロパティの取得に失敗した場合はスキップ
+              }
+            });
+          } else {
+            errorDetails.errorString = String(err);
+            errorDetails.errorJSON = JSON.stringify(err);
+          }
+
+          console.error('❌ [BankSelector] Failed to fetch banks:', errorDetails);
         }
+
         const errorMessage =
           err instanceof Error
             ? err.message
