@@ -20,18 +20,93 @@ import {
  *
  * 注意: 実際のAPI仕様は開発者ポータル（https://developer.portal.bk.mufg.jp/）で確認してください
  */
+/**
+ * 三菱UFJ銀行APIのレスポンス型定義
+ */
+type MufgAccountResponse = MufgAccount[];
+
+interface MufgAccount {
+  accountId: string; // 12文字
+  branchNo: string; // 3文字
+  branchName: string; // 1-30文字
+  accountTypeCode: string; // 2文字
+  accountTypeDetailCode: string; // 5文字
+  accountTypeName: string; // 1-32文字
+  accountNo: string; // 7文字
+  accountName: string; // 0-50文字
+  balance: number; // int64
+  withdrawableAmount: number; // int64
+  currencyCode?: string; // 3文字
+}
+
+interface MufgTransactionResponse {
+  nextFlag: string; // 1文字
+  nextKeyword?: string; // 23文字
+  number: number;
+  transactionDateFrom: string; // YYYY-MM-DD
+  transactionDateTo: string; // YYYY-MM-DD
+  transactionIdFirst: string;
+  transactionIdLast: string;
+  operationDate: string; // YYYY-MM-DD
+  operationTime: string; // HH:mm:ss
+  accountInfo: {
+    branchNo: string;
+    branchName: string;
+    accountTypeCode: string;
+    accountTypeDetailCode: string;
+    accountTypeName: string;
+    accountNo: string;
+    accountName: string;
+    currencyCode: string;
+  };
+  transactions: MufgTransaction[];
+}
+
+interface MufgTransaction {
+  settlementDate: string; // YYYY-MM-DD
+  valueDate: string; // YYYY-MM-DD
+  transactionId: string; // 1-5文字
+  transactionType: string; // 1-12文字
+  remarks: string; // 1-15文字
+  debitCreditTypeCode: string; // 1文字（'1'=入金、'2'=出金など）
+  amount: number; // int64
+  balance: number; // int64
+  memo?: string; // 1-7文字
+}
+
+interface MufgErrorResponse {
+  status: number;
+  message: string;
+  code?: string;
+  developer_message?: string;
+  httpCode?: string;
+  httpMessage?: string;
+  moreInformation?: string;
+  error?: string;
+  error_description?: string;
+}
+
 @Injectable()
 export class MufgBankApiAdapter implements IBankApiAdapter {
   private readonly logger = new Logger(MufgBankApiAdapter.name);
   private readonly bankCode = '0005';
   private readonly apiBaseUrl: string;
+  private readonly clientId: string;
   private readonly timeout: number;
 
   constructor() {
-    // 環境変数からAPIエンドポイントを取得
-    // 実際のエンドポイントは開発者ポータルで確認してください
-    this.apiBaseUrl = process.env.MUFG_API_BASE_URL || 'https://api.mufg.jp';
+    // 環境変数からAPI設定を取得
+    this.apiBaseUrl =
+      process.env.MUFG_API_BASE_URL ||
+      'https://developer.api.bk.mufg.jp/btmu/retail/trial/v2/me/accounts';
+    this.clientId = process.env.MUFG_API_CLIENT_ID || '';
     this.timeout = parseInt(process.env.MUFG_API_TIMEOUT_MS || '30000', 10);
+
+    if (!this.clientId) {
+      this.logger.warn(
+        'MUFG_API_CLIENT_ID is not set. API calls will fail without authentication.',
+      );
+    }
   }
 
   getBankCode(): string {
@@ -132,6 +207,9 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
 
   /**
    * 取引履歴を取得
+   * API仕様: GET /{account_id}/transactions
+   *
+   * 注意: account_idは先に口座情報照会APIで取得する必要があります
    */
   async getTransactions(
     credentials: BankCredentials,
@@ -150,27 +228,31 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
         `Fetching transactions from ${fromDate} to ${toDate} for bank code: ${credentials.bankCode}`,
       );
 
-      // TODO: 実際のAPIエンドポイントとリクエスト形式を確認してください
+      // まず口座情報を取得してaccountIdを取得
+      const accountInfo = await this.fetchAccountInfo(credentials);
+      // accountIdは12文字の形式（例: '123121234567'）
+      // 実際のAPIレスポンスから取得する必要があるため、一時的にaccountNumberを使用
+      // TODO: accountIdを保存・管理する仕組みが必要
+      const accountId = this.extractAccountIdFromAccountNumber(
+        accountInfo.accountNumber,
+      );
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
       try {
-        const authHeader = this.createAuthHeader(credentials);
-        // TODO: 実際のエンドポイントURLを確認してください
-        const endpoint = `${this.apiBaseUrl}/v1/transactions`;
+        // エンドポイント: GET /{account_id}/transactions
+        // 日付形式をYYYY-MM-DDに変換
+        const inquiryDateFrom = this.formatDate(fromDate);
+        const inquiryDateTo = this.formatDate(toDate);
+
+        const endpoint = `${this.apiBaseUrl}/${accountId}/transactions?inquiryDateFrom=${inquiryDateFrom}&inquiryDateTo=${inquiryDateTo}`;
+
+        this.logger.debug(`Fetching transactions from: ${endpoint}`);
 
         const response = await fetch(endpoint, {
-          method: 'POST', // または GET
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
-            // TODO: 実際のAPI仕様に応じたリクエストボディ
-            fromDate,
-            toDate,
-            // userId: credentials.userId,
-          }),
+          method: 'GET',
+          headers: this.createRequestHeaders(),
           signal: controller.signal,
         });
 
@@ -180,8 +262,8 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
           await this.handleApiError(response, credentials);
         }
 
-        const data = (await response.json()) as unknown;
-        return this.mapApiResponseToTransactions(data);
+        const data = (await response.json()) as MufgTransactionResponse;
+        return this.mapMufgTransactionsToBankTransactions(data.transactions);
       } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
 
@@ -211,98 +293,96 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
   }
 
   /**
-   * APIレスポンスをBankTransaction[]にマッピング
+   * 日付をYYYY-MM-DD形式に変換
    */
-  private mapApiResponseToTransactions(
-    apiResponse: unknown,
-  ): BankTransaction[] {
-    // TODO: 実際のAPIレスポンス形式に基づいて実装してください
-    if (
-      typeof apiResponse !== 'object' ||
-      apiResponse === null ||
-      !('transactions' in apiResponse || 'data' in apiResponse)
-    ) {
-      this.logger.warn('Invalid transactions API response format', apiResponse);
-      return [];
+  private formatDate(date: string): string {
+    // ISO 8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）からYYYY-MM-DDに変換
+    if (date.includes('T')) {
+      return date.split('T')[0];
     }
-
-    const transactionsData =
-      'transactions' in apiResponse
-        ? (apiResponse as { transactions: unknown }).transactions
-        : (apiResponse as { data: unknown }).data;
-
-    if (!Array.isArray(transactionsData)) {
-      return [];
+    // 既にYYYY-MM-DD形式の場合はそのまま返す
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
     }
-
-    return transactionsData
-      .map((tx: unknown) => {
-        if (typeof tx !== 'object' || tx === null) {
-          return null;
-        }
-
-        const txData = tx as Record<string, unknown>;
-
-        // TODO: 実際のAPIレスポンス形式に基づいてマッピング
-        return {
-          transactionId:
-            (txData.transactionId as string | undefined) ||
-            (txData.id as string | undefined) ||
-            '',
-          date:
-            (txData.date as string | undefined) ||
-            (txData.transactionDate as string | undefined) ||
-            new Date().toISOString(),
-          type: this.mapTransactionType(txData.type as string | undefined),
-          amount: this.parseAmount(txData.amount),
-          description:
-            (txData.description as string | undefined) ||
-            (txData.memo as string | undefined) ||
-            '',
-          balance: this.parseAmount(txData.balance),
-        };
-      })
-      .filter((tx): tx is BankTransaction => tx !== null);
+    // その他の形式の場合はエラー
+    throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
   }
 
   /**
-   * 取引種別をマッピング
+   * 口座番号からaccountIdを抽出（暫定実装）
+   * TODO: 実際のaccountIdは口座情報照会APIのレスポンスから取得する必要がある
    */
-  private mapTransactionType(apiType: string | undefined): BankTransactionType {
-    if (!apiType) {
-      return BankTransactionType.DEPOSIT; // デフォルト値
-    }
+  private extractAccountIdFromAccountNumber(accountNumber: string): string {
+    // 暫定実装: accountNumberを12文字にパディング
+    // 実際の実装では、口座情報照会APIのレスポンスからaccountIdを取得・保存する必要がある
+    return accountNumber.padStart(12, '0').substring(0, 12);
+  }
 
-    const normalized = apiType.toLowerCase();
-    // TODO: 実際のAPIレスポンスの取引種別値を確認してマッピング
-    if (normalized.includes('deposit') || normalized.includes('入金')) {
-      return BankTransactionType.DEPOSIT;
+  /**
+   * MufgTransaction[]をBankTransaction[]にマッピング
+   */
+  private mapMufgTransactionsToBankTransactions(
+    transactions: MufgTransaction[],
+  ): BankTransaction[] {
+    return transactions.map((tx) => {
+      // settlementDate（取引日）をISO 8601形式に変換
+      const date = `${tx.settlementDate}T00:00:00.000Z`;
+
+      // debitCreditTypeCodeで入出金を判定
+      // '1' = 入金、'2' = 出金など（実際のAPI仕様を確認）
+      const type = this.mapDebitCreditTypeCode(tx.debitCreditTypeCode);
+
+      return {
+        transactionId: tx.transactionId,
+        date,
+        type,
+        amount: tx.amount,
+        balance: tx.balance,
+        description: tx.remarks || tx.transactionType || '',
+        counterParty: tx.memo, // メモをcounterPartyとして使用（実際の仕様に応じて調整）
+      };
+    });
+  }
+
+  /**
+   * 入払区分コード（debitCreditTypeCode）をBankTransactionTypeにマッピング
+   * '1' = 入金、'2' = 出金など（実際のAPI仕様を確認）
+   */
+  private mapDebitCreditTypeCode(
+    debitCreditTypeCode: string,
+  ): BankTransactionType {
+    switch (debitCreditTypeCode) {
+      case '1':
+        // 入金系の取引
+        return BankTransactionType.DEPOSIT;
+      case '2':
+        // 出金系の取引
+        return BankTransactionType.WITHDRAWAL;
+      default:
+        // デフォルトは入金として扱う
+        return BankTransactionType.DEPOSIT;
     }
-    if (normalized.includes('withdrawal') || normalized.includes('出金')) {
-      return BankTransactionType.WITHDRAWAL;
-    }
-    if (
-      normalized.includes('transfer_in') ||
-      (normalized.includes('transfer') && normalized.includes('in')) ||
-      (normalized.includes('振込') && normalized.includes('入'))
-    ) {
+  }
+
+  /**
+   * 取引区分（transactionType）からBankTransactionTypeを判定（補助的に使用）
+   */
+  private mapTransactionTypeFromString(
+    transactionType: string,
+  ): BankTransactionType {
+    const normalized = transactionType.toLowerCase();
+    if (normalized.includes('振込') && normalized.includes('入')) {
       return BankTransactionType.TRANSFER_IN;
     }
-    if (
-      normalized.includes('transfer_out') ||
-      (normalized.includes('transfer') && normalized.includes('out')) ||
-      (normalized.includes('振込') && normalized.includes('出'))
-    ) {
+    if (normalized.includes('振込') && normalized.includes('出')) {
       return BankTransactionType.TRANSFER_OUT;
     }
-    if (normalized.includes('fee') || normalized.includes('手数料')) {
+    if (normalized.includes('手数料')) {
       return BankTransactionType.FEE;
     }
-    if (normalized.includes('interest') || normalized.includes('利息')) {
+    if (normalized.includes('利息')) {
       return BankTransactionType.INTEREST;
     }
-
-    // その他の取引はDEPOSITとして扱う（実際のAPI仕様に応じて調整）
     return BankTransactionType.DEPOSIT;
   }
 
@@ -346,51 +426,25 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
 
   /**
    * 実際のAPIから口座情報を取得
-   *
-   * 注意: 実際のAPI仕様は開発者ポータルで確認してください
-   * 以下の実装は一般的なREST APIパターンに基づいています
+   * API仕様: GET / (口座情報照会)
    */
   private async fetchAccountInfo(
     credentials: BankCredentials,
   ): Promise<BankAccountInfo> {
     try {
-      // TODO: 実際のAPIエンドポイントとリクエスト形式を確認してください
-      // 開発者ポータル（https://developer.portal.bk.mufg.jp/）で確認が必要です
-      //
-      // 一般的な実装例（実際の仕様に合わせて修正が必要）:
-      // 1. 認証トークンの取得（OpenID Connectの場合）
-      // 2. 口座情報取得APIの呼び出し
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
       try {
-        // 認証ヘッダーの生成
-        // 実際のAPI仕様に応じて、Basic認証、Bearer認証、またはOpenID Connectを使用
-        const authHeader = this.createAuthHeader(credentials);
-
-        // APIエンドポイントの構築
-        // TODO: 実際のエンドポイントURLを確認してください
-        // 例: /v1/accounts, /api/v1/account-info など
-        const endpoint = `${this.apiBaseUrl}/v1/accounts`;
+        // エンドポイント: GET /
+        const endpoint = `${this.apiBaseUrl}/`;
 
         this.logger.debug(`Fetching account info from: ${endpoint}`);
 
         // HTTPリクエストの実行
         const response = await fetch(endpoint, {
-          method: 'POST', // または GET（API仕様に応じて）
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: authHeader,
-            // TODO: 実際のAPIで必要な追加ヘッダーを追加
-            // 'X-API-Key': process.env.MUFG_API_KEY,
-            // 'X-Request-ID': this.generateRequestId(),
-          },
-          body: JSON.stringify({
-            // TODO: 実際のAPI仕様に応じたリクエストボディ
-            // userId: credentials.userId,
-            // その他の必要なパラメータ
-          }),
+          method: 'GET',
+          headers: this.createRequestHeaders(),
           signal: controller.signal,
         });
 
@@ -401,8 +455,18 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
           await this.handleApiError(response, credentials);
         }
 
-        const data = (await response.json()) as unknown;
-        return this.mapApiResponseToAccountInfo(data, credentials);
+        const data = (await response.json()) as MufgAccountResponse;
+
+        // 最初の口座情報を使用（複数口座がある場合は最初のものを使用）
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new BankConnectionError(
+            BankErrorCode.BANK_API_ERROR,
+            '口座情報が見つかりませんでした',
+          );
+        }
+
+        const account = data[0];
+        return this.mapMufgAccountToBankAccountInfo(account, credentials);
       } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
 
@@ -433,23 +497,25 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
   }
 
   /**
-   * 認証ヘッダーを生成
-   * 実際のAPI仕様に応じて、Basic認証、Bearer認証、またはOpenID Connectを使用
+   * シーケンス番号を生成（X-BTMU-Seq-No）
+   * 25文字の固定長で、リクエストごとに一意の値を生成
    */
-  private createAuthHeader(credentials: BankCredentials): string {
-    // TODO: 実際の認証方式を確認してください
-    // 開発者ポータルで確認が必要です
+  private generateSequenceNumber(): string {
+    // タイムスタンプ（13桁） + ランダム文字列（12桁） = 25文字
+    const timestamp = Date.now().toString(); // 13桁
+    const random = Math.random().toString(36).substring(2, 14).padEnd(12, '0'); // 12文字
+    return `${timestamp}${random}`.substring(0, 25);
+  }
 
-    // パターン1: Basic認証
-    const basicAuth = Buffer.from(
-      `${credentials.userId}:${credentials.password}`,
-    ).toString('base64');
-    return `Basic ${basicAuth}`;
-
-    // パターン2: Bearer認証（OpenID Connectの場合）
-    // まずアクセストークンを取得する必要があります
-    // const accessToken = await this.getAccessToken(credentials);
-    // return `Bearer ${accessToken}`;
+  /**
+   * 共通のリクエストヘッダーを生成
+   */
+  private createRequestHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      'X-IBM-Client-Id': this.clientId,
+      'X-BTMU-Seq-No': this.generateSequenceNumber(),
+    };
   }
 
   /**
@@ -457,130 +523,125 @@ export class MufgBankApiAdapter implements IBankApiAdapter {
    */
   private async handleApiError(
     response: Response,
-    credentials: BankCredentials,
+    _credentials: BankCredentials,
   ): Promise<never> {
     const status = response.status;
     let errorMessage: string;
     let errorCode: BankErrorCode;
 
     try {
-      const errorData = (await response.json()) as {
-        message?: string;
-        error?: string;
-        code?: string;
-      };
+      const errorData = (await response.json()) as MufgErrorResponse;
+      // エラーレスポンスの優先順位: developer_message > message > httpMessage
       errorMessage =
-        errorData.message || errorData.error || `HTTP ${status} Error`;
+        errorData.developer_message ||
+        errorData.message ||
+        errorData.httpMessage ||
+        `HTTP ${status} Error`;
+
+      // APIのエラーコードがあれば使用
+      if (errorData.code) {
+        // APIのエラーコードをBankErrorCodeにマッピング
+        errorCode = this.mapApiErrorCodeToBankErrorCode(errorData.code, status);
+      } else {
+        errorCode = this.mapHttpStatusToBankErrorCode(status);
+      }
     } catch {
       errorMessage = `HTTP ${status} ${response.statusText}`;
+      errorCode = this.mapHttpStatusToBankErrorCode(status);
     }
 
-    // HTTPステータスコードに応じたエラーコードの設定
-    switch (status) {
-      case 401:
-      case 403:
-        errorCode = BankErrorCode.INVALID_CREDENTIALS;
-        errorMessage = '認証情報が無効です';
-        break;
-      case 404:
-        errorCode = BankErrorCode.UNSUPPORTED_BANK;
-        errorMessage = '指定された口座が見つかりません';
-        break;
-      case 408:
-      case 504:
-        errorCode = BankErrorCode.CONNECTION_TIMEOUT;
-        errorMessage = 'API接続がタイムアウトしました';
-        break;
-      case 429:
-        errorCode = BankErrorCode.RATE_LIMIT_EXCEEDED;
-        errorMessage = 'APIレート制限を超過しました';
-        break;
-      default:
-        errorCode = BankErrorCode.BANK_API_ERROR;
-        if (status >= 500) {
-          errorMessage = '銀行APIでエラーが発生しました';
-        }
-    }
-
-    this.logger.error(
-      `API error: ${status} - ${errorMessage} for bank code: ${credentials.bankCode}`,
-    );
+    this.logger.error(`API error: ${status} - ${errorMessage}`);
 
     throw new BankConnectionError(errorCode, errorMessage);
   }
 
   /**
-   * APIレスポンスをBankAccountInfoにマッピング
-   *
-   * 注意: 実際のAPIレスポンス形式は開発者ポータルで確認してください
-   * 以下の実装は一般的な形式を想定しています
+   * HTTPステータスコードをBankErrorCodeにマッピング
    */
-  private mapApiResponseToAccountInfo(
-    apiResponse: unknown,
-    credentials: BankCredentials,
+  private mapHttpStatusToBankErrorCode(status: number): BankErrorCode {
+    switch (status) {
+      case 401:
+      case 403:
+        return BankErrorCode.INVALID_CREDENTIALS;
+      case 404:
+        return BankErrorCode.UNSUPPORTED_BANK;
+      case 408:
+      case 504:
+        return BankErrorCode.CONNECTION_TIMEOUT;
+      case 429:
+        return BankErrorCode.RATE_LIMIT_EXCEEDED;
+      default:
+        if (status >= 500) {
+          return BankErrorCode.BANK_API_ERROR;
+        }
+        return BankErrorCode.UNKNOWN_ERROR;
+    }
+  }
+
+  /**
+   * APIのエラーコードをBankErrorCodeにマッピング
+   */
+  private mapApiErrorCodeToBankErrorCode(
+    apiErrorCode: string,
+    httpStatus: number,
+  ): BankErrorCode {
+    // APIのエラーコードに応じてマッピング
+    // 実際のAPI仕様に応じて調整が必要
+    if (apiErrorCode.includes('AUTH') || apiErrorCode.includes('CREDENTIAL')) {
+      return BankErrorCode.INVALID_CREDENTIALS;
+    }
+    if (apiErrorCode.includes('TIMEOUT')) {
+      return BankErrorCode.CONNECTION_TIMEOUT;
+    }
+    if (apiErrorCode.includes('RATE_LIMIT')) {
+      return BankErrorCode.RATE_LIMIT_EXCEEDED;
+    }
+
+    // デフォルトはHTTPステータスコードから判定
+    return this.mapHttpStatusToBankErrorCode(httpStatus);
+  }
+
+  /**
+   * MufgAccountをBankAccountInfoにマッピング
+   */
+  private mapMufgAccountToBankAccountInfo(
+    account: MufgAccount,
+    _credentials: BankCredentials,
   ): BankAccountInfo {
-    // TODO: 実際のAPIレスポンス形式に基づいて実装してください
-    // 開発者ポータルでレスポンス形式を確認してください
-
-    // 一般的なレスポンス形式の例（実際の形式に合わせて修正が必要）
-    if (
-      typeof apiResponse !== 'object' ||
-      apiResponse === null ||
-      !('account' in apiResponse || 'data' in apiResponse)
-    ) {
-      this.logger.error('Invalid API response format', apiResponse);
-      throw new BankConnectionError(
-        BankErrorCode.BANK_API_ERROR,
-        'APIレスポンスの形式が不正です',
-      );
-    }
-
-    // レスポンスからデータを抽出（実際の形式に合わせて修正）
-    const accountData =
-      'account' in apiResponse
-        ? (apiResponse as { account: unknown }).account
-        : (apiResponse as { data: unknown }).data;
-
-    if (typeof accountData !== 'object' || accountData === null) {
-      throw new BankConnectionError(
-        BankErrorCode.BANK_API_ERROR,
-        'APIレスポンスの形式が不正です',
-      );
-    }
-
-    const data = accountData as Record<string, unknown>;
-
     // 口座種別のマッピング
-    // TODO: 実際のAPIレスポンスの口座種別フィールド名と値を確認
-    const accountTypeStr = this.mapAccountType(
-      data.accountType as string | undefined,
-    );
-
-    // 口座番号のマッピング
-    // USERID_PASSWORD認証の場合、口座番号はAPIレスポンスから取得するか、
-    // userIdの末尾をマスクした形式を使用
-    const accountNumber =
-      (data.accountNumber as string | undefined) ||
-      (data.accountNo as string | undefined) ||
-      `***${(credentials.userId || '').slice(-4)}`;
+    // accountTypeCode: '01'=普通、'02'=当座、'03'=貯蓄、'04'=定期など
+    const accountType = this.mapAccountTypeCode(account.accountTypeCode);
 
     return {
-      bankName: (data.bankName as string | undefined) || '三菱UFJ銀行',
-      branchName:
-        (data.branchName as string | undefined) ||
-        (data.branch as string | undefined) ||
-        '',
-      accountNumber,
-      accountHolder:
-        (data.accountHolder as string | undefined) ||
-        (data.holderName as string | undefined) ||
-        '',
-      accountType: accountTypeStr,
-      balance: this.parseAmount(data.balance),
-      availableBalance: this.parseAmount(
-        data.availableBalance || data.available || data.balance,
-      ),
+      bankName: '三菱UFJ銀行',
+      branchName: account.branchName,
+      accountNumber: account.accountNo,
+      accountHolder: account.accountName || '',
+      accountType,
+      balance: account.balance || 0,
+      availableBalance: account.withdrawableAmount || account.balance || 0,
     };
+  }
+
+  /**
+   * 科目コード（accountTypeCode）をBankAccountTypeにマッピング
+   */
+  private mapAccountTypeCode(accountTypeCode: string): BankAccountType {
+    // 科目コードのマッピング
+    // '01' = 普通預金、'02' = 当座預金、'03' = 貯蓄預金、'04' = 定期預金など
+    switch (accountTypeCode) {
+      case '01':
+        return BankAccountType.ORDINARY; // 普通預金
+      case '02':
+        return BankAccountType.CURRENT; // 当座預金
+      case '03':
+        return BankAccountType.SAVINGS; // 貯蓄預金
+      case '04':
+        return BankAccountType.TIME_DEPOSIT; // 定期預金
+      default:
+        // デフォルトは普通預金
+        return BankAccountType.ORDINARY;
+    }
   }
 
   /**
