@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { MockBankApiAdapter } from './mock-bank-api.adapter';
 import { MufgBankApiAdapter } from './mufg-bank-api.adapter';
@@ -9,6 +10,8 @@ import { MufgBankApiAdapter } from './mufg-bank-api.adapter';
  */
 @Injectable()
 export class BankApiAdapterFactory {
+  constructor(private readonly configService: ConfigService) {}
+
   /**
    * 銀行コードに応じて適切なアダプターを作成
    * @param bankCode 銀行コード
@@ -26,12 +29,12 @@ export class BankApiAdapterFactory {
     // 本番モード: 銀行コードに応じて適切なアダプターを返す
     switch (bankCode) {
       case '0005': // 三菱UFJ銀行
-        return new MufgBankApiAdapter();
+        return new MufgBankApiAdapter(this.configService);
       // 他の銀行のアダプターもここに追加
       // case '0001': // みずほ銀行
-      //   return new MizuhoBankApiAdapter();
+      //   return new MizuhoBankApiAdapter(this.configService);
       // case '0009': // 三井住友銀行
-      //   return new SmbcBankApiAdapter();
+      //   return new SmbcBankApiAdapter(this.configService);
       default:
         // 未対応の銀行はモックアダプターを返す
         return new MockBankApiAdapter(bankCode);
