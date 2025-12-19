@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseFilters,
 } from '@nestjs/common';
+import { BankConnectionTestResult } from '@account-book/types';
 import { CreateInstitutionUseCase } from '../../application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from '../../application/use-cases/get-institutions.use-case';
 import { GetInstitutionUseCase } from '../../application/use-cases/get-institution.use-case';
@@ -127,15 +128,14 @@ export class InstitutionController {
   @HttpCode(HttpStatus.OK)
   async testBankConnection(@Body() dto: TestBankConnectionDto): Promise<{
     success: boolean;
-    data: Record<string, unknown>;
+    data: BankConnectionTestResult;
   }> {
     const result = await this.testBankConnectionUseCase.execute(dto);
 
-    // レスポンスの冗長性を解消: successはトップレベルのみ
-    const { success, ...data } = result;
+    // BankConnectionTestResultにはsuccessフィールドが含まれているため、そのまま返す
     return {
-      success,
-      data,
+      success: result.success,
+      data: result,
     };
   }
 
