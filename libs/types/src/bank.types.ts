@@ -3,6 +3,14 @@
  */
 
 /**
+ * 銀行認証タイプ
+ */
+export enum AuthenticationType {
+  BRANCH_ACCOUNT = 'branch_account', // 支店コード＋口座番号
+  USERID_PASSWORD = 'userid_password', // ユーザID＋パスワード
+}
+
+/**
  * 銀行カテゴリ
  */
 export enum BankCategory {
@@ -20,18 +28,27 @@ export interface Bank {
   name: string;
   category: BankCategory;
   isSupported: boolean;
+  authenticationType: AuthenticationType; // 認証タイプ
 }
 
 /**
  * 銀行認証情報（平文）
  */
 export interface BankCredentials {
-  bankCode: string; // 銀行コード（4桁数字）
-  branchCode: string; // 支店コード（3桁数字）
-  accountNumber: string; // 口座番号（7桁数字）
+  bankCode: string; // 銀行コード（4桁数字、必須）
+  authenticationType: AuthenticationType; // 認証タイプ（必須）
+
+  // 支店コード＋口座番号認証の場合
+  branchCode?: string; // 支店コード（3桁数字）
+  accountNumber?: string; // 口座番号（7桁数字）
   apiKey?: string; // APIキー（銀行によって異なる）
   apiSecret?: string; // APIシークレット（銀行によって異なる）
-  [key: string]: any; // その他の銀行固有の認証情報
+
+  // ユーザID＋パスワード認証の場合
+  userId?: string; // ユーザID（1-100文字）
+  password?: string; // パスワード（8-100文字、暗号化して保存）
+
+  [key: string]: unknown; // その他の銀行固有の認証情報
 }
 
 /**
@@ -91,4 +108,3 @@ export interface BankConnectionTestResult {
   accountInfo?: BankAccountInfo;
   errorCode?: string;
 }
-

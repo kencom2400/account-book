@@ -8,11 +8,15 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('銀行口座との連携 (FR-001)', () => {
-  // テスト用の定数
+  // テスト用の定数（BRANCH_ACCOUNT認証）
   const TEST_BRANCH_CODE = '001';
   const TEST_ACCOUNT_NUMBER = '1234567';
   const TEST_API_KEY = 'test-api-key-12345';
   const TEST_API_SECRET = 'test-api-secret-67890';
+
+  // テスト用の定数（USERID_PASSWORD認証）
+  const TEST_USER_ID = 'testuser123';
+  const TEST_PASSWORD = 'password123';
 
   // 各テストのタイムアウトを60秒に設定
   test.setTimeout(60000);
@@ -102,12 +106,9 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行ボタンをクリック（銀行名を含むボタンを探す）
-    const firstBankButton = page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first();
-    await firstBankButton.click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    // 最初の銀行がUSERID_PASSWORD認証タイプの場合があるため、BRANCH_ACCOUNT認証タイプの銀行を明示的に選択
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -116,7 +117,7 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
     await expect(page.getByText('接続先銀行')).toBeVisible();
 
-    // 認証情報入力フォームが表示されることを確認
+    // 認証情報入力フォームが表示されることを確認（BRANCH_ACCOUNT認証タイプ）
     await expect(page.getByLabel(/銀行コード/)).toBeVisible();
     await expect(page.getByLabel(/支店コード/)).toBeVisible();
     await expect(page.getByLabel(/口座番号/)).toBeVisible();
@@ -131,12 +132,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 各入力フィールドが表示されることを確認
     // Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
@@ -162,12 +159,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -191,12 +184,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -220,12 +209,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -263,12 +248,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -312,12 +293,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -339,12 +316,8 @@ test.describe('銀行口座との連携 (FR-001)', () => {
       { timeout: 10000 }
     );
 
-    // 最初の銀行を選択
-    await page
-      .locator('button')
-      .filter({ hasText: /銀行コード:/ })
-      .first()
-      .click();
+    // BRANCH_ACCOUNT認証タイプの銀行を選択（三井住友銀行など）
+    await page.getByRole('button', { name: /三井住友銀行/ }).click();
 
     // 認証情報入力画面に遷移することを確認
     await expect(page.getByText('2. 認証情報入力')).toBeVisible();
@@ -375,5 +348,199 @@ test.describe('銀行口座との連携 (FR-001)', () => {
     // 前のページに戻ることを確認（URLが変更される）
     // ブラウザの履歴に依存するため、URLが変更されたことを確認します。
     await expect(page).not.toHaveURL('/banks/add');
+  });
+
+  // USERID_PASSWORD認証のテストケース
+  test.describe('USERID_PASSWORD認証', () => {
+    test('USERID_PASSWORD認証の銀行を選択すると、ユーザIDとパスワードフォームが表示される', async ({
+      page,
+    }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択（USERID_PASSWORD認証）
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // ユーザIDとパスワードフィールドが表示されることを確認
+      await expect(page.getByLabel(/ユーザID/)).toBeVisible();
+      await expect(page.getByLabel(/パスワード/)).toBeVisible();
+
+      // 支店コードと口座番号フィールドが表示されないことを確認
+      await expect(page.getByLabel(/支店コード/)).not.toBeVisible();
+      await expect(page.getByLabel(/口座番号/)).not.toBeVisible();
+    });
+
+    test('バリデーションエラーが表示される（ユーザIDが不正）', async ({ page }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // 不正なユーザIDを入力（空文字）
+      await page.getByLabel(/ユーザID/).fill('');
+      await page.getByLabel(/パスワード/).fill(TEST_PASSWORD);
+
+      // 接続テストボタンをクリック
+      await page.getByRole('button', { name: '接続テスト' }).click();
+
+      // バリデーションエラーが表示されることを確認
+      await expect(page.getByText('ユーザIDは1-100文字で入力してください')).toBeVisible();
+    });
+
+    test('バリデーションエラーが表示される（パスワードが不正）', async ({ page }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // 不正なパスワードを入力（7文字）
+      await page.getByLabel(/ユーザID/).fill(TEST_USER_ID);
+      await page.getByLabel(/パスワード/).fill('short');
+
+      // 接続テストボタンをクリック
+      await page.getByRole('button', { name: '接続テスト' }).click();
+
+      // バリデーションエラーが表示されることを確認
+      await expect(page.getByText('パスワードは8-100文字で入力してください')).toBeVisible();
+    });
+
+    test('接続テストが実行される（正常系 - USERID_PASSWORD認証）', async ({ page }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // 認証情報を入力
+      await page.getByLabel(/ユーザID/).fill(TEST_USER_ID);
+      await page.getByLabel(/パスワード/).fill(TEST_PASSWORD);
+
+      // 接続テストAPIリクエストを待機
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/test-connection') &&
+          response.request().method() === 'POST',
+        { timeout: 15000 }
+      );
+
+      // 接続テストボタンをクリック
+      await page.getByRole('button', { name: '接続テスト' }).click();
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // 接続テスト結果画面に遷移することを確認
+      await expect(page.getByText('3. 接続テスト')).toBeVisible();
+    });
+
+    test('接続テストが実行される（異常系 - USERID_PASSWORD認証）', async ({ page }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // 不正な認証情報を入力
+      await page.getByLabel(/ユーザID/).fill('invaliduser');
+      await page.getByLabel(/パスワード/).fill('invalidpassword');
+
+      // 接続テストAPIリクエストを待機（エラーレスポンスも含む）
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/test-connection') &&
+          response.request().method() === 'POST',
+        { timeout: 15000 }
+      );
+
+      // 接続テストボタンをクリック
+      await page.getByRole('button', { name: '接続テスト' }).click();
+
+      // APIレスポンスを待機
+      await responsePromise;
+
+      // 接続テスト結果画面に遷移することを確認
+      await expect(page.getByText('3. 接続テスト')).toBeVisible();
+
+      // 接続失敗時のエラーメッセージが表示されることを確認
+      await expect(
+        page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i).first()
+      ).toBeVisible({ timeout: 5000 });
+    });
+
+    test('パスワードの表示/非表示切替が機能する（USERID_PASSWORD認証）', async ({ page }) => {
+      // 銀行一覧が表示されるまで待機（APIレスポンスを待つ）
+      await page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/institutions/banks/supported') &&
+          response.request().method() === 'GET',
+        { timeout: 10000 }
+      );
+
+      // 三菱UFJ銀行（0005）を選択
+      await page.getByRole('button', { name: /三菱UFJ銀行/ }).click();
+
+      // 認証情報入力画面に遷移することを確認
+      await expect(page.getByText('2. 認証情報入力')).toBeVisible();
+
+      // パスワード入力フィールドを取得
+      const passwordInput = page.getByLabel(/パスワード/);
+
+      // 初期状態では非表示（type="password"）であることを確認
+      await expect(passwordInput).toHaveAttribute('type', 'password');
+
+      // 表示ボタンをクリック
+      await page.getByRole('button', { name: '表示' }).click();
+
+      // 表示状態（type="text"）になることを確認
+      await expect(passwordInput).toHaveAttribute('type', 'text');
+
+      // 非表示ボタンをクリック
+      await page.getByRole('button', { name: '非表示' }).click();
+
+      // 非表示状態（type="password"）に戻ることを確認
+      await expect(passwordInput).toHaveAttribute('type', 'password');
+    });
   });
 });

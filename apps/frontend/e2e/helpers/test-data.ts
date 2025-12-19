@@ -211,6 +211,7 @@ export async function seedE2ETestData(): Promise<{
       type: 'bank',
       credentials: {
         bankCode: '0000',
+        authenticationType: 'branch_account',
         branchCode: '001',
         accountNumber: '1234567',
       },

@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
 import cryptoConfig from './config/crypto.config';
+import mufgBankConfig from './config/mufg-bank.config';
 import { getDatabaseConfig } from './config/database.config';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { InstitutionModule } from './modules/institution/institution.module';
@@ -25,7 +26,7 @@ import { EventModule } from './modules/event/event.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, cryptoConfig],
+      load: [appConfig, cryptoConfig, mufgBankConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bank } from '@account-book/types';
+import { Bank, AuthenticationType } from '@account-book/types';
 import { showErrorToast, ErrorModal } from '@/components/ui';
 import { useNotificationStore } from '@/stores/notification.store';
 
@@ -15,10 +15,13 @@ interface BankCredentialsFormProps {
 
 export interface BankCredentialsData {
   bankCode: string;
-  branchCode: string;
-  accountNumber: string;
+  authenticationType: AuthenticationType;
+  branchCode?: string;
+  accountNumber?: string;
   apiKey?: string;
   apiSecret?: string;
+  userId?: string;
+  password?: string;
 }
 
 /**
@@ -33,14 +36,18 @@ export function BankCredentialsForm({
 }: BankCredentialsFormProps): React.JSX.Element {
   const [formData, setFormData] = useState<BankCredentialsData>({
     bankCode: bank.code,
+    authenticationType: bank.authenticationType,
     branchCode: '',
     accountNumber: '',
     apiKey: '',
     apiSecret: '',
+    userId: '',
+    password: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showApiSecret, setShowApiSecret] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const prevErrorRef = useRef<string | null>(null);
@@ -60,12 +67,31 @@ export function BankCredentialsForm({
       newErrors.bankCode = '銀行コードは4桁の数字で入力してください';
     }
 
-    if (!/^\d{3}$/.test(dataToValidate.branchCode)) {
-      newErrors.branchCode = '支店コードは3桁の数字で入力してください';
-    }
+    // 認証方式に応じたバリデーション
+    if (dataToValidate.authenticationType === AuthenticationType.BRANCH_ACCOUNT) {
+      if (!dataToValidate.branchCode || !/^\d{3}$/.test(dataToValidate.branchCode)) {
+        newErrors.branchCode = '支店コードは3桁の数字で入力してください';
+      }
 
-    if (!/^\d{7}$/.test(dataToValidate.accountNumber)) {
-      newErrors.accountNumber = '口座番号は7桁の数字で入力してください';
+      if (!dataToValidate.accountNumber || !/^\d{7}$/.test(dataToValidate.accountNumber)) {
+        newErrors.accountNumber = '口座番号は7桁の数字で入力してください';
+      }
+    } else if (dataToValidate.authenticationType === AuthenticationType.USERID_PASSWORD) {
+      if (
+        !dataToValidate.userId ||
+        dataToValidate.userId.length < 1 ||
+        dataToValidate.userId.length > 100
+      ) {
+        newErrors.userId = 'ユーザIDは1-100文字で入力してください';
+      }
+
+      if (
+        !dataToValidate.password ||
+        dataToValidate.password.length < 8 ||
+        dataToValidate.password.length > 100
+      ) {
+        newErrors.password = 'パスワードは8-100文字で入力してください';
+      }
     }
 
     setErrors(newErrors);
@@ -159,84 +185,141 @@ export function BankCredentialsForm({
           {errors.bankCode && <p className="mt-1 text-sm text-red-600">{errors.bankCode}</p>}
         </div>
 
-        {/* 支店コード */}
-        <div>
-          <label htmlFor="branchCode" className="block text-sm font-medium text-gray-700 mb-2">
-            支店コード <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="branchCode"
-            type="text"
-            value={formData.branchCode}
-            onChange={(e) => handleChange('branchCode', e.target.value)}
-            maxLength={3}
-            placeholder="例: 001"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">3桁の数字で入力してください</p>
-          {errors.branchCode && <p className="mt-1 text-sm text-red-600">{errors.branchCode}</p>}
-        </div>
+        {/* 認証方式に応じたフォーム切り替え */}
+        {formData.authenticationType === AuthenticationType.BRANCH_ACCOUNT ? (
+          <>
+            {/* 支店コード */}
+            <div>
+              <label htmlFor="branchCode" className="block text-sm font-medium text-gray-700 mb-2">
+                支店コード <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="branchCode"
+                type="text"
+                value={formData.branchCode || ''}
+                onChange={(e) => handleChange('branchCode', e.target.value)}
+                maxLength={3}
+                placeholder="例: 001"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">3桁の数字で入力してください</p>
+              {errors.branchCode && (
+                <p className="mt-1 text-sm text-red-600">{errors.branchCode}</p>
+              )}
+            </div>
 
-        {/* 口座番号 */}
-        <div>
-          <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            口座番号 <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="accountNumber"
-            type="text"
-            value={formData.accountNumber}
-            onChange={(e) => handleChange('accountNumber', e.target.value)}
-            maxLength={7}
-            placeholder="例: 1234567"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">7桁の数字で入力してください</p>
-          {errors.accountNumber && (
-            <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
-          )}
-        </div>
+            {/* 口座番号 */}
+            <div>
+              <label
+                htmlFor="accountNumber"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                口座番号 <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="accountNumber"
+                type="text"
+                value={formData.accountNumber || ''}
+                onChange={(e) => handleChange('accountNumber', e.target.value)}
+                maxLength={7}
+                placeholder="例: 1234567"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">7桁の数字で入力してください</p>
+              {errors.accountNumber && (
+                <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
+              )}
+            </div>
 
-        {/* APIキー（オプション） */}
-        <div>
-          <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
-            APIキー（オプション）
-          </label>
-          <input
-            id="apiKey"
-            type="text"
-            value={formData.apiKey}
-            onChange={(e) => handleChange('apiKey', e.target.value)}
-            placeholder="銀行から発行されたAPIキーを入力"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
-        </div>
+            {/* APIキー（オプション） */}
+            <div>
+              <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
+                APIキー（オプション）
+              </label>
+              <input
+                id="apiKey"
+                type="text"
+                value={formData.apiKey || ''}
+                onChange={(e) => handleChange('apiKey', e.target.value)}
+                placeholder="銀行から発行されたAPIキーを入力"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
+            </div>
 
-        {/* APIシークレット（オプション） */}
-        <div>
-          <label htmlFor="apiSecret" className="block text-sm font-medium text-gray-700 mb-2">
-            APIシークレット（オプション）
-          </label>
-          <div className="relative">
-            <input
-              id="apiSecret"
-              type={showApiSecret ? 'text' : 'password'}
-              value={formData.apiSecret}
-              onChange={(e) => handleChange('apiSecret', e.target.value)}
-              placeholder="銀行から発行されたAPIシークレットを入力"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => setShowApiSecret(!showApiSecret)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              {showApiSecret ? '非表示' : '表示'}
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
-        </div>
+            {/* APIシークレット（オプション） */}
+            <div>
+              <label htmlFor="apiSecret" className="block text-sm font-medium text-gray-700 mb-2">
+                APIシークレット（オプション）
+              </label>
+              <div className="relative">
+                <input
+                  id="apiSecret"
+                  type={showApiSecret ? 'text' : 'password'}
+                  value={formData.apiSecret || ''}
+                  onChange={(e) => handleChange('apiSecret', e.target.value)}
+                  placeholder="銀行から発行されたAPIシークレットを入力"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiSecret(!showApiSecret)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showApiSecret ? '非表示' : '表示'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">銀行によっては必要な場合があります</p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* ユーザID */}
+            <div>
+              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-2">
+                ユーザID <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="userId"
+                type="text"
+                value={formData.userId || ''}
+                onChange={(e) => handleChange('userId', e.target.value)}
+                maxLength={100}
+                placeholder="例: user123"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">1-100文字で入力してください</p>
+              {errors.userId && <p className="mt-1 text-sm text-red-600">{errors.userId}</p>}
+            </div>
+
+            {/* パスワード */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                パスワード <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password || ''}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  maxLength={100}
+                  placeholder="パスワードを入力"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? '非表示' : '表示'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">8-100文字で入力してください</p>
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+            </div>
+          </>
+        )}
 
         {/* 注意事項 */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

@@ -4,8 +4,9 @@ import {
   Bank,
   BankCategory,
   BankConnectionTestResult,
+  AuthenticationType,
 } from '@account-book/types';
-import { apiClient } from './client';
+import { apiClient, ApiError } from './client';
 
 /**
  * Institution API
@@ -35,10 +36,13 @@ export interface GetSupportedBanksParams {
 
 export interface TestBankConnectionRequest {
   bankCode: string;
-  branchCode: string;
-  accountNumber: string;
+  authenticationType: AuthenticationType;
+  branchCode?: string;
+  accountNumber?: string;
   apiKey?: string;
   apiSecret?: string;
+  userId?: string;
+  password?: string;
 }
 
 /**
@@ -103,10 +107,82 @@ export async function getSupportedBanks(params?: GetSupportedBanksParams): Promi
 export async function testBankConnection(
   data: TestBankConnectionRequest
 ): Promise<BankConnectionTestResult> {
-  return await apiClient.post<BankConnectionTestResult>(
-    '/institutions/banks/test-connection',
-    data
+  // APIクライアントはresult.dataを返すが、バックエンドのレスポンス構造を考慮する必要がある
+  // バックエンドは { success: boolean, data: BankConnectionTestResult } を返す
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/institutions/banks/test-connection`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }
   );
+
+  if (!response.ok) {
+    // HTTPステータスがエラーの場合（400, 500など）
+    const errorResponse = (await response.json()) as {
+      success: boolean;
+      error?: {
+        message: string;
+        code: string;
+        details?: Array<{ field?: string; message: string }>;
+      };
+    };
+    if (errorResponse.error) {
+      throw new ApiError(
+        errorResponse.error.message,
+        errorResponse.error.code,
+        errorResponse.error.details,
+        response.status
+      );
+    }
+    throw new ApiError(
+      `API Error: ${response.status} ${response.statusText}`,
+      'UNKNOWN_ERROR',
+      undefined,
+      response.status
+    );
+  }
+
+  const result = (await response.json()) as {
+    success: boolean;
+    data: BankConnectionTestResult;
+  };
+
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('🔍 [testBankConnection] API Response:', {
+      success: result.success,
+      data: result.data,
+      fullResponse: result,
+    });
+  }
+
+  // successがfalseの場合はエラーとして扱う
+  if (!result.success) {
+    const errorData = result.data;
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [testBankConnection] Connection failed:', {
+        errorData,
+        message: errorData.message,
+        errorCode: errorData.errorCode,
+      });
+    }
+    throw new ApiError(
+      errorData.message || '接続テストに失敗しました',
+      errorData.errorCode || 'BE999',
+      undefined,
+      200 // HTTPステータスは200だが、successがfalse
+    );
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('✅ [testBankConnection] Connection succeeded:', result.data);
+  }
+
+  return result.data;
 }
 
 export interface DeleteInstitutionRequest {

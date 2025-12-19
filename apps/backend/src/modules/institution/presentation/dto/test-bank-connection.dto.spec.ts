@@ -2,12 +2,14 @@ import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { TestBankConnectionDto } from './test-bank-connection.dto';
+import { AuthenticationType } from '@account-book/types';
 
 describe('TestBankConnectionDto', () => {
   describe('validation', () => {
     it('should pass validation with valid data', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
       });
@@ -20,6 +22,7 @@ describe('TestBankConnectionDto', () => {
     it('should pass validation with optional apiKey and apiSecret', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
         apiKey: 'test-api-key',
@@ -58,14 +61,16 @@ describe('TestBankConnectionDto', () => {
       expect(bankCodeError).toBeDefined();
     });
 
-    it('should fail validation when branchCode is missing', async () => {
+    it('should fail validation when branchCode is missing for BRANCH_ACCOUNT type', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         accountNumber: '1234567',
       });
 
       const errors = await validate(dto);
 
+      // カスタムバリデーターにより、branchCodeが必須であることがチェックされる
       expect(errors.length).toBeGreaterThan(0);
       const branchCodeError = errors.find((e) => e.property === 'branchCode');
       expect(branchCodeError).toBeDefined();
@@ -74,6 +79,7 @@ describe('TestBankConnectionDto', () => {
     it('should fail validation when branchCode is not 3 digits', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '12',
         accountNumber: '1234567',
       });
@@ -85,14 +91,16 @@ describe('TestBankConnectionDto', () => {
       expect(branchCodeError).toBeDefined();
     });
 
-    it('should fail validation when accountNumber is missing', async () => {
+    it('should fail validation when accountNumber is missing for BRANCH_ACCOUNT type', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
       });
 
       const errors = await validate(dto);
 
+      // カスタムバリデーターにより、accountNumberが必須であることがチェックされる
       expect(errors.length).toBeGreaterThan(0);
       const accountNumberError = errors.find(
         (e) => e.property === 'accountNumber',
@@ -103,6 +111,7 @@ describe('TestBankConnectionDto', () => {
     it('should fail validation when accountNumber is not 7 digits', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '123456',
       });
@@ -119,9 +128,10 @@ describe('TestBankConnectionDto', () => {
     it('should fail validation when apiKey is too long', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
-        apiKey: 'a'.repeat(256), // 256文字（255文字以下である必要がある）
+        apiKey: 'a'.repeat(501), // 501文字（500文字以下である必要がある）
       });
 
       const errors = await validate(dto);
@@ -134,9 +144,10 @@ describe('TestBankConnectionDto', () => {
     it('should fail validation when apiSecret is too long', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '1234567',
-        apiSecret: 'a'.repeat(256), // 256文字（255文字以下である必要がある）
+        apiSecret: 'a'.repeat(501), // 501文字（500文字以下である必要がある）
       });
 
       const errors = await validate(dto);
@@ -144,6 +155,162 @@ describe('TestBankConnectionDto', () => {
       expect(errors.length).toBeGreaterThan(0);
       const apiSecretError = errors.find((e) => e.property === 'apiSecret');
       expect(apiSecretError).toBeDefined();
+    });
+
+    // USERID_PASSWORD認証のテストケース
+    it('should pass validation with valid USERID_PASSWORD credentials', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail validation when userId is missing for USERID_PASSWORD type', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      // カスタムバリデーターにより、userIdが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
+    });
+
+    it('should fail validation when userId is too short', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: '', // 空文字（1文字以上である必要がある）
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
+    });
+
+    it('should fail validation when userId is too long', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'a'.repeat(101), // 101文字（100文字以下である必要がある）
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const userIdError = errors.find((e) => e.property === 'userId');
+      expect(userIdError).toBeDefined();
+    });
+
+    it('should fail validation when password is missing for USERID_PASSWORD type', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+      });
+
+      const errors = await validate(dto);
+
+      // カスタムバリデーターにより、passwordが必須であることがチェックされる
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
+    });
+
+    it('should fail validation when password is too short', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'short', // 7文字（8文字以上である必要がある）
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
+    });
+
+    it('should fail validation when password is too long', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'a'.repeat(101), // 101文字（100文字以下である必要がある）
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === 'password');
+      expect(passwordError).toBeDefined();
+    });
+
+    it('should fail validation when authenticationType is invalid', async () => {
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: 'invalid' as AuthenticationType,
+        userId: 'testuser',
+        password: 'password123',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const authTypeError = errors.find(
+        (e) => e.property === 'authenticationType',
+      );
+      expect(authTypeError).toBeDefined();
+    });
+
+    it('should ignore apiKey and apiSecret for USERID_PASSWORD authentication', async () => {
+      // USERID_PASSWORD認証の場合、apiKey/apiSecretは無視される（バリデーションエラーにならない）
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0005',
+        authenticationType: AuthenticationType.USERID_PASSWORD,
+        userId: 'testuser',
+        password: 'password123',
+        apiKey: 'should-be-ignored',
+        apiSecret: 'should-be-ignored',
+      });
+
+      const errors = await validate(dto);
+
+      // apiKey/apiSecretのバリデーションは実行されないため、エラーは発生しない
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should validate apiKey and apiSecret for BRANCH_ACCOUNT authentication', async () => {
+      // BRANCH_ACCOUNT認証の場合、apiKey/apiSecretのバリデーションが実行される
+      const dto = plainToInstance(TestBankConnectionDto, {
+        bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
+        branchCode: '001',
+        accountNumber: '1234567',
+        apiKey: 'a'.repeat(501), // 501文字（500文字以下である必要がある）
+        apiSecret: 'test-api-secret',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      const apiKeyError = errors.find((e) => e.property === 'apiKey');
+      expect(apiKeyError).toBeDefined();
     });
   });
 });
