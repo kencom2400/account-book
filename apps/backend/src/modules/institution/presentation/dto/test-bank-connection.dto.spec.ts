@@ -111,6 +111,7 @@ describe('TestBankConnectionDto', () => {
     it('should fail validation when accountNumber is not 7 digits', async () => {
       const dto = plainToInstance(TestBankConnectionDto, {
         bankCode: '0001',
+        authenticationType: AuthenticationType.BRANCH_ACCOUNT,
         branchCode: '001',
         accountNumber: '123456',
       });
