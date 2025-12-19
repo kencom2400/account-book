@@ -14016,6 +14016,45 @@ accountNumber?: string;
 
 **適用対象**: DTO（Presentation Layer）
 
+**実装方法の選択肢**:
+
+1. **クラスレベルでのバリデーション**: DTOクラス全体に`@Validate`デコレーターを適用し、カスタムバリデーターでDTO全体を検証する方法
+2. **プロパティレベルでの条件付きバリデーション**: `@ValidateIf`と`@Validate`を各プロパティに適用し、条件に応じてバリデーションを実行する方法
+
+**推奨**: プロパティレベルでの条件付きバリデーション（`@ValidateIf` + `@Validate`）を推奨
+
+- エラーメッセージがより具体的で、どのフィールドに問題があるか明確になる
+- 各プロパティごとに独立したバリデーションロジックを実装できる
+- 将来的に新しい認証タイプが追加された場合の拡張が容易
+
+**実装例（プロパティレベル）**:
+
+\`\`\`typescript
+@ValidatorConstraint({ name: 'isValidBranchAccountCredentials', async: false })
+export class IsValidBranchAccountCredentialsConstraint
+implements ValidatorConstraintInterface
+{
+validate(value: unknown, args: ValidationArguments): boolean {
+const dto = args.object as TestBankConnectionDto;
+if (dto.authenticationType !== AuthenticationType.BRANCH_ACCOUNT) {
+return true; // 条件に合わない場合はスキップ
+}
+// プロパティごとのバリデーション
+if (args.property === 'branchCode') {
+return typeof value === 'string' && /^\d{3}$/.test(value);
+}
+return true;
+}
+}
+
+export class TestBankConnectionDto {
+@ValidateIf((o) => o.authenticationType === AuthenticationType.BRANCH_ACCOUNT)
+@Validate(IsValidBranchAccountCredentialsConstraint)
+@IsNotEmpty({ message: '支店コードは必須です' })
+branchCode?: string;
+}
+\`\`\`
+
 **参照**: PR #454 - Issue #410: Phase 2 & 3 銀行認証方式拡張の実装（Gemini Code Assistレビュー指摘）
 
 ---
