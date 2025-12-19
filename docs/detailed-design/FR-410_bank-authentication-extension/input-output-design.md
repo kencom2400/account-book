@@ -212,14 +212,14 @@ export interface BankConnectionTestResult {
 
 - **ユーザID＋パスワード認証 (`authenticationType: "userid_password"`)**:
 
-  ```json
-  {
-    "bankCode": "0005",
-    "authenticationType": "userid_password",
-    "userId": "user123",
-    "password": "password123"
-  }
-  ```
+```json
+{
+  "bankCode": "0005",
+  "authenticationType": "userid_password",
+  "userId": "user123",
+  "password": "password123"
+}
+```
 
 **Response (201 Created):**
 

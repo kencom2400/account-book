@@ -199,7 +199,7 @@ interface ErrorResponse {
 
 ## 環境変数
 
-以下の環境変数を設定してください：
+以下の環境変数を`.env`ファイルに設定してください：
 
 ```env
 # 三菱UFJ銀行API設定
@@ -208,6 +208,20 @@ MUFG_API_CLIENT_ID=your-client-id-here
 MUFG_API_CLIENT_SECRET=your-client-secret-here
 MUFG_API_TIMEOUT_MS=30000
 ```
+
+### 設定方法
+
+1. **`.env`ファイルの作成**
+   - `apps/backend/.env.example`をコピーして`apps/backend/.env`を作成
+   - 実際の値を設定
+
+2. **NestJSの自動読み込み**
+   - `ConfigModule.forRoot()`が自動的に`.env`ファイルを読み込みます
+   - 追加の設定は不要です
+
+3. **環境別の設定**
+   - 開発環境: `apps/backend/.env`
+   - 本番環境: 環境変数管理サービス（AWS Secrets Manager、Azure Key Vaultなど）を使用
 
 ### 環境変数の説明
 
