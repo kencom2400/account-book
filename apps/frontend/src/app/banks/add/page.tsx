@@ -48,9 +48,30 @@ export default function AddBankPage(): React.JSX.Element {
         password: credentialsData.password,
       });
 
+      // デバッグログ（開発環境のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔍 [handleTestConnection] Result received:', {
+          success: result.success,
+          message: result.message,
+          errorCode: result.errorCode,
+          fullResult: result,
+        });
+      }
+
       setTestResult(result);
       setCurrentStep('result');
     } catch (error) {
+      // デバッグログ（開発環境のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [handleTestConnection] Error caught:', {
+          error,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          isApiError: error instanceof ApiError,
+          apiErrorCode: error instanceof ApiError ? error.code : undefined,
+          apiErrorDetails: error instanceof ApiError ? error.details : undefined,
+        });
+      }
       // ApiErrorの場合は詳細を表示
       if (error instanceof ApiError) {
         const errorMessage = error.message || '接続テストに失敗しました。';

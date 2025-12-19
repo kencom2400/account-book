@@ -151,15 +151,35 @@ export async function testBankConnection(
     data: BankConnectionTestResult;
   };
 
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('🔍 [testBankConnection] API Response:', {
+      success: result.success,
+      data: result.data,
+      fullResponse: result,
+    });
+  }
+
   // successがfalseの場合はエラーとして扱う
   if (!result.success) {
     const errorData = result.data;
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ [testBankConnection] Connection failed:', {
+        errorData,
+        message: errorData.message,
+        errorCode: errorData.errorCode,
+      });
+    }
     throw new ApiError(
       errorData.message || '接続テストに失敗しました',
       errorData.errorCode || 'BE999',
       undefined,
       200 // HTTPステータスは200だが、successがfalse
     );
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('✅ [testBankConnection] Connection succeeded:', result.data);
   }
 
   return result.data;

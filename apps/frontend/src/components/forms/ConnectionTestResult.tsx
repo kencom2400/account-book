@@ -18,9 +18,20 @@ export function ConnectionTestResult({
   onRetry,
   onContinue,
 }: ConnectionTestResultProps): React.JSX.Element {
+  // デバッグ情報を表示（開発環境のみ）
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   if (result.success) {
     return (
       <div className="space-y-4">
+        {/* デバッグ情報（開発環境のみ） */}
+        {isDevelopment && (
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-xs font-mono">
+            <div className="font-bold mb-2">🔍 デバッグ情報:</div>
+            <pre className="whitespace-pre-wrap break-words">{JSON.stringify(result, null, 2)}</pre>
+          </div>
+        )}
+
         {/* 成功メッセージ */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <div className="flex">
@@ -134,6 +145,14 @@ export function ConnectionTestResult({
   // 失敗時
   return (
     <div className="space-y-4">
+      {/* デバッグ情報（開発環境のみ） */}
+      {isDevelopment && (
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-xs font-mono">
+          <div className="font-bold mb-2">🔍 デバッグ情報:</div>
+          <pre className="whitespace-pre-wrap break-words">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+
       {/* エラーメッセージ */}
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex">
