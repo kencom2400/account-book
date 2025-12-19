@@ -35,7 +35,15 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps):
         setBanks(data);
         setFilteredBanks(data);
         setError(null);
-      } catch (_err) {
+      } catch (err) {
+        // デバッグログ（開発環境のみ）
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ [BankSelector] Failed to fetch banks:', {
+            error: err,
+            errorType: err instanceof Error ? err.constructor.name : typeof err,
+            errorMessage: err instanceof Error ? err.message : String(err),
+          });
+        }
         setError('銀行一覧の取得に失敗しました');
       } finally {
         setLoading(false);
