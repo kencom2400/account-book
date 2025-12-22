@@ -1,0 +1,4 @@
+managed:
+  - project: account-book
+    language: typescript/5.9.3
+
