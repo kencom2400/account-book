@@ -5,7 +5,7 @@
 # 使い方:
 #   start-task.sh [#ISSUE_NUMBER]
 #
-# 引数なし: GitHub Projectsから「📝 To Do」ステータスの最優先Issueを自動選択
+# 引数なし: GitHub Projectsから「📝 To Do」または「To Do」ステータスの最優先Issueを自動選択
 # 引数あり: 指定したIssue番号で作業を開始
 
 set -e
@@ -19,7 +19,7 @@ show_usage() {
   cat << EOF
 使い方: $0 [#ISSUE_NUMBER]
 
-引数なし: GitHub Projectsから「📝 To Do」ステータスの最優先Issueを自動選択
+引数なし: GitHub Projectsから「📝 To Do」または「To Do」ステータスの最優先Issueを自動選択
 引数あり: 指定したIssue番号で作業を開始
 
 例:
@@ -151,7 +151,7 @@ start_task_by_id() {
   
   # ステータスを In Progress に変更
   echo "🚧 ステータスを '🚧 In Progress' に変更中..."
-  "${SCRIPT_DIR}/../projects/set-issue-in-progress.sh" "$ISSUE_NUM" > /dev/null 2>&1
+  "${SCRIPT_DIR}/set-issue-in-progress.sh" "$ISSUE_NUM" > /dev/null 2>&1
   
   echo ""
   echo "✅ Issue #${ISSUE_NUM} を開始しました"
@@ -168,7 +168,7 @@ select_priority_issue() {
   echo "🔍 GitHub Projectsから最優先Issueを取得中..."
   echo ""
   
-  # 「📝 To Do」ステータスで自分にアサインされているIssueを取得
+  # 「📝 To Do」または「To Do」ステータスで自分にアサインされているIssueを取得
   TODO_ISSUES=$(gh issue list \
     --state open \
     --assignee @me \
@@ -176,15 +176,15 @@ select_priority_issue() {
     --limit 100)
   
   if [ -z "$TODO_ISSUES" ] || [ "$TODO_ISSUES" = "[]" ]; then
-    echo "❌ 自分にアサインされた「📝 To Do」ステータスのIssueが見つかりません"
+    echo "❌ 自分にアサインされた「📝 To Do」または「To Do」ステータスのIssueが見つかりません"
     exit 1
   fi
   
-  # 「📝 To Do」ステータスのIssueをフィルタリングし、優先度でソート
+  # 「📝 To Do」または「To Do」ステータスのIssueをフィルタリングし、優先度でソート
   PRIORITY_ISSUE=$(echo "$TODO_ISSUES" | jq '
     [
       .[] |
-      select(.projectItems[0].status.name == "📝 To Do") |
+      select(.projectItems[0].status.name == "📝 To Do" or .projectItems[0].status.name == "To Do") |
       {
         number: .number,
         title: .title,
@@ -204,14 +204,10 @@ select_priority_issue() {
   
   # nullチェック（jqの結果を直接チェック）
   if [ -z "$PRIORITY_ISSUE" ] || [ "$PRIORITY_ISSUE" = "null" ] || ! echo "$PRIORITY_ISSUE" | jq -e '.number' > /dev/null 2>&1; then
-    echo "❌ 「📝 To Do」ステータスのIssueが見つかりません"
+    echo "❌ 「📝 To Do」または「To Do」ステータスのIssueが見つかりません"
     echo ""
     echo "📝 現在のオープンIssue（自分にアサイン）:"
     echo "$TODO_ISSUES" | jq -r '.[] | "  - #\(.number): \(.title) [\(.projectItems[0].status.name // "プロジェクト未登録")]"'
-    echo ""
-    echo "ℹ️  意図しないタスクの実行を防ぐため、自動選択は「📝 To Do」ステータスのIssueのみを対象としています。"
-    echo "   特定のIssueを開始する場合は、Issue番号を指定してください:"
-    echo "   $0 #<ISSUE_NUMBER>"
     exit 1
   fi
   

@@ -2516,6 +2516,316 @@ const [state, dispatch] = useReducer(reducer, initialState);
 
 ### 15-3. Geminiレビュー対応フロー
 
+---
+
+## 17. GitHub API操作とRate Limit処理（PR #40）
+
+### 17-1. Rate Limitリトライロジックの実装 🔴 Critical
+
+**問題**: Rate Limit対策の定数が定義されているが、実際には使用されていない。
+
+**解決策**:
+- Rate Limitエラー時に自動リトライするデコレータを実装
+- リセット時刻を確認し、適切な待機時間を計算
+- 指数バックオフを実装してAPI負荷を軽減
+
+**実装例**:
+```python
+def _retry_on_rate_limit(func: Callable) -> Callable:
+    """Rate Limitエラー時にリトライするデコレータ"""
+    def wrapper(*args, **kwargs):
+        retry_count = 0
+        while retry_count <= MAX_RATE_LIMIT_RETRIES:
+            try:
+                return func(*args, **kwargs)
+            except RateLimitError as e:
+                if retry_count >= MAX_RATE_LIMIT_RETRIES:
+                    raise
+                # リセット時刻を確認
+                if e.reset_time:
+                    wait_time = max(e.reset_time - int(time.time()), 0) + 1
+                else:
+                    wait_time = API_RATE_LIMIT_WAIT * (RATE_LIMIT_BACKOFF_MULTIPLIER ** retry_count)
+                time.sleep(wait_time)
+                retry_count += 1
+    return wrapper
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-2. HTTPヘッダーからRate Limit情報を取得 🔴 Critical
+
+**問題**: `RateLimitError`が発生した際に、リセット時刻などの詳細情報が例外に設定されていない。
+
+**解決策**:
+- `gh api`コマンドに`--include`フラグを追加してHTTPヘッダーを取得
+- `x-ratelimit-remaining`, `x-ratelimit-reset`, `x-ratelimit-limit`をパース
+- これらの情報を`RateLimitError`に渡す
+
+**実装例**:
+```python
+def _run_gh_command_with_headers(...) -> tuple[subprocess.CompletedProcess, dict[str, str]]:
+    """HTTPヘッダーも取得するGitHub CLIコマンド実行関数"""
+    command = ["gh"] + command + ["--include"]
+    result = subprocess.run(...)
+    
+    # HTTPヘッダーをパース
+    headers = {}
+    if result.stdout:
+        parts = result.stdout.split("\r\n\r\n", 1)
+        if len(parts) == 2:
+            header_lines = parts[0].split("\n")
+            for line in header_lines:
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    headers[key.strip().lower()] = value.strip()
+    
+    # Rate Limit情報を抽出
+    rate_limit_reset = int(headers.get("x-ratelimit-reset", 0)) if "x-ratelimit-reset" in headers else None
+    rate_limit_remaining = int(headers.get("x-ratelimit-remaining", 0)) if "x-ratelimit-remaining" in headers else None
+    rate_limit_limit = int(headers.get("x-ratelimit-limit", 0)) if "x-ratelimit-limit" in headers else None
+    
+    if rate_limit_remaining == 0:
+        raise RateLimitError(
+            "GitHub API rate limit exceeded",
+            reset_time=rate_limit_reset,
+            remaining=rate_limit_remaining,
+            limit=rate_limit_limit,
+        )
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-3. GraphQLクエリのページネーション実装 🔴 Critical
+
+**問題**: GraphQLクエリで`items(first: 200)`とハードコードされており、ページネーションが実装されていない。
+
+**解決策**:
+- `pageInfo` (`hasNextPage`, `endCursor`) を使用して、すべてのアイテムをループで取得
+- ページサイズを適切に設定（例: 100）
+- すべてのアイテムを取得するまでループを継続
+
+**実装例**:
+```python
+def get_project_item_id(project_id: str, issue_node_id: str, token: Optional[str] = None) -> Optional[str]:
+    """Project Item IDを取得する（ページネーション対応）"""
+    cursor = None
+    page_size = 100
+    
+    while True:
+        query = """
+        query($projectId: ID!, $first: Int!, $after: String) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              items(first: $first, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  id
+                  content {
+                    ... on Issue {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        variables = {"projectId": project_id, "first": page_size}
+        if cursor:
+            variables["after"] = cursor
+        
+        data = _run_graphql_query(query, variables, token)
+        items_data = data.get("node", {}).get("items", {})
+        items = items_data.get("nodes", [])
+        page_info = items_data.get("pageInfo", {})
+        
+        # 現在のページで検索
+        for item in items:
+            if item.get("content", {}).get("id") == issue_node_id:
+                return item.get("id")
+        
+        # 次のページがあるか確認
+        if not page_info.get("hasNextPage", False):
+            break
+        
+        cursor = page_info.get("endCursor")
+    
+    return None
+```
+
+**適用箇所**:
+- `get_project_item_id()` - Project Item ID取得
+- `get_project_items()` - プロジェクトアイテム取得
+- `create_issue()` - ラベル取得部分
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-4. 共通関数の一元化 🔴 Critical
+
+**問題**: `_run_gh_command`関数が`github.py`と`pr.py`で重複している。また、同様の`_run_git_command`関数も`commit.py`と`repository.py`で重複している。
+
+**解決策**:
+- 共通のヘルパー関数を`_common.py`のような共通モジュールに一元化
+- コードの重複をなくすことで、保守性を大幅に向上
+
+**実装例**:
+```python
+# scripts/utils/git/_common.py
+def _run_gh_command(
+    command: list[str], check: bool = True, token: Optional[str] = None
+) -> subprocess.CompletedProcess:
+    """GitHub CLIコマンドを実行する共通関数"""
+    # 実装...
+```
+
+**使用例**:
+```python
+# scripts/utils/git/pr.py
+from scripts.utils.git._common import _run_gh_command
+
+# scripts/utils/git/github.py
+from scripts.utils.git._common import _run_gh_command, _run_gh_command_with_headers
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-5. 例外ハンドリングの改善 🟡 Medium
+
+**問題**: `except Exception as e:`は非常に広範な例外キャッチであり、予期しないエラーを隠蔽してしまう可能性がある。
+
+**解決策**:
+- より具体的な例外をキャッチするように修正
+- `GitError`など、適切な例外クラスを指定
+
+**実装例**:
+```python
+# ❌ 悪い例
+try:
+    add_issue_to_project(project_id, issue_id, token=token)
+except Exception as e:
+    logger.warning(f"Failed to add issue to project: {e}")
+
+# ✅ 良い例
+try:
+    add_issue_to_project(project_id, issue_id, token=token)
+except (GitError, RateLimitError) as e:
+    logger.warning(f"Failed to add issue to project: {e}")
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-6. 未使用パラメータの削除 🟡 Medium
+
+**問題**: `get_issue`関数の`include_project`パラメータが関数内で使用されていない。
+
+**解決策**:
+- パラメータが不要であれば削除
+- もし特定の条件下でプロジェクト情報を取得する意図があるなら、そのロジックを実装
+
+**実装例**:
+```python
+def get_issue(
+    repo_owner: str,
+    repo_name: str,
+    issue_number: int,
+    include_project: bool = False,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Issue情報を取得する"""
+    json_fields = "number,title,body,state,url,assignees,labels"
+    if include_project:
+        json_fields += ",projectItems"  # パラメータを使用
+    
+    command = [
+        "issue",
+        "view",
+        str(issue_number),
+        "--repo",
+        f"{repo_owner}/{repo_name}",
+        "--json",
+        json_fields,
+    ]
+    # ...
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-7. インポートの整理 🟡 Medium
+
+**問題**: `commit.py`で`GitError`がインポートされているが使用されていない。一方で、`push_changes`関数内で使用されている`AuthenticationError`がトップレベルでインポートされていない。
+
+**解決策**:
+- 未使用の`GitError`を削除
+- `AuthenticationError`をトップレベルのインポートに追加
+- ローカルインポートを削除
+
+**実装例**:
+```python
+# ❌ 悪い例
+from scripts.utils.git.exceptions import (
+    GitError,  # 未使用
+    RepositoryNotFoundError,
+    GitCommandError,
+)
+
+def push_changes(...):
+    from scripts.utils.git.exceptions import AuthenticationError  # ローカルインポート
+
+# ✅ 良い例
+from scripts.utils.git.exceptions import (
+    RepositoryNotFoundError,
+    GitCommandError,
+    AuthenticationError,  # トップレベルでインポート
+)
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 17-8. ドキュメントの完全性 🟡 Medium
+
+**問題**: `github.py`モジュールのドキュメントが不足している。
+
+**解決策**:
+- `README.md`に`github.py`の説明を追加
+- 主要な関数と使用例を記載
+
+**実装例**:
+```markdown
+### github.py
+GitHub Issue操作とProject操作を提供します。
+
+**主要関数**:
+- **Issue操作**:
+  - `create_issue()`: Issue作成
+  - `get_issue()`: Issue情報取得
+  - `update_issue()`: Issue更新
+- **Project操作**:
+  - `add_issue_to_project()`: Issueをプロジェクトに追加
+  - `update_project_status()`: プロジェクトステータス更新
+  - `get_project_items()`: プロジェクトアイテム取得
+```
+
+**参照**: PR #40 - Issue #4: Git操作ユーティリティの実装（Gemini Code Assistレビュー指摘）
+
 **ルール**: Geminiからの指摘は必ず個別commit/pushで対応する
 
 **手順**:
@@ -2544,205 +2854,7 @@ refactor(category): Geminiレビュー対応
 
 ---
 
-## 17. ユニットテスト環境構築から学んだ観点（Issue #93 / PR #404）
-
-### 17-1. Jest設定とドキュメントの整合性 🔴 Medium
-
-**学習元**: PR #404 - Backendユニットテスト環境構築
-
-#### ❌ 避けるべきパターン: Jest設定とドキュメントの不一致
-
-```typescript
-// package.json
-{
-  "jest": {
-    "clearMocks": true,
-    "restoreMocks": true
-  }
-}
-
-// ドキュメントの例
-afterEach(() => {
-  jest.clearAllMocks(); // 不要な手動クリーンアップ
-});
-```
-
-**問題点**:
-
-- Jest設定で`clearMocks: true`と`restoreMocks: true`が有効な場合、手動で`jest.clearAllMocks()`を呼び出す必要がない
-- ドキュメントと実際の設定が矛盾している
-- 不要なコードが含まれることで、設定の意図が不明確になる
-
-#### ✅ 正しいパターン: 設定とドキュメントの整合性
-
-```typescript
-// package.json
-{
-  "jest": {
-    "clearMocks": true,
-    "restoreMocks": true
-  }
-}
-
-// ドキュメントの例（afterEachブロックを削除）
-describe('MyService', () => {
-  let service: MyService;
-
-  beforeEach(async () => {
-    // セットアップ
-  });
-
-  // afterEachブロックは不要（Jest設定で自動的に処理される）
-
-  it('should do something', () => {
-    // テスト
-  });
-});
-```
-
-**推奨アプローチ**:
-
-1. Jest設定で`clearMocks`と`restoreMocks`を有効にする場合は、ドキュメントでもその旨を明記
-2. 手動での`jest.clearAllMocks()`呼び出しは不要であることをドキュメントに記載
-3. 設定とドキュメントの例を一致させる
-
-**ドキュメントの記載例**:
-
-```markdown
-### 2. モックのクリーンアップ
-
-Jestの設定（`clearMocks: true`, `restoreMocks: true`）により、各テストの前にモックは自動的にリセットされます。そのため、手動で `jest.clearAllMocks()` を呼び出す必要はありません。
-```
-
-### 17-2. setupFilesAfterEnvの適切な使用 🔴 Medium
-
-**学習元**: PR #404 - Backendユニットテスト環境構築
-
-#### ❌ 避けるべきパターン: 副作用のないファイルをsetupFilesAfterEnvに指定
-
-```json
-{
-  "jest": {
-    "moduleNameMapper": {
-      "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
-    },
-    "setupFilesAfterEnv": ["<rootDir>/../jest.setup.ts"]
-  }
-}
-```
-
-**問題点**:
-
-- `jest.setup.ts`がモジュールのエクスポートのみで副作用がない場合、`setupFilesAfterEnv`は不要
-- `moduleNameMapper`で既に解決されているため、重複設定になる
-- 設定が冗長で、意図が不明確
-
-#### ✅ 正しいパターン: 必要な場合のみsetupFilesAfterEnvを使用
-
-```json
-{
-  "jest": {
-    "moduleNameMapper": {
-      "^@nestjs/swagger$": "<rootDir>/../jest.setup.ts"
-    }
-    // setupFilesAfterEnvは、グローバルなセットアップ処理がある場合のみ使用
-  }
-}
-```
-
-**推奨アプローチ**:
-
-1. `setupFilesAfterEnv`は、グローバルなセットアップ処理（例: 環境変数の設定、グローバルモックの設定）がある場合のみ使用
-2. モジュールのエクスポートのみの場合は`moduleNameMapper`で十分
-3. 将来的にグローバルセットアップを追加する予定がある場合は、その旨をコメントで明記
-
-### 17-3. モックファクトリーの型安全性 🔴 Medium
-
-**学習元**: PR #404 - Backendユニットテスト環境構築
-
-#### ❌ 避けるべきパターン: 手動で型定義を重複定義
-
-```typescript
-export function createMockTransaction(
-  overrides?: Partial<{
-    id: string;
-    date: Date;
-    amount: number;
-    // ... 手動で全てのプロパティを定義
-  }>
-): TransactionEntity {
-  // ...
-}
-```
-
-**問題点**:
-
-- エンティティのプロパティが変更された際に、モックファクトリーの型定義も手動で更新する必要がある
-- 型定義の重複により、メンテナンス性が低下
-- 型の不整合が発生するリスク
-
-#### ✅ 正しいパターン: エンティティの型を直接使用
-
-```typescript
-export function createMockTransaction(overrides?: Partial<TransactionEntity>): TransactionEntity {
-  const defaultDate = new Date('2024-01-15');
-  return new TransactionEntity(
-    overrides?.id ?? 'tx_test_123',
-    overrides?.date ?? defaultDate
-    // ...
-  );
-}
-```
-
-**推奨アプローチ**:
-
-1. モックファクトリーの`overrides`パラメータは`Partial<EntityType>`を使用
-2. エンティティの型変更に自動的に追従できる
-3. 型定義の重複を避け、メンテナンス性を向上
-
-### 17-4. Null合体演算子の使用 🔴 Medium
-
-**学習元**: PR #404 - Backendユニットテスト環境構築
-
-#### ❌ 避けるべきパターン: 論理OR演算子（||）の不適切な使用
-
-```typescript
-return new TransactionEntity(
-  overrides?.id || 'tx_test_123',
-  overrides?.amount || 1000,
-  overrides?.isReconciled || false
-);
-```
-
-**問題点**:
-
-- `''`（空文字）や`0`のようなFalsyな値を意図的に`overrides`で渡したい場合に、意図せずデフォルト値が使われてしまう
-- テストデータの意図が正確に反映されない可能性がある
-
-#### ✅ 正しいパターン: Null合体演算子（??）の使用
-
-```typescript
-return new TransactionEntity(
-  overrides?.id ?? 'tx_test_123',
-  overrides?.amount ?? 1000,
-  overrides?.isReconciled ?? false
-);
-```
-
-**推奨アプローチ**:
-
-1. デフォルト値の設定には`??`（Null合体演算子）を使用
-2. `null`または`undefined`の場合のみデフォルト値を使用
-3. Falsyな値（`0`, `''`, `false`）を意図的に渡せるようにする
-
-**判断基準**:
-
-- `||`を使用: 値がFalsyな場合にデフォルト値を使用したい場合（例: 空文字列をデフォルト値に変換）
-- `??`を使用: 値が`null`または`undefined`の場合のみデフォルト値を使用したい場合（推奨）
-
----
-
-## 18. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
+## 17. 詳細設計書レビューから学んだ観点（Issue #32 / PR #321）
 
 ### 16-1. 認証設計の明確化 🔴 Critical
 
@@ -2795,312 +2907,6 @@ return this.createUseCase.execute(userId, dto);
 
 - 認証要件は設計段階から明確に記載
 - 将来実装時の参考となる具体例を提供
-
----
-
-## 18. E2EテストとURLパラメータ管理から学んだ観点（Issue #111 / PR #397）
-
-### 18-1. URLパラメータの扱い方 🔴 Critical
-
-**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
-
-#### ❌ 避けるべきパターン: URLを直接組み立てる
-
-```typescript
-// ❌ 悪い例: 既存のクエリパラメータが失われる
-<button
-  onClick={() =>
-    router.push(
-      `/aggregation/monthly-balance/institution?year=${year}&month=${month}&type=income`
-    )
-  }
->
-  収入
-</button>
-```
-
-**問題点**:
-
-- 既存の他のクエリパラメータ（もしあれば）が失われる
-- 将来的にソート順序などもURLクエリで管理する場合に問題となる可能性
-- メンテナンス性が低い
-
-#### ✅ 正しいパターン: useSearchParamsを使用して既存パラメータを維持
-
-```typescript
-// ✅ 良い例: 既存のクエリパラメータを維持
-const handleTypeChange = (newType: CategoryType): void => {
-  const params = new URLSearchParams(searchParams.toString());
-  params.set('type', newType === CategoryType.INCOME ? 'income' : 'expense');
-  router.push(`/aggregation/monthly-balance/institution?${params.toString()}`);
-};
-
-// JSX内での呼び出し
-<button onClick={() => handleTypeChange(CategoryType.INCOME)}>
-  収入
-</button>
-```
-
-**理由**:
-
-- 既存のクエリパラメータを維持できる
-- 将来的な拡張に対応しやすい
-- コードの一貫性が保たれる
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装
-
-#### 補足: ヘルパー関数内でのURLパラメータ処理
-
-**問題**: ヘルパー関数（フックを使えない関数）内でURLを直接組み立てる場合
-
-```typescript
-// ❌ 悪い例: ヘルパー関数内でURLを直接組み立て
-function BreakdownSection({ type, year, month }: Props) {
-  return (
-    <Link href={`/path/${type}?year=${year}&month=${month}`}>
-      詳細を見る
-    </Link>
-  );
-}
-```
-
-**解決策**: 親コンポーネントで`href`を生成し、propsとして渡す
-
-```typescript
-// ✅ 良い例: 親コンポーネントでhrefを生成
-const getDetailHref = useCallback(
-  (type: 'category' | 'institution'): string => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('year', year.toString());
-    params.set('month', month.toString());
-    return `/aggregation/monthly-balance/${type}?${params.toString()}`;
-  },
-  [searchParams, year, month]
-);
-
-// ヘルパー関数にpropsとして渡す
-<BreakdownSection detailHref={getDetailHref('category')} />
-```
-
-**理由**:
-
-- ヘルパー関数はフックを使えないため、親コンポーネントで処理する必要がある
-- 既存のクエリパラメータを維持できる
-- 一貫性のあるURL生成が可能
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
-
----
-
-### 18-2. E2Eテストの重複排除 🔵 Important
-
-**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
-
-#### ❌ 避けるべきパターン: 重複したAPIレスポンス待機ロジック
-
-```typescript
-// ❌ 悪い例: 複数のテストケースで同じロジックが重複
-const monthlyBalanceResponsePromise = page
-  .waitForResponse(
-    (response) =>
-      response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-    { timeout: 30000 }
-  )
-  .catch(() => {
-    console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-    return null;
-  });
-// このロジックが複数のテストケースで重複
-```
-
-**問題点**:
-
-- コードの重複によりメンテナンス性が低下
-- ロジック変更時に複数箇所の修正が必要
-- 可読性が低下
-
-#### ✅ 正しいパターン: ヘルパー関数として抽出
-
-```typescript
-// ✅ 良い例: ヘルパー関数として抽出
-const waitForMonthlyBalanceAPI = (page: Page) =>
-  page
-    .waitForResponse(
-      (response) =>
-        response.url().includes('/api/aggregation/monthly-balance') && response.status() === 200,
-      { timeout: 30000 }
-    )
-    .catch(() => {
-      console.log('[E2E] ⚠️ APIレスポンスを待てませんでした');
-      return null;
-    });
-
-// 使用例
-const monthlyBalanceResponsePromise = waitForMonthlyBalanceAPI(page);
-```
-
-**理由**:
-
-- コードの重複を排除し、メンテナンス性を向上
-- ロジックの変更時に1箇所の修正で済む
-- 可読性が向上
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装
-
----
-
-### 18-3. E2Eテストのセレクタの堅牢性 🔵 Important
-
-**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
-
-#### ❌ 避けるべきパターン: 脆弱なセレクタ
-
-```typescript
-// ❌ 悪い例: セレクタの特異性が低い
-const monthButton = page.locator('button:has-text("年")').first();
-```
-
-**問題点**:
-
-- "年"という文字を含む他のボタンが存在する場合に意図しない要素を選択する可能性
-- `.first()`を使っていることからも、セレクタの特異性が低いことが伺える
-- テストの安定性が低い
-
-#### ✅ 正しいパターン: getByRoleと正規表現を使用
-
-```typescript
-// ✅ 良い例: getByRoleと正規表現を使用
-const monthButton = page.getByRole('button', { name: /\d{4}年\d{1,2}月/ });
-```
-
-**理由**:
-
-- セレクタの特異性が高く、意図した要素を確実に選択できる
-- テストの安定性が向上
-- アクセシビリティの観点からも適切（roleベースのセレクタ）
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装
-
-#### 補足: DOM構造に依存しないセレクタ（詳細ボタンなど）
-
-**問題**: `.locator('..')`や`.first()`を使用したセレクタ
-
-```typescript
-// ❌ 悪い例: DOM構造に強く依存
-const categoryDetailButton = page
-  .locator('text=カテゴリ別内訳')
-  .locator('..')
-  .locator('text=詳細を見る →')
-  .first();
-```
-
-**解決策**: `div:has()`と`getByRole`を組み合わせる
-
-```typescript
-// ✅ 良い例: セクションを特定してからリンクを取得
-const categoryDetailButton = page
-  .locator('div:has(h2:has-text("カテゴリ別内訳"))')
-  .getByRole('link', { name: '詳細を見る →' });
-```
-
-**理由**:
-
-- DOM構造の変更に強い
-- セレクタの特異性が高い
-- テストの安定性が向上
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装（2回目のレビュー）
-
----
-
-### 18-4. マジックナンバーの定数化 🔵 Important
-
-**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
-
-#### ❌ 避けるべきパターン: マジックナンバーの使用
-
-```typescript
-// ❌ 悪い例: マジックナンバーが何を表しているのか分かりにくい
-{incomeBreakdown.slice(0, 5).map((item) => (
-  // ...
-))}
-{expenseBreakdown.slice(0, 5).map((item) => (
-  // ...
-))}
-```
-
-**問題点**:
-
-- 数値が何を表しているのか分かりにくい
-- 将来のメンテナンスを困難にする可能性
-- 表示件数を変更する際に、関連するすべての箇所を修正し忘れるリスク
-
-#### ✅ 正しいパターン: 定数として定義
-
-```typescript
-// ✅ 良い例: 定数として定義
-const MAX_BREAKDOWN_ITEMS = 5;
-
-// 使用例
-{incomeBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
-  // ...
-))}
-{expenseBreakdown.slice(0, MAX_BREAKDOWN_ITEMS).map((item) => (
-  // ...
-))}
-```
-
-**理由**:
-
-- コードの可読性が向上
-- メンテナンス性が向上（1箇所の変更で済む）
-- 意図が明確になる
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装
-
----
-
-### 18-5. アクセシビリティの改善 🔵 Important
-
-**学習元**: PR #397 - Issue #111: 月次レポート画面の実装（Geminiレビュー指摘）
-
-#### ❌ 避けるべきパターン: label要素とidの不一致
-
-```typescript
-// ❌ 悪い例: label要素のhtmlForと対応するidが存在しない
-<label htmlFor="month-select" className="block text-sm font-medium text-gray-700 mb-2">
-  月
-</label>
-<div className="grid grid-cols-4 gap-2">
-  {/* id="month-select"が存在しない */}
-</div>
-```
-
-**問題点**:
-
-- アクセシビリティ上の問題（label要素がコントロールと関連付けられていない）
-- スクリーンリーダーが適切に読み上げられない可能性
-
-#### ✅ 正しいパターン: role="group"とaria-labelledbyを使用
-
-```typescript
-// ✅ 良い例: role="group"とaria-labelledbyを使用
-<div id="month-select-label" className="block text-sm font-medium text-gray-700 mb-2">
-  月
-</div>
-<div role="group" aria-labelledby="month-select-label" className="grid grid-cols-4 gap-2">
-  {/* ボタングループ */}
-</div>
-```
-
-**理由**:
-
-- アクセシビリティが向上（スクリーンリーダーが適切に読み上げられる）
-- label要素とボタングループを適切に関連付け
-- ESLint警告も解消
-
-**参考**: PR #397 - Issue #111: 月次レポート画面の実装
-
 - セキュリティリスクを事前に認識
 
 ---
@@ -10522,3412 +10328,671 @@ const { getSubcategoryById, fetchSubcategories, error: subcategoryError } = useS
 
 ---
 
-### 13-60. E2EテストでのPlaywright自動待機機能の活用（PR #395）
+## Pythonログ機能の実装ベストプラクティス
 
-**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+**学習元**: PR #44 - Issue #7: ログ機能の実装（Gemini Code Assistレビュー指摘）
 
-#### waitForTimeoutの削除と自動待機機能の活用
+### 問題
 
-**問題**: `page.waitForTimeout()`の使用は、テストの実行速度を低下させ、不安定さ（flakiness）を招く可能性がある。
+ログ機能を実装する際、以下の問題が発生する可能性がある：
 
-**解決策**: PlaywrightのWeb-firstアサーションは自動的に待機してくれるため、固定の待機時間は通常不要。適切なアサーションを使用する。
+1. **ルートロガーの直接変更**: 他のライブラリが設定したハンドラを削除してしまう
+2. **ログレベル検証の一貫性**: 異なるメソッドで検証方法が異なる
+3. **冗長なディレクトリ作成**: 同じディレクトリを複数回作成しようとする
+4. **ハンドラレベル更新の不完全性**: 子ロガーが親ロガーのハンドラを使用する場合に更新されない
 
-```typescript
-// ❌ 悪い例: waitForTimeoutの使用
-const nameInput = page.locator('input[id="category-name"]');
-await expect(nameInput).toBeVisible({ timeout: 10000 });
-await page.waitForTimeout(500); // 不要な固定待機
-await nameInput.fill(editedName);
+### 解決策
 
-// ❌ 悪い例: not.toBeVisible()の前のwaitForTimeout
-await page.waitForTimeout(500); // 不要（not.toBeVisible()が自動待機する）
-await expect(page.locator('text=費目を編集')).not.toBeVisible();
+#### 1. ルートロガーの既存ハンドラを保持するオプションを提供
 
-// ❌ 悪い例: waitForFunctionのcatchブロックで潜在的な問題を隠蔽
-await page
-  .waitForFunction(
-    (input) => {
-      const element = input as HTMLInputElement;
-      return element.value.length > 0;
-    },
-    await nameInput.elementHandle(),
-    { timeout: 10000 }
-  )
-  .catch(async () => {
-    // タイムアウトした場合は、少し待ってから再確認
-    await page.waitForTimeout(1000); // 潜在的な問題を隠蔽
-  });
+**❌ 悪い例**: 常に既存のハンドラを削除
+
+```python
+# ルートロガーの設定
+root_logger = logging.getLogger()
+root_logger.setLevel(level)
+
+# 既存のハンドラをクリア（他のライブラリの設定も削除される）
+root_logger.handlers.clear()
 ```
 
-```typescript
-// ✅ 良い例: not.toBeEmpty()アサーションを使用
-const nameInput = page.locator('input[id="category-name"]');
-await expect(nameInput).toBeVisible({ timeout: 10000 });
-await expect(nameInput).not.toBeEmpty({ timeout: 10000 }); // データ読み込み完了を確認
-await nameInput.fill(editedName);
+**✅ 良い例**: オプションで制御可能にする
 
-// ✅ 良い例: not.toBeVisible()が自動待機するため、waitForTimeoutは不要
-await expect(page.locator('text=費目を編集')).not.toBeVisible(); // 自動待機
+```python
+@staticmethod
+def setup_logging(
+    level: Union[str, int] = logging.INFO,
+    # ... 他のパラメータ ...
+    clear_existing_handlers: bool = False,  # デフォルトはFalse
+) -> None:
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
 
-// ✅ 良い例: waitForFunctionのcatchブロックを削除（潜在的な問題を隠蔽しない）
-await expect(nameInput).not.toBeEmpty({ timeout: 10000 }); // より堅牢な待機方法
+    # 既存のハンドラをクリア（オプション）
+    if clear_existing_handlers:
+        root_logger.handlers.clear()
 ```
 
 **理由**:
 
-- Playwrightの自動待機機能を活用することで、テストの安定性が向上
-- 固定時間待機を削除することで、テストの実行速度が向上
-- 潜在的な問題を隠蔽しないことで、テストの信頼性が向上
+- 他のライブラリが設定したハンドラを保護できる
+- 必要に応じて明示的にクリアできる
+- デフォルトでは安全な動作
 
-**原則**:
+#### 2. ログレベル検証の一貫性を確保
 
-- **自動待機機能を活用**: `expect(...).toBeVisible()`, `expect(...).not.toBeEmpty()`, `expect(...).not.toBeVisible()`など
-- **waitForTimeoutは避ける**: どうしても必要な場合のみ使用（最終手段）
-- **潜在的な問題を隠蔽しない**: `waitForFunction`のcatchブロックでエラーを握りつぶさない
+**❌ 悪い例**: メソッドごとに異なる検証方法
 
-**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+```python
+# setup_logging内
+if isinstance(level, str):
+    level = getattr(logging, level.upper(), logging.INFO)  # デフォルト値を使用
 
----
-
-### 13-61. 分割代入によるコードの意図の明確化（PR #395）
-
-**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
-
-#### 更新に不要なプロパティの明示的な除外
-
-**問題**: 関数が受け取るオブジェクトの中に、更新時に使用しないプロパティが含まれている場合、コードの意図が不明確になる。
-
-**解決策**: 分割代入と残余構文(...)を使って、更新に必要なプロパティだけを明示的に渡す。
-
-```typescript
-// ❌ 悪い例: 使用しないプロパティも含めて渡す
-const handleSubmit = async (data: {
-  name: string;
-  type: string;
-  icon?: string | null;
-  color?: string | null;
-}): Promise<void> => {
-  if (!categoryId) return;
-  try {
-    setError(null);
-    await updateCategory(categoryId, {
-      name: data.name,
-      icon: data.icon,
-      color: data.color,
-      // typeは使用されていないが、明示的に除外されていない
-    });
-    onSuccess();
-    handleClose();
-  } catch (err) {
-    // ...
-  }
-};
+# set_level内
+if isinstance(level, str):
+    level_upper = level.upper()
+    if not hasattr(logging, level_upper):
+        raise LogUtilsError(f"無効なログレベル: {level}")  # エラーを発生
+    level = getattr(logging, level_upper)
 ```
 
-```typescript
-// ✅ 良い例: 分割代入で使用しないプロパティを明示的に除外
-const handleSubmit = async ({
-  type: _type,
-  ...updateData
-}: {
-  name: string;
-  type: string;
-  icon?: string | null;
-  color?: string | null;
-}): Promise<void> => {
-  if (!categoryId) return;
-  try {
-    setError(null);
-    // typeは更新時に使用しないため、分割代入で除外
-    await updateCategory(categoryId, updateData);
-    onSuccess();
-    handleClose();
-  } catch (err) {
-    // ...
-  }
-};
+**✅ 良い例**: 共通の検証関数を作成
+
+```python
+@staticmethod
+def _validate_log_level(level: Union[str, int]) -> int:
+    """ログレベルを検証して整数値に変換する"""
+    if isinstance(level, int):
+        return level
+
+    level_upper = level.upper()
+    if not hasattr(logging, level_upper):
+        raise LogUtilsError(f"無効なログレベル: {level}")
+
+    return getattr(logging, level_upper)
+
+@staticmethod
+def setup_logging(level: Union[str, int] = logging.INFO, ...) -> None:
+    level = LogUtils._validate_log_level(level)  # 共通関数を使用
+    # ...
+
+@staticmethod
+def set_level(level: Union[str, int], logger_name: Optional[str] = None) -> None:
+    level = LogUtils._validate_log_level(level)  # 共通関数を使用
+    # ...
 ```
 
 **理由**:
 
-- コードの意図がより明確になる（どのデータが使われるかが一目でわかる）
-- 更新に必要なプロパティだけが渡されることが保証される
-- 未使用変数のlintエラーを防ぐ（`_type`のようにプレフィックスを付与）
+- 検証ロジックが一貫している
+- 変更時に1箇所の修正で済む
+- エラーハンドリングが統一される
 
-**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
+#### 3. 冗長なディレクトリ作成を避ける
 
----
+**❌ 悪い例**: 同じディレクトリを複数回作成
 
-### 13-62. テストコードの一貫性の維持（PR #395）
+```python
+log_path = Path(log_file)
+if log_dir is not None:
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)  # 1回目
+    log_path = log_dir / log_path.name
 
-**学習元**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
-
-#### テストコードでの一貫したメソッドの使用
-
-**問題**: 同じ目的の操作を異なる方法で実装していると、コードの可読性と保守性が低下する。
-
-**解決策**: プロジェクト内で一貫したメソッドを使用する。
-
-```typescript
-// ❌ 悪い例: 複雑な方法で入力フィールドをクリア
-const nameInput = screen.getByLabelText(/費目名/);
-await user.tripleClick(nameInput);
-await user.keyboard('{Delete}');
-await user.type(nameInput, '更新された費目');
+# ログディレクトリが存在しない場合は作成
+log_path.parent.mkdir(parents=True, exist_ok=True)  # 2回目（冗長）
 ```
 
-```typescript
-// ✅ 良い例: より一般的で意図が明確な方法を使用
-const nameInput = screen.getByLabelText(/費目名/);
-await user.clear(nameInput); // より一般的で意図が明確
-await user.type(nameInput, '更新された費目');
-```
+**✅ 良い例**: 一度だけ作成
 
-**理由**:
+```python
+log_path = Path(log_file)
+if log_dir is not None:
+    log_dir = Path(log_dir)
+    log_path = log_dir / log_path.name
 
-- より一般的で意図が明確なメソッドを使用することで、コードの可読性が向上
-- プロジェクト内で一貫した方法を使用することで、保守性が向上
-- 他のテストファイルとの一貫性が保たれる
-
-**参照**: PR #395 - Issue #110: [TASK] E-4: 費目編集画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-63. 非同期処理完了後のUI自動更新（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### 非同期処理が完了した際のUI自動更新
-
-**問題**: 非同期処理（例：同期処理）を開始した後に、UIが処理完了を検知する仕組みがない場合、ユーザーが手動でページをリロードするまで表示が更新されない。
-
-**解決策**: ポーリング（定期的なデータ取得）を実装して、処理中のステータスを自動で更新する。
-
-```typescript
-// ❌ 悪い例: 同期開始後に一度だけデータを再取得
-const handleSync = async (institutionId: string): Promise<void> => {
-  await startSync({ institutionIds: [institutionId] });
-  const updatedSettings = await getAllInstitutionSyncSettings();
-  setSettings(updatedSettings);
-  // 同期が完了するまで待機しないため、UIが更新されない
-};
-```
-
-```typescript
-// ✅ 良い例: ポーリングで同期ステータスを自動更新
-useEffect(() => {
-  const isSyncing = settings.some((s) => s.syncStatus === InstitutionSyncStatusEnum.SYNCING);
-
-  if (isSyncing) {
-    const timer = setTimeout(() => {
-      void (async (): Promise<void> => {
-        try {
-          const updatedSettings = await getAllInstitutionSyncSettings();
-          setSettings(updatedSettings);
-        } catch (err) {
-          console.error('Failed to poll sync status:', err);
-        }
-      })();
-    }, 5000); // 5秒ごとにポーリング
-
-    return (): void => {
-      clearTimeout(timer);
-    };
-  }
-}, [settings]);
+# ログディレクトリが存在しない場合は作成（一度だけ）
+log_path.parent.mkdir(parents=True, exist_ok=True)
 ```
 
 **理由**:
 
-- 非同期処理が完了したことをUIに自動で反映できる
-- ユーザーが手動でページをリロードする必要がなくなる
-- ユーザー体験が向上する
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-64. JSX内での条件式の重複排除（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### JSX内での条件式の重複をなくす
-
-**問題**: JSX内で同じ条件式が複数回使用されていると、可読性と保守性が低下する。
-
-**解決策**: 条件式を一度だけ評価し、変数に格納して再利用する。
-
-```typescript
-// ❌ 悪い例: 同じ条件式が重複
-<button
-  disabled={
-    syncingId === setting.institutionId ||
-    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING
-  }
->
-  {syncingId === setting.institutionId ||
-  setting.syncStatus === InstitutionSyncStatusEnum.SYNCING ? (
-    <span>同期中...</span>
-  ) : (
-    '今すぐ同期'
-  )}
-</button>
-```
-
-```typescript
-// ✅ 良い例: 条件式を変数に格納して再利用
-{settings.map((setting) => {
-  const isSyncing =
-    syncingId === setting.institutionId ||
-    setting.syncStatus === InstitutionSyncStatusEnum.SYNCING;
-
-  return (
-    <Card key={setting.id}>
-      {/* ... */}
-      <button disabled={isSyncing}>
-        {isSyncing ? <span>同期中...</span> : '今すぐ同期'}
-      </button>
-    </Card>
-  );
-})}
-```
-
-**理由**:
-
-- コードの可読性が向上する
-- 条件式の変更が一箇所で済むため、保守性が向上する
-- ロジックがより明確になる
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-65. 非同期処理のエラーハンドリングにおける競合状態の回避（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### 非同期処理のエラーハンドリングにおける競合状態
-
-**問題**: `finally`ブロックで状態を無条件にリセットすると、非同期処理がバックグラウンドで実行中にもかかわらず、UI上では処理が完了したように見えてしまう。
-
-**解決策**: 成功した場合にのみ状態をリセットし、エラー時は状態を維持する。
-
-```typescript
-// ❌ 悪い例: finallyブロックで無条件にリセット
-const handleSync = async (institutionId: string): Promise<void> => {
-  try {
-    setSyncingId(institutionId);
-    await startSync({ institutionIds: [institutionId] });
-    const updatedSettings = await getAllInstitutionSyncSettings();
-    setSettings(updatedSettings);
-  } catch (err) {
-    // エラーハンドリング
-  } finally {
-    setSyncingId(null); // エラー時もリセットされてしまう
-  }
-};
-```
-
-```typescript
-// ✅ 良い例: 楽観的更新を利用した実装
-const handleSync = async (institutionId: string): Promise<void> => {
-  setSyncingId(institutionId);
-  setError(null);
-
-  try {
-    await startSync({ institutionIds: [institutionId] });
-
-    // 同期開始を楽観的にUIに反映し、ポーリングを開始させる
-    setSettings((currentSettings) =>
-      currentSettings.map((s) =>
-        s.institutionId === institutionId
-          ? { ...s, syncStatus: InstitutionSyncStatusEnum.SYNCING }
-          : s
-      )
-    );
-    setSyncingId(null);
-
-    // サーバーから最新の状態をフェッチしてUIを完全に同期する
-    // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
-    try {
-      const updatedSettings = await getAllInstitutionSyncSettings();
-      setSettings(updatedSettings);
-    } catch (err) {
-      console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
-    setError(message);
-    console.error('同期の開始中にエラーが発生しました:', err);
-    // 同期開始自体が失敗した場合は、ユーザーが再試行できるようUIをリセット
-    setSyncingId(null);
-  }
-};
-```
-
-**理由**:
-
-- 楽観的更新により、`getAllInstitutionSyncSettings`が失敗してもUIがスタックしない
-- ポーリングが後で状態を修正するため、一時的なエラーでも自動的に回復する
-- ユーザーが多重に処理を開始することを防げる
-- エラーハンドリングがより堅牢になる
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-66. マジックナンバーの定数化（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### マジックナンバーの定数化
-
-**問題**: 数値リテラルが直接コードに記述されていると、意図が不明確で保守性が低下する。
-
-**解決策**: 意味のある名前の定数として定義する。
-
-```typescript
-// ❌ 悪い例: マジックナンバーが直接記述されている
-useEffect(() => {
-  const timer = setTimeout(() => {
-    // ...
-  }, 5000); // 5秒ごとにポーリング
-  return () => clearTimeout(timer);
-}, [settings]);
-```
-
-```typescript
-// ✅ 良い例: 定数として定義
-const POLLING_INTERVAL_MS = 5000;
-
-export function InstitutionSettingsTab(): React.JSX.Element {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // ...
-    }, POLLING_INTERVAL_MS); // 5秒ごとにポーリング
-    return () => clearTimeout(timer);
-  }, [settings]);
-}
-```
-
-**理由**:
-
-- コードの可読性が向上する（意図が明確になる）
-- 値の変更が一箇所で済むため、保守性が向上する
-- 定数名で意図を表現できる
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-67. 楽観的更新によるUIスタックの回避（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### 楽観的更新によるUIスタックの回避
-
-**問題**: `startSync`が成功した後に`getAllInstitutionSyncSettings`が失敗すると、`syncingId`がリセットされず、`settings`も更新されないため、ポーリングが開始されず、UIが「同期中」の状態でスタックしてしまう。
-
-**解決策**: 楽観的更新を利用して、`startSync`成功時点でUIの状態を更新し、ポーリングを開始させる。
-
-```typescript
-// ❌ 悪い例: getAllInstitutionSyncSettingsが失敗するとUIがスタック
-const handleSync = async (institutionId: string): Promise<void> => {
-  setSyncingId(institutionId);
-  setError(null);
-
-  try {
-    await startSync({ institutionIds: [institutionId] });
-    const updatedSettings = await getAllInstitutionSyncSettings();
-    setSettings(updatedSettings);
-    setSyncingId(null);
-  } catch (err) {
-    // getAllInstitutionSyncSettingsが失敗すると、syncingIdがリセットされず、
-    // settingsも更新されないため、ポーリングが開始されずUIがスタック
-  }
-};
-```
-
-```typescript
-// ✅ 良い例: 楽観的更新でUIを即座に更新し、ポーリングを開始
-const handleSync = async (institutionId: string): Promise<void> => {
-  setSyncingId(institutionId);
-  setError(null);
-
-  try {
-    await startSync({ institutionIds: [institutionId] });
-
-    // 同期開始を楽観的にUIに反映し、ポーリングを開始させる
-    setSettings((currentSettings) =>
-      currentSettings.map((s) =>
-        s.institutionId === institutionId
-          ? { ...s, syncStatus: InstitutionSyncStatusEnum.SYNCING }
-          : s
-      )
-    );
-    setSyncingId(null);
-
-    // サーバーから最新の状態をフェッチしてUIを完全に同期する
-    // これが失敗しても、ポーリングが後で状態を修正するためUIはスタックしない
-    try {
-      const updatedSettings = await getAllInstitutionSyncSettings();
-      setSettings(updatedSettings);
-    } catch (err) {
-      console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '同期の開始に失敗しました。';
-    setError(message);
-    console.error('同期の開始中にエラーが発生しました:', err);
-    setSyncingId(null);
-  }
-};
-```
-
-**理由**:
-
-- `getAllInstitutionSyncSettings`が失敗しても、楽観的更新によりポーリングが開始される
-- ポーリングが後で状態を修正するため、一時的なエラーでも自動的に回復する
-- UIがスタックすることがなくなり、ユーザー体験が向上する
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-68. ポーリング処理中のエラーハンドリング（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### ポーリング処理中のエラーハンドリング
-
-**問題**: ポーリング処理中にエラーが発生した場合、コンソールにエラーを出力するだけで、ユーザーには通知されない。
-
-**解決策**: エラーをUIに表示し、ユーザーに通知する。
-
-```typescript
-// ❌ 悪い例: エラーがコンソールにのみ出力される
-useEffect(() => {
-  const isSyncing = settings.some((s) => s.syncStatus === SYNCING);
-
-  if (isSyncing) {
-    const timer = setTimeout(() => {
-      void (async (): Promise<void> => {
-        try {
-          const updatedSettings = await getAllInstitutionSyncSettings();
-          setSettings(updatedSettings);
-        } catch (err) {
-          console.error('Failed to poll sync status:', err);
-          // ユーザーには通知されない
-        }
-      })();
-    }, POLLING_INTERVAL_MS);
-
-    return () => clearTimeout(timer);
-  }
-}, [settings]);
-```
-
-```typescript
-// ✅ 良い例: エラーをUIに表示
-useEffect(() => {
-  const isSyncing = settings.some((s) => s.syncStatus === SYNCING);
-
-  if (isSyncing) {
-    const timer = setTimeout(() => {
-      void (async (): Promise<void> => {
-        try {
-          const updatedSettings = await getAllInstitutionSyncSettings();
-          setSettings(updatedSettings);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
-          setError(message);
-          console.error('Failed to poll sync status:', err);
-        }
-      })();
-    }, POLLING_INTERVAL_MS);
-
-    return () => clearTimeout(timer);
-  }
-}, [settings]);
-```
-
-**理由**:
-
-- ユーザーにエラーが通知される
-- ポーリングは`settings`の変更に依存して再試行されるため、一時的なエラーであれば次のポーリングで回復する可能性がある
-- エラーハンドリングが一貫性を持つ
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-69. エラーメッセージ生成の共通化（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### エラーメッセージ生成の共通化
-
-**問題**: エラーメッセージの生成ロジックが複数箇所で重複していると、保守性が低下する。
-
-**解決策**: プロジェクト内のユーティリティ関数（`getErrorMessage`）を使用して共通化する。
-
-```typescript
-// ❌ 悪い例: エラーメッセージ生成ロジックが重複
-catch (err) {
-  const message = err instanceof Error ? err.message : '同期状態の取得に失敗しました。';
-  setError(message);
-  console.error('Failed to poll sync status:', err);
-}
-```
-
-```typescript
-// ✅ 良い例: ユーティリティ関数を使用
-import { getErrorMessage } from '@/utils/error.utils';
-
-catch (err) {
-  setError(getErrorMessage(err, '同期状態の取得に失敗しました。'));
-  console.error('Failed to poll sync status:', err);
-}
-```
-
-**理由**:
-
-- コードの重複が削減される
-- エラーメッセージ生成ロジックが一箇所に集約され、保守性が向上する
-- プロジェクト全体で一貫したエラーハンドリングが可能になる
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-70. fire-and-forget処理の意図を明確にする（PR #399）
-
-**学習元**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
-#### fire-and-forget処理の意図を明確にする
-
-**問題**: `async/await`を使用すると、処理が完了するまで待機する必要があるかのような印象を与え、fire-and-forgetの意図が曖昧になる。
-
-**解決策**: `.then().catch()`を使用して、処理が完了を待たないことを明確にする。
-
-```typescript
-// ❌ 悪い例: async/awaitでfire-and-forgetの意図が曖昧
-try {
-  const updatedSettings = await getAllInstitutionSyncSettings();
-  setSettings(updatedSettings);
-} catch (err) {
-  console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
-}
-```
-
-```typescript
-// ✅ 良い例: .then().catch()でfire-and-forgetの意図を明確化
-getAllInstitutionSyncSettings()
-  .then(setSettings)
-  .catch((err) => {
-    console.error('Failed to fetch latest settings after sync start, polling will recover:', err);
-  });
-```
-
-**理由**:
-
-- 処理が完了を待たないことが明確になる
-- コードの意図がより明確になり、可読性が向上する
-- 補助的なデータ取得処理であることが分かりやすくなる
-
-**参照**: PR #399 - Issue #115: [TASK] E-9: 同期設定画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-71. 内部コンポーネントのテストはエクスポートして専用テストファイルで実施（PR #400）
-
-**学習元**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
-
-#### 内部コンポーネントのテスト方法
-
-**問題**: コンポーネント内で定義された内部コンポーネント（例：`CustomTooltip`、`CustomYAxisLabel`）をテストする際、テスト名と実際の内容が一致しないテストケースが作成される。
-
-**具体例**:
-
-```typescript
-// ❌ 悪い例: テスト名と実際の内容が一致しない
-it('CustomTooltipがnullを返す（active=false）', () => {
-  // 実際にはnullを返すことを検証していない
-  const { container } = render(<AssetBalanceGraph institutions={mockInstitutions} />);
-  expect(container).toBeTruthy(); // 単にレンダリングされることを確認しているだけ
-});
-```
-
-**解決策**: 内部コンポーネントを`export`して、専用のテストファイルで個別にテストする。
-
-```typescript
-// ✅ 良い例: 内部コンポーネントをエクスポート
-export function AssetBalanceCustomTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{...}>;
-}): React.JSX.Element | null {
-  // コンポーネントの実装
-}
-
-// ✅ 良い例: 専用のテストファイルで正確にテスト
-describe('AssetBalanceCustomTooltip', () => {
-  it('active=falseの場合、何も表示しない', () => {
-    const { container } = render(
-      <AssetBalanceCustomTooltip active={false} payload={[...]} />
-    );
-    expect(container.firstChild).toBeNull(); // 実際にnullを返すことを検証
-  });
-});
-```
-
-**理由**:
-
-- テストの意図が明確になる
-- コンポーネントの振る舞いをより正確に検証できる
-- テスト名と実際の内容が一致する
-- テストの重複を避けられる
-
-#### テストの重複排除
-
-**問題**: 内部コンポーネントが専用のテストファイルで詳細にテストされている場合、親コンポーネントのテストファイル内の関連テストケースが冗長になる。
-
-**具体例**:
-
-```typescript
-// ❌ 悪い例: 専用テストファイルで既にテストされているのに重複
-// PieChartTooltip.test.tsxで既に詳細にテストされている
-it('PieChartTooltipがnullを返す（active=false）', () => {
-  const { container } = render(<CategoryPieChart data={mockData} />);
-  expect(container).toBeTruthy(); // 実際にはnullを返すことを検証していない
-});
-```
-
-**解決策**: 親コンポーネントのテストでは、`content`プロパティが渡されていることを確認するだけで十分。
-
-```typescript
-// ✅ 良い例: contentプロパティが渡されていることを確認するだけ
-it('PieChartTooltipが正しく設定される', () => {
-  render(<CategoryPieChart data={mockData} />);
-  const tooltip = screen.getByTestId('tooltip');
-  const hasContent = tooltip.getAttribute('data-has-content');
-  expect(hasContent).toBe('true');
-});
-```
-
-**理由**:
-
-- テストの重複と混乱を避けられる
-- テストの責務が明確になる
-- 保守性が向上する
-
-**参照**: PR #400 - Issue #116: [TASK] E-10: グラフコンポーネントの実装（Gemini Code Assistレビュー指摘）
-
----
-
-## 共通UIコンポーネントライブラリ構築時の重要な観点（Gemini PR#402レビューから学習）
-
-### 1. SSR対応: ID生成には必ず`useId`を使用
-
-**問題**: `Math.random()`を使用したID生成は、サーバーサイドレンダリング（SSR）時にサーバーとクライアントで異なるIDが生成され、ハイドレーションエラーを引き起こす。
-
-**解決策**: React 18の`useId`フックを使用してSSRでも安全な一意のIDを生成する。
-
-```typescript
-// ❌ 悪い例: Math.random()を使用（SSRで問題）
-const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
-
-// ✅ 良い例: useIdを使用（SSR対応）
-('use client');
-import React, { useId } from 'react';
-
-export function Checkbox({ id, ...props }: CheckboxProps): React.JSX.Element {
-  const reactId = useId();
-  const checkboxId = id || reactId;
-  // ...
-}
-```
-
-**適用対象**:
-
-- `Checkbox`コンポーネント
-- `Input`コンポーネント（`aria-describedby`でIDが必要な場合）
-- `Select`コンポーネント（`aria-describedby`でIDが必要な場合）
-- `Textarea`コンポーネント（`aria-describedby`でIDが必要な場合）
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
-
----
-
-### 2. アクセシビリティ: モーダルのフォーカストラップ実装
-
-**問題**: モーダルが表示されているとき、フォーカスがモーダル内にトラップされていない。キーボードユーザーが`Tab`キーでモーダルの背後にある要素にフォーカスを移動できてしまう。
-
-**解決策**: `focus-trap-react`ライブラリを使用して、アクセシビリティに準拠したフォーカス管理を実装する。
-
-```typescript
-// ✅ 良い例: focus-trap-reactを使用
-'use client';
-import FocusTrap from 'focus-trap-react';
-
-export function Modal({ isOpen, onClose, ... }: ModalProps): React.JSX.Element | null {
-  const previousActiveElementRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      // モーダルを開く前のフォーカス要素を保存
-      previousActiveElementRef.current = document.activeElement as HTMLElement;
-    } else {
-      // モーダルを閉じたときにフォーカスを戻す
-      if (previousActiveElementRef.current) {
-        previousActiveElementRef.current.focus();
-        previousActiveElementRef.current = null;
-      }
-    }
-  }, [isOpen, onClose]);
-
-  if (!isOpen) {
-    return null;
-  }
-
-  return (
-    <FocusTrap
-      active={true}
-      focusTrapOptions={{
-        fallbackFocus: '.modal-content',
-        clickOutsideDeactivates: false,
-      }}
-    >
-      <div className="modal-content" role="dialog" aria-modal="true">
-        {/* モーダルコンテンツ */}
-      </div>
-    </FocusTrap>
-  );
-}
-```
-
-**重要なポイント**:
-
-- モーダルを開く前のフォーカス要素を保存
-- モーダルを閉じたときにフォーカスを戻す
-- `focus-trap-react`でフォーカストラップを実装
-- テスト時はモーダル内にタブ可能な要素（ボタンなど）を含める
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
-
----
-
-### 3. コードの再利用性: 共通コンポーネントの活用
-
-**問題**: `Button`コンポーネントのローディング表示で、スピナーがハードコードされている。共通の`Spinner`コンポーネントが既に存在するため、コードの重複を避けるべき。
-
-**解決策**: 既存の共通コンポーネントを再利用する。`Spinner`コンポーネントの色指定を削除して、親要素から色を継承できるようにする。
-
-```typescript
-// ❌ 悪い例: スピナーをハードコード
-{isLoading ? (
-  <>
-    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" ...>
-      {/* SVGコード */}
-    </svg>
-    <span>読み込み中...</span>
-  </>
-) : (
-  children
-)}
-
-// ✅ 良い例: Spinnerコンポーネントを再利用
-import { Spinner } from './Spinner';
-
-{isLoading ? (
-  <>
-    <Spinner size="sm" className="-ml-1 mr-2" />
-    <span>読み込み中...</span>
-  </>
-) : (
-  children
-)}
-```
-
-**Spinnerコンポーネントの改善**:
-
-- 色指定（`text-blue-600`）を削除して、親要素から色を継承できるようにする
-- これにより、様々なコンテキストで再利用可能になる
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
-
----
-
-### 4. 型安全性: 意図しない属性の上書き防止
-
-**問題**: `RadioProps`は`React.InputHTMLAttributes<HTMLInputElement>`を継承しているため、`id`属性をpropsとして受け取れてしまう。しかし、このコンポーネントは内部で各ラジオボタンに一意のIDを生成して割り当てている。外部から`id`が渡されると、すべてのラジオボタンに同じ`id`が適用されてしまい、HTMLの仕様に反する重複IDが発生する。
-
-**解決策**: `RadioProps`の型定義で`id`を`Omit`する。
-
-```typescript
-// ❌ 悪い例: id属性が受け取れてしまう
-export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  options: RadioOption[];
-  name: string;
-  // ...
-}
-
-// ✅ 良い例: id属性をOmitして上書きを防止
-export interface RadioProps extends Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'id'
-> {
-  options: RadioOption[];
-  name: string;
-  // ...
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
-
----
-
-### 5. アクセシビリティ: IDが指定されない場合のフォールバック
-
-**問題**: `Input`、`Select`、`Textarea`コンポーネントは`error`または`helperText`が指定された場合、`aria-describedby`を正しく機能させるために`id` propに依存している。しかし、`id`が渡されない場合のフォールバックがない。これにより、アクセシビリティが損なわれる可能性がある。
-
-**解決策**: Reactの`useId`フックを使って`id`が指定されなかった場合に安定したIDを生成する。
-
-```typescript
-// ❌ 悪い例: idが指定されない場合、aria-describedbyが機能しない
-export function Input({ error, helperText, ...props }: InputProps): React.JSX.Element {
-  return (
-    <div>
-      <input
-        aria-describedby={error || helperText ? `${props.id}-helper` : undefined}
-        {...props}
-      />
-      {(error || helperText) && (
-        <p id={`${props.id}-helper`}>
-          {error || helperText}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ✅ 良い例: useIdでIDを生成
-'use client';
-import React, { useId } from 'react';
-
-export function Input({ error, helperText, id, ...props }: InputProps): React.JSX.Element {
-  const reactId = useId();
-  const inputId = id || reactId;
-
-  return (
-    <div>
-      <input
-        id={inputId}
-        aria-describedby={error || helperText ? `${inputId}-helper` : undefined}
-        {...props}
-      />
-      {(error || helperText) && (
-        <p id={`${inputId}-helper`}>
-          {error || helperText}
-        </p>
-      )}
-    </div>
-  );
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘）
-
----
-
-## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第2回から学習）
-
-### 1. Next.js App Router: クライアントコンポーネントの明示的なマーク付け
-
-**問題**: イベントハンドラ（`onClick`、`onChange`など）を受け取るコンポーネントは、Next.jsのApp Router環境ではクライアントコンポーネントとしてマークする必要があります。これがないと、本番ビルドでエラーが発生する可能性があります。
-
-**解決策**: ファイルの先頭に`'use client'`ディレクティブを追加する。
-
-```typescript
-// ❌ 悪い例: 'use client'ディレクティブがない
-import React from 'react';
-
-export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
-  return <button onClick={onClick}>...</button>;
-}
-
-// ✅ 良い例: 'use client'ディレクティブを追加
-'use client';
-
-import React from 'react';
-
-export function Button({ onClick, ...props }: ButtonProps): React.JSX.Element {
-  return <button onClick={onClick}>...</button>;
-}
-```
-
-**適用対象**:
-
-- イベントハンドラ（`onClick`、`onChange`、`onSubmit`など）を受け取るコンポーネント
-- React Hooks（`useState`、`useEffect`、`useId`など）を使用するコンポーネント
-- ブラウザAPI（`document`、`window`など）にアクセスするコンポーネント
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-### 2. 型安全性: document.activeElementの安全な型チェック
-
-**問題**: `document.activeElement`を`HTMLElement`として型アサーションしていますが、`document.activeElement`は`null`であったり、`SVGElement`のように`HTMLElement`ではない要素である可能性があります。`focus()`メソッドを持たない要素の場合、フォーカスを戻す際に実行時エラーが発生する可能性があります。
-
-**解決策**: `instanceof HTMLElement`でチェックしてから代入する。
-
-```typescript
-// ❌ 悪い例: 型アサーションのみ
-if (isOpen) {
-  previousActiveElementRef.current = document.activeElement as HTMLElement;
-}
-
-// ✅ 良い例: instanceofでチェック
-if (isOpen) {
-  if (document.activeElement instanceof HTMLElement) {
-    previousActiveElementRef.current = document.activeElement;
-  }
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-### 3. パフォーマンス: useEffectの依存配列とコールバック関数のメモ化
-
-**問題**: `useEffect`の依存配列に`onClose`が含まれている場合、親コンポーネントで`onClose`にインライン関数（例: `() => setOpen(false)`）を渡すと、親コンポーネントが再レンダリングされるたびに新しい関数が生成され、この`useEffect`が不必要に再実行されてしまいます。これにより、パフォーマンスの低下や意図しない副作用が生じる可能性があります。
-
-**解決策**: コンポーネントのドキュメントに、`onClose`関数を`useCallback`でメモ化することを推奨する旨を記載する。
-
-```typescript
-/**
- * Modalコンポーネント
- * モーダルダイアログ用のコンポーネント
- *
- * @param onClose - モーダルを閉じるコールバック関数
- *   パフォーマンス最適化のため、親コンポーネントで`useCallback`を使用してメモ化することを推奨します。
- *   例: `const handleClose = useCallback(() => setOpen(false), []);`
- */
-export function Modal({
-  isOpen,
-  onClose,
-  // ...
-}: ModalProps): React.JSX.Element | null {
-  useEffect(() => {
-    // ...
-  }, [isOpen, onClose]);
-  // ...
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-### 4. アクセシビリティ: RadioコンポーネントのID重複防止
-
-**問題**: `groupId`が`name` propのみから生成されているため、同じページで同じ`name`を持つ`Radio`コンポーネントが複数存在すると、`aria-describedby`で使用されるヘルパーテキストの`id`が重複してしまいます。これは無効なHTMLとなり、アクセシビリティの問題を引き起こす可能性があります。
-
-**解決策**: Reactの`useId`フックを使用して、コンポーネントインスタンスごとに一意なIDを生成する。
-
-```typescript
-// ❌ 悪い例: nameのみからIDを生成（重複の可能性）
-const groupId = `radio-group-${name}`;
-
-// ✅ 良い例: useIdで一意なIDを生成
-'use client';
-import React, { useId } from 'react';
-
-export function Radio({ name, ... }: RadioProps): React.JSX.Element {
-  const reactId = useId();
-  const groupId = reactId;
-  // ...
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-### 5. UX改善: Selectコンポーネントのプレースホルダー表示
-
-**問題**: プレースホルダーとして機能する`<option>`が、ドロップダウンリストを開いたときにも選択肢として表示されてしまいます。通常、プレースホルダーはリスト内には表示させないのが一般的です。
-
-**解決策**: `hidden`属性を追加することで、このオプションをドロップダウンリストから隠す。
-
-```typescript
-// ❌ 悪い例: hidden属性がない
-{placeholder && (
-  <option value="" disabled>
-    {placeholder}
-  </option>
-)}
-
-// ✅ 良い例: hidden属性を追加
-{placeholder && (
-  <option value="" disabled hidden>
-    {placeholder}
-  </option>
-)}
-```
-
-**注意**: このプレースホルダーを初期値として表示するには、`Select`コンポーネントの呼び出し側で`defaultValue=""`のように設定する必要があります。
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-## 共通UIコンポーネントライブラリ構築時の追加観点（Gemini PR#402レビュー第3回から学習）
-
-### 1. 状態管理: Radioコンポーネントのvalue/checked/defaultCheckedの適切な管理
-
-**問題**: `Radio`コンポーネントの実装で、`...props`が各ラジオボタンに展開されるため、`value`や`checked`、`defaultChecked`などのプロパティがすべての`<input>`要素に適用されてしまい、意図しない動作や不正なHTMLを生成する原因となります。
-
-**解決策**: グループ全体で単一の`value`（または`defaultValue`）を受け取り、それに基づいて選択状態を管理する。`value`、`checked`、`defaultChecked`を`...props`から除外する。
-
-```typescript
-// ❌ 悪い例: value/checked/defaultCheckedが...propsに含まれる
-export interface RadioProps extends Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'id'
-> {
-  options: RadioOption[];
-  name: string;
-  // ...
-}
-
-// ✅ 良い例: value/checked/defaultCheckedを除外し、グループ全体で管理
-export interface RadioProps extends Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'id' | 'value' | 'defaultValue' | 'checked' | 'defaultChecked'
-> {
-  options: RadioOption[];
-  name: string;
-  value?: string;
-  defaultValue?: string;
-  // ...
-}
-
-export function Radio({
-  options,
-  name,
-  value,
-  defaultValue,
-  // ...
-}: RadioProps): React.JSX.Element {
-  // ...
-  {options.map((option) => {
-    return (
-      <input
-        type="radio"
-        name={name}
-        value={option.value}
-        checked={value !== undefined ? value === option.value : undefined}
-        defaultChecked={defaultValue !== undefined ? defaultValue === option.value : undefined}
-        // ...
-      />
-    );
-  })}
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
-
----
-
-### 2. 再利用性: ButtonコンポーネントのloadingTextプロパティ
-
-**問題**: ローディング時のテキスト「読み込み中...」がハードコードされている。これにより、コンポーネントの再利用性が低下し、国際化（i18n）対応が困難になります。
-
-**解決策**: `ButtonProps`に`loadingText?: string;`を追加し、テキストをカスタマイズ可能にする。
-
-```typescript
-// ❌ 悪い例: ハードコードされたテキスト
-{isLoading ? (
-  <>
-    <Spinner size="sm" className="-ml-1 mr-2" />
-    <span>読み込み中...</span>
-  </>
-) : (
-  children
-)}
-
-// ✅ 良い例: loadingTextプロパティでカスタマイズ可能
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  isLoading?: boolean;
-  loadingText?: string;
-  children: React.ReactNode;
-}
-
-export function Button({
-  // ...
-  loadingText = '読み込み中...',
-  // ...
-}: ButtonProps): React.JSX.Element {
-  // ...
-  {isLoading ? (
-    <>
-      <Spinner size="sm" className="-ml-1 mr-2" />
-      <span>{loadingText}</span>
-    </>
-  ) : (
-    children
-  )}
-}
-```
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
-
----
-
-### 3. 堅牢性: Modalコンポーネントのbody.overflow管理（複数モーダル対応）
-
-**問題**: `document.body.style.overflow`を直接操作する方法は、複数のモーダルが同時に（または入れ子で）表示される場合や、他のコンポーネントもbodyのoverflowを操作する場合に問題を引き起こす可能性があります。例えば、モーダルAが開いている最中にモーダルBが開かれ、その後モーダルBが閉じられると、モーダルAが開いているにもかかわらずbodyのスクロールが有効になってしまいます。
-
-**解決策**: 開かれているモーダルの数を管理するカウンターを使用する。
-
-```typescript
-// モーダルが開いている数を管理するカウンター
-let modalCount = 0;
-
-export function Modal({ isOpen, ... }: ModalProps): React.JSX.Element | null {
-  useEffect(() => {
-    if (isOpen) {
-      // モーダル表示時はbodyのスクロールを無効化（複数モーダル対応）
-      modalCount++;
-      if (modalCount === 1) {
-        document.body.style.overflow = 'hidden';
-      }
-    }
-
-    return (): void => {
-      // モーダルが閉じられたとき、カウンターを減らす
-      if (isOpen) {
-        modalCount--;
-        // すべてのモーダルが閉じられたときのみ、bodyのスクロールを有効化
-        if (modalCount === 0) {
-          document.body.style.overflow = '';
-        }
-      }
-    };
-  }, [isOpen, onClose]);
-  // ...
-}
-```
-
-**代替案**: `react-remove-scroll`のようなライブラリの利用も検討する価値があります。
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
-
----
-
-### 4. スタイル管理: Tailwind CSSクラスの安全なマージ
-
-**問題**: Tailwind CSSのクラスを文字列結合で組み立てると、意図しないスタイルの上書きや競合が発生する可能性があります。例えば、利用者が`className` propで背景色を上書きしようとしても、コンポーネント内部のクラスと競合して期待通りに動作しない場合があります。
-
-**解決策**: `tailwind-merge`と`clsx`を組み合わせたユーティリティ関数を使用する。
-
-```typescript
-// ❌ 悪い例: 文字列結合
-<span className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}>
-  {children}
-</span>
-
-// ✅ 良い例: cn関数を使用
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs));
-}
-
-<span className={cn(baseStyles, variantStyle, sizeStyle, className)}>
-  {children}
-</span>
-```
-
-**適用対象**: `Badge`、`Button`、`Input`、`Textarea`、`Select`、`Radio`、`Checkbox`、`Card`など、複数のクラス名を組み合わせるすべてのコンポーネント。
-
-**参照**: PR #402 - Issue #117: [TASK] E-11: 共通UIコンポーネントライブラリ構築（Gemini Code Assistレビュー指摘 第3回）
-
----
-
-## 22. Tailwind CSSとTypeScriptの型安全性（Issue #119 / PR #403）
-
-### 22-1. Tailwind CSSの動的クラス生成の問題 🔴 High
-
-**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
-#### ❌ 避けるべきパターン: 動的なクラス名生成
-
-Tailwind CSSのJITコンパイラは、ソースコードを静的に解析して使用されているクラスを検出します。\`focus:ring-\${...}\`のようにクラス名を動的に生成すると、Tailwindがクラスを検出できず、本番ビルドでスタイルが適用されない可能性があります。
-
-\`\`\`typescript
-// ❌ 悪い例: 動的なクラス名生成
-<button
-className={cn(
-'inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
-variantStyle.text,
-\`focus:ring-\${variant === 'success' ? 'green' : variant === 'warning' ? 'yellow' : variant === 'error' ? 'red' : 'blue'}-500\`
-)}
-
-> \`\`\`
-
-**問題点**:
-
-- TailwindのJITコンパイラがクラスを検出できない
-- 本番ビルドでスタイルが適用されない
-- デバッグが困難
-
-#### ✅ 正しいパターン: 静的なマッピングオブジェクト
-
-\`\`\`typescript
-// ✅ 良い例: 静的なマッピングオブジェクト
-const focusRingStyles: Record<AlertVariant, string> = {
-success: 'focus:ring-green-500',
-warning: 'focus:ring-yellow-500',
-error: 'focus:ring-red-500',
-info: 'focus:ring-blue-500',
-};
-
-<button
-className={cn(
-'inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
-variantStyle.text,
-focusRingStyles[variant]
-)}
-
-> \`\`\`
-
-**理由**:
-
-- Tailwindがクラス名を正しく検出できる
-- 本番ビルドで期待どおりのスタイルが生成される
-- 型安全性が保証される
-
-**適用対象**: すべてのTailwind CSSクラスを使用するコンポーネントで、動的なクラス名生成が必要な場合。
-
-**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 22-2. switch文の網羅性チェック 🟡 Medium
-
-**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
-#### ❌ 避けるべきパターン: 網羅性チェックなしのswitch文
-
-\`\`\`typescript
-// ❌ 悪い例: 網羅性チェックなし
-switch (variant) {
-case 'success':
-return <SuccessIcon />;
-case 'warning':
-return <WarningIcon />;
-case 'error':
-return <ErrorIcon />;
-case 'info':
-return <InfoIcon />;
-default:
-return null; // 新しいvariantが追加されてもコンパイルエラーにならない
-}
-\`\`\`
-
-**問題点**:
-
-- 新しいvariantが追加された場合、関連するコードの更新漏れを防げない
-- コンパイル時にエラーが発生しない
-
-#### ✅ 正しいパターン: exhaustive checkを使用
-
-\`\`\`typescript
-// ✅ 良い例: exhaustive checkで網羅性を保証
-switch (variant) {
-case 'success':
-return <SuccessIcon />;
-case 'warning':
-return <WarningIcon />;
-case 'error':
-return <ErrorIcon />;
-case 'info':
-return <InfoIcon />;
-default: {
-const \_exhaustiveCheck: never = variant;
-return null;
-}
-}
-\`\`\`
-
-**理由**:
-
-- \`AlertVariant\`に新しい値が追加された場合、コンパイルエラーが発生する
-- 関連するコードの更新漏れを防げる
-- 型安全性が向上する
-
-**適用対象**: すべてのswitch文で、型の網羅性を保証したい場合。
-
-**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 22-3. 重複コードの共通化 🟡 Medium
-
-**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
-#### ❌ 避けるべきパターン: 同じ関数の重複定義
-
-\`\`\`typescript
-// ❌ 悪い例: 同じ関数が複数のファイルで重複
-// ErrorModal.tsx
-const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
-switch (type) {
-case 'warning':
-return 'warning';
-case 'error':
-case 'critical':
-return 'error';
-default:
-return 'error';
-}
-};
-
-// ErrorToast.tsx
-const getAlertVariant = (type: NotificationType): 'warning' | 'error' => {
-switch (type) {
-case 'warning':
-return 'warning';
-case 'error':
-case 'critical':
-return 'error';
-default:
-return 'error';
-}
-};
-\`\`\`
-
-**問題点**:
-
-- コードの重複により保守性が低下
-- 修正時に複数箇所を更新する必要がある
-- バグの発生リスクが増加
-
-#### ✅ 正しいパターン: 共通のユーティリティファイルに抽出
-
-\`\`\`typescript
-// ✅ 良い例: 共通のユーティリティファイルに抽出
-// utils/notification.utils.ts
-export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
-switch (type) {
-case 'warning':
-return 'warning';
-case 'error':
-case 'critical':
-return 'error';
-default:
-return 'error';
-}
-}
-
-// ErrorModal.tsx
-import { getAlertVariant } from '@/utils/notification.utils';
-
-// ErrorToast.tsx
-import { getAlertVariant } from '@/utils/notification.utils';
-\`\`\`
-
-**理由**:
-
-- コードの重複を排除し、保守性を向上
-- 修正時に1箇所の更新で済む
-- テストが容易になる
-
-**適用対象**: 複数のファイルで同じロジックが使用されている場合。
-
-**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 22-4. ユーティリティ関数の網羅性チェック 🟡 Medium
-
-**学習元**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘 第2回）
-
-#### ❌ 避けるべきパターン: ユーティリティ関数での網羅性チェックなし
-
-\`\`\`typescript
-// ❌ 悪い例: 網羅性チェックなし
-export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
-switch (type) {
-case 'warning':
-return 'warning';
-case 'error':
-case 'critical':
-return 'error';
-default:
-return 'error'; // 新しいNotificationTypeが追加されてもコンパイルエラーにならない
-}
-}
-\`\`\`
-
-**問題点**:
-
-- 新しい\`NotificationType\`が追加された場合、関連するロジックの更新漏れを防げない
-- コンパイル時にエラーが発生しない
-
-#### ✅ 正しいパターン: ユーティリティ関数でもexhaustive checkを使用
-
-\`\`\`typescript
-// ✅ 良い例: exhaustive checkで網羅性を保証
-export function getAlertVariant(type: NotificationType): 'warning' | 'error' {
-switch (type) {
-case 'warning':
-return 'warning';
-case 'error':
-case 'critical':
-return 'error';
-default: {
-const \_exhaustiveCheck: never = type;
-return 'error';
-}
-}
-}
-
-export function getNotificationTitle(type: NotificationType): string {
-switch (type) {
-case 'warning':
-return '警告';
-case 'error':
-return 'エラー';
-case 'critical':
-return '重大なエラー';
-default: {
-const \_exhaustiveCheck: never = type;
-return 'エラー';
-}
-}
-}
-\`\`\`
-
-**理由**:
-
-- \`NotificationType\`に新しい値が追加された場合、コンパイルエラーが発生する
-- 関連するすべてのロジックが更新されることをコンパイラが保証する
-- 型安全性が向上する
-
-**適用対象**: すべてのユーティリティ関数で、型の網羅性を保証したい場合。
-
-**参照**: PR #403 - Issue #119: E-13 エラー表示UI実装（Gemini Code Assistレビュー指摘 第2回）
-
----
-
-### 13-XX. UIコンポーネントのクラス名マージ（PR #405）
-
-**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
-#### cnユーティリティの使用
-
-**問題**: テンプレートリテラルでクラス名を結合している
-
-**解決策**: `cn`ユーティリティを使用してクラス名をマージする
-
-```typescript
-// ❌ 悪い例: テンプレートリテラルで結合
-<div className={`min-h-screen flex items-center justify-center ${className}`}>
-
-// ✅ 良い例: cnユーティリティを使用
-import { cn } from '../../lib/utils';
-
-<div className={cn('min-h-screen flex items-center justify-center', className)}>
-```
-
-**理由**:
-
-- プロジェクト全体で一貫性を保つ
-- 予期せぬスタイルの上書きを防ぐ
-- 条件付きクラス名の追加が容易
-
-**適用対象**: すべてのUIコンポーネントで、クラス名を結合する場合。
-
-**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-YY. コンポーネントのレイアウト責務（PR #405）
-
-**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
-#### ページ全体レイアウトを持つコンポーネントの使用
-
-**問題**: ページ全体のレイアウト（`min-h-screen`など）を持つコンポーネントを、さらにdivで囲んでいる
-
-**解決策**: コンポーネント自体がレイアウトを持っている場合は、直接返す
-
-```typescript
-// ❌ 悪い例: 不要なdivで囲む
-if (loading) {
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <PageLoading />
-      </div>
-    </div>
-  );
-}
-
-// ✅ 良い例: コンポーネントを直接返す
-if (loading) {
-  return <PageLoading />;
-}
-```
-
-**理由**:
-
-- コードがシンプルになる
-- コンポーネントの責務が明確になる
-- 不要なDOM要素を削減できる
-
-**適用対象**: ページ全体のレイアウトを持つコンポーネント（`PageLoading`など）を使用する場合。
-
-**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 13-ZZ. E2Eテストのヘルパー関数化（PR #405）
-
-**学習元**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
-#### 重複するテストロジックの抽出
-
-**問題**: 複数のテストケースで同じロジックが重複している
-
-**解決策**: ヘルパー関数として抽出する
-
-```typescript
-// ❌ 悪い例: ロジックが重複
-test('テスト1', async ({ page }) => {
-  const responsePromise = page.waitForResponse(...);
-  await editButton.click();
-  await expect(...).toBeVisible();
-  await responsePromise;
-  // ... 同じロジックが繰り返される
-});
-
-test('テスト2', async ({ page }) => {
-  const responsePromise = page.waitForResponse(...);
-  await editButton.click();
-  await expect(...).toBeVisible();
-  await responsePromise;
-  // ... 同じロジックが繰り返される
-});
-
-// ✅ 良い例: ヘルパー関数として抽出
-async function openAndAwaitEditModal(page: Page) {
-  const editButton = page.locator('button:has-text("編集")').first();
-  const responsePromise = page.waitForResponse(...);
-  await editButton.click();
-  await expect(...).toBeVisible();
-  await responsePromise;
-  // ... 共通ロジック
-}
-
-test('テスト1', async ({ page }) => {
-  await openAndAwaitEditModal(page);
-  // テスト固有のアサーション
-});
-
-test('テスト2', async ({ page }) => {
-  await openAndAwaitEditModal(page);
-  // テスト固有のアサーション
-});
-```
-
-**理由**:
-
-- テストの可読性が向上
-- メンテナンス性が向上（ロジック変更時に1箇所の修正で済む）
-- テストコードの重複を排除
-
-**適用対象**: E2Eテストで、複数のテストケースで同じロジックが繰り返される場合。
-
-**参照**: PR #405 - Issue #118: ローディング・スケルトンUI実装（Gemini Code Assistレビュー指摘）
-
----
-
-## 18. テストの安定性と決定性（PR #412）
-
-**学習元**: PR #412 - Issue #96: Application層ユニットテスト（Gemini Code Assistレビュー指摘）
-
-### 18-1. JestのFake Timersを使用した日時の固定 🔴 Medium
-
-**問題**: `new Date()`を直接使用すると、テストの実行タイミングによって値が変わり、テストが不安定になる可能性がある
-
-**解決策**: JestのFake Timers機能を利用して日時を固定する
-
-```typescript
-// ❌ 悪い例: new Date()を直接使用
-describe('CreateTransactionUseCase', () => {
-  it('should create transaction', async () => {
-    const savedTransaction = new TransactionEntity(
-      // ...
-      new Date(), // 実行タイミングによって値が変わる
-      new Date()
-    );
-    // ...
-    const savedCall = repository.save.mock.calls[0][0];
-    // createdAtとupdatedAtをアサートできない（値が予測不可能）
-  });
-});
-
-// ✅ 良い例: JestのFake Timersを使用
-describe('CreateTransactionUseCase', () => {
-  const fixedDate = new Date('2025-01-15T10:00:00Z');
-
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(fixedDate);
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
-
-  it('should create transaction', async () => {
-    const savedTransaction = new TransactionEntity(
-      // ...
-      fixedDate,
-      fixedDate
-    );
-    // ...
-    const savedCall = repository.save.mock.calls[0][0];
-    // createdAtとupdatedAtを正確にアサートできる
-    expect(savedCall.createdAt).toEqual(fixedDate);
-    expect(savedCall.updatedAt).toEqual(fixedDate);
-  });
-});
-```
-
-**理由**:
-
-- テストの実行タイミングに依存しない決定的なテストになる
-- `createdAt`や`updatedAt`などのタイムスタンプを正確にアサートできる
-- テストの安定性と信頼性が向上
-
-**適用対象**: UseCaseやServiceなど、`new Date()`を使用してタイムスタンプを生成するロジックをテストする場合。
-
-**参照**: PR #412 - Issue #96: Application層ユニットテスト（Gemini Code Assistレビュー指摘）
-
----
-
-## 19. ユニットテストのアサーション強化（PR #417）
-
-**学習元**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
-
-### 19-1. テストのアサーションをより具体的にする 🟡 Medium
-
-**問題**: テストのアサーションが不十分で、件数だけをチェックしている場合、ソートや制限が正しく機能していることを保証できない
-
-**解決策**: 返されるデータのIDや順序を検証することで、ソートと制限が正しく機能していることを保証する
-
-```typescript
-// ❌ 悪い例: 件数だけをチェック
-it('should find histories with limit', async () => {
-  const result = await repository.findAll(2);
-
-  expect(result).toHaveLength(2);
-  expect(result[0]).toBeInstanceOf(ConnectionHistory);
-});
-
-// ✅ 良い例: 返されるデータのIDと順序を検証
-it('should find histories with limit', async () => {
-  const mockData = {
-    histories: [
-      { id: 'hist_1', checkedAt: '2024-01-15T00:00:00.000Z', ... },
-      { id: 'hist_2', checkedAt: '2024-01-16T00:00:00.000Z', ... },
-      { id: 'hist_3', checkedAt: '2024-01-17T00:00:00.000Z', ... },
-    ],
-  };
-
-  const result = await repository.findAll(2);
-
-  expect(result).toHaveLength(2);
-  // findAllメソッドは日付の降順でソートするため、最新の2件（hist_3, hist_2）が返されることを確認
-  const resultIds = result.map((h) => h.id);
-  expect(resultIds).toEqual(['hist_3', 'hist_2']);
-});
-```
-
-**理由**:
-
-- ソートや制限が正しく機能していることを保証できる
-- テストの信頼性が向上
-- バグの早期発見が可能
-
-**適用対象**: リポジトリメソッドなど、ソートや制限（limit）を実装しているメソッドのテスト。
-
-**参照**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-2. モックメソッドの呼び出しを検証する 🟡 Medium
-
-**問題**: モックメソッドが正しい引数で呼び出されたことを確認するアサーションが欠けている場合、テストの意図が不明確になる
-
-**解決策**: モックメソッドが期待される引数で呼び出されたことを検証するアサーションを追加する
-
-```typescript
-// ❌ 悪い例: モックメソッドの呼び出しを検証していない
-it('should find disconnected institutions', async () => {
-  mockInstitutionRepository.find.mockResolvedValue([disconnectedEntity as InstitutionOrmEntity]);
-
-  const result = await repository.findByConnectionStatus(false);
-
-  expect(result).toHaveLength(1);
-  expect(result[0]).toBeInstanceOf(InstitutionEntity);
-});
-
-// ✅ 良い例: モックメソッドが正しい引数で呼び出されたことを検証
-it('should find disconnected institutions', async () => {
-  mockInstitutionRepository.find.mockResolvedValue([disconnectedEntity as InstitutionOrmEntity]);
-
-  const result = await repository.findByConnectionStatus(false);
-
-  expect(result).toHaveLength(1);
-  expect(result[0]).toBeInstanceOf(InstitutionEntity);
-  expect(mockInstitutionRepository.find).toHaveBeenCalledWith({
-    where: { isConnected: false },
-    relations: ['accounts'],
-    order: { createdAt: 'ASC' },
-  });
-});
-```
-
-**理由**:
-
-- メソッドが正しい条件で呼び出されることを保証できる
-- テストの意図が明確になる
-- リファクタリング時の安全性が向上
-
-**適用対象**: リポジトリメソッドなど、条件付きでデータを取得するメソッドのテスト。
-
-**参照**: PR #417 - ユニットテストカバレッジ改善（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-3. E2Eテストでの状態リセット方法 🟡 Medium
-
-**問題**: E2Eテストの`beforeEach`で、モーダルを明示的に閉じるロジックと`page.reload()`の両方が含まれている場合、冗長でテストの実行時間を増加させる可能性がある
-
-**解決策**: `page.reload()`のみで状態をリセットする（`page.reload()`を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられる）
-
-```typescript
-// ❌ 悪い例: モーダルを閉じるロジックとpage.reload()の両方が含まれている
-test.beforeEach(async ({ page }) => {
-  await page.goto('/categories');
-
-  // モーダルを閉じる処理
-  const modalTitle = page.locator('text=費目を編集');
-  const isModalVisible = await modalTitle.isVisible({ timeout: 1000 }).catch(() => false);
-  if (isModalVisible) {
-    await page.keyboard.press('Escape');
-    await modalTitle.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
-  }
-
-  // ページをリロード
-  await page.reload();
-  await page.waitForLoadState('domcontentloaded');
-});
-
-// ✅ 良い例: page.reload()のみで状態をリセット
-test.beforeEach(async ({ page }) => {
-  await page.goto('/categories');
-
-  // 前のテストで開いたモーダルが残っている可能性があるため、ページをリロードして状態をリセット
-  // page.reload()を呼び出すと、ページの状態が完全にリセットされ、表示されているモーダルもすべて閉じられます
-  await page.reload();
-  await page.waitForLoadState('domcontentloaded');
-});
-```
-
-**理由**:
-
-- コードがシンプルになり、保守性が向上
-- テストの実行時間が短縮される可能性がある
-- `page.reload()`で状態が完全にリセットされるため、より堅牢
-
-**注意点**:
-
-- `page.reload()`を使用する場合は、`workers: 1`で並列実行を無効化することで、タイムアウト問題を回避できる
-- `page.goto()`の後に`page.reload()`を呼び出す場合は、`domcontentloaded`まで待機することを推奨（`networkidle`は重いため）
-
-**適用対象**: E2Eテストの`beforeEach`で、テスト間の状態をリセットする処理。
-
-**参照**: PR #416 - Issue #414: E2Eテストの不安定な失敗を修正（Gemini Code Assistレビュー指摘）
-
----
-
-## 13-XX-8. テストコードの品質向上: import文の統合、マジックストリングの定数化、固定日付の使用（PR #418）
-
-**問題**: テストコードで以下の問題が指摘された：
-
-1. **import文の分離**: 同じモジュールから複数の要素を別々のimport文でインポートしている
-2. **マジックストリングの使用**: テスト全体で`'tx_1'`, `'cat_1'`, `'Food'`などのマジックストリングが繰り返し使用されている
-3. **動的日付の使用**: `new Date()`を使用しており、テストの再現性が低い
-
-**解決策**:
-
-### 1. import文の統合
-
-同じモジュールから複数の要素をインポートする場合、1つの`import`文にまとめる：
-
-```typescript
-// ❌ 悪い例: 別々のimport文
-import { TRANSACTION_REPOSITORY } from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
-import { ITransactionRepository } from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
-
-// ✅ 良い例: 1つのimport文にまとめる
-import {
-  TRANSACTION_REPOSITORY,
-  ITransactionRepository,
-} from '../../src/modules/transaction/domain/repositories/transaction.repository.interface';
-```
-
-**理由**:
-
-- コードがすっきりし、可読性が向上
-- 同じモジュールからのインポートが一目で分かる
-
-### 2. マジックストリングの定数化
-
-テスト全体で使用されるマジックストリングを`describe`ブロックの先頭で定数として定義：
-
-```typescript
-// ✅ 良い例: テストデータ定数を定義
-describe('TransactionTypeOrmRepository Integration', () => {
-  // テストデータ定数
-  const TX_ID_1 = 'tx_1';
-  const TX_ID_2 = 'tx_2';
-  const CAT_ID_1 = 'cat_1';
-  const CAT_ID_2 = 'cat_2';
-  const CAT_NAME_1 = 'Food';
-  const CAT_NAME_2 = 'Transport';
-  const INST_ID_1 = 'inst_1';
-  const ACC_ID_1 = 'acc_1';
-  const TEST_DESCRIPTION = 'Test transaction';
-  const TEST_AMOUNT_1 = 1000;
-  const TEST_AMOUNT_2 = 2000;
-
-  // テスト内で使用
-  it('should save a transaction', async () => {
-    const transaction = new TransactionEntity(
-      TX_ID_1,
-      TEST_DATE_1,
-      TEST_AMOUNT_1,
-      {
-        id: CAT_ID_1,
-        name: CAT_NAME_1,
-        type: CategoryType.EXPENSE,
-      },
-      TEST_DESCRIPTION,
-      INST_ID_1,
-      ACC_ID_1
-      // ...
-    );
-  });
-});
-```
-
-**理由**:
-
-- 値を変更する必要が生じた場合に一箇所を修正するだけで済む
-- タイプミスによるエラーを防ぎやすい
-- テストの可読性と保守性が向上
-
-### 3. 固定日付の使用
-
-`new Date()`の代わりに固定の日付を使用してテストの再現性を高める：
-
-```typescript
-// ❌ 悪い例: 動的日付
-const transaction = new TransactionEntity(
-  'tx_1',
-  new Date('2024-01-15'),
-  1000,
-  // ...
-  new Date(),
-  new Date()
-);
-
-// ✅ 良い例: 固定日付
-const FIXED_DATE = new Date('2024-01-01T00:00:00Z');
-const TEST_DATE_1 = new Date('2024-01-15T00:00:00Z');
-const TEST_DATE_2 = new Date('2024-01-16T00:00:00Z');
-
-const transaction = new TransactionEntity(
-  TX_ID_1,
-  TEST_DATE_1,
-  TEST_AMOUNT_1,
-  // ...
-  FIXED_DATE,
-  FIXED_DATE
-);
-```
-
-**理由**:
-
-- テストが実行されるタイミングに依存しなくなり、より安定したテストになる
-- テストの再現性が向上
-- 日付関連のテストケースで期待値を明確に設定できる
-
-**適用対象**: 統合テスト、E2Eテスト、ユニットテスト（特に日付を使用するテスト）
-
-**参照**: PR #418 - Issue #99: Repository統合テストの実装（Gemini Code Assistレビュー指摘）
-
----
-
-## E2Eテスト: Playwrightの自動待機機能を活用する
-
-### 問題点
-
-E2Eテストで `page.waitForTimeout()` を使用すると、テストの不安定さ（flakiness）を招く可能性があります。固定時間の待機は、環境やネットワークの状態に依存し、テストの実行時間も長くなります。
-
-### 推奨される実装
-
-Playwrightの **Web-Firstアサーション**（自動待機機能）を活用し、特定の状態になるまで待機するようにします。
-
-**❌ 悪い例**:
-
-```typescript
-// 検索結果が更新されるまで待機
-await page.waitForTimeout(500);
-
-// 検索結果に「三菱」を含む銀行が表示されることを確認
-const filteredBanks = page.locator('button:has-text("三菱")');
-const count = await filteredBanks.count();
-expect(count).toBeGreaterThan(0);
-```
-
-**✅ 良い例**:
-
-```typescript
-// 検索結果が更新されるのを待機し、アサーションを行います。
-// Playwrightの自動待機機能により、`waitForTimeout`は不要になります。
-await expect(page.locator('button:has-text("三菱")').first()).toBeVisible();
-```
-
-**理由**:
-
-- `expect()` は自動的に要素が表示されるまで待機するため、固定時間の待機が不要
-- テストの実行時間が短縮される
-- 環境やネットワークの状態に依存せず、より安定したテストになる
-- テストの信頼性と実行速度が向上する
-
-### その他の改善例
-
-**❌ 悪い例**:
-
-```typescript
-// フィルター結果が更新されるまで待機
-await page.waitForTimeout(500);
-
-// メガバンクタブがアクティブになっていることを確認
-const tabClass = await megaBankTab.getAttribute('class');
-expect(tabClass).toMatch(/border-blue-600|text-blue-600/);
-```
-
-**✅ 良い例**:
-
-```typescript
-// フィルター結果が更新されるまで待機し、メガバンクタブがアクティブになることを確認します。
-// Playwrightの自動待機機能を利用することで、waitForTimeoutを削除でき、より堅牢なテストになります。
-await expect(megaBankTab).toHaveClass(/border-blue-600|text-blue-600/);
-```
-
-### テストケースの完全性
-
-E2Eテストでは、すべてのテストケースで適切なアサーションを追加し、テストの信頼性を高める必要があります。
-
-**❌ 悪い例**:
-
-```typescript
-// 接続テスト結果画面に遷移することを確認
-await expect(page.getByText('3. 接続テスト')).toBeVisible();
-
-// エラーメッセージが表示される可能性があることを確認（APIの実装による）
-// 成功/失敗どちらの場合でも結果画面が表示される
-await page.waitForTimeout(1000);
-```
-
-**✅ 良い例**:
-
-```typescript
-// 接続テスト結果画面に遷移することを確認
-await expect(page.getByText('3. 接続テスト')).toBeVisible();
-
-// 接続失敗時のエラーメッセージが表示されることを確認
-// APIの実装により、エラーメッセージの内容は異なる可能性がありますが、
-// 少なくともエラーが表示されていることを確認します。
-await expect(page.getByText(/接続に失敗しました|接続テストに失敗しました|エラー/i)).toBeVisible({
-  timeout: 5000,
-});
-```
-
-**理由**:
-
-- テストの目的が明確になる
-- エラーケースでも適切に検証できる
-- テストの信頼性が向上する
-
-### 状態検証の追加
-
-ボタンクリックなどの操作後は、必ず状態の変化を検証する必要があります。
-
-**❌ 悪い例**:
-
-```typescript
-// 戻るボタンをクリック
-await page.getByRole('button', { name: '戻る' }).click();
-
-// 前のページに戻ることを確認（URLが変更される）
-await page.waitForTimeout(500);
-// 戻るボタンが機能することを確認（具体的なURLは実装による）
-```
-
-**✅ 良い例**:
-
-```typescript
-// 戻るボタンをクリック
-await page.getByRole('button', { name: '戻る' }).click();
-
-// 前のページに戻ることを確認（URLが変更される）
-// ブラウザの履歴に依存するため、URLが変更されたことを確認します。
-await expect(page).not.toHaveURL('/banks/add');
-```
-
-**理由**:
-
-- 操作の結果を明確に検証できる
-- テストの目的が明確になる
-- テストの信頼性が向上する
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #443 - Issue #419: E2Eテスト: FR-001 銀行口座との連携（Gemini Code Assistレビュー指摘）
-
----
-
-## シェルスクリプト: JSON生成にjqを使用する
-
-### 問題点
-
-`cat << EOF` を使って手動でJSONファイルを生成するのは、エスケープ処理が複雑になりがちで、エラーが発生しやすく保守性も低くなります。
-
-### 推奨される実装
-
-`jq`コマンドを使ってプログラム的にJSONを生成する方法に変更します。
-
-**❌ 悪い例**:
-
-```bash
-# JSONファイルを作成
-cat > "$JSON_FILE" << EOF
-{
-  "title": "$TITLE",
-  "labels": [
-    "testing",
-    "frontend",
-    "priority: medium",
-    "size: M"
-  ],
-  "body": "**Epic**: #192 - テスト実装\\n\\n---\\n\\n## 📋 概要\\n\\n$DESC\\n\\n..."
-}
-EOF
-```
-
-**✅ 良い例**:
-
-```bash
-# JSONファイルを作成 (jqを使用)
-BODY_CONTENT="**Epic**: #192 - テスト実装
-
----
-
-## 📋 概要
-
-$DESC
-
-..."
-
-jq -n \
-  --arg title "$TITLE" \
-  --argjson labels '["testing", "frontend", "priority: medium", "size: M"]' \
-  --arg body "$BODY_CONTENT" \
-  '{ "title": $title, "labels": $labels, "body": $body }' > "$JSON_FILE"
-```
-
-**理由**:
-
-- エスケープ処理が不要になり、コードがクリーンになる
-- JSONの構文エラーを防げる
-- 将来の変更も容易になる
-- コードの可読性と保守性が向上する
-
-**適用対象**: シェルスクリプト（JSON生成）
-
-**参照**: PR #443 - Issue #419: E2Eテスト: FR-001 銀行口座との連携（Gemini Code Assistレビュー指摘）
-
----
-
-### E2Eテスト: 意味のないアサーションを避ける
-
-**内容**:
-E2Eテストで、常に真になるアサーション（例: `toBeGreaterThanOrEqual(0)`）は実質的に何も検証していないため、意味のあるアサーションに修正する必要がある。
-
-**例**:
-
-```typescript
-// ❌ 悪い例: 常に真になるアサーション
-const statusCount = await statusText.count();
-expect(statusCount).toBeGreaterThanOrEqual(0); // 常に真
-
-// ✅ 良い例: 意味のあるアサーション
-const statusCount = await statusText.count();
-expect(statusCount).toBeGreaterThan(0); // 少なくとも1つは存在することを確認
-```
-
-**理由**:
-
-- テストが実際に何かを検証していることを保証する
-- テストの意図が明確になる
-- バグの検出能力が向上する
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
-
----
-
-### E2Eテスト: CSSクラス名に依存するセレクタを避ける
-
-**内容**:
-`[class*="Card"]` のようなCSSクラス名に依存するセレクタは、UIのスタイル変更によってテストが壊れやすくなるため、保守性の観点から推奨されない。より堅牢なテストにするために、`data-testid` のようなテスト用の属性をコンポーネントに追加し、それを使って要素を選択することを推奨する。
-
-**例**:
-
-```typescript
-// ❌ 悪い例: CSSクラス名に依存
-const institutionCards = page.locator('[class*="Card"]').filter({ hasText: /接続状態/ });
-
-// ✅ 良い例: data-testidを使用（コンポーネント側で実装が必要）
-const institutionCards = page.getByTestId('institution-card');
-
-// ⚠️ 暫定的な改善: テキストベースのセレクタ（data-testidが実装されるまでの暫定策）
-const institutionCards = page
-  .getByText(/接続状態/)
-  .locator('..')
-  .locator('..');
-```
-
-**理由**:
-
-- UIのスタイル変更に影響されない
-- テストの保守性が向上する
-- テストの意図が明確になる
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
-
----
-
-### E2Eテスト: UI状態の検証を完全に実装する
-
-**内容**:
-E2Eテストでは、API呼び出しだけでなく、ユーザーに見えるUIの変化も確認することが重要。同期ボタンクリック後のUI状態（ボタンの無効化、ローディング表示など）を検証するアサーションを追加する。
-
-**例**:
-
-```typescript
-// ❌ 悪い例: UI状態の検証が不完全
-await firstSyncButton.click();
-await responsePromise;
-// 注: 実際のUI実装に応じて調整が必要（検証なし）
-
-// ✅ 良い例: UI状態を検証
-await firstSyncButton.click();
-// 同期処理が開始されたことを確認（ボタンが無効化される、またはローディング表示）
-await expect(firstSyncButton)
-  .toBeDisabled({ timeout: 1000 })
-  .catch(() => {
-    // ボタンが無効化されない実装の場合、ローディング表示を確認
-  });
-await responsePromise;
-```
-
-**理由**:
-
-- ユーザー体験を正確に検証できる
-- テストの価値が向上する
-- バグの検出能力が向上する
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
-
----
-
-### E2Eテスト: 決定論的でないテストを避ける
-
-**内容**:
-`waitForResponse` を `.catch` で囲んで「呼び出される可能性がある」「API呼び出しがない場合は無視」としているテストは、決定論的ではなく、テストの価値が低く誤解を招く可能性がある。特定の条件下で特定の振る舞いが起こることを一貫して検証できるべき。もしそれがオプションの動作であるなら、テストケースを削除または設計を見直すべき。
-
-**例**:
-
-```typescript
-// ❌ 悪い例: 決定論的でないテスト
-await page
-  .waitForResponse(
-    (response) =>
-      response.url().includes('/api/health/institutions') && response.request().method() === 'GET',
-    { timeout: 15000 }
-  )
-  .catch(() => {
-    // API呼び出しがない場合は無視
-  });
-
-// ✅ 良い例: 決定論的なテスト（API呼び出しが期待される場合）
-await page.waitForResponse(
-  (response) =>
-    response.url().includes('/api/health/institutions') && response.request().method() === 'GET',
-  { timeout: 15000 }
-);
-
-// ✅ 良い例: テストケースを削除（オプションの動作の場合）
-// 注: このテストケースは削除しました。
-// 理由: 手動同期後に接続確認APIが呼び出されるかどうかは実装に依存し、
-// 決定論的でないテストはテストの価値が低く、誤解を招く可能性があるため。
-```
-
-**理由**:
-
-- テストの信頼性が向上する
-- テストの意図が明確になる
-- バグの検出能力が向上する
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
-
----
-
-### E2Eテスト: デバッグしやすいアサーションを使用する
-
-**内容**:
-`.isVisible().catch(() => false)` のようなパターンは、アサーションが失敗した際にPlaywrightが提供する詳細なエラーメッセージ（タイムアウトまでの待機時間、試行されたセレクタなど）を得られないため、デバッグが難しくなる。Playwrightのベストプラクティスに従い、`await expect(...).toBeVisible()` のように直接的なアサーションを使用する。
-
-**例**:
-
-```typescript
-// ❌ 悪い例: デバッグが難しいアサーション
-const hasStatus = await card
-  .getByText(/接続状態|正常|エラー/)
-  .isVisible()
-  .catch(() => false);
-expect(hasStatus).toBe(true);
-
-// ✅ 良い例: 直接的なアサーション
-await expect(card.getByText(/接続状態|正常|エラー/)).toBeVisible();
-```
-
-**理由**:
-
-- テストが失敗した場合の原因特定が容易になる
-- Playwrightの自動待機機能を活用できる
-- エラーメッセージが詳細で有用になる
-
-**適用対象**: E2Eテスト（Playwright）
-
-**参照**: PR #446 - Issue #422: E2Eテスト: FR-004 アプリ起動時のバックグラウンド接続確認（Gemini Code Assistレビュー指摘）
-
----
-
-## 19. クレジットカード追加画面実装レビューから学んだ観点（PR #447）
-
-### 19-1. APIレスポンス形式の一貫性 🔴 Critical
-
-**内容**:
-APIクライアントがレスポンスボディの`data`プロパティを返すように設計されている場合、Controller層で`success`プロパティを分割してトップレベルに移動すると、フロントエンドで期待するデータ構造と不整合が発生する。UseCaseからの結果をそのまま`data`プロパティに含めるべき。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: successプロパティが失われる
-async testCreditCardConnection(
-@Body() dto: TestCreditCardConnectionDto,
-): Promise<{
-success: boolean;
-data: Record<string, unknown>;
-}> {
-const result = await this.testCreditCardConnectionUseCase.execute(dto);
-// result.successが失われる
-const { success, ...data } = result;
-return {
-success,
-data,
-};
-}
-
-// ✅ 良い例: UseCaseの結果をそのまま返す
-async testCreditCardConnection(
-@Body() dto: TestCreditCardConnectionDto,
-): Promise<{
-success: boolean;
-data: CreditCardConnectionTestResult;
-}> {
-const result = await this.testCreditCardConnectionUseCase.execute(dto);
-return {
-success: true,
-data: result,
-};
-}
-\`\`\`
-
-**理由**:
-
-- APIクライアントの設計と整合性が保たれる
-- フロントエンドでのデータアクセスが一貫性を持つ
-- 型安全性が向上する
-
-**適用対象**: NestJS Controller層
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-2. 内部エラーメッセージの漏洩防止 🔴 High
-
-**内容**:
-サーバー側の内部エラーメッセージ（スタックトレース、データベースエラーなど）をクライアントに返すと、セキュリティリスク（情報漏洩）が発生する。サーバー側で詳細なエラーをロギングし、クライアントには汎用的なエラーメッセージを返すべき。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 内部エラーメッセージが漏洩
-catch (error) {
-return {
-success: false,
-message: \`接続テストに失敗しました: \${error instanceof Error ? error.message : 'Unknown error'}\`,
-errorCode: 'CC002',
-};
-}
-
-// ✅ 良い例: 汎用的なエラーメッセージを返す
-catch (error) {
-// セキュリティ上の理由から、内部エラーメッセージはクライアントに返さない
-// 詳細なエラーはサーバー側でロギングする
-this.logger.error('クレジットカード接続テストでエラーが発生しました', error);
-return {
-success: false,
-message: '接続テストに失敗しました。管理者にお問い合わせください。',
-errorCode: 'CC002',
-};
-}
-\`\`\`
-
-**理由**:
-
-- セキュリティリスクを軽減する
-- システム内部の詳細情報を保護する
-- ユーザーに適切なガイダンスを提供する
-
-**適用対象**: エラーハンドリング全般
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-3. レスポンス型の厳密な型付け 🟡 Medium
-
-**内容**:
-Controllerのレスポンス型が\`unknown[]\`や\`Record<string, unknown>\`になっていると、型安全性が損なわれる。実際に返すデータ型を明示的に指定することで、型安全性が向上し、コードの意図が明確になる。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 型が曖昧
-getSupportedCardCompanies(@Query() query: GetSupportedCardCompaniesQueryDto): {
-success: boolean;
-data: unknown[];
-count: number;
-} {
-const companies = this.getSupportedCardCompaniesUseCase.execute(query);
-return {
-success: true,
-data: companies,
-count: companies.length,
-};
-}
-
-// ✅ 良い例: 明示的な型指定
-getSupportedCardCompanies(@Query() query: GetSupportedCardCompaniesQueryDto): {
-success: boolean;
-data: CardCompany[];
-count: number;
-} {
-const companies = this.getSupportedCardCompaniesUseCase.execute(query);
-return {
-success: true,
-data: companies,
-count: companies.length,
-};
-}
-\`\`\`
-
-**理由**:
-
-- 型安全性が向上する
-- IDEの補完機能が正しく動作する
-- コードの意図が明確になる
-
-**適用対象**: NestJS Controller層
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-4. エラーハンドリングでのApiErrorの適切な処理 🟡 Medium
-
-**内容**:
-フロントエンドでAPIエラーをキャッチする際、\`ApiError\`インスタンスをチェックして、バリデーションエラーなどの詳細なフィードバックをユーザーに表示すべき。汎用的なエラーメッセージのみを表示すると、ユーザー体験が低下する。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: エラー詳細が失われる
-catch (\_error) {
-setTestResult({
-success: false,
-message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
-});
-setCurrentStep('result');
-}
-
-// ✅ 良い例: ApiErrorを適切に処理
-catch (error) {
-const message =
-error instanceof ApiError
-? error.message
-: '接続テストに失敗しました。しばらくしてから再度お試しください。';
-const errorCode = error instanceof ApiError ? error.code : undefined;
-
-setTestResult({
-success: false,
-message,
-errorCode,
-});
-setCurrentStep('result');
-}
-\`\`\`
-
-**理由**:
-
-- ユーザーに具体的なエラー情報を提供できる
-- バリデーションエラーなどの詳細なフィードバックが可能になる
-- ユーザー体験が向上する
-
-**適用対象**: フロントエンドのエラーハンドリング
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-5. バックエンドAPIを活用したフィルタリング 🟡 Medium
-
-**内容**:
-フロントエンドで全データを取得してクライアントサイドでフィルタリングを行うと、パフォーマンスが低下し、クライアントの負荷が増加する。バックエンドAPIがフィルタリング機能を提供している場合は、それを活用すべき。検索入力にはデバウンスを適用して、過剰なAPI呼び出しを防ぐ。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: クライアントサイドでフィルタリング
-useEffect(() => {
-const fetchCompanies = async (): Promise<void> => {
-const data = await getSupportedCardCompanies();
-setCompanies(data);
-};
-void fetchCompanies();
-}, []);
-
-useEffect(() => {
-let result = [...companies];
-if (selectedCategory !== 'all') {
-result = result.filter((company) => company.category === selectedCategory);
-}
-if (searchTerm) {
-result = result.filter((company) => company.name.includes(searchTerm));
-}
-setFilteredCompanies(result);
-}, [companies, searchTerm, selectedCategory]);
-
-// ✅ 良い例: バックエンドAPIを活用
-const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-
-// デバウンス処理
-useEffect(() => {
-const timer = setTimeout((): void => {
-setDebouncedSearchTerm(searchTerm);
-}, 500);
-return (): void => clearTimeout(timer);
-}, [searchTerm]);
-
-// バックエンドAPIでフィルタリング
-useEffect(() => {
-const fetchCompanies = async (): Promise<void> => {
-const data = await getSupportedCardCompanies({
-category: selectedCategory !== 'all' ? selectedCategory : undefined,
-searchTerm: debouncedSearchTerm || undefined,
-});
-setCompanies(data);
-};
-void fetchCompanies();
-}, [selectedCategory, debouncedSearchTerm]);
-\`\`\`
-
-**理由**:
-
-- パフォーマンスが向上する
-- クライアントの負荷が軽減される
-- ネットワークトラフィックが削減される
-- デバウンスにより過剰なAPI呼び出しを防げる
-
-**適用対象**: フロントエンドのデータ取得処理
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-6. 日付文字列のタイムゾーン問題の回避 🟡 Medium
-
-**内容**:
-\`new Date('YYYY-MM-DD')\`のように日付文字列をパースすると、実行環境のタイムゾーンによって意図しない日付に解釈される可能性がある。特に、日付の境界付近で1日ずれる問題が発生しがち。年と月のみを表示する場合は、文字列から直接抽出する方が安全でシンプル。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: タイムゾーン問題が発生する可能性
-{new Date(result.cardInfo.expiryDate).toLocaleDateString('ja-JP', {
-year: 'numeric',
-month: '2-digit',
-})}
-
-// ✅ 良い例: 文字列から直接抽出
-{result.cardInfo.expiryDate.substring(0, 7).replace('-', '/')}
-\`\`\`
-
-**理由**:
-
-- タイムゾーンによる日付のずれを防げる
-- コードがシンプルになる
-- パフォーマンスが向上する（Dateオブジェクトの生成が不要）
-
-**適用対象**: 日付表示処理
-
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
-
----
-
-### 19-7. 未使用のエラー処理ロジックの削除 🟡 Medium
-
-**内容**:
-コンポーネントにエラー処理のpropsやロジックが定義されているが、親コンポーネントから使用されていない場合、コードが複雑になり、保守性が低下する。未使用のロジックは削除するか、意図した動作であれば親コンポーネントを修正して使用するようにすべき。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 未使用のエラー処理ロジック
-interface CreditCardCredentialsFormProps {
-company: CardCompany;
-onSubmit: (credentials: CreditCardCredentialsData) => void;
-loading?: boolean;
-error?: string | null; // 親コンポーネントから渡されていない
-errorDetails?: string; // 親コンポーネントから渡されていない
-}
-
-// エラー処理のロジックが複雑だが、実際には使用されていない
-const handleError = useCallback((errorMessage: string, details?: string): void => {
-// ... 複雑なエラー処理ロジック
-}, []);
-
-useEffect(() => {
-if (error && error !== prevErrorRef.current) {
-handleError(error, errorDetails);
-}
-}, [error, errorDetails, handleError]);
-
-// ✅ 良い例: 未使用のロジックを削除
-interface CreditCardCredentialsFormProps {
-company: CardCompany;
-onSubmit: (credentials: CreditCardCredentialsData) => void;
-loading?: boolean;
-}
-\`\`\`
-
-**理由**:
-
-- コードがシンプルになる
-- 保守性が向上する
+- パフォーマンスの向上
+- コードの簡潔性
 - 意図が明確になる
 
-**適用対象**: フロントエンドコンポーネント
+#### 4. ハンドラレベル更新の完全性を確保
 
-**参照**: PR #447 - Issue #444: FR-002: クレジットカード追加画面の実装（Gemini Code Assistレビュー指摘）
+**❌ 悪い例**: ロガー自身のハンドラのみ更新
 
----
+```python
+logger = logging.getLogger(logger_name)
+logger.setLevel(level)
 
-## 21. E2Eテストの信頼性向上（PR #451）
+# ロガー自身のハンドラのみ更新
+for handler in logger.handlers:
+    handler.setLevel(level)
+```
 
-**学習元**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+**✅ 良い例**: 親ロガーのハンドラも更新
 
-### 21-1. E2Eテストの非決定的（flaky）テストの回避 🔴 Critical
+```python
+logger = logging.getLogger(logger_name)
+logger.setLevel(level)
 
-**内容**:
-E2Eテストで実際のAPIの失敗に依存するテストは、テスト環境の状態によって成功したり失敗したりするため、非決定的（flaky）になり、信頼性が低くなる。エラー状態を確実に再現するために、`page.route()`を使用してAPIをモックする必要がある。
+# ロガー自身のハンドラのレベルを更新
+for handler in logger.handlers:
+    handler.setLevel(level)
 
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 実際のAPIの失敗に依存
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-const responsePromise = page.waitForResponse(
-(response) => response.url().includes('/api/api/sync/start'),
-{ timeout: 15000 }
-);
-await syncButtons.first().click();
-const response = await responsePromise;
-if (response.status() !== 200) {
-// エラーレスポンスの場合のみテストが成功する
-await expect(page.locator('text=同期処理に失敗しました')).toBeVisible();
-}
-});
-
-// ✅ 良い例: APIをモックしてエラーを確実に再現
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-// 同期APIをモックしてエラーを返す
-void page.route('\*\*/api/api/sync/start', (route) => {
-void route.fulfill({
-status: 500,
-contentType: 'application/json',
-body: JSON.stringify({
-success: false,
-error: { code: 'SYNC_FAILED', message: '同期処理に失敗しました' },
-}),
-});
-});
-
-await syncButtons.first().click();
-// エラー状態が確実に再現されるため、常にテストが成功する
-await expect(page.locator('text=同期処理に失敗しました')).toBeVisible({ timeout: 5000 });
-});
-\`\`\`
+# ルートロガーのハンドラも更新（子ロガーが親のハンドラを使用する場合があるため）
+if logger_name:
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        handler.setLevel(level)
+```
 
 **理由**:
 
-- テストの信頼性が向上する
-- エラー状態を確実に再現できる
-- テスト環境の状態に依存しない
+- Pythonのログシステムでは、子ロガーが親ロガーのハンドラを使用する場合がある
+- ログレベルの変更が確実に反映される
+- 階層的なロガー構造に対応できる
 
-**適用対象**: E2Eテスト（エラー状態のテスト）
+### 実装チェックリスト
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+- [ ] `clear_existing_handlers`パラメータを提供し、デフォルトは`False`
+- [ ] ログレベル検証を共通関数として実装
+- [ ] ディレクトリ作成は一度だけ実行
+- [ ] 親ロガーのハンドラも更新するロジックを実装
+- [ ] エラーハンドリングが一貫している
 
----
-
-### 21-2. E2EテストのAPIエンドポイントURLの正確性 🟡 Medium
-
-**内容**:
-E2EテストでAPIエンドポイントのURLが不正確だと、混乱を招き、将来のリファクタリングで問題になる可能性がある。バックエンドのコントローラーとグローバルプレフィックスを確認し、正確なURLを使用する必要がある。
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 不正確なURL（重複した/api）
-void page.route('\*\*/api/api/health/institutions', (route) => {
-// ...
-});
-
-// ✅ 良い例: 正確なURL
-// @Controller('health') + setGlobalPrefix('api') = /api/health/institutions
-void page.route('\*\*/api/health/institutions', (route) => {
-// ...
-});
-\`\`\`
-
-**理由**:
-
-- テストの意図が明確になる
-- 将来のリファクタリングで問題を防げる
-- コードレビューで混乱を避けられる
-
-**適用対象**: E2Eテスト（APIモッキング）
-
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+**参照**: PR #44 - Issue #7: ログ機能の実装（Gemini Code Assistレビュー指摘）
 
 ---
 
-### 21-3. E2Eテストのアサーションの厳密性 🟡 Medium
+## 13-14. 運用ドキュメントの品質向上（PR #59）
 
-**内容**:
-E2Eテストでモックデータに基づいて期待値を設定している場合、アサーションもそれに合わせて厳密にする必要がある。曖昧なアサーション（`toBeGreaterThanOrEqual(1)`など）は、テストの意図が不明確になり、UIがすべてのエラーを正しく表示していることを保証できない。
+### 背景
 
-**例**:
+PR #59（Issue #22: 運用ドキュメントの作成）において、Gemini Code Assistから運用マニュアル、トラブルシューティングガイド、FAQに関する複数の指摘を受けました。特に、危険なコマンドの記述や、コマンド例の安全性に関する指摘が重要でした。
 
-\`\`\`typescript
-// ❌ 悪い例: 曖昧なアサーション
-void page.route('\*\*/api/health/institutions', (route) => {
-void route.fulfill({
-status: 200,
-body: JSON.stringify({
-results: [
-{ institutionId: 'bank-1', status: 'disconnected', errorMessage: '認証エラー' },
-{ institutionId: 'bank-2', status: 'disconnected', errorMessage: 'タイムアウト' },
-],
-errorCount: 2,
-}),
-});
-});
+### 学んだ観点
 
-const errorCards = page.locator('text=/エラー|✗/');
-const errorCardCount = await errorCards.count();
-expect(errorCardCount).toBeGreaterThanOrEqual(1); // モックでは2件なのに、1件以上でOK
+#### 1. 危険なコマンドの記述を避ける
 
-// ✅ 良い例: 厳密なアサーション
-expect(errorCardCount).toBe(2); // モックデータに合わせて厳密にチェック
-\`\`\`
+**❌ 悪い例**: すべての管理対象リポジトリを削除してしまう可能性があるコマンド
+
+```bash
+# 管理対象外のRepositoryを削除
+find repository/ -maxdepth 1 -type d ! -name "repository" -exec rm -rf {} \;
+```
+
+**問題点**:
+- `find repository/ -maxdepth 1 -type d`は`repository/`直下のディレクトリ（各管理対象リポジトリのディレクトリ）をリストアップ
+- `! -name "repository"`の条件は、これらのディレクトリ名が"repository"でない限り真となり、結果としてすべての管理対象リポジトリが削除対象となる
+- 意図せず管理対象のすべてのリポジトリを削除してしまう可能性がある
+
+**✅ 良い例**: プロジェクト設定ファイルから管理対象リポジトリ名を取得し、それ以外を削除
+
+```bash
+# 管理対象外のRepositoryを削除
+# プロジェクト設定ファイルから管理対象リポジトリ名を取得
+MANAGED_REPOS=$(find config/projects/ -name "*.yaml" -exec grep -h "name:" {} \; | sed 's/.*name: *//' | sort -u)
+# 管理対象外のディレクトリを特定（確認用）
+for dir in repository/*/; do
+  repo_name=$(basename "$dir")
+  if ! echo "$MANAGED_REPOS" | grep -q "^${repo_name}$"; then
+    echo "削除対象: $dir"
+  fi
+done
+# 実際に削除する場合は、上記の確認後に以下を実行
+# for dir in repository/*/; do
+#   repo_name=$(basename "$dir")
+#   if ! echo "$MANAGED_REPOS" | grep -q "^${repo_name}$"; then
+#     rm -rf "$dir"
+#   fi
+# done
+```
 
 **理由**:
+- プロジェクト設定ファイルにリストされているリポジトリ以外を削除するロジックにより、管理対象リポジトリを誤って削除するリスクを回避
+- 削除前に確認用のコマンドを実行する手順を提供することで、運用ミスを防止
+- 実際の削除コマンドはコメントアウトしており、確認後に実行することを明確化
 
-- テストの意図が明確になる
-- UIがすべてのエラーを正しく表示していることを保証できる
-- テストの正確性が向上する
+#### 2. コマンド例でのハードコードされた値を避ける
 
-**適用対象**: E2Eテスト（アサーション）
+**❌ 悪い例**: ハードコードされた値を使用
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+```bash
+poetry run python scripts/script_management/manage_config.py create-template \
+  scripts/github/config.sh \
+  --var REPO_OWNER=kencom2400 \
+  --var REPO_NAME=RepoAdmin \
+  --var PROJECT_NUMBER=3 \
+  --var PROJECT_ID=PVT_kwHOANWYrs4BKftb
+```
+
+**問題点**:
+- このままコピー＆ペーストすると意図しない設定でファイルが作成されてしまう可能性がある
+- ユーザーが自身の値に置き換える必要があることが明確でない
+
+**✅ 良い例**: プレースホルダーを使用
+
+```bash
+poetry run python scripts/script_management/manage_config.py create-template \
+  scripts/github/config.sh \
+  --var REPO_OWNER=<your_repo_owner> \
+  --var REPO_NAME=<your_repo_name> \
+  --var PROJECT_NUMBER=<your_project_number> \
+  --var PROJECT_ID=<your_project_id>
+```
+
+**理由**:
+- ユーザーが自身の値に置き換える必要があることを明確に示せる
+- コピー＆ペースト時の誤用を防止
+
+#### 3. lsコマンドの出力をforループで処理する方法を避ける
+
+**❌ 悪い例**: lsコマンドの出力をforループで処理
+
+```bash
+for project in $(ls config/projects/); do
+  poetry run python scripts/update_cursor_rules.py ${project%.yaml}
+done
+```
+
+**問題点**:
+- ファイル名にスペースなどが含まれている場合に意図しない動作を引き起こす可能性がある
+- 一般的に推奨されない方法
+
+**✅ 良い例**: シェルのglobbing（ワイルドカード展開）を使用
+
+```bash
+for project_file in config/projects/*.yaml; do
+  poetry run python scripts/update_cursor_rules.py "$(basename "${project_file}" .yaml)"
+done
+```
+
+**理由**:
+- ファイル名にスペースが含まれていても正しく処理される
+- より安全で堅牢な方法
+- シェルの標準的な方法
+
+#### 4. 存在しないスクリプトへの参照を避ける
+
+**❌ 悪い例**: 提供されていないスクリプトを実行
+
+```bash
+./restore.sh backups/YYYYMMDD_HHMMSS.tar.gz
+```
+
+**問題点**:
+- スクリプト自体がドキュメント内で提供されていない
+- ユーザーが実行できない
+
+**✅ 良い例**: 手動でのリストア手順を提供
+
+```bash
+# アーカイブを展開
+tar -xzf backups/YYYYMMDD_HHMMSS.tar.gz
+
+# データを復元
+cp -r backups/YYYYMMDD_HHMMSS/repository/ ./
+cp -r backups/YYYYMMDD_HHMMSS/cursorrules/ ./
+cp -r backups/YYYYMMDD_HHMMSS/scripts_repository/ ./
+cp -r backups/YYYYMMDD_HHMMSS/config/ ./
+```
+
+**理由**:
+- 実際に実行可能な手順を提供
+- スクリプトが提供されていない場合でも対応可能
+- 手動でのリストア手順への参照を追加することで、より親切なドキュメントになる
+
+#### 5. ファイルパスの正確性を確認する
+
+**❌ 悪い例**: 間違ったパスでファイルを探す
+
+```bash
+find scripts_repository/ -name ".script_manifest.yaml" -exec cp --parents {} "$BACKUP_DIR/" \;
+```
+
+**問題点**:
+- ドキュメントの他の箇所では、このファイルはプロジェクトのルートディレクトリに存在するかのようにリストされている
+- パスが間違っている可能性が高い
+
+**✅ 良い例**: 正しいパスでファイルをコピー
+
+```bash
+if [ -f .script_manifest.yaml ]; then
+  cp .script_manifest.yaml "$BACKUP_DIR/"
+fi
+```
+
+**理由**:
+- ドキュメント全体で一貫した記述になる
+- ファイルが存在する場合のみコピーするため、エラーを回避
+
+### 実装チェックリスト
+
+- [ ] 危険なコマンド（特に削除コマンド）は、プロジェクト設定ファイルなどから管理対象を取得する方法を使用
+- [ ] 削除コマンドの前に確認用のコマンドを提供
+- [ ] コマンド例ではハードコードされた値ではなく、プレースホルダーを使用
+- [ ] `ls`コマンドの出力を`for`ループで処理する方法は避け、globbingを使用
+- [ ] 存在しないスクリプトへの参照は避け、実際に実行可能な手順を提供
+- [ ] ファイルパスはドキュメント全体で一貫していることを確認
+- [ ] コマンド例は実際に実行可能であることを確認
+
+**参照**: PR #59 - Issue #22: 運用ドキュメントの作成（Gemini Code Assistレビュー指摘）
 
 ---
 
-### 21-4. E2Eテストのセレクタの正確性 🟡 Medium
+## 13-15. 運用ドキュメントの品質向上（PR #59 - 第2回レビュー）
 
-**内容**:
-E2EテストでUI要素を選択する際、実際のコンポーネントで定義されている`aria-label`やその他の属性と一致させる必要がある。不正確なセレクタは、脆弱なフォールバックセレクタに依存してしまい、テストの堅牢性が低下する。
+### 背景
 
-**例**:
+PR #59（Issue #22: 運用ドキュメントの作成）において、Gemini Code Assistから第2回目のレビューを受けました。主に、コマンド例の正確性と堅牢性に関する指摘が含まれていました。
 
-\`\`\`typescript
-// ❌ 悪い例: 不正確なaria-label
-const closeButton = toast.locator('button[aria-label="閉じる"]');
+### 学んだ観点
 
-// ✅ 良い例: 実際のコンポーネントで定義されているaria-labelを使用
-// Alert.tsx: aria-label="アラートを閉じる"
-const closeButton = toast.locator('button[aria-label="アラートを閉じる"]');
-\`\`\`
+#### 1. cpコマンドの末尾の`/`に注意する
+
+**❌ 悪い例**: 末尾に`/`が付いていると意図しない動作になる
+
+```bash
+cp -r backups/YYYYMMDD_HHMMSS/repository/ ./
+cp -r backups/YYYYMMDD_HHMMSS/cursorrules/ ./
+cp -r backups/YYYYMMDD_HHMMSS/scripts_repository/ ./
+cp -r backups/YYYYMMDD_HHMMSS/config/ ./
+```
+
+**問題点**:
+- コピー元のパスの末尾に`/`が付いていると、ディレクトリの中身だけがカレントディレクトリにコピーされてしまう
+- ディレクトリ自体を置き換えるという意図したリストア動作にならない
+
+**✅ 良い例**: 末尾の`/`を削除
+
+```bash
+cp -r backups/YYYYMMDD_HHMMSS/repository ./
+cp -r backups/YYYYMMDD_HHMMSS/cursorrules ./
+cp -r backups/YYYYMMDD_HHMMSS/scripts_repository ./
+cp -r backups/YYYYMMDD_HHMMSS/config ./
+```
 
 **理由**:
+- ディレクトリ自体を置き換えるという意図した動作になる
+- バックアップと整合性を取ることができる
 
-- テストの堅牢性が向上する
-- 実際のUI実装と一致する
-- フォールバックセレクタへの依存を減らせる
+#### 2. ファイルが存在しない場合のエラーを回避する
 
-**適用対象**: E2Eテスト（セレクタ）
+**❌ 悪い例**: ファイルが存在しない場合にエラーになる
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（Gemini Code Assistレビュー指摘）
+```bash
+tail -100 *.log | grep -i error
+```
+
+**問題点**:
+- カレントディレクトリに`.log`ファイルが存在しない場合に`tail: cannot open '*.log' for reading: No such file or directory`というエラーで失敗する
+
+**✅ 良い例**: `find`コマンドを使用
+
+```bash
+find . -name "*.log" -type f -print0 | xargs -0 tail -n 100 | grep -i error
+```
+
+**理由**:
+- ファイルが存在しない場合でもエラーにならない
+- より堅牢な方法
+- プロジェクトの他のドキュメントでも`find`が使われている箇所があり、一貫性も保てる
+
+#### 3. ドキュメントの実装例をプロジェクトの実際の実装に合わせる
+
+**❌ 悪い例**: プロジェクトで使用していないライブラリの例
+
+```python
+import time
+from requests.exceptions import HTTPError
+
+def api_call_with_retry(func, max_retries=3):
+    for i in range(max_retries):
+        try:
+            return func()
+        except HTTPError as e:
+            if e.response.status_code == 403:
+                time.sleep(60)  # 1分待機
+                continue
+            raise
+```
+
+**問題点**:
+- このプロジェクトのGitHub API呼び出しは主に`gh`コマンドを`subprocess`でラップして実行されている
+- `scripts/utils/git/github.py`には`_retry_on_rate_limit`というデコレータによる実際のリトライ実装がある
+- ドキュメントの例がプロジェクトの実際の実装と異なると、利用者が混乱する可能性がある
+
+**✅ 良い例**: プロジェクトの実際の実装に合わせる
+
+```bash
+# ghコマンドのリトライ例
+max_retries=3
+retry_count=0
+until [ $retry_count -ge $max_retries ]
+do
+  gh api rate_limit && break  # コマンドが成功したらループを抜ける
+  retry_count=$((retry_count+1))
+  echo "Command failed. Retrying in 5 seconds... ($retry_count/$max_retries)"
+  sleep 5
+done
+
+if [ $retry_count -ge $max_retries ]; then
+  echo "Command failed after $max_retries retries."
+fi
+```
+
+**理由**:
+- `gh`コマンドに特化しており、より文脈に合っている
+- プロジェクトの実際の実装（`scripts/utils/git/github.py`の`_retry_on_rate_limit`デコレータ）に言及することで、利用者が実際の実装を参照できる
+
+### 実装チェックリスト
+
+- [ ] `cp`コマンドのコピー元パスから末尾の`/`を削除する（ディレクトリ自体を置き換える場合）
+- [ ] ファイルが存在しない場合のエラーを回避するため、`find`コマンドを使用する
+- [ ] ドキュメントの実装例はプロジェクトの実際の実装に合わせる
+- [ ] プロジェクトで使用していないライブラリの例は避ける
+- [ ] 実際の実装への参照を追加することで、利用者が詳細を確認できるようにする
+
+**参照**: PR #59 - Issue #22: 運用ドキュメントの作成（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---
 
-## 23. E2Eテストのエラー解決アプローチ（PR #451）
+## 13-16. CI/CDパイプラインの品質向上（PR #60）
 
-**学習元**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
+### 背景
 
-### 23-1. E2Eテストエラー解決の段階的アプローチ 🔴 Critical
+PR #60（Issue #23: CI/CDパイプラインの構築）において、Gemini Code Assistからリントチェックの設定に関する指摘を受けました。特に、`flake8`の設定で行長チェックが無効になっていた点が指摘されました。
 
-**内容**:
-E2Eテストでエラーが発生した場合、段階的に調査・修正することで効率的に問題を解決できる。以下の順序でアプローチする：
+### 学んだ観点
 
-1. **エラーメッセージとスクリーンショットの確認**
-   - Playwrightのエラーメッセージを確認
-   - スクリーンショットで実際のUI状態を確認
-   - 期待値と実際の値の差分を把握
+#### 1. flake8の設定で行長チェックを有効にする
 
-2. **実装コードの確認**
-   - テスト対象のコンポーネントやAPIの実装を確認
-   - 実際のエラーハンドリング方法を確認
-   - エラーメッセージの表示方法を確認
+**❌ 悪い例**: 行長チェックを無視している
 
-3. **APIエンドポイントの確認**
-   - バックエンドのコントローラーとグローバルプレフィックスを確認
-   - フロントエンドの`apiClient`のエンドポイント正規化ロジックを確認
-   - 実際のリクエストURLを確認（ブラウザのNetworkタブやPlaywrightのログ）
+```toml
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "E266", "E501", "W503"]
+```
 
-4. **セレクタの確認**
-   - 実際のDOM構造を確認（ブラウザのDevTools）
-   - `aria-label`や`role`属性の実際の値を確認
-   - コンポーネントの実装を確認して正確なセレクタを使用
+**問題点**:
+- `max-line-length = 100`と設定しているにもかかわらず、`extend-ignore`で`E501`（line too long）を指定しているため、行長チェックが機能しなくなってしまう
+- `black`が行のフォーマットを行いますが、長い文字列など`black`が自動で改行できないケースを検知できない
 
-5. **テストの修正**
-   - 実装に合わせてテストを修正
-   - モッキングを使用してエラー状態を確実に再現
-   - アサーションを実装に合わせて調整
+**✅ 良い例**: 行長チェックを有効にする
 
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: エラーメッセージを見ずに推測で修正
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-await syncButtons.first().click();
-await expect(page.locator('text=エラー')).toBeVisible(); // セレクタが不正確
-});
-
-// ✅ 良い例: 段階的に調査して修正
-// 1. エラーメッセージを確認: "element(s) not found"
-// 2. 実装を確認: Alertコンポーネントはrole="alert"を使用
-// 3. セレクタを修正
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-// APIをモックしてエラーを確実に再現
-void page.route('\*\*/api/sync/start', (route) => {
-void route.fulfill({
-status: 500,
-contentType: 'application/json',
-body: JSON.stringify({
-success: false,
-error: { code: 'SYNC_FAILED', message: '同期処理に失敗しました' },
-}),
-});
-});
-
-await syncButtons.first().click();
-// 実装に合わせた正確なセレクタを使用
-await expect(
-page.getByRole('alert').filter({ hasText: '同期処理に失敗しました' }).first()
-).toBeVisible({ timeout: 5000 });
-});
-\`\`\`
+```toml
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "E266", "W503"]
+```
 
 **理由**:
+- `black`が自動で改行できないケース（長い文字列など）を検知できる
+- `max-line-length`の設定が正しく機能する
+- コード品質の向上につながる
 
-- 効率的に問題を解決できる
-- 実装とテストの整合性が保たれる
-- 再発を防げる
+#### 2. リントツールの設定の一貫性を保つ
 
-**適用対象**: E2Eテストのエラー解決
+**❌ 悪い例**: 設定ファイルとコマンドライン引数が不一致
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
+```toml
+# pyproject.toml
+[tool.flake8]
+extend-ignore = ["E203", "E266", "E501", "W503"]
+
+# ワークフローファイル
+--extend-ignore=E203,E266,E501,W503
+```
+
+**問題点**:
+- 設定ファイルとコマンドライン引数が一致していないと、期待する動作と異なる結果になる可能性がある
+
+**✅ 良い例**: 設定ファイルとコマンドライン引数を一致させる
+
+```toml
+# pyproject.toml
+[tool.flake8]
+extend-ignore = ["E203", "E266", "W503"]
+
+# ワークフローファイル
+--extend-ignore=E203,E266,W503
+```
+
+**理由**:
+- 設定の一貫性が保たれる
+- 期待する動作が確実に実行される
+- メンテナンスが容易になる
+
+### 実装チェックリスト
+
+- [ ] `flake8`の`max-line-length`を設定する場合は、`E501`を`extend-ignore`から除外する
+- [ ] `black`と`flake8`の役割を理解し、適切に設定する
+  - `black`: 自動フォーマット
+  - `flake8`: コード品質チェック（行長チェックを含む）
+- [ ] 設定ファイル（`pyproject.toml`）とコマンドライン引数の一貫性を保つ
+- [ ] リントツールの設定を変更した場合は、ワークフローファイルも同様に更新する
+
+**参照**: PR #60 - Issue #23: CI/CDパイプラインの構築（Gemini Code Assistレビュー指摘）
 
 ---
 
-### 23-2. APIエンドポイントURLの確認方法 🟡 Medium
+## 13-17. CI/CDパイプラインの品質向上（PR #60 - 第2回レビュー）
 
-**内容**:
-E2EテストでAPIエンドポイントをモックする際、正確なURLを確認する必要がある。以下の手順で確認する：
+### 背景
 
-1. **バックエンドのコントローラーを確認**
-   - `@Controller('path')`デコレータを確認
-   - `setGlobalPrefix('api')`の設定を確認
-   - 実際のエンドポイント = `グローバルプレフィックス + コントローラーパス + メソッドパス`
+PR #60（Issue #23: CI/CDパイプラインの構築）において、Gemini Code Assistから第2回目のレビューを受けました。主に、ドキュメントの正確性と設定の一貫性に関する指摘が含まれていました。
 
-2. **フロントエンドの`apiClient`を確認**
-   - `apiClient.get/post/patch/put`のエンドポイント正規化ロジックを確認
-   - `/api`で始まっている場合はそのまま使用、そうでない場合は`/api`を追加
+### 学んだ観点
 
-3. **実際のリクエストURLを確認**
-   - Playwrightの`page.waitForResponse`で実際のURLを確認
-   - ブラウザのNetworkタブで実際のリクエストを確認
+#### 1. ドキュメントのコード例の正確性を保つ
 
-**例**:
+**❌ 悪い例**: セクションヘッダーが抜けている
 
-\`\`\`typescript
-// バックエンド: @Controller('sync') + setGlobalPrefix('api') = /api/sync
-// フロントエンド: apiClient.post('/api/sync/start') = /api/sync/start（そのまま使用）
-// 実際のエンドポイント: /api/sync/start
+```toml
+# pyproject.toml
+extend-ignore = ["E203", "E266", "E501", "W503"]
+```
 
-// ❌ 悪い例: 推測でURLを設定
-void page.route('\*\*/api/api/sync/start', (route) => {
-// 実際のエンドポイントと一致しない
-});
+**問題点**:
+- TOMLファイルとして正しくない
+- セクションヘッダー`[tool.flake8]`が抜けている
+- ドキュメントの正確性が損なわれる
 
-// ✅ 良い例: 実装を確認して正確なURLを使用
-void page.route('\*\*/api/sync/start', (route) => {
-// 実際のエンドポイントと一致
-});
-\`\`\`
+**✅ 良い例**: セクションヘッダーを含める
+
+```toml
+# pyproject.toml
+[tool.flake8]
+extend-ignore = ["E203", "E266", "E501", "W503"]
+```
 
 **理由**:
+- TOMLファイルとして正しい形式
+- ドキュメントの正確性が保たれる
+- コピー＆ペーストして使用できる
 
-- テストの信頼性が向上する
-- 将来のリファクタリングで問題を防げる
-- コードレビューで混乱を避けられる
+#### 2. リントツールの設定の一貫性を保つ
 
-**適用対象**: E2Eテスト（APIモッキング）
+**❌ 悪い例**: `black`と`flake8`の行長設定が不一致
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
+```toml
+[tool.flake8]
+max-line-length = 100
 
----
+# [tool.black]セクションがない
+```
 
-### 23-3. セレクタの確認方法 🟡 Medium
+**問題点**:
+- `black`と`flake8`の行長設定が一致していない
+- ツール間で設定の不整合が発生する可能性がある
+- 不要なリントエラーが発生する可能性がある
 
-**内容**:
-E2EテストでUI要素を選択する際、実際のDOM構造やコンポーネントの実装を確認して正確なセレクタを使用する必要がある。
+**✅ 良い例**: `black`と`flake8`の行長設定を一致させる
 
-1. **コンポーネントの実装を確認**
-   - `aria-label`や`role`属性の実際の値を確認
-   - コンポーネントのpropsや実装を確認
+```toml
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "E266", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg",
+]
 
-2. **ブラウザのDevToolsで確認**
-   - 実際のDOM構造を確認
-   - 要素の属性を確認
-
-3. **Playwrightのセレクタを確認**
-   - `getByRole`、`getByLabel`、`getByText`などの適切なセレクタを使用
-   - 複数のセレクタを組み合わせてより正確に要素を特定
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 推測でセレクタを設定
-const closeButton = toast.locator('button[aria-label="閉じる"]');
-// 実際のaria-labelは「アラートを閉じる」
-
-// ✅ 良い例: 実装を確認して正確なセレクタを使用
-// Alert.tsx: aria-label="アラートを閉じる"
-const closeButton = toast.locator('button[aria-label="アラートを閉じる"]');
-
-// ✅ より良い例: roleベースのセレクタを使用
-const toast = page.getByRole('alert').filter({ hasText: '同期処理に失敗しました' });
-const closeButton = toast.locator('button[aria-label="アラートを閉じる"]');
-\`\`\`
+[tool.black]
+line-length = 100
+```
 
 **理由**:
+- `black`と`flake8`の振る舞いが一貫する
+- 不要なリントエラーを防ぐことができる
+- 安定したCIが期待できる
 
-- テストの堅牢性が向上する
-- 実装変更に強いテストになる
-- デバッグが容易になる
+#### 3. コードブロックの言語指定を正確にする
 
-**適用対象**: E2Eテスト（セレクタ）
+**❌ 悪い例**: 言語指定が不正確
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
+```yaml
+# pyproject.toml
+[tool.flake8]
+extend-ignore = ["E203", "E266", "W503"]
+```
 
----
+**問題点**:
+- `pyproject.toml`はTOMLファイルなのに、コードブロックの言語指定が`yaml`になっている
+- シンタックスハイライトが正しく機能しない
 
-### 23-4. エラー状態の確実な再現方法 🟡 Medium
+**✅ 良い例**: 正しい言語指定
 
-**内容**:
-E2Eテストでエラー状態をテストする際、実際のAPIの失敗に依存せず、`page.route()`を使用してエラー状態を確実に再現する必要がある。
-
-1. **APIモッキングの設定**
-   - テストの開始時に`page.route()`を設定
-   - エラーレスポンスを返すように設定
-
-2. **エラーレスポンス形式の確認**
-   - バックエンドのエラーレスポンス形式を確認
-   - `handleErrorResponse`の処理を確認
-   - 実際のエラーメッセージを確認
-
-3. **テストの実行**
-   - モックされたエラーが確実に発生することを確認
-   - エラーハンドリングが正しく動作することを確認
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 実際のAPIの失敗に依存
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-const responsePromise = page.waitForResponse(
-(response) => response.url().includes('/api/sync/start')
-);
-await syncButtons.first().click();
-const response = await responsePromise;
-if (response.status() !== 200) {
-// エラーが発生しない場合、テストが失敗しない
-await expect(page.locator('text=エラー')).toBeVisible();
-}
-});
-
-// ✅ 良い例: APIをモックしてエラーを確実に再現
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-// テストの開始時にAPIをモック
-void page.route('\*\*/api/sync/start', (route) => {
-void route.fulfill({
-status: 500,
-contentType: 'application/json',
-body: JSON.stringify({
-success: false,
-error: { code: 'SYNC_FAILED', message: '同期処理に失敗しました' },
-}),
-});
-});
-
-await syncButtons.first().click();
-// エラー状態が確実に再現されるため、常にテストが成功する
-await expect(
-page.getByRole('alert').filter({ hasText: '同期処理に失敗しました' }).first()
-).toBeVisible({ timeout: 5000 });
-});
-\`\`\`
+```toml
+# pyproject.toml
+[tool.flake8]
+extend-ignore = ["E203", "E266", "W503"]
+```
 
 **理由**:
+- シンタックスハイライトが正しく機能する
+- ドキュメントの可読性が向上する
+- ファイル形式が明確になる
 
-- テストの信頼性が向上する
-- エラー状態を確実に再現できる
-- テスト環境の状態に依存しない
+### 実装チェックリスト
 
-**適用対象**: E2Eテスト（エラー状態のテスト）
+- [ ] ドキュメントのコード例にセクションヘッダーを含める（TOMLファイルの場合）
+- [ ] `black`と`flake8`の行長設定を一致させる
+- [ ] コードブロックの言語指定を正確にする（TOMLファイルには`toml`、YAMLファイルには`yaml`）
+- [ ] ドキュメントのコード例がコピー＆ペーストして使用できることを確認する
 
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
-
----
-
-### 23-5. アサーションの実装に合わせた調整 🟡 Medium
-
-**内容**:
-E2Eテストでアサーションを設定する際、モックデータと実装の両方を考慮して適切なアサーションを使用する必要がある。
-
-1. **モックデータの確認**
-   - モックで返すデータの内容を確認
-   - 期待されるUIの状態を確認
-
-2. **実装の確認**
-   - UIがどのようにデータを表示するかを確認
-   - 複数のデータが1つにまとめられる可能性を確認
-
-3. **アサーションの調整**
-   - 実装に合わせてアサーションを調整
-   - 厳密すぎるアサーションは避ける（実装の制約を考慮）
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: モックデータのみを考慮した厳密なアサーション
-void page.route('\*\*/api/health/institutions', (route) => {
-void route.fulfill({
-status: 200,
-body: JSON.stringify({
-results: [
-{ institutionId: 'bank-1', status: 'disconnected', errorMessage: '認証エラー' },
-{ institutionId: 'bank-2', status: 'disconnected', errorMessage: 'タイムアウト' },
-],
-errorCount: 2,
-}),
-});
-});
-
-const errorCards = page.locator('text=/エラー|✗/');
-const errorCardCount = await errorCards.count();
-expect(errorCardCount).toBe(2); // 実際のUIには登録されている金融機関のみが表示されるため失敗
-
-// ✅ 良い例: 実装を考慮した適切なアサーション
-// 注: モックデータでは2つのエラーを返しているが、実際のUIには登録されている金融機関のみが表示される
-expect(errorCardCount).toBeGreaterThanOrEqual(1); // 実装の制約を考慮
-\`\`\`
-
-**理由**:
-
-- テストの信頼性が向上する
-- 実装の制約を考慮したテストになる
-- 不要なテスト失敗を防げる
-
-**適用対象**: E2Eテスト（アサーション）
-
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
-
----
-
-### 23-6. エラー解決時の調査ツールの活用 🟢 Low
-
-**内容**:
-E2Eテストでエラーが発生した場合、以下のツールを活用して効率的に調査する：
-
-1. **Playwrightのデバッグ機能**
-   - `page.pause()`でテストを一時停止
-   - `page.screenshot()`でスクリーンショットを取得
-   - `page.video.saveAs()`で動画を確認
-
-2. **ブラウザのDevTools**
-   - Networkタブで実際のAPIリクエストを確認
-   - ElementsタブでDOM構造を確認
-   - Consoleタブでエラーログを確認
-
-3. **コードベース検索**
-   - `codebase_search`で関連する実装を検索
-   - `grep`で特定のパターンを検索
-   - 既存のE2Eテストを参考にする
-
-**例**:
-
-\`\`\`typescript
-// デバッグ時に一時停止
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-await page.pause(); // ブラウザで手動で確認可能
-
-await syncButtons.first().click();
-// ...
-});
-
-// スクリーンショットを取得
-test('同期失敗時にトースト通知が表示される', async ({ page }) => {
-await syncButtons.first().click();
-await page.screenshot({ path: 'debug.png' }); // デバッグ用スクリーンショット
-// ...
-});
-\`\`\`
-
-**理由**:
-
-- 効率的に問題を特定できる
-- 実装とテストの整合性を確認できる
-- デバッグ時間を短縮できる
-
-**適用対象**: E2Eテストのデバッグ
-
-**参照**: PR #451 - Issue #423: E2Eテスト: FR-005 接続失敗時のポップアップ通知（実装・修正過程）
-
----
-
-## 24. 設計書の品質向上（PR #452）
-
-**学習元**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
-
-### 24-1. 設計書での型定義の厳密性 🟡 Medium
-
-**内容**:
-設計書（要件定義書、詳細設計書）で型定義を記載する際、プロジェクトの方針に準拠する必要がある。
-
-**問題**:
-
-- 設計書内で`any`型が使用されている
-- プロジェクトの方針では`any`型の使用が禁止されている
-
-**解決策**:
-
-- 設計書でも`any`型の代わりに`unknown`型を使用する
-- インデックスシグネチャなど、動的な型が必要な場合は`unknown`を使用
-
-**例**:
-
-\`\`\`typescript
-// ❌ 悪い例: 設計書でany型を使用
-interface BankCredentials {
-bankCode: string;
-authenticationType: AuthenticationType;
-[key: string]: any; // その他の銀行固有の認証情報
-}
-
-// ✅ 良い例: unknown型を使用
-interface BankCredentials {
-bankCode: string;
-authenticationType: AuthenticationType;
-[key: string]: unknown; // その他の銀行固有の認証情報
-}
-\`\`\`
-
-**理由**:
-
-- 設計書と実装の一貫性を保つ
-- 型安全性を重視するプロジェクトの方針に準拠
-- 実装時の混乱を防ぐ
-
-**適用対象**: 設計書（要件定義書、詳細設計書）の型定義
-
-**参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
-
----
-
-### 24-2. 設計書間の一貫性確保 🟡 Medium
-
-**内容**:
-複数の設計書（README、クラス図、シーケンス図、入出力設計など）を作成する際、設計書間の一貫性を保つ必要がある。
-
-**問題**:
-
-- レイヤーの定義が設計書間で異なる
-- APIのレスポンスステータスコードが設計書間で異なる
-- 同じ概念が異なる用語で記載されている
-
-**解決策**:
-
-- 設計書作成時に、既存の設計書と整合性を確認する
-- レイヤーの定義、API仕様、用語を統一する
-- 設計書間で参照関係を明確にする
-
-**例**:
-
-\`\`\`markdown
-
-<!-- ❌ 悪い例: 設計書間でレイヤー定義が異なる -->
-<!-- README.md -->
-
-- Application Layer: 認証方式に応じたバリデーションロジック
-
-<!-- アーキテクチャ定義 -->
-
-- Presentation Layer: DTOs
-
-<!-- ✅ 良い例: 設計書間で一貫性を保つ -->
-<!-- README.md -->
-
-- Presentation Layer: 認証方式に応じたバリデーションロジック（DTO）
-
-<!-- アーキテクチャ定義 -->
-
-- Presentation Layer: DTOs
-  \`\`\`
-
-**理由**:
-
-- 実装時の混乱を防ぐ
-- 設計書の信頼性を高める
-- レビュー時の指摘を減らす
-
-**適用対象**: 設計書（要件定義書、詳細設計書）全体
-
-**参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
-
----
-
-### 24-3. 設計書でのプレースホルダーの扱い 🟢 Low
-
-**内容**:
-設計書（クラス図、シーケンス図など）でプレースホルダーを使用する際、設計意図がない場合は削除する。
-
-**問題**:
-
-- 設計書にプレースホルダー（例: `[ListComponentName]`）が残っている
-- 設計意図が不明確
-
-**解決策**:
-
-- 設計意図がないプレースホルダーは削除する
-- 設計意図がある場合は、具体的な内容に置き換える
-
-**例**:
-
-\`\`\`markdown
-
-<!-- ❌ 悪い例: プレースホルダーが残っている -->
-
-#### [ListComponentName]
-
-- **責務**: [リストコンポーネントの責務]
-- **Props**:
-  - `items`: 表示するアイテム配列
-  - `onSelect`: アイテム選択時のコールバック
-
-<!-- ✅ 良い例: プレースホルダーを削除 -->
-<!-- 設計意図がないため、該当セクションを削除 -->
-
-\`\`\`
-
-**理由**:
-
-- 設計書の明確性を高める
-- 実装時の混乱を防ぐ
-- レビュー時の指摘を減らす
-
-**適用対象**: 設計書（クラス図、シーケンス図など）
-
-**参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
-
----
-
-### 24-4. シーケンス図での処理フローの明確化 🟡 Medium
-
-**内容**:
-シーケンス図で処理フローを記載する際、処理の意図を明確にする必要がある。
-
-**問題**:
-
-- シーケンス図に矛盾した処理が記載されている（例: 接続テストで暗号化処理を呼び出すが、注釈に「平文のまま」と記載）
-- 不要な処理ステップが含まれている
-
-**解決策**:
-
-- 処理の意図を明確にする
-- 不要な処理ステップを削除する
-- 注釈と処理内容の整合性を確認する
-
-**例**:
-
-\`\`\`mermaid
-
-<!-- ❌ 悪い例: 矛盾した処理 -->
-
-sequenceDiagram
-UC->>Crypto: 認証情報は平文のまま<br/>(接続テスト用)
-UC->>Adapter: testConnection(credentials)
-
-<!-- ✅ 良い例: 不要な処理を削除 -->
-
-sequenceDiagram
-UC->>Adapter: testConnection(credentials)
-\`\`\`
-
-**理由**:
-
-- シーケンス図の意図を明確にする
-- 実装時の混乱を防ぐ
-- レビュー時の指摘を減らす
-
-**適用対象**: 設計書（シーケンス図）
-
-**参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
-
----
-
-### 24-5. 設計書でのREST APIステータスコードの正確性 🟡 Medium
-
-**内容**:
-設計書（シーケンス図、入出力設計など）でREST APIのレスポンスステータスコードを記載する際、REST APIの慣例に準拠する必要がある。
-
-**問題**:
-
-- リソース作成成功時に`200 OK`を使用している
-- REST APIの慣例では`201 Created`を使用すべき
-
-**解決策**:
-
-- REST APIの慣例に準拠したステータスコードを使用する
-- 設計書間でステータスコードの整合性を確認する
-
-**例**:
-
-\`\`\`mermaid
-
-<!-- ❌ 悪い例: リソース作成時に200 OK -->
-
-sequenceDiagram
-API-->>Form: 200 OK<br/>{id, name, type}
-
-<!-- ✅ 良い例: リソース作成時に201 Created -->
-
-sequenceDiagram
-API-->>Form: 201 Created<br/>{id, name, type}
-\`\`\`
-
-**理由**:
-
-- REST APIの慣例に準拠する
-- 設計書間の整合性を保つ
-- 実装時の混乱を防ぐ
-
-**適用対象**: 設計書（シーケンス図、入出力設計）
-
-**参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
+**参照**: PR #60 - Issue #23: CI/CDパイプラインの構築（Gemini Code Assistレビュー指摘 - 第2回）
 
 ---

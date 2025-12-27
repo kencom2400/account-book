@@ -13,11 +13,8 @@ if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
   source "${SCRIPT_DIR}/../config.sh"
 fi
 
-# プロジェクト設定（環境変数で上書き可能、設定ファイルが優先）
-OWNER="${OWNER:-${GH_OWNER:-kencom2400}}"
-REPO_NAME="${REPO_NAME:-${GH_REPO:-account-book}}"
-PROJECT_ID="${PROJECT_ID:-${GH_PROJECT_ID:-PVT_kwHOANWYrs4BIOm-}}"
-STATUS_FIELD_ID="${STATUS_FIELD_ID:-${GH_STATUS_FIELD_ID:-PVTSSF_lAHOANWYrs4BIOm-zg4wCDo}}"
+# プロジェクト設定（config.shから取得）
+# config.shでreadonlyとして定義されているため、ここで再定義しない
 
 # 使用方法を表示
 show_usage() {
@@ -219,7 +216,7 @@ if [ -n "$LABELS" ] || [ -n "$PRIORITY" ]; then
         for label in "${LABEL_ARRAY[@]}"; do
             label=$(echo "$label" | xargs)  # trim
 
-            LABEL_ID=$(echo "$ALL_LABELS_JSON" | jq -r ".[] | select(.name == \"$label\") | .id")
+            LABEL_ID=$(echo "$ALL_LABELS_JSON" | jq -r --arg label_name "$label" '.[] | select(.name == $label_name) | .id')
 
             if [ -n "$LABEL_ID" ] && [ "$LABEL_ID" != "null" ]; then
                 LABEL_IDS+=("\"$LABEL_ID\"")
@@ -243,7 +240,7 @@ if [ -n "$LABELS" ] || [ -n "$PRIORITY" ]; then
         esac
 
         if [ -n "$PRIORITY_LABEL_NAME" ]; then
-            PRIORITY_LABEL_ID=$(echo "$ALL_LABELS_JSON" | jq -r ".[] | select(.name == \"$PRIORITY_LABEL_NAME\") | .id")
+            PRIORITY_LABEL_ID=$(echo "$ALL_LABELS_JSON" | jq -r --arg label_name "$PRIORITY_LABEL_NAME" '.[] | select(.name == $label_name) | .id')
 
             if [ -n "$PRIORITY_LABEL_ID" ] && [ "$PRIORITY_LABEL_ID" != "null" ]; then
                 LABEL_IDS+=("\"$PRIORITY_LABEL_ID\"")
@@ -355,7 +352,7 @@ else
         exit 1
     fi
 
-    STATUS_OPTION_ID=$(echo "$STATUS_OPTIONS_JSON" | jq -r ".[] | select(.name == \"$STATUS\") | .id")
+    STATUS_OPTION_ID=$(echo "$STATUS_OPTIONS_JSON" | jq -r --arg status_name "$STATUS" '.[] | select(.name == $status_name) | .id')
     
     if [ -z "$STATUS_OPTION_ID" ] || [ "$STATUS_OPTION_ID" = "null" ]; then
         echo "⚠️  不明なステータス: $STATUS"

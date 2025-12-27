@@ -3,7 +3,7 @@
 # GitHub ProjectsでIssueのステータスを"In Progress"に変更するスクリプト
 # 注: このスクリプトは update-issue-status.sh のラッパーです
 
-set -e
+set -euo pipefail
 
 # 使い方
 if [ $# -ne 1 ]; then
@@ -18,5 +18,5 @@ ISSUE_NUMBER=$1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # update-issue-status.sh を呼び出す
-"${SCRIPT_DIR}/update-issue-status.sh" "$ISSUE_NUMBER" "🚧 In Progress"
+"${SCRIPT_DIR}/update-issue-status.sh" "$ISSUE_NUMBER" "In Progress"
 
