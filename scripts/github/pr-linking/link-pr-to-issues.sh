@@ -18,10 +18,8 @@ API_RATE_LIMIT_WAIT="${API_RATE_LIMIT_WAIT:-1}"
 
 set -e
 
-# リポジトリ情報（設定ファイルから取得、未設定の場合はデフォルト値）
-OWNER="${OWNER:-${REPO_OWNER:-kencom2400}}"
-REPO_NAME="${REPO_NAME:-${GH_REPO:-account-book}}"
-PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
+# リポジトリ情報（config.shから取得）
+# config.shでreadonlyとして定義されているため、ここで再定義しない
 
 echo "════════════════════════════════════════════════════════════════"
 echo "   🔗 PRとToDo Issueの紐づけ"
