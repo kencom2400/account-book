@@ -4,44 +4,54 @@
 # このファイルはGitHub操作スクリプト全般から参照されます
 
 # リポジトリ情報
-export REPO_OWNER="kencom2400"
-export REPO_NAME="account-book"
-export REPO="${REPO_OWNER}/${REPO_NAME}"  # リポジトリの完全な形式（owner/repo）
-export OWNER="${REPO_OWNER}"  # 後方互換性のためのエイリアス
+readonly REPO_OWNER="kencom2400"
+readonly REPO_NAME="account-book"
+readonly REPO="$kencom2400/$account-book"  # リポジトリの完全な形式（owner/repo）
+readonly OWNER="$kencom2400"  # 後方互換性のためのエイリアス
+export REPO_OWNER REPO_NAME REPO OWNER
 
 # プロジェクト情報
-export PROJECT_NUMBER=1
-export PROJECT_ID="PVT_kwHOANWYrs4BIOm-"
-export PROJECT_OWNER="${REPO_OWNER}"  # プロジェクトのオーナー（通常はリポジトリオーナーと同じ）
+readonly PROJECT_NUMBER={PROJECT_NUMBER}
+readonly PROJECT_ID="{PROJECT_ID}"
+readonly PROJECT_OWNER="$kencom2400"  # プロジェクトのオーナー（通常はリポジトリオーナーと同じ）
+export PROJECT_NUMBER PROJECT_ID PROJECT_OWNER
 
 # GitHub API設定
-export GH_API_LIMIT=9999  # gh project item-list および gh issue list のlimit値
-export MIN_ISSUE_COUNT_FOR_COMPLETION=90  # Issue完了確認の最小閾値
+readonly GH_API_LIMIT={GH_API_LIMIT}
+readonly MIN_ISSUE_COUNT_FOR_COMPLETION={MIN_ISSUE_COUNT_FOR_COMPLETION}
+export GH_API_LIMIT MIN_ISSUE_COUNT_FOR_COMPLETION
 
 # リトライ処理の設定
-export MAX_RETRIES=5  # API反映待機のリトライ最大回数
-export RETRY_INTERVAL=3  # リトライ間隔（秒）
+readonly MAX_RETRIES={MAX_RETRIES}
+readonly RETRY_INTERVAL={RETRY_INTERVAL}
+export MAX_RETRIES RETRY_INTERVAL
 
 # API Rate Limit対策
-export API_RATE_LIMIT_WAIT=1  # API rate limit対策の基本待機時間（秒）
+readonly API_RATE_LIMIT_WAIT={API_RATE_LIMIT_WAIT}
+export API_RATE_LIMIT_WAIT
 
 # ステータスフィールドID
-export STATUS_FIELD_ID="PVTSSF_lAHOANWYrs4BIOm-zg4wCDo"
+readonly STATUS_FIELD_ID="{STATUS_FIELD_ID}"
+export STATUS_FIELD_ID
 
 # ステータスオプションID
-export BACKLOG_OPTION_ID="f908f688"
-export TODO_OPTION_ID="f36fcf60"
-export IN_PROGRESS_OPTION_ID="16defd77"
-export REVIEW_OPTION_ID="0f0f2f26"
-export DONE_OPTION_ID="2f722d70"
+readonly EPIC_OPTION_ID="{EPIC_OPTION_ID}"
+readonly BACKLOG_OPTION_ID="{BACKLOG_OPTION_ID}"
+readonly TODO_OPTION_ID="{TODO_OPTION_ID}"
+readonly IN_PROGRESS_OPTION_ID="{IN_PROGRESS_OPTION_ID}"
+readonly REVIEW_OPTION_ID="{REVIEW_OPTION_ID}"
+readonly DONE_OPTION_ID="{DONE_OPTION_ID}"
+export EPIC_OPTION_ID BACKLOG_OPTION_ID TODO_OPTION_ID IN_PROGRESS_OPTION_ID REVIEW_OPTION_ID DONE_OPTION_ID
 
-# ステータス名とオプションIDのマッピング
-# 注: 連想配列は使用しない（絵文字がキーとして使えないため）
+# ステータス名の定義（絵文字なし）
+readonly STATUS_EPIC="{STATUS_EPIC}"
+readonly STATUS_BACKLOG="{STATUS_BACKLOG}"
+readonly STATUS_TODO="{STATUS_TODO}"
+readonly STATUS_IN_PROGRESS="{STATUS_IN_PROGRESS}"
+readonly STATUS_REVIEW="{STATUS_REVIEW}"
+readonly STATUS_DONE="{STATUS_DONE}"
+export STATUS_EPIC STATUS_BACKLOG STATUS_TODO STATUS_IN_PROGRESS STATUS_REVIEW STATUS_DONE
 
-# ステータス名の定義
-export STATUS_BACKLOG="📦 Backlog"
-export STATUS_TODO="📝 To Do"
-export STATUS_IN_PROGRESS="🚧 In Progress"
-export STATUS_REVIEW="👀 Review"
-export STATUS_DONE="✅ Done"
-
+# Issueトラッカー設定
+readonly ISSUE_TRACKER="{ISSUE_TRACKER:-github}"
+export ISSUE_TRACKER

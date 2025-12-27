@@ -21,8 +21,7 @@ fi
 
 ISSUE_NUMBER=$1
 STATUS=$2
-PROJECT_NUMBER="${PROJECT_NUMBER:-1}"
-OWNER="${OWNER:-kencom2400}"
+# PROJECT_NUMBER, OWNER, PROJECT_ID は config.sh で readonly として定義されているため、再代入しない
 
 # 設定ファイルの読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,11 +30,19 @@ if [ -f "${SCRIPT_DIR}/../config.sh" ]; then
 fi
 
 # GitHub API limit（設定ファイルで定義されていない場合のデフォルト値）
-GH_API_LIMIT="${GH_API_LIMIT:-9999}"
+# 注: config.shでreadonlyとして定義されている場合は、その値を使用
+if [ -z "${GH_API_LIMIT:-}" ]; then
+  GH_API_LIMIT=9999
+fi
 
 # リトライ処理の設定（設定ファイルで定義されていない場合のデフォルト値）
-MAX_RETRIES="${MAX_RETRIES:-5}"
-RETRY_INTERVAL="${RETRY_INTERVAL:-3}"
+# 注: config.shでreadonlyとして定義されている場合は、その値を使用
+if [ -z "${MAX_RETRIES:-}" ]; then
+  MAX_RETRIES=5
+fi
+if [ -z "${RETRY_INTERVAL:-}" ]; then
+  RETRY_INTERVAL=3
+fi
 
 # アイテム情報を取得する関数
 get_item_info() {
@@ -45,12 +52,9 @@ get_item_info() {
 
 echo "🔍 Issue #${ISSUE_NUMBER} の情報を取得中..."
 
-# プロジェクトIDを取得（プロジェクト番号でフィルタリング）
-PROJECT_ID=$(gh project list --owner "$OWNER" --format json | \
-  jq -r --argjson pnum "$PROJECT_NUMBER" '.projects[] | select(.number == $pnum) | .id')
-
-if [ -z "$PROJECT_ID" ]; then
-  echo "❌ エラー: プロジェクト番号 ${PROJECT_NUMBER} が見つかりませんでした"
+# PROJECT_ID は config.sh で readonly として定義されているため、そのまま使用
+if [ -z "${PROJECT_ID:-}" ]; then
+  echo "❌ エラー: PROJECT_ID が設定されていません。config.sh を確認してください。"
   exit 1
 fi
 
