@@ -6,6 +6,7 @@ import {
   CategoryType,
   TransactionStatus,
   InstitutionType,
+  AuthenticationType,
 } from '@account-book/types';
 import { ExportFormat } from '../src/modules/transaction/application/services/export.service';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
@@ -54,6 +55,7 @@ describe('Transaction Controller (e2e)', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },

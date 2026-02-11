@@ -39,19 +39,61 @@ export default function AddBankPage(): React.JSX.Element {
     try {
       const result = await testBankConnection({
         bankCode: credentialsData.bankCode,
+        authenticationType: credentialsData.authenticationType,
         branchCode: credentialsData.branchCode,
         accountNumber: credentialsData.accountNumber,
         apiKey: credentialsData.apiKey,
         apiSecret: credentialsData.apiSecret,
+        userId: credentialsData.userId,
+        password: credentialsData.password,
       });
+
+      // デバッグログ（開発環境のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔍 [handleTestConnection] Result received:', {
+          success: result.success,
+          message: result.message,
+          errorCode: result.errorCode,
+          fullResult: result,
+        });
+      }
 
       setTestResult(result);
       setCurrentStep('result');
-    } catch (_error) {
-      setTestResult({
-        success: false,
-        message: '接続テストに失敗しました。しばらくしてから再度お試しください。',
-      });
+    } catch (error) {
+      // デバッグログ（開発環境のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ [handleTestConnection] Error caught:', {
+          error,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          isApiError: error instanceof ApiError,
+          apiErrorCode: error instanceof ApiError ? error.code : undefined,
+          apiErrorDetails: error instanceof ApiError ? error.details : undefined,
+        });
+      }
+      // ApiErrorの場合は詳細を表示
+      if (error instanceof ApiError) {
+        const errorMessage = error.message || '接続テストに失敗しました。';
+        const details = error.details
+          ?.map((detail) => `${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
+          .join(', ');
+        setTestResult({
+          success: false,
+          message: details || errorMessage,
+          errorCode: error.code,
+        });
+      } else {
+        // その他のエラーの場合
+        const errorMessage = getErrorMessage(
+          error,
+          '接続テストに失敗しました。しばらくしてから再度お試しください。'
+        );
+        setTestResult({
+          success: false,
+          message: errorMessage,
+        });
+      }
       setCurrentStep('result');
     } finally {
       setLoading(false);
@@ -73,10 +115,13 @@ export default function AddBankPage(): React.JSX.Element {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: credentials.bankCode,
+          authenticationType: credentials.authenticationType,
           branchCode: credentials.branchCode,
           accountNumber: credentials.accountNumber,
           apiKey: credentials.apiKey,
           apiSecret: credentials.apiSecret,
+          userId: credentials.userId,
+          password: credentials.password,
         },
       });
 

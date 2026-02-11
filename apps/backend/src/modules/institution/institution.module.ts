@@ -5,7 +5,7 @@ import { InstitutionTypeOrmRepository } from './infrastructure/repositories/inst
 import { InstitutionOrmEntity } from './infrastructure/entities/institution.orm-entity';
 import { AccountOrmEntity } from './infrastructure/entities/account.orm-entity';
 import { CryptoService } from './infrastructure/services/crypto.service';
-import { MockBankApiAdapter } from './infrastructure/adapters/mock-bank-api.adapter';
+import { BankApiAdapterFactory } from './infrastructure/adapters/bank-api-adapter.factory';
 import { CreateInstitutionUseCase } from './application/use-cases/create-institution.use-case';
 import { GetInstitutionsUseCase } from './application/use-cases/get-institutions.use-case';
 import { GetInstitutionUseCase } from './application/use-cases/get-institution.use-case';
@@ -14,11 +14,7 @@ import { GetSupportedBanksUseCase } from './application/use-cases/get-supported-
 import { UpdateInstitutionUseCase } from './application/use-cases/update-institution.use-case';
 import { DeleteInstitutionUseCase } from './application/use-cases/delete-institution.use-case';
 import { TransactionModule } from '../transaction/transaction.module';
-import {
-  INSTITUTION_REPOSITORY,
-  CRYPTO_SERVICE,
-  BANK_API_ADAPTER,
-} from './institution.tokens';
+import { INSTITUTION_REPOSITORY, CRYPTO_SERVICE } from './institution.tokens';
 
 @Module({
   imports: [
@@ -38,10 +34,9 @@ import {
       useClass: CryptoService,
     },
     // Adapters
-    {
-      provide: BANK_API_ADAPTER,
-      useFactory: (): MockBankApiAdapter => new MockBankApiAdapter('0000'), // モック実装を使用
-    },
+    BankApiAdapterFactory,
+    // BANK_API_ADAPTERは動的に取得するため、ここでは提供しない
+    // TestBankConnectionUseCaseなどでBankApiAdapterFactoryを使用してbankCodeに応じて適切なアダプターを取得
     // Use Cases
     CreateInstitutionUseCase,
     GetInstitutionsUseCase,
@@ -51,6 +46,6 @@ import {
     UpdateInstitutionUseCase,
     DeleteInstitutionUseCase,
   ],
-  exports: [INSTITUTION_REPOSITORY, CRYPTO_SERVICE, BANK_API_ADAPTER],
+  exports: [INSTITUTION_REPOSITORY, CRYPTO_SERVICE, BankApiAdapterFactory],
 })
 export class InstitutionModule {}

@@ -138,10 +138,13 @@ export default function EditBankPage(): React.JSX.Element {
     try {
       const result = await testBankConnection({
         bankCode: credentialsData.bankCode,
+        authenticationType: credentialsData.authenticationType,
         branchCode: credentialsData.branchCode,
         accountNumber: credentialsData.accountNumber,
         apiKey: credentialsData.apiKey,
         apiSecret: credentialsData.apiSecret,
+        userId: credentialsData.userId,
+        password: credentialsData.password,
       });
 
       dispatch({ type: 'SET_TEST_RESULT', payload: result });
@@ -171,10 +174,13 @@ export default function EditBankPage(): React.JSX.Element {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: state.credentials.bankCode,
+          authenticationType: state.credentials.authenticationType,
           branchCode: state.credentials.branchCode,
           accountNumber: state.credentials.accountNumber,
           apiKey: state.credentials.apiKey,
           apiSecret: state.credentials.apiSecret,
+          userId: state.credentials.userId,
+          password: state.credentials.password,
         },
       });
 

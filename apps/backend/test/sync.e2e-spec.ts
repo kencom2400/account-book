@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { InstitutionType } from '@account-book/types';
+import { InstitutionType, AuthenticationType } from '@account-book/types';
 import { SyncStatus } from '../src/modules/sync/domain/enums/sync-status.enum';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 import { createTestApp } from './helpers/test-setup';
@@ -48,6 +48,7 @@ describe('Sync Controller (e2e)', () => {
         type: InstitutionType.BANK,
         credentials: {
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         },

@@ -2,7 +2,11 @@ import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { InstitutionType, BankCategory } from '@account-book/types';
+import {
+  InstitutionType,
+  BankCategory,
+  AuthenticationType,
+} from '@account-book/types';
 import type { ErrorDetail } from '@account-book/types';
 import { E2ETestDatabaseHelper } from './helpers/database-helper';
 import { createTestApp } from './helpers/test-setup';
@@ -100,6 +104,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         })
@@ -117,6 +122,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: 'invalid',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
         })
@@ -139,6 +145,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: 'ab',
           accountNumber: '1234567',
         })
@@ -161,6 +168,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '123',
         })
@@ -183,6 +191,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
           apiKey: 'test-api-key',
@@ -199,6 +208,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           // branchCode missing
           accountNumber: '1234567',
         })
@@ -210,6 +220,7 @@ describe('Institution Controller (e2e)', () => {
         .post('/api/institutions/banks/test-connection')
         .send({
           bankCode: '0000',
+          authenticationType: AuthenticationType.BRANCH_ACCOUNT,
           branchCode: '001',
           accountNumber: '1234567',
           unexpectedField: 'value',
@@ -227,6 +238,7 @@ describe('Institution Controller (e2e)', () => {
           type: InstitutionType.BANK,
           credentials: {
             bankCode: '0000',
+            authenticationType: AuthenticationType.BRANCH_ACCOUNT,
             branchCode: '001',
             accountNumber: '1234567',
           },
@@ -249,6 +261,7 @@ describe('Institution Controller (e2e)', () => {
           type: InstitutionType.BANK,
           credentials: {
             bankCode: '0000',
+            authenticationType: AuthenticationType.BRANCH_ACCOUNT,
             branchCode: '001',
             accountNumber: '1234567',
           },
@@ -264,6 +277,7 @@ describe('Institution Controller (e2e)', () => {
           type: 'invalid_type',
           credentials: {
             bankCode: '0000',
+            authenticationType: AuthenticationType.BRANCH_ACCOUNT,
             branchCode: '001',
             accountNumber: '1234567',
           },

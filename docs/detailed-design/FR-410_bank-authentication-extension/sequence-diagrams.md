@@ -281,7 +281,7 @@ sequenceDiagram
 
     alt バリデーション成功
         Validator-->>API: true
-        API->>UC: execute(dto)
+    API->>UC: execute(dto)
 
         UC->>Crypto: encrypt(credentials)
         Note over Crypto: AES-256-GCMで暗号化<br/>(passwordも含む)

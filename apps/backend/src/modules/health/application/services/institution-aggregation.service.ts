@@ -2,12 +2,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IInstitutionInfo } from '../../domain/adapters/api-client.interface';
 
 // 金融機関モジュールのリポジトリとAPIクライアント
-import {
-  INSTITUTION_REPOSITORY,
-  BANK_API_ADAPTER,
-} from '../../../institution/institution.tokens';
+import { INSTITUTION_REPOSITORY } from '../../../institution/institution.tokens';
 import type { IInstitutionRepository } from '../../../institution/domain/repositories/institution.repository.interface';
-import type { IBankApiAdapter } from '../../../institution/domain/adapters/bank-api.adapter.interface';
+import { BankApiAdapterFactory } from '../../../institution/infrastructure/adapters/bank-api-adapter.factory';
 import {
   CREDIT_CARD_REPOSITORY,
   CREDIT_CARD_API_CLIENT,
@@ -41,8 +38,7 @@ export class InstitutionAggregationService {
     private readonly creditCardRepository: ICreditCardRepository,
     @Inject(SECURITIES_ACCOUNT_REPOSITORY)
     private readonly securitiesRepository: ISecuritiesAccountRepository,
-    @Inject(BANK_API_ADAPTER)
-    private readonly bankApiAdapter: IBankApiAdapter,
+    private readonly bankApiAdapterFactory: BankApiAdapterFactory,
     @Inject(CREDIT_CARD_API_CLIENT)
     private readonly creditCardApiClient: ICreditCardAPIClient,
     @Inject(SECURITIES_API_CLIENT)
@@ -59,13 +55,19 @@ export class InstitutionAggregationService {
     // 銀行を取得
     try {
       const banks = await this.institutionRepository.findAll();
+      // デフォルトのアダプターを取得（モックアダプター）
+      // 注: credentialsが暗号化されているため、bankCodeに直接アクセスできない
+      // 将来的には、各銀行に対して適切なアダプターを取得する必要がある
+      const defaultBankApiAdapter = this.bankApiAdapterFactory.create('0009'); // デフォルトは三井住友銀行
       institutions.push(
         ...banks.map((bank) => ({
           id: bank.id,
           name: bank.name,
           type: 'bank' as const,
           // IBankApiAdapterはIFinancialApiClientを継承しているため、型安全
-          apiClient: this.bankApiAdapter,
+          // 注: 現在はすべての銀行に対してデフォルトのアダプターを使用
+          // 将来的には、各銀行のbankCodeに基づいて適切なアダプターを取得する必要がある
+          apiClient: defaultBankApiAdapter,
         })),
       );
       this.logger.debug(`${banks.length}件の銀行を取得しました`);

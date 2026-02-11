@@ -35,8 +35,40 @@ export function BankSelector({ onSelectBank, selectedBank }: BankSelectorProps):
         setBanks(data);
         setFilteredBanks(data);
         setError(null);
-      } catch (_err) {
-        setError('銀行一覧の取得に失敗しました');
+      } catch (err) {
+        // デバッグログ（開発環境のみ）
+        if (process.env.NODE_ENV === 'development') {
+          const errorDetails: Record<string, unknown> = {
+            errorType: err instanceof Error ? err.constructor.name : typeof err,
+            errorMessage: err instanceof Error ? err.message : String(err),
+          };
+
+          if (err instanceof Error) {
+            errorDetails.errorStack = err.stack;
+            errorDetails.errorName = err.name;
+            // Errorオブジェクトのすべてのプロパティを取得
+            Object.getOwnPropertyNames(err).forEach((key) => {
+              try {
+                errorDetails[`error_${key}`] = (err as Record<string, unknown>)[key];
+              } catch {
+                // プロパティの取得に失敗した場合はスキップ
+              }
+            });
+          } else {
+            errorDetails.errorString = String(err);
+            errorDetails.errorJSON = JSON.stringify(err);
+          }
+
+          console.error('❌ [BankSelector] Failed to fetch banks:', errorDetails);
+        }
+
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : '銀行一覧の取得に失敗しました';
+        setError(errorMessage || '銀行一覧の取得に失敗しました');
       } finally {
         setLoading(false);
       }

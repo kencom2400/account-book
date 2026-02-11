@@ -6,6 +6,7 @@ import {
   BankConnectionTestResult,
   BankAccountType,
   BankTransactionType,
+  AuthenticationType,
 } from '@account-book/types';
 import { IBankApiAdapter } from '../../domain/adapters/bank-api.adapter.interface';
 import { BankConnectionError } from '../../domain/errors/bank-connection.error';
@@ -60,10 +61,11 @@ export class MockBankApiAdapter implements IBankApiAdapter {
     }
 
     // テスト用の成功レスポンス
+    const accountNumber = this.getDisplayAccountNumber(credentials);
     const accountInfo: BankAccountInfo = {
       bankName: 'テスト銀行',
       branchName: 'テスト支店',
-      accountNumber: credentials.accountNumber,
+      accountNumber,
       accountHolder: 'テスト　タロウ',
       accountType: BankAccountType.ORDINARY,
       balance: 1000000,
@@ -85,10 +87,11 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       throw BankConnectionError.invalidCredentials();
     }
 
+    const accountNumber = this.getDisplayAccountNumber(credentials);
     return Promise.resolve({
       bankName: 'テスト銀行',
       branchName: 'テスト支店',
-      accountNumber: credentials.accountNumber,
+      accountNumber,
       accountHolder: 'テスト　タロウ',
       accountType: BankAccountType.ORDINARY,
       balance: 1000000,
@@ -150,16 +153,72 @@ export class MockBankApiAdapter implements IBankApiAdapter {
       return false;
     }
 
-    // 支店コードのチェック（3桁数字）
-    if (!/^\d{3}$/.test(credentials.branchCode)) {
+    // 認証タイプのチェック
+    if (
+      !credentials.authenticationType ||
+      (credentials.authenticationType !== AuthenticationType.BRANCH_ACCOUNT &&
+        credentials.authenticationType !== AuthenticationType.USERID_PASSWORD)
+    ) {
       return false;
     }
 
-    // 口座番号のチェック（7桁数字）
-    if (!/^\d{7}$/.test(credentials.accountNumber)) {
-      return false;
+    // 認証方式に応じたバリデーション
+    if (credentials.authenticationType === AuthenticationType.BRANCH_ACCOUNT) {
+      // 支店コードのチェック（3桁数字）
+      if (
+        typeof credentials.branchCode !== 'string' ||
+        !/^\d{3}$/.test(credentials.branchCode)
+      ) {
+        return false;
+      }
+
+      // 口座番号のチェック（7桁数字）
+      if (
+        typeof credentials.accountNumber !== 'string' ||
+        !/^\d{7}$/.test(credentials.accountNumber)
+      ) {
+        return false;
+      }
+    } else if (
+      credentials.authenticationType === AuthenticationType.USERID_PASSWORD
+    ) {
+      // ユーザIDのチェック（1-100文字）
+      if (
+        typeof credentials.userId !== 'string' ||
+        credentials.userId.length < 1 ||
+        credentials.userId.length > 100
+      ) {
+        return false;
+      }
+
+      // パスワードのチェック（8-100文字）
+      if (
+        typeof credentials.password !== 'string' ||
+        credentials.password.length < 8 ||
+        credentials.password.length > 100
+      ) {
+        return false;
+      }
     }
 
     return true;
+  }
+
+  /**
+   * 表示用の口座番号を取得
+   * accountNumberが存在する場合はそのまま返し、
+   * 存在しない場合はuserIdの末尾4文字をマスクした形式を返す
+   */
+  private getDisplayAccountNumber(credentials: BankCredentials): string {
+    if (credentials.accountNumber) {
+      return credentials.accountNumber;
+    }
+    if (
+      typeof credentials.userId === 'string' &&
+      credentials.userId.length > 0
+    ) {
+      return `***${credentials.userId.slice(-4)}`;
+    }
+    return '*******';
   }
 }

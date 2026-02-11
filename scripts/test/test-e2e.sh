@@ -264,10 +264,18 @@ case $TARGET in
     echo "🧪 フロントエンドのE2Eテスト実行中..."
     echo "ℹ️  PlaywrightのwebServer設定により、バックエンドは自動的に起動されます"
     
+    # 第2引数で特定のテストファイルを指定可能
+    TEST_FILE="${2:-}"
+    TEST_ARGS=""
+    if [ -n "$TEST_FILE" ]; then
+      TEST_ARGS="$TEST_FILE"
+      echo "ℹ️  テストファイルを指定: $TEST_FILE"
+    fi
+    
     # フロントエンドE2Eテスト実行（Playwrightがバックエンドを自動起動）
     # タイムアウトを設定（webServer起動120秒 + テスト実行60秒 × テスト数 + 余裕）
     cd apps/frontend
-    timeout 600 pnpm test:e2e || {
+    timeout 600 pnpm test:e2e $TEST_ARGS || {
       EXIT_CODE=$?
       if [ $EXIT_CODE -eq 124 ]; then
         echo "❌ E2Eテストがタイムアウトしました（10分）"

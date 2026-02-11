@@ -13931,3 +13931,260 @@ API-->>Form: 201 Created<br/>{id, name, type}
 **参照**: PR #452 - Issue #410: Phase 1 銀行認証方式拡張の要件定義書作成（Gemini Code Assistレビュー指摘）
 
 ---
+
+### 25-1. DTOの条件付きバリデーションの実装 🔴 High
+
+**内容**:
+DTOで`@IsOptional`を使用してフィールドをオプションにした場合でも、他のフィールドの値に応じて条件付きで必須チェックが必要な場合は、カスタムバリデーターを実装する必要がある。
+
+**問題**:
+
+- `authenticationType`に応じて、`branchCode`/`accountNumber`または`userId`/`password`が必須になる
+- `@IsOptional`のみでは、条件付きの必須チェックができない
+- 不正なリクエストがアプリケーション層まで到達し、後続の処理でエラーとなる
+
+**解決策**:
+
+- `class-validator`のカスタムバリデーター（`@ValidatorConstraint`）を実装
+- DTOクラスに`@Validate`デコレーターでカスタムバリデーターを適用
+- `switch`文を使用して、認証タイプに応じたバリデーションを実装
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: @IsOptionalのみで条件付きバリデーションができない
+
+export class TestBankConnectionDto {
+@IsEnum(AuthenticationType)
+authenticationType!: AuthenticationType;
+
+@IsOptional() // ← これだけでは不十分
+branchCode?: string;
+
+@IsOptional() // ← これだけでは不十分
+accountNumber?: string;
+}
+
+// ✅ 良い例: カスタムバリデーターで条件付きチェック
+
+@ValidatorConstraint({ name: 'isValidTestBankConnectionCredentials', async: false })
+export class IsValidTestBankConnectionCredentialsConstraint
+implements ValidatorConstraintInterface
+{
+validate(dto: TestBankConnectionDto, \_args: ValidationArguments): boolean {
+switch (dto.authenticationType) {
+case AuthenticationType.BRANCH_ACCOUNT:
+return (
+typeof dto.branchCode === 'string' &&
+/^\d{3}$/.test(dto.branchCode) &&
+          typeof dto.accountNumber === 'string' &&
+          /^\d{7}$/.test(dto.accountNumber)
+);
+case AuthenticationType.USERID_PASSWORD:
+return (
+typeof dto.userId === 'string' &&
+dto.userId.length >= 1 &&
+dto.userId.length <= 100 &&
+typeof dto.password === 'string' &&
+dto.password.length >= 8 &&
+dto.password.length <= 100
+);
+default:
+return false;
+}
+}
+}
+
+@Validate(IsValidTestBankConnectionCredentialsConstraint)
+export class TestBankConnectionDto {
+@IsEnum(AuthenticationType)
+authenticationType!: AuthenticationType;
+
+@IsOptional()
+branchCode?: string;
+
+@IsOptional()
+accountNumber?: string;
+}
+\`\`\`
+
+**理由**:
+
+- リクエストの早期段階でエラーを検知できる
+- アプリケーション層でのエラーハンドリングが不要になる
+- 型安全性とバリデーションの一貫性が保たれる
+
+**適用対象**: DTO（Presentation Layer）
+
+**実装方法の選択肢**:
+
+1. **クラスレベルでのバリデーション**: DTOクラス全体に`@Validate`デコレーターを適用し、カスタムバリデーターでDTO全体を検証する方法
+2. **プロパティレベルでの条件付きバリデーション**: `@ValidateIf`と`@Validate`を各プロパティに適用し、条件に応じてバリデーションを実行する方法
+
+**推奨**: プロパティレベルでの条件付きバリデーション（`@ValidateIf` + `@Validate`）を推奨
+
+- エラーメッセージがより具体的で、どのフィールドに問題があるか明確になる
+- 各プロパティごとに独立したバリデーションロジックを実装できる
+- 将来的に新しい認証タイプが追加された場合の拡張が容易
+
+**実装例（プロパティレベル）**:
+
+\`\`\`typescript
+@ValidatorConstraint({ name: 'isValidBranchAccountCredentials', async: false })
+export class IsValidBranchAccountCredentialsConstraint
+implements ValidatorConstraintInterface
+{
+validate(value: unknown, args: ValidationArguments): boolean {
+const dto = args.object as TestBankConnectionDto;
+if (dto.authenticationType !== AuthenticationType.BRANCH_ACCOUNT) {
+return true; // 条件に合わない場合はスキップ
+}
+// プロパティごとのバリデーション
+if (args.property === 'branchCode') {
+return typeof value === 'string' && /^\d{3}$/.test(value);
+}
+return true;
+}
+}
+
+export class TestBankConnectionDto {
+@ValidateIf((o) => o.authenticationType === AuthenticationType.BRANCH_ACCOUNT)
+@Validate(IsValidBranchAccountCredentialsConstraint)
+@IsNotEmpty({ message: '支店コードは必須です' })
+branchCode?: string;
+}
+\`\`\`
+
+**参照**: PR #454 - Issue #410: Phase 2 & 3 銀行認証方式拡張の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 25-2. 重複ロジックのヘルパーメソッド抽出 🟡 Medium
+
+**内容**:
+同じロジックが複数箇所で繰り返されている場合、プライベートヘルパーメソッドに抽出してコードの重複を避ける。
+
+**問題**:
+
+- 同じロジックが複数箇所で繰り返されている
+- 将来的な変更時に複数箇所を修正する必要がある
+- メンテナンス性が低下する
+
+**解決策**:
+
+- 重複しているロジックをプライベートメソッドに抽出
+- 各箇所から新しいメソッドを呼び出すように変更
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: 重複ロジック
+
+async testConnection(credentials: BankCredentials): Promise<BankConnectionTestResult> {
+const accountNumber =
+credentials.accountNumber ||
+(typeof credentials.userId === 'string' && credentials.userId.length > 0
+? `***${credentials.userId.slice(-4)}`
+: '**\*\*\***');
+// ...
+}
+
+async getAccountInfo(credentials: BankCredentials): Promise<BankAccountInfo> {
+const accountNumber =
+credentials.accountNumber ||
+(typeof credentials.userId === 'string' && credentials.userId.length > 0
+? `***${credentials.userId.slice(-4)}`
+: '**\*\*\***');
+// ...
+}
+
+// ✅ 良い例: ヘルパーメソッドに抽出
+
+private getDisplayAccountNumber(credentials: BankCredentials): string {
+if (credentials.accountNumber) {
+return credentials.accountNumber;
+}
+if (typeof credentials.userId === 'string' && credentials.userId.length > 0) {
+return `***${credentials.userId.slice(-4)}`;
+}
+return '**\*\*\***';
+}
+
+async testConnection(credentials: BankCredentials): Promise<BankConnectionTestResult> {
+const accountNumber = this.getDisplayAccountNumber(credentials);
+// ...
+}
+
+async getAccountInfo(credentials: BankCredentials): Promise<BankAccountInfo> {
+const accountNumber = this.getDisplayAccountNumber(credentials);
+// ...
+}
+\`\`\`
+
+**理由**:
+
+- コードの重複を避け、保守性が向上する
+- 将来的な変更時に1箇所の修正で済む
+- コードの可読性が向上する
+
+**適用対象**: すべてのコード（特にInfrastructure Layer）
+
+**参照**: PR #454 - Issue #410: Phase 2 & 3 銀行認証方式拡張の実装（Gemini Code Assistレビュー指摘）
+
+---
+
+### 25-3. switch文による条件分岐のリファクタリング 🟡 Medium
+
+**内容**:
+`if-else if`構造で複数の条件を処理する場合、`switch`文を使用することでコードをよりクリーンで保守しやすくできる。
+
+**問題**:
+
+- `if-else if`構造が複雑になり、可読性が低下する
+- 到達不能な`return false`ステートメントが存在する
+- 将来的に新しい認証タイプが追加された場合の対応が困難
+
+**解決策**:
+
+- `switch`文を使用して各認証タイプを`case`で処理
+- `default`ケースで予期しない値を処理
+
+**例**:
+
+\`\`\`typescript
+// ❌ 悪い例: if-else if構造
+
+if (authType === AuthenticationType.BRANCH_ACCOUNT) {
+// ...
+} else if (authType === AuthenticationType.USERID_PASSWORD) {
+// ...
+}
+return false; // ← 到達不能な可能性がある
+
+// ✅ 良い例: switch文
+
+switch (authType) {
+case AuthenticationType.BRANCH_ACCOUNT: {
+// ...
+return true;
+}
+case AuthenticationType.USERID_PASSWORD: {
+// ...
+return true;
+}
+default:
+return false;
+}
+\`\`\`
+
+**理由**:
+
+- コードがよりクリーンで保守しやすくなる
+- 新しい認証タイプの追加が容易になる
+- 到達不能コードがなくなる
+
+**適用対象**: バリデーションロジック、条件分岐ロジック
+
+**参照**: PR #454 - Issue #410: Phase 2 & 3 銀行認証方式拡張の実装（Gemini Code Assistレビュー指摘）
+
+---

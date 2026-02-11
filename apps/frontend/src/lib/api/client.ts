@@ -37,19 +37,82 @@ export class ApiError extends Error {
 async function get<T>(endpoint: string): Promise<T> {
   // エンドポイントが/apiで始まっていない場合は追加
   const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
-  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
 
-  if (!response.ok) {
-    await handleErrorResponse(response);
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('🔍 [API Client] GET request:', url);
   }
 
-  const result = (await response.json()) as ApiResponse<T>;
-  return result.data;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      await handleErrorResponse(response);
+    }
+
+    const result = (await response.json()) as ApiResponse<T>;
+    return result.data;
+  } catch (error) {
+    // ネットワークエラーなどの場合
+    if (process.env.NODE_ENV === 'development') {
+      // エラー情報を詳細に取得
+      const errorDetails: Record<string, unknown> = {
+        url,
+        timestamp: new Date().toISOString(),
+      };
+
+      // エラーの種類を判定
+      if (error instanceof TypeError) {
+        errorDetails.errorType = 'TypeError';
+        errorDetails.errorMessage = error.message;
+        errorDetails.errorName = error.name;
+        errorDetails.errorStack = error.stack;
+        errorDetails.cause = error.cause;
+      } else if (error instanceof Error) {
+        errorDetails.errorType = error.constructor.name;
+        errorDetails.errorMessage = error.message;
+        errorDetails.errorName = error.name;
+        errorDetails.errorStack = error.stack;
+        if ('cause' in error) {
+          errorDetails.cause = (error as { cause?: unknown }).cause;
+        }
+      } else {
+        errorDetails.errorType = typeof error;
+        errorDetails.errorValue = String(error);
+        try {
+          errorDetails.errorJSON = JSON.stringify(error);
+        } catch {
+          errorDetails.errorJSON = 'JSON.stringify failed';
+        }
+      }
+
+      // 追加のデバッグ情報
+      errorDetails.API_BASE_URL = API_BASE_URL;
+      errorDetails.normalizedEndpoint = normalizedEndpoint;
+
+      console.error('❌ [API Client] GET request failed:', errorDetails);
+      console.error('❌ [API Client] Raw error object:', error);
+    }
+
+    // エラーメッセージを構築
+    let errorMessage = '接続に失敗しました';
+    if (error instanceof TypeError) {
+      // TypeErrorは通常、ネットワークエラーやCORSエラー
+      errorMessage = error.message || 'ネットワークエラーが発生しました';
+    } else if (error instanceof Error) {
+      errorMessage = error.message || errorMessage;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+
+    throw new Error(`ネットワークエラー: ${errorMessage}`);
+  }
 }
 
 /**
